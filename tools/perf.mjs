@@ -1,15 +1,17 @@
-// Client performance probe: a real network client (no local simulation) joins the bundled LAN server as
-// host, fills the match with bots, and records frame-time stats from the running game.
-// Usage: node tools/perf.mjs [--device=s24|iphone|mid] [--classic] [--mobile] [--throttle=4] [--bots=19] [--map=jungle]
-//        [--seconds=20] [--headed] [--profile]
-// (serves packages/client/dist: run `npm run build` first)
+// Client performance probe for Bladerift: a practice duel against the bot (it runs in the browser, no server needed),
+// with frame-time statistics from the running match. While it measures, a fighter holds forward and attacks, so the
+// frames come from a real fight (hits, effects, the HUD), not an idle screen.
+// Usage: node tools/perf.mjs [--url=http://localhost:5173/] [--device=s24|mid|iphone] [--mobile] [--throttle=4]
+//        [--seconds=20] [--headed] [--profile] [--allocs]
 //   --device=s24     Galaxy S24 Ultra-like: Android Chrome UA, 832x384 CSS px at DPR 3.75, touch, CPU throttle 2
 //   --device=mid     mid-range Android: 800x360 at DPR 2.5, CPU throttle 4
 //   --device=iphone  iPhone 15-like on the WebKit engine: 852x393 at DPR 3 (no CPU throttling or heap stats in WebKit)
-// Reports browser frame gaps (hitches = frames that missed their 60 fps slot), the game's paced steps (main-thread work
-// per step), JS allocation rate and GC count (Chromium), long tasks, and the render scale actually used.
+//   --mobile         844x390 at DPR 2 with touch, no throttle (default: 1280x720 desktop)
+// Reports browser frame gaps (hitches = frames that missed their 60 fps slot), long tasks, the game's own loop fps,
+// JS allocation rate and GC count (Chromium), and the render scale actually used.
+// Serve the build for numbers that matter (the dev server is unminified): see docs/deploy.md.
 import { chromium, webkit } from 'playwright';
-import { spawn } from 'node:child_process';
+
 const a = Object.fromEntries(process.argv.slice(2).map((x) => x.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? true]));
 const DEVICES = {
   s24: { viewport: { width: 832, height: 384 }, deviceScaleFactor: 3.75, isMobile: true, hasTouch: true, throttle: 2,
@@ -21,9 +23,7 @@ const DEVICES = {
 };
 const dev = a.device ? DEVICES[a.device] : null;
 if (a.device && !dev) throw new Error('unknown device ' + a.device);
-const port = 7360;
-const srv = spawn(process.execPath, ['packages/server/dist/server.mjs', `--port=${port}`, '--static=packages/client/dist', '--hostkey=PERF', '--quiet'], { stdio: 'ignore' });
-await new Promise((r) => setTimeout(r, 1500));
+const url = typeof a.url === 'string' ? a.url : 'http://localhost:5173/';
 const engine = dev?.engine === 'webkit' ? webkit : chromium;
 const browser = await engine.launch(engine === chromium ? { headless: !a.headed, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] } : { headless: !a.headed });
 const ctxOpts = dev
@@ -32,22 +32,28 @@ const ctxOpts = dev
 const ctx = await browser.newContext(ctxOpts);
 const page = await ctx.newPage();
 const cdp = engine === chromium ? await ctx.newCDPSession(page) : null;
-await page.goto((a.url ? `${a.url}?host=PERF` : `http://localhost:${port}/?host=PERF`) + (a.classic ? '&classic=1' : ''));
-await page.waitForFunction(() => window.skyfire?.session?.lobby, null, { timeout: 20000 });
-await page.evaluate(({ bots, map }) => {
-  const s = window.skyfire.session;
-  s.lobbyCmd({ op: 'settings', settings: { mapId: map, timeLimit: 300 } });
-  s.lobbyCmd({ op: 'bots', count: bots });
-  s.lobbyCmd({ op: 'start' });
-}, { bots: Number(a.bots ?? 19), map: a.map ?? 'jungle' });
-await page.waitForTimeout(4000);
+
+// a practice duel: the title's practice button, then Fight! in the lobby
+await page.goto(url);
+await page.waitForSelector('.screen-title', { timeout: 20000 });
+await page.click('[data-act="practice"]');
+await page.click('[data-act="start"]', { timeout: 10000 });
+await page.waitForFunction(() => document.body.dataset.screen === 'game', null, { timeout: 15000 });
+await page.waitForTimeout(4000); // the VS card clears and the fighters settle
+
 const throttle = Number(a.throttle ?? dev?.throttle ?? 1);
 if (cdp && throttle > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
-const renderer = await page.evaluate(() => { const gl = document.createElement('canvas').getContext('webgl'); const d = gl?.getExtension('WEBGL_debug_renderer_info'); return d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : 'unknown'; });
+const renderer = await page.evaluate(() => {
+  const gl = document.createElement('canvas').getContext('webgl');
+  const d = gl?.getExtension('WEBGL_debug_renderer_info');
+  return d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : 'unknown';
+});
 if (a.profile && cdp) await cdp.send('Profiler.enable'), await cdp.send('Profiler.setSamplingInterval', { interval: 200 }), await cdp.send('Profiler.start');
-// --allocs: sample heap allocations by call site (what feeds the garbage collector every frame)
 if (a.allocs && cdp) await cdp.send('HeapProfiler.enable'), await cdp.send('HeapProfiler.startSampling', { samplingInterval: 8192, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true });
-const stats = await page.evaluate(async (secs) => {
+
+const secs = Number(a.seconds ?? 20);
+// the measurement runs in the page; meanwhile a fighter walks forward and attacks, like a player would
+const measuring = page.evaluate(async (secs) => {
   const gaps = [];
   let longTasks = 0;
   let longMax = 0;
@@ -78,16 +84,38 @@ const stats = await page.evaluate(async (secs) => {
   });
   const s = [...gaps].sort((x, y) => x - y);
   const p = (q) => s[Math.min(s.length - 1, Math.floor(s.length * q))];
-  const app = window.skyfire;
+  const app = window.bladerift;
   const cv = document.querySelector('#game canvas');
+  const sim = app?.sessions?.[0]?.game;
   return {
-    frames: gaps.length, fps: +(1000 / (gaps.reduce((x, v) => x + v, 0) / gaps.length)).toFixed(1), p50: +p(0.5).toFixed(1), p95: +p(0.95).toFixed(1), p99: +p(0.99).toFixed(1),
-    max: +s[s.length - 1].toFixed(1), hitches: gaps.filter((g) => g > 26).length, longTasks, longMax: +longMax.toFixed(0),
-    allocMBs: performance.memory ? +(alloc / 1048576 / secs).toFixed(2) : null, gcs: performance.memory ? gcs : null, heapMB: performance.memory ? Math.round(mem() / 1048576) : null,
-    renderScale: cv ? +(cv.width / cv.clientWidth).toFixed(2) : null, pacer: app?.pacer?.stats?.() ?? null, bigGaps: big.slice(0, 16),
-    players: app?.session?.game?.latest?.players.length, rtt: +(app?.session?.rtt ?? 0).toFixed(1),
+    frames: gaps.length,
+    fps: +(1000 / (gaps.reduce((x, v) => x + v, 0) / gaps.length)).toFixed(1),
+    p50: +p(0.5).toFixed(1), p95: +p(0.95).toFixed(1), p99: +p(0.99).toFixed(1), max: +s[s.length - 1].toFixed(1),
+    hitches: gaps.filter((g) => g > 26).length, longTasks, longMax: +longMax.toFixed(0),
+    allocMBs: performance.memory ? +(alloc / 1048576 / secs).toFixed(2) : null,
+    gcs: performance.memory ? gcs : null,
+    heapMB: performance.memory ? Math.round(mem() / 1048576) : null,
+    renderScale: cv ? +(cv.width / cv.clientWidth).toFixed(2) : null,
+    phaserFps: app?.game?.loop?.actualFps != null ? +app.game.loop.actualFps.toFixed(1) : null,
+    fighters: sim ? sim.fighters(performance.now()).length : null,
+    bigGaps: big.slice(0, 16),
   };
-}, Number(a.seconds ?? 20));
+}, secs);
+// the fight: hold forward, attack with both weapons and the skill, and jump now and then
+const KEYS = ['KeyJ', 'KeyJ', 'KeyK', 'KeyL', 'KeyW', 'KeyJ'];
+await page.keyboard.down('KeyD');
+let pressed = 0;
+const fightUntil = Date.now() + secs * 1000 + 500;
+while (Date.now() < fightUntil) {
+  await page.keyboard.press(KEYS[pressed++ % KEYS.length]).catch(() => {});
+  await page.waitForTimeout(220);
+  if (pressed % 9 === 0) await page.keyboard.up('KeyD').catch(() => {}), await page.keyboard.down('KeyA').catch(() => {});
+  if (pressed % 9 === 4) await page.keyboard.up('KeyA').catch(() => {}), await page.keyboard.down('KeyD').catch(() => {});
+}
+await page.keyboard.up('KeyD').catch(() => {});
+await page.keyboard.up('KeyA').catch(() => {});
+const stats = await measuring;
+
 if (a.profile && cdp) {
   const { profile } = await cdp.send('Profiler.stop');
   const self = new Map();
@@ -123,6 +151,5 @@ if (a.allocs && cdp) {
   console.log(`TOP ALLOCATION SITES (sampled, ${(total / 1048576).toFixed(1)} MB):`);
   for (const [k, v] of [...sites.entries()].sort((x, y) => y[1] - x[1]).slice(0, 30)) console.log(((v / total) * 100).toFixed(1).padStart(5) + '%  ' + k);
 }
-console.log(JSON.stringify({ device: a.device ?? (a.mobile ? 'mobile' : 'desktop'), throttle, renderer, ...stats }));
+console.log(JSON.stringify({ url, device: a.device ?? (a.mobile ? 'mobile' : 'desktop'), throttle, renderer, ...stats }));
 await browser.close();
-srv.kill();

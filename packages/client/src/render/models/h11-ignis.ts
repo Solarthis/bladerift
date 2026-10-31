@@ -74,10 +74,8 @@ export default model({
     // the flame-red hair, spiked back off the brow
     hairSpiky(api, MAT.hair, 7, 3.2);
     // a fringe over the brow
-    api.sphere(api.at('head', [2.1, 2.1, 1.2]), 0.95, MAT.hair, api.PART.hair);
-    api.sphere(api.at('head', [1.5, 2.6, -0.4]), 0.9, MAT.hair, api.PART.hair);
     // the golden eyes, under a hard dark brow
-    eyes(api, MAT.glow, 0.42);
-    api.sweep(api.at('head', [2.1, 1.3, 1.25]), api.at('head', [3.2, 1.25, 1.2]), 0.28, 0.22, MAT.dark, api.PART.acc2);
+    api.sphere(api.at('head', [3.25, 0.5, 1.0]), 0.52, MAT.glow, api.PART.glow);
+    api.sweep(api.at('head', [2.2, 1.9, 1.3]), api.at('head', [3.4, 1.7, 1.2]), 0.18, 0.16, MAT.dark, api.PART.acc2);
   },
 });

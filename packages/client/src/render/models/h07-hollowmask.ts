@@ -13,13 +13,13 @@ const C = (s: string) => hex(s) >>> 0;
 const KNIFE = { hi: C('#ffffff'), a: C('#e6e0d0'), d: C('#a89c88'), grip: C('#1c1c24'), gripD: C('#08080c') };
 const SPECTRAL = { core: C('#eafff8'), edge: C('#8ff0d4'), deep: C('#3fae92') };
 
-// the twin knives: a short, curved bone blade (about 6.5 px) on a dark grip
+// the twin knives: a slim, curved bone blade (about 6.5 px) on a short dark grip, guard at the fist
 registerWeapon('bone-knife', {
   draw(T: (i: number, k: number, c: number, lift?: number) => void) {
-    for (let i = -2.6; i <= 1.8; i += 0.4) for (let k = -0.7; k <= 0.71; k += 0.4) T(i, k, k > 0.1 ? KNIFE.gripD : KNIFE.grip);
-    for (let k = -1.5; k <= 1.51; k += 0.4) T(2.2, k, KNIFE.d);
-    for (let i = 2.6; i <= 9.2 + 0.01; i += 0.4) {
-      const u = (i - 2.6) / 6.6, c = 1.3 * u * u, w = Math.max(0.25, 1.0 * (1 - u * 0.9));
+    for (let i = -1.0; i <= 1.4; i += 0.4) for (let k = -0.6; k <= 0.61; k += 0.4) T(i, k, k > 0.1 ? KNIFE.gripD : KNIFE.grip);
+    for (let k = -1.2; k <= 1.21; k += 0.4) T(1.6, k, KNIFE.d);
+    for (let i = 2.0; i <= 8.4 + 0.01; i += 0.4) {
+      const u = (i - 2.0) / 6.4, c = 1.1 * u * u, w = Math.max(0.25, 0.9 * (1 - u * 0.9));
       for (let k = c - w; k <= c + w + 0.01; k += 0.4) T(i, k, k < c - w * 0.3 ? KNIFE.hi : k > c + w * 0.3 ? KNIFE.d : KNIFE.a);
     }
   },
@@ -61,7 +61,7 @@ export default model({
   mats: {
     pelvis: MAT.clothB, waist: MAT.core, chest: MAT.shell, neck: MAT.clothA,
     head: MAT.skin, face: MAT.skin,
-    shoulder: MAT.shell, upper: MAT.shell, elbow: MAT.core, fore: MAT.shell, hand: MAT.fur,
+    shoulder: MAT.shell, upper: MAT.shell, elbow: MAT.core, fore: MAT.shell, hand: MAT.skin,
     thigh: MAT.clothB, knee: MAT.core, shin: MAT.clothB, foot: MAT.clothB,
   },
   glow: [MAT.glow],
@@ -77,13 +77,17 @@ export default model({
     const s = Number(api.q.cloth ?? 0);
     const air = api.q.air ? 1 : 0;
     // the cowl: a dark hood over the crown and back, its brow left as the bone skull
-    api.ellipsoid(api.at('head', [-1.0, 1.2, 0]), api.B.head.R, [3.5, 3.2, 3.3], MAT.clothA, P.cloth);
+    api.ellipsoid(api.at('head', [-2.0, 1.5, 0]), api.B.head.R, [3.1, 3.1, 3.2], MAT.clothA, P.cloth);
     // it falls onto the shoulders
-    api.sweep(api.at('head', [-2.4, -0.8, 0]), api.at('chest', [-2.8, 1.4, 0]), 2.6, 3.0, MAT.clothA, P.cloth);
+    api.sweep(api.at('head', [-2.8, -0.6, 0]), api.at('chest', [-2.9, 1.4, 0]), 2.5, 2.9, MAT.clothA, P.cloth);
+    // the bone skull: a broad front plate over the face, so the mask reads from the side
+    api.ellipsoid(api.at('head', [1.3, 0.2, 0]), api.B.head.R, [2.4, 2.9, 2.5], MAT.skin, P.face);
+    // the jaw and cheekbone, carrying the skull forward
+    api.ellipsoid(api.at('head', [2.3, -1.9, 0]), api.B.head.R, [1.7, 1.1, 1.6], MAT.skin, P.face);
     // dark sockets with the teal glow in them, and the nasal hollow of the skull
-    api.ellipsoid(api.at('head', [2.5, 0.6, 0.9]), api.B.head.R, [1.0, 1.1, 1.0], MAT.dark, P.acc);
-    api.sphere(api.at('head', [2.95, 0.6, 1.25]), 0.5, MAT.glow, P.glow);
-    api.ellipsoid(api.at('head', [2.7, -0.7, 0.1]), api.B.head.R, [0.5, 0.9, 0.7], MAT.dark, P.acc);
+    api.ellipsoid(api.at('head', [3.0, 0.7, 1.0]), api.B.head.R, [0.8, 1.0, 0.9], MAT.dark, P.acc);
+    api.sphere(api.at('head', [3.3, 0.7, 1.3]), 0.42, MAT.glow, P.glow);
+    api.ellipsoid(api.at('head', [3.2, -0.9, 0.2]), api.B.head.R, [0.5, 0.8, 0.6], MAT.dark, P.acc);
     // the long ragged cloak from the shoulders down the back, streaming with the sway
     for (const z of [-2.2, -0.7, 0.8, 2.2]) {
       const a = api.at('chest', [-2.4, 1.6, z * 0.9]);

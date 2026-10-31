@@ -1,6 +1,6 @@
 import {
   ArenaDef, copyState, FighterState, GameEvent, getArena, InputCmd, Loadout, MatchSettings, NetFighter, NetProjectile, NetTrap, Phase,
-  SNAPSHOT_INTERVAL, Snapshot, stepFighter, TICK_RATE,
+  Act, SNAPSHOT_INTERVAL, Snapshot, stepFighter, TICK_RATE,
 } from '@bladerift/shared';
 
 /**
@@ -78,6 +78,8 @@ export class NetGame {
   private prev: { x: number; y: number } = { x: 0, y: 0 };
   renderAlpha = 1;
   private pending: InputCmd[] = [];
+  /** The opponent as the newest snapshot has it: a Rift Art of yours can move you toward or behind them (World.stepArts). */
+  private foe: { x: number; y: number; face: number } | undefined = undefined;
   private seq = 0;
   private snaps: Snapshot[] = [];
   private tickOffset = NaN;
@@ -157,6 +159,8 @@ export class NetGame {
 
     this.latest = s;
     this.snaps.push(s);
+    const other = s.fighters.find((f) => f.id !== this.selfId && f.id !== s.selfId);
+    this.foe = other && other.act !== Act.KO ? { x: other.x, y: other.y, face: other.face } : undefined;
     while (this.snaps.length > 40) this.snaps.shift();
     this.phase = s.phase;
     this.phaseLeft = s.phaseLeft;
@@ -173,7 +177,7 @@ export class NetGame {
     this.pending = this.pending.filter((c) => c.seq > s.ack);
     if (!this.pred) {
       this.pred = copyState(s.self);
-      for (const c of this.pending) stepFighter(this.pred, c, this.arena, this.load);
+      for (const c of this.pending) stepFighter(this.pred, c, this.arena, this.load, this.foe);
       this.prev = { x: this.pred.x, y: this.pred.y };
       return;
     }
@@ -183,7 +187,7 @@ export class NetGame {
     const stepY = this.pred.y - this.prev.y;
     const before = this.pred;
     const next = copyState(s.self);
-    for (const c of this.pending) stepFighter(next, c, this.arena, this.load);
+    for (const c of this.pending) stepFighter(next, c, this.arena, this.load, this.foe);
     // keep the visual attack timeline when the reconciled state is the same move (no re-triggered effects)
     this.pred = next;
     void before;
@@ -191,7 +195,9 @@ export class NetGame {
     const ex = oldX - next.x;
     const ey = oldY - next.y;
     const err = Math.hypot(ex, ey);
-    if (err > 120) this.corr.x = this.corr.y = 0;
+    // a hit you could not predict (knockback at high ping) glides over a few frames like the blow itself; any other big
+    // error (a respawn, a teleport) snaps
+    if (err > (next.act === Act.Stun ? 280 : 120)) this.corr.x = this.corr.y = 0;
     else {
       this.corr.x = ex;
       this.corr.y = ey;
@@ -230,7 +236,7 @@ export class NetGame {
     const cmd: InputCmd = { seq: ++this.seq, moveX: q(moveX), moveY: q(moveY), buttons, viewTick: this.viewTick() };
     if (this.pred && this.load) {
       this.prev = { x: this.pred.x, y: this.pred.y };
-      stepFighter(this.pred, cmd, this.arena, this.load);
+      stepFighter(this.pred, cmd, this.arena, this.load, this.foe);
       this.predTick++;
     }
     this.pending.push(cmd);

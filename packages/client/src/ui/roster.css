@@ -423,6 +423,7 @@
   .hs .hs-tile img { width: 26px; height: 26px; }
   .hs-note { display: none; }
   .seat-port { width: 60px; height: 80px; }
+  .bot-mystery { width: 60px; height: 80px; font-size: 32px; }
   .seat-hname { font-size: 12px; }
 }
 
@@ -434,3 +435,43 @@
   .hs-lbl { margin-top: 0; }
   .seat-port { width: 70px; height: 94px; }
 }
+
+/* ------------------------------------------------------------------ bot seat (practice / local lobby) */
+/* The bot's hero is only drawn when the duel starts, so its seat is a mystery card the size of a player's portrait. */
+.bot-mystery {
+  width: 84px;
+  height: 112px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 230, 190, 0.3);
+  background:
+    radial-gradient(circle at 50% 35%, rgba(233, 182, 74, 0.16), transparent 65%),
+    linear-gradient(180deg, #2a2038, #120c1c);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.5), 0 6px 14px rgba(0, 0, 0, 0.45);
+  color: var(--gold-hi);
+  font-family: var(--display);
+  font-size: 46px;
+  line-height: 1;
+  text-shadow: 0 3px 0 #2a1430, 0 0 16px rgba(233, 182, 74, 0.35);
+}
+.bot-lvl {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--dim);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+/* the title menu buttons share one width */
+.menu > button.big { width: 280px; max-width: 100%; }
+
+/* results: the round count stays big (styles.css .res-side div would shrink it) */
+.res-side .big-num { font-size: 48px; color: var(--ink); line-height: 1.1; margin: 2px 0; }

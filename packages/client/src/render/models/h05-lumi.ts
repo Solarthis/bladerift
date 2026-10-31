@@ -37,8 +37,9 @@ registerWeapon('lumi-wand', {
 function bob(api: ExtrasApi) {
   const s = Number(api.q.cloth ?? 0), air = api.q.air ? 1 : 0;
   // the cap sits back off the face (a full skull cap would hide the eyes from the side)
-  api.ellipsoid(api.at('head', [-1.2, 1.0, 0]), api.B.head.R, [3.24, 3.35, 3.24], MAT.hair, PART.hair);
-  api.sphere(api.at('head', [1.2, 2.2, 0]), 1.7, MAT.hair, PART.hair); // fringe
+  api.ellipsoid(api.at('head', [-1.7, 1.3, 0]), api.B.head.R, [3.1, 3.1, 3.1], MAT.hair, PART.hair);
+  // a short fringe swept across the brow, kept above the eye line
+  api.sweep(api.at('head', [-0.2, 3.5, 0]), api.at('head', [1.9, 2.5, 0]), 1.15, 0.85, MAT.hair, PART.hair);
   const top = api.at('head', [-1.6, 0.6, 0]);
   const mid = api.add(api.at('head', [-3.0, -1.5, 0]), [-s * 1.2, 0, 0]);
   const end = api.add(api.at('head', [-2.8, -3.4, 0]), [-s * 2.2, air * 1.2, 0]);
@@ -85,7 +86,8 @@ export default model({
   weapons: { staff: 'lumi-wand' },
   extras(api) {
     bob(api);
-    eyes(api, MAT.glow, 0.42);
+    // violet eyes: large and unshaded so they read at gameplay size
+    api.sphere(api.at('head', [2.7, 0.4, 1.15]), 0.6, MAT.glow, PART.glow);
     // the white blouse, the crimson bow and the gold clasp at the coat's front
     api.ellipsoid(api.at('chest', [2.9, -0.4, 0]), api.B.chest.R, [1.5, 3.0, 1.9], MAT.bone, PART.acc2);
     for (const z of [-1, 1]) api.ellipsoid(api.at('neck', [1.3, -1.6, z * 1.1]), api.B.neck.R, [0.8, 1.1, 1.1], MAT.accent, PART.acc);

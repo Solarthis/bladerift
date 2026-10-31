@@ -30,11 +30,13 @@ interface Cell {
   base: Record<string, unknown>;
   /** Overrides for one tick (a cell can leave the ground, land, and so on). */
   at?: (t: number) => Partial<View>;
+  /** Seconds since touchdown at this tick (the landing squash). */
+  land?: (t: number) => number;
   colours: [number, number];
 }
 
 const W = 110;
-const H = 90;
+const H = 110; // (headroom for raised lances and swords)
 /** Art pixel rows: the feet sit this far above the bottom edge. */
 const GROUND = H - 14;
 /** Canvas pixels per lab pixel: heroes (?lab&hero=N) render at the game's double detail. */
@@ -72,6 +74,9 @@ function stateCells(w: number, hero: number, colours: [number, number]): Cell[] 
   };
   add('idle', Act.Free, 0, 60);
   add('run', Act.Free, 0, 60, { vx: 230 });
+  add('skid', Act.Free, 0, 30, { vx: -230 });
+  add('landing', Act.Free, 0, 12, {});
+  out[out.length - 1].land = (t) => t / 60;
   add('crouch', Act.Free, 0, 60, { crouch: true });
   add('jump', Act.Free, 0, 30, { ground: false, vy: -300 });
   add('fall', Act.Free, 0, 30, { ground: false, vy: 300 });
@@ -154,7 +159,7 @@ export function startPoseLab() {
   const draw = (c: Cell, cv: HTMLCanvasElement, tick: number, now: number) => {
     const ctx = cv.getContext('2d')!;
     const v = { act: c.act, actTf: Math.min(tick, c.len), move: c.move, charge: 40, skill: 0, face: 1, weapons: [c.weapon, c.weapon], slot: 0, ...c.base, ...(c.at?.(tick) ?? {}) } as unknown as ViewFighter & View;
-    const pose = poseFor(v, { time: strip ? tick / 60 : now / 1000, runPhase: strip ? (tick / 60) * 10 : (now / 1000) * 10 });
+    const pose = poseFor(v, { time: strip ? tick / 60 : now / 1000, runPhase: strip ? (tick / 60) * 10 : (now / 1000) * 10, land: c.land?.(tick) });
     const img = ctx.createImageData(W * K, H * K);
     const b = new Uint32Array(img.data.buffer);
     if (heroOnly >= 0) {

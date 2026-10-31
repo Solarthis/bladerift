@@ -321,6 +321,13 @@ export class Room {
   }
 
   private onLobbyCmd(c: Client, cmd: LobbyCmd) {
+    // A player who leaves on purpose is gone at once (a forfeit when a duel is on). A dropped connection keeps the
+    // seat for RECONNECT_GRACE_MS instead, so the other player is not left waiting on a leaver.
+    if (cmd.op === 'leave') {
+      this.dropClient(c);
+      this.broadcastLobby();
+      return;
+    }
     switch (cmd.op) {
       case 'rename':
         c.name = sanitizeName(cmd.name);

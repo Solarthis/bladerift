@@ -1,5 +1,5 @@
-import { MAT, model, ramp, SKIN, GOLD, hairLong, robe, chainLinks, eyes, PART } from './kit';
-import type { ExtrasApi } from './kit';
+import { MAT, model, ramp, SKIN, GOLD, hairLong, robe, eyes, PART } from './kit';
+import type { ExtrasApi, Vec } from './kit';
 // @ts-expect-error - plain JS module
 import { registerWeapon } from '../heroRig.js';
 // @ts-expect-error - plain JS module
@@ -68,8 +68,15 @@ export default model({
       api.sphere(api.at('chest', [2.4 - (i % 2) * 0.5, 2.6 - i * 1.9, 3.6]), i % 2 ? 0.95 : 1.15, MAT.hair, PART.hair);
     }
     // golden chains: wound round the raised far arm, and trailing from the hand
-    chainLinks(api, api.joints.elbowF, api.joints.handF, MAT.gold, 6, 0.65);
-    chainLinks(api, api.joints.handF, api.add(api.joints.handF, [-5, -7, 0]), MAT.gold, 4, 0.5);
-    eyes(api, MAT.glow, 0.4);
+    chainLine(api, api.joints.elbowF, api.joints.handF, 6, MAT.gold);
+    chainLine(api, api.joints.handF, api.add(api.joints.handF, [-5, -7, 0]), 4, MAT.gold);
+    eyes(api, MAT.glow, 0.44);
   },
 });
+
+/** A chain of linked rings from a to b: a continuous run of short sweeps with a bead at each link (not loose dots). */
+function chainLine(api: ExtrasApi, a: Vec, b: Vec, n: number, mat: number) {
+  const at = (i: number): Vec => api.add(a, api.mul(api.sub(b, a), i / n));
+  for (let i = 0; i < n; i++) api.sweep(at(i), at(i + 1), 0.5, 0.5, mat, PART.acc2);
+  for (let i = 0; i <= n; i++) api.sphere(at(i), 0.62, mat, PART.acc2);
+}

@@ -23,7 +23,7 @@ registerWeapon('warden-tower', {
   across: true,
   draw(T: Tfn) {
     for (let k = -15; k <= 10.01; k += 0.4) {
-      const half = k < -12 ? 5.6 - (-12 - k) * 0.25 : k <= 4 ? 5.6 : 5.6 * Math.max(0, (10 - k) / 6);
+      const half = k < -12 ? 8.2 - (-12 - k) * 0.25 : k <= 4 ? 8.2 : 8.2 * Math.max(0, (10 - k) / 8);
       if (half <= 0.2) continue;
       const kk = k + 3; // the star's centre sits up the face
       for (let i = -1; i <= 2.2; i += 0.4) {

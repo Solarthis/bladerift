@@ -38,7 +38,7 @@ export const MOVE_ART = 13;
 
 /** Piercing Fang: an unstoppable, guard-breaking lunge across the arena. */
 export const ART_FANG: Move = {
-  startup: 10, active: 24, recovery: 14, dmg: 205, box: { x: 2, y: -50, w: 72, h: 30 }, kbX: 460, kbY: 220, stun: 46, dash: 900, breaksGuard: true, shake: 0.9,
+  startup: 10, active: 24, recovery: 14, dmg: 185, box: { x: 2, y: -50, w: 72, h: 30 }, kbX: 460, kbY: 220, stun: 46, dash: 900, breaksGuard: true, shake: 0.9,
 };
 
 const enum Buf {
@@ -337,7 +337,38 @@ function jump(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef): boo
 }
 
 /** Advance one fighter by one tick. */
-export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, load: Loadout) {
+/** The opponent as a Rift Art sees them this tick (undefined: none, or down). */
+export interface FoeView {
+  x: number;
+  y: number;
+  face: number;
+}
+
+/** Night Hunt's leap: the hound's pounce lands on the opponent's spot (0.45 s of flight). */
+function nightHuntLaunch(s: FighterState, foe: FoeView | undefined) {
+  const dx = (foe ? foe.x : s.x + s.face * 200) - s.x;
+  // the horizontal speed covers the gap in 0.45 s, so the lift must give a 0.45 s airtime (vy = g * t / 2) to land on the spot
+  s.vx = Math.max(-1250, Math.min(1250, dx / 0.45));
+  s.vy = -PHYS.gravity * 0.225;
+  s.ground = 0;
+  s.face = dx >= 0 ? 1 : -1;
+}
+
+/** Flash Step's blink: behind the opponent at tick 8, and again each 6 ticks of the flurry while they stay close. */
+function flashStepMove(s: FighterState, foe: FoeView, t: number, arena: ArenaDef) {
+  const behind = () => {
+    const half = FIGHTER.w / 2;
+    let x = foe.x - foe.face * 26;
+    if (x < half || x > arena.w - half) x = foe.x + foe.face * 26; // against a wall: the other side
+    s.x = Math.max(half, Math.min(arena.w - half, x));
+    s.y = foe.y;
+    s.face = foe.x >= s.x ? 1 : -1;
+  };
+  if (t === 8) behind();
+  if (t >= 14 && t <= 44 && (t - 14) % 6 === 0 && Math.abs(foe.x - s.x) < 90 && Math.abs(foe.y - s.y) < 90) behind();
+}
+
+export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, load: Loadout, foe?: FoeView) {
   const locked = s.lock > 0 || s.act === Act.KO || s.act === Act.Win;
   const cmd = locked ? { ...cmdIn, moveX: 0, moveY: 0, buttons: 0 } : cmdIn;
   const btn = cmd.buttons;
@@ -560,14 +591,17 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     case Act.Art: {
       const art = ARTS[ART];
       if (ART === ArtId.FlashStep) {
-        // the World moves the assassin behind the opponent and lands the flurry; hold still in the air meanwhile
+        // hold still in the air; the blink and the flurry's steps move the assassin behind the opponent (same on the
+        // server and in the client's prediction, so no snap when the snapshot arrives)
         gravity = false;
         s.vx = 0;
         s.vy = 0;
+        if (foe) flashStepMove(s, foe, s.actT, arena);
       } else if (ART === ArtId.Bulwark) {
         s.vx = approach(s.vx, ax * 60, PHYS.groundDecel * DT);
       } else if (ART === ArtId.NightHunt) {
-        // the pounce keeps the leap's momentum (the World launches it)
+        // the hound launches the leap at tick 6 and the pounce keeps its momentum
+        if (s.actT === 6) nightHuntLaunch(s, foe);
         if (s.ground && s.actT > 10) s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
       } else s.vx = approach(s.vx, 0, (s.ground ? PHYS.groundDecel : PHYS.airDecel) * DT);
       if (s.actT >= art.ticks) {

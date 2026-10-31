@@ -573,7 +573,7 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
   background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, rgba(0, 0, 0, 0.25) 70%);
   box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.35);
   left: calc(var(--stick-x, 18%) );
-  top: calc(var(--app-h) - 120px);
+  top: calc(var(--app-top) + var(--app-h) - 120px);
   opacity: 0.5;
   pointer-events: none;
 }
@@ -588,19 +588,14 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
   background: radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.7), rgba(244, 234, 216, 0.4) 60%, rgba(160, 130, 100, 0.35));
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
+/* the thumb cluster's geometry (size, grid, safe areas) lives in ui/hud.css */
 .tbuttons {
   position: absolute;
-  right: max(8px, env(safe-area-inset-right));
-  bottom: max(8px, env(safe-area-inset-bottom));
-  width: 300px;
-  height: 236px;
   pointer-events: none;
 }
-/* square framed image tiles: the painted icon fills the tile, the frame is part of the art */
+/* square framed image tiles, all one size: the painted icon fills the tile, the frame is part of the art */
 .tb {
   position: absolute;
-  width: 60px;
-  height: 60px;
   border-radius: 10px;
   background: #120c1c;
   border: 2px solid rgba(255, 230, 190, 0.28);
@@ -656,14 +651,6 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 .tb-art.ready::before { display: none; }
 .tb-art.ready { opacity: 1; border-color: var(--gold-hi, #ffd98a); animation: artReady 0.9s ease-in-out infinite alternate; }
 @keyframes artReady { from { box-shadow: 0 0 6px rgba(255, 217, 138, 0.5); } to { box-shadow: 0 0 22px rgba(255, 217, 138, 0.95); } }
-/* thumb arc: the signature weapon biggest and lowest; jump and roll lifted; heal and the Art up top */
-.tb-a { right: 70px; bottom: 0; width: 78px; height: 78px; opacity: 0.92; }
-.tb-b { right: 0; bottom: 84px; width: 64px; height: 64px; }
-.tb-skill { right: 156px; bottom: 6px; width: 62px; height: 62px; }
-.tb-jump { right: 84px; bottom: 90px; width: 66px; height: 66px; }
-.tb-roll { right: 160px; bottom: 82px; width: 60px; height: 60px; }
-.tb-heal { right: 4px; bottom: 160px; width: 52px; height: 52px; }
-.tb-art { right: 84px; bottom: 166px; width: 66px; height: 66px; }
 
 /* HUD: class crest and Rift gauge */
 .hp-crest { width: 22px; height: 22px; border-radius: 5px; margin: 0 6px 0 0; box-shadow: 0 1px 3px #000; }
@@ -800,14 +787,6 @@ body.portrait #rotate {
   .gear-card h3 small { font-size: 11px; }
   .gear-card h3 { font-size: 13px; }
   .done { min-height: 40px; }
-  .tb { width: 52px; height: 52px; }
-  .tb-a { width: 66px; height: 66px; }
-  .tb-b { width: 56px; height: 56px; }
-  .tb-skill { width: 56px; height: 56px; }
-  .tb-jump { width: 58px; height: 58px; }
-  .tb-roll { width: 52px; height: 52px; }
-  .tb-heal { width: 44px; height: 44px; }
-  .tbuttons { width: 246px; height: 196px; }
   .code-box b { font-size: 22px; }
   #qr { width: 56px; height: 56px; }
   .online-card { margin: 10px auto; gap: 8px; }
@@ -819,10 +798,6 @@ body.portrait #rotate {
   .res-side { padding: 8px 16px; min-width: 150px; }
   .big-num { font-size: 36px; }
   .res-side div { font-size: 12px; }
-  .hud-clock { font-size: 26px; }
-  .hp-top { font-size: 14px; }
-  .hp-bar { height: 15px; }
-  .hp-side { width: min(40%, 380px); padding-top: 3px; }
   .hud-mid { padding: 2px 12px 4px; }
   .hud-banner.ready { font-size: clamp(28px, 13vh, 56px); }
 }

@@ -1,4 +1,4 @@
-import { DEFAULT_MATS, MAT, PART, GOLD, SKIN, book, chainLinks, eyes, model, ramp } from './kit';
+import { DEFAULT_MATS, MAT, PART, GOLD, SKIN, book, chainLinks, model, ramp } from './kit';
 import type { ExtrasApi, Vec } from './kit';
 // @ts-expect-error - plain JS vendor module (PixelFX colour helper)
 import { hex } from '../../vendor/pixelfx/core/index.js';
@@ -35,10 +35,11 @@ registerWeapon('quill-staff', {
 
 /** Wild curls: a cap set back off the face, a forelock, and balls of curl round the skull and down the back. */
 function curls(api: ExtrasApi) {
-  api.ellipsoid(api.at('head', [-1.4, 1.0, 0]), api.B.head.R, [3.1, 3.2, 3.1], MAT.hair, PART.hair);
-  api.sphere(api.at('head', [1.0, 2.6, 0]), 1.5, MAT.hair, PART.hair);
-  const pts: Vec[] = [[-2.4, 1.8, 1.4], [-2.6, 0, -1.2], [-1.0, 3.4, 1.0], [0.4, 3.4, -1.0], [-2.0, 3.0, -1.6], [-3.0, -0.8, 0.6], [-0.4, 4.0, 0]];
-  for (const p of pts) api.sphere(api.at('head', p), 1.5, MAT.hair, PART.hair);
+  // the mass sits back and up so the forehead, eyes and grin stay clear from the side
+  api.ellipsoid(api.at('head', [-2.7, 1.7, 0]), api.B.head.R, [2.9, 3.0, 3.0], MAT.hair, PART.hair);
+  api.sphere(api.at('head', [0.9, 3.4, 0]), 1.25, MAT.hair, PART.hair); // forelock, above the brow
+  const pts: Vec[] = [[-2.9, 2.2, 1.6], [-3.1, 0.2, -1.4], [-1.4, 4.0, 1.1], [0.1, 4.1, -1.1], [-2.6, 3.9, -1.6], [-3.6, -0.6, 0.4], [-0.6, 4.7, 0], [-2.0, 5.0, 0]];
+  for (const p of pts) api.sphere(api.at('head', p), 1.65, MAT.hair, PART.hair);
 }
 
 /** The open book in the far hand: a crimson cover, pages that glow gold, and a little light spilling off them. */
@@ -79,7 +80,8 @@ export default model({
     curls(api);
     // beard: short and full along the jaw
     api.ellipsoid(api.at('head', [1.3, -1.7, 0]), api.B.head.R, [2.0, 1.6, 2.3], MAT.hair, PART.hair);
-    eyes(api, MAT.dark, 0.4);
+    // dark eyes under the brow line
+    api.sphere(api.at('head', [2.9, 0.7, 1.25]), 0.5, MAT.dark, PART.glow);
     // the waistcoat's two front panels, with the loose white shirt showing between them
     for (const z of [-1.9, 1.9]) api.ellipsoid(api.at('chest', [2.4, -0.8, z]), api.B.chest.R, [1.7, 3.3, 1.5], MAT.clothA, PART.cloth);
     chainLinks(api, api.at('chest', [2.8, -2.4, 1.4]), api.at('chest', [3.0, -2.0, -1.2]), MAT.gold, 4, 0.45);

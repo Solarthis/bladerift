@@ -5,7 +5,7 @@
 import { ArenaDef, getArena, solidAt, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS, ROUND, TICK_RATE } from './constants';
 import {
-  Act, copyState, currentMove, FighterState, isActive, isBlocking, moveDamage, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, newFighterState, stepFighter,
+  Act, copyState, currentMove, FighterState, FoeView, isActive, isBlocking, moveDamage, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, newFighterState, stepFighter,
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
@@ -123,6 +123,8 @@ export interface Fighter {
   histFace: Int8Array;
   /** moveSeq of the opponent's move that last hit this fighter. */
   lastHitSeq: number;
+  /** x before this tick's step (Flash Step's blink trail). */
+  blinkFrom: number;
   comboHits: number;
   comboAt: number;
   // stats
@@ -200,7 +202,7 @@ export class World {
       owed: 0, carry: 0, lagTicks: -1, prevViewTick: 0,
       histTick: new Int32Array(HIST).fill(-1), histX: new Float32Array(HIST), histY: new Float32Array(HIST), histFlags: new Uint8Array(HIST),
       histBlockT: new Uint16Array(HIST), histFace: new Int8Array(HIST),
-      lastHitSeq: -1, comboHits: 0, comboAt: -999, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0,
+      lastHitSeq: -1, comboHits: 0, comboAt: -999, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0, blinkFrom: 0,
     };
     f.s.lock = Math.max(0, this.phaseEnd - this.tick);
     this.fighters.set(id, f);
@@ -218,6 +220,12 @@ export class World {
   /** Begin the first round (call once both seats are filled, or for a solo warm-up). */
   start() {
     this.resetRound();
+  }
+
+  /** The opponent as a Rift Art sees them (no view when they are down). */
+  foeView(f: Fighter): FoeView | undefined {
+    const o = this.opponent(f);
+    return o && o.s.act !== Act.KO ? { x: o.s.x, y: o.s.y, face: o.s.face } : undefined;
   }
 
   opponent(f: Fighter): Fighter | undefined {
@@ -364,7 +372,8 @@ export class World {
     const s = f.s;
     const before = s.act;
     const hpBefore = s.hp;
-    stepFighter(s, cmd, this.arena, f.load);
+    f.blinkFrom = s.x;
+    stepFighter(s, cmd, this.arena, f.load, this.foeView(f));
     if (s.act === Act.Roll && before !== Act.Roll) this.events.push({ t: 'roll', p: f.id });
     if (s.act === Act.Heal && before !== Act.Heal) this.events.push({ t: 'heal', p: f.id });
     if (s.act === Act.Attack && s.actT === 0) {
@@ -685,7 +694,9 @@ export class World {
           const guardOk = isBlocking(f.s) && front;
           const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' || p.kind === 'relic' || p.kind === 'hand' || p.kind === 'steed' ? 106 : 101;
           const kbY = p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40;
-          this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable });
+          const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable });
+          // the Phantom Hand crushes the heart it grasps and feeds its master
+          if (landed && p.kind === 'hand' && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.4));
           if (p.burn) f.s.burnT = Math.max(f.s.burnT, p.burn);
           if (p.pierce) {
             // trampled once: keeps running, harmless now
@@ -758,9 +769,9 @@ export class World {
           if (t === 12) {
             const cx = o ? o.s.x : s.x + s.face * 200;
             const top = (o ? o.s.y : s.y) - 440;
-            for (let i = 0; i < 9; i++) {
-              const x = cx + (i - 4) * 9 + (((i * 37) % 7) - 3);
-              this.projectiles.push({ id: this.nextId++ % 65536, kind: 'arrow', owner: f.id, x, y: top - (i % 3) * 30, vx: ((i % 2) * 2 - 1) * 16, vy: 980, dmg: 38, kb: 30, stun: 10, life: 90, heavy: false, wait: i * 3 });
+            for (let i = 0; i < 11; i++) {
+              const x = cx + (i - 5) * 9 + (((i * 37) % 7) - 3);
+              this.projectiles.push({ id: this.nextId++ % 65536, kind: 'arrow', owner: f.id, x, y: top - (i % 3) * 30, vx: ((i % 2) * 2 - 1) * 16, vy: 980, dmg: 40, kb: 30, stun: 10, life: 90, heavy: false, wait: i * 3 });
             }
             this.events.push({ t: 'shoot', p: f.id, kind: 0 });
           }
@@ -793,14 +804,7 @@ export class World {
           }
           break;
         case ArtId.NightHunt:
-          if (t === 6) {
-            const dx = (o ? o.s.x : s.x + s.face * 200) - s.x;
-            // the horizontal speed covers the gap in 0.45 s, so the lift must give a 0.45 s airtime (vy = g * t / 2) to land on the spot
-            s.vx = Math.max(-1250, Math.min(1250, dx / 0.45));
-            s.vy = -PHYS.gravity * 0.225;
-            s.ground = 0;
-            s.face = dx >= 0 ? 1 : -1;
-          }
+          // (the leap itself, at tick 6, is stepFighter's: the client predicts it too)
           if (t > 10 && s.ground && !s.charge) {
             s.charge = 1;
             this.events.push({ t: 'boom', x: s.x, y: s.y });
@@ -818,23 +822,11 @@ export class World {
           break;
         case ArtId.FlashStep: {
           if (!o || o.s.act === Act.KO) break;
-          const behind = () => {
-            const half = FIGHTER.w / 2;
-            let x = o.s.x - o.s.face * 26;
-            if (x < half || x > this.arena.w - half) x = o.s.x + o.s.face * 26; // against a wall: the other side
-            s.x = Math.max(half, Math.min(this.arena.w - half, x));
-            s.y = o.s.y;
-            s.face = o.s.x >= s.x ? 1 : -1;
-          };
-          if (t === 8) {
-            const x0 = s.x;
-            behind();
-            this.events.push({ t: 'blink', p: f.id, x0, x1: s.x, y: s.y });
-          }
+          // (the blink and the flurry's steps behind the opponent are stepFighter's, so prediction runs them too)
+          if (t === 8) this.events.push({ t: 'blink', p: f.id, x0: f.blinkFrom, x1: s.x, y: s.y });
           if (t >= 14 && t <= 44 && (t - 14) % 6 === 0) {
             const k = (t - 14) / 6;
             const last = k === 5;
-            if (Math.abs(o.s.x - s.x) < 90 && Math.abs(o.s.y - s.y) < 90) behind();
             if (Math.abs(o.s.x - s.x) < 60 && Math.abs(o.s.y - s.y) < 60 && o.s.invuln <= 0) {
               const dmg = Math.round((last ? 50 : 25) * C.backstab);
               this.applyHit(f, o, { dmg, kbX: last ? 340 : 20, kbY: last ? 280 : 0, stun: last ? 36 : 14, crit: true, w: 104, x: o.s.x, y: o.s.y - 28, front: false, breaksGuard: true });

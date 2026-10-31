@@ -65,7 +65,9 @@ export class App {
   private editBack: Screen = 'title';
   private sessions: Session[] = [];
   private room: Room | null = null;
-  private mode: 'online' | 'practice' | 'local' = 'practice';
+  private mode: 'online' | 'lan' | 'practice' | 'local' = 'practice';
+  /** Set when this page is served by a LAN host (packages/server): its same-origin socket and the Wi-Fi join address. */
+  private lan: { ws: string; join: string } | null = null;
   private hud: Hud | null = null;
   private touch: TouchSource | null = null;
   private inputs: LocalPlayer[] = [];
@@ -89,6 +91,46 @@ export class App {
       this.show('online');
       void this.joinOnline(normalizeCode(room));
     } else this.show('title');
+    void this.probeLanHost();
+  }
+
+  /**
+   * A LAN host serves /api/info on the same origin. If it answers, this page IS that host's client: offer the Wi-Fi
+   * duel over a same-origin socket (the host console's ?host= link joins at once, with the host key).
+   */
+  private async probeLanHost() {
+    if (import.meta.env.DEV) return;
+    try {
+      const r = await fetch('/api/info', { cache: 'no-store' });
+      const info = r.ok && r.headers.get('content-type')?.includes('json') ? await r.json() : null;
+      if (!info || typeof info.v !== 'number') return;
+      const addr = Array.isArray(info.lan) && typeof info.lan[0] === 'string' ? info.lan[0] : location.hostname;
+      this.lan = { ws: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`, join: `${location.protocol}//${addr}:${info.port ?? location.port}` };
+      const hostKey = new URL(location.href).searchParams.get('host') ?? undefined;
+      if (hostKey && this.screen === 'title') this.connectLan(hostKey);
+      else if (this.screen === 'title') this.show('title');
+    } catch {
+      /* not a LAN host: the public site */
+    }
+  }
+
+  private connectLan(hostKey?: string) {
+    if (!this.lan) return;
+    this.leave(true);
+    this.mode = 'lan';
+    this.code = '';
+    const s = new Session({ kind: 'ws', url: this.lan.ws }, this.profiles[0], hostKey);
+    this.sessions = [s];
+    this.wire(s);
+    s.on('status', (st) => {
+      if (st === 'closed' && this.screen !== 'title') {
+        this.leave(true);
+        this.show('title');
+        this.toast('Disconnected from the Wi-Fi host.');
+      }
+    });
+    s.connect();
+    this.show('connecting');
   }
 
   private fit() {
@@ -138,7 +180,8 @@ export class App {
           <div class="logo"><span>BLADE</span><span>RIFT</span></div>
           <div class="tag">One rift. Two fighters. Pick your blades.</div>
           <div class="menu">
-            ${onlineAvailable() ? `<button class="big primary" data-act="online">Play online</button>` : ''}
+            ${this.lan ? `<button class="big primary" data-act="lan">Join Wi&#8209;Fi duel</button>` : ''}
+            ${onlineAvailable() ? `<button class="big ${this.lan ? '' : 'primary'}" data-act="online">Play online</button>` : ''}
             <button class="big" data-act="practice">Practice vs bot</button>
             <button class="big" data-act="local">Two players, one device</button>
             <div class="row"><button data-act="fighter">Fighter</button><button data-act="howto">How to play</button><button data-act="settings">Settings</button></div>
@@ -265,8 +308,17 @@ export class App {
       const r = [...s.roster.values()].find((x) => x.seat === seat);
       const isMe = this.sessions.some((x) => x.selfId === r?.id);
       if (!r) {
-        const bot = l.bot ? `<div class="seat-bot">Bot (${l.botLevel})</div>` : `<div class="seat-empty">Waiting for a challenger…</div>`;
-        return `<div class="seat empty">${bot}${this.mode === 'online' && !this.sessions.some((x) => s.roster.get(x.selfId)?.seat === seat) ? `<button class="small" data-seat="${seat}">Take this side</button>` : ''}</div>`;
+        const takeSide = (this.mode === 'online' || this.mode === 'lan') && !this.sessions.some((x) => s.roster.get(x.selfId)?.seat === seat) ? `<button class="small" data-seat="${seat}">Take this side</button>` : '';
+        // the bot's hero is drawn when the duel starts, so its card is a mystery card the size of a player's
+        if (l.bot) {
+          const lvl = l.botLevel.charAt(0).toUpperCase() + l.botLevel.slice(1);
+          return `<div class="seat bot-seat" style="--c:#7a6a96">
+            <div class="bot-mystery" aria-hidden="true"><span>?</span></div>
+            <b>Bot</b>
+            <div class="seat-hero"><span class="seat-hname">Mystery hero</span><small>drawn when the duel starts</small></div>
+            <div class="seat-class"><span class="bot-lvl">${esc(lvl)} bot</span></div>${takeSide}</div>`;
+        }
+        return `<div class="seat empty"><div class="seat-empty">Waiting for a challenger…</div>${takeSide}</div>`;
       }
       const gear = r.load.weapons.map((w) => `<img src="${weaponIcon(w)}" title="${WEAPONS[w].name}">`).join('') + `<img src="${skillIcon(r.load.skill)}" title="${SKILLS[r.load.skill].name}">`;
       const which = this.sessions.findIndex((x) => x.selfId === r.id);
@@ -282,7 +334,8 @@ export class App {
     const arenaCards = ARENAS.map((a) => `<button class="arena ${l.settings.arenaId === a.id ? 'on' : ''}" ${host ? `data-arena="${a.id}"` : 'disabled'}><img src="assets/art/bg-${a.theme}.jpg" alt=""><span>${a.name}</span></button>`).join('');
     const opt = (k: string, v: number, label: string, cur: number) => `<button class="seg ${cur === v ? 'on' : ''}" ${host ? `data-set="${k}" data-v="${v}"` : 'disabled'}>${label}</button>`;
     const codeBox = this.mode === 'online' ? `<div class="code-box"><div><small>Match code</small><b>${esc(this.code)}</b></div><img id="qr" alt="QR code"><button class="small" data-act="share">Share link</button></div>` : '';
-    const title = this.mode === 'online' ? 'Duel lobby' : this.mode === 'local' ? 'Two players' : 'Practice';
+    const lanBox = this.mode === 'lan' && this.lan ? `<div class="code-box"><div><small>Join on this Wi&#8209;Fi</small><b class="lan-addr">${esc(this.lan.join.replace(/^https?:\/\//, ''))}</b></div></div>` : '';
+    const title = this.mode === 'online' ? 'Duel lobby' : this.mode === 'lan' ? 'Wi‑Fi duel' : this.mode === 'local' ? 'Two players' : 'Practice';
     const botRow = this.mode !== 'local' ? `<div class="opt"><span>Bot</span>${host ? `<button class="seg ${l.bot ? 'on' : ''}" data-act="bot">${l.bot ? 'On' : 'Off'}</button>` : `<span>${l.bot ? 'On' : 'Off'}</span>`}
       ${(['easy', 'normal', 'hard'] as const).map((lv) => `<button class="seg ${l.botLevel === lv ? 'on' : ''}" ${host ? `data-level="${lv}"` : 'disabled'}>${lv}</button>`).join('')}</div>` : '';
     return `${this.header(title, 'leave')}
@@ -290,7 +343,7 @@ export class App {
         <div class="seats">${seatCard(0)}<div class="vs">VS</div>${seatCard(1)}</div>
         ${watchers.length ? `<div class="watchers">Watching: ${watchers.map((w) => esc(w.name)).join(', ')}</div>` : ''}
         <div class="card lobby-opts">
-          ${codeBox}
+          ${codeBox}${lanBox}
           <div class="arenas">${arenaCards}</div>
           <div class="opt"><span>Rounds to win</span>${opt('wins', 1, '1', l.settings.wins)}${opt('wins', 2, '2', l.settings.wins)}${opt('wins', 3, '3', l.settings.wins)}</div>
           <div class="opt"><span>Round time</span>${opt('roundTime', 60, '60s', l.settings.roundTime)}${opt('roundTime', 90, '90s', l.settings.roundTime)}${opt('roundTime', 120, '120s', l.settings.roundTime)}</div>
@@ -312,7 +365,7 @@ export class App {
     };
     const winner = s.roster.get(m.winnerId)?.name ?? 'Winner';
     return `<div class="results"><h1>${esc(winner)} wins!</h1><div class="res-row">${row(0)}${row(1)}</div>
-      <div class="row">${s.isHost ? `<button class="big primary" data-act="rematch">Rematch</button>` : ''}<button class="big" data-act="toLobby">Lobby</button><button class="big" data-act="leave">Main menu</button></div></div>`;
+      <div class="row">${this.sessions.some((x) => x.isHost) ? `<button class="big primary" data-act="rematch">Rematch</button>` : ''}<button class="big" data-act="toLobby">Lobby</button><button class="big" data-act="leave">Main menu</button></div></div>`;
   }
 
   private renderHowto() {
@@ -320,7 +373,7 @@ export class App {
     const row = (label: string, key: keyof (typeof k)['solo']) => `<tr><td>${label}</td><td>${k.solo[key]}</td><td>${k.p1[key]}</td><td>${k.p2[key]}</td></tr>`;
     return `${this.header('How to play')}
       <div class="card howto">
-        <p>Knock your opponent out to win the round. Win ${'2'} rounds to take the match. If time runs out, more health wins.</p>
+        <p>Knock your opponent out to win the round. Win the number of rounds set in the lobby (1, 2 or 3) to take the match. If time runs out, more health wins.</p>
         <table><tr><th></th><th>Keyboard</th><th>Player 1</th><th>Player 2</th></tr>
           ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Signature weapon', 'a')}${row('Second weapon', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
         </table>
@@ -441,6 +494,9 @@ export class App {
         } else void this.joinOnline(code);
         break;
       }
+      case 'lan':
+        this.connectLan();
+        break;
       case 'practice':
         this.startLocal('practice');
         break;
@@ -457,7 +513,7 @@ export class App {
         this.hostSession()?.lobbyCmd({ op: 'rematch' });
         break;
       case 'toLobby':
-        if (this.sessions[0]?.isHost) this.sessions[0].lobbyCmd({ op: 'toLobby' });
+        this.hostSession()?.lobbyCmd({ op: 'toLobby' });
         this.show('lobby');
         break;
       case 'share': {

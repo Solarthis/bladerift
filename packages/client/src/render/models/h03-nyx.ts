@@ -68,18 +68,24 @@ export default model({
     api.sweep(api.at('head', [-1.6, 2.4, -1.2]), api.at('head', [-4.8, 0.6, -2.2]), 1, 0.4, MAT.hair, PART.hair);
     eyes(api, MAT.glow, 0.4);
     // two small jellyfish spirits, one high behind him and one low behind the coat
-    jelly(api, api.at('head', [-7, 5, -5]), 1, 1);
-    jelly(api, api.at('chest', [-8, -4, 6]), 0.8, -1);
+    // two spirits drifting behind him: one behind the shoulder, one behind the hip, clear of the coat and the head
+    jelly(api, api.at('chest', [-6, 2, 6]), 1, 1);
+    jelly(api, api.at('pelvis', [-7, -2, -6]), 0.85, -1);
   },
 });
 
-/** A translucent-looking jellyfish: a glowing bell and three trailing tentacles that sway with the movement. */
-function jelly(api: ExtrasApi, c: Vec, size: number, phase: number) {
+/**
+ * A small glowing jellyfish spirit: a wide pale-cyan bell (wider than tall), a brighter silver core, and three short
+ * tendrils hanging below it. The bell bobs and the tendrils trail with the sway (q.cloth).
+ */
+function jelly(api: ExtrasApi, c0: Vec, size: number, phase: number) {
   const s = Number(api.q.cloth ?? 0);
-  api.ellipsoid(c, api.B.head.R, [1.9 * size, 1.25 * size, 1.9 * size], MAT.glow, PART.glow);
-  for (const z of [-1.1, 0, 1.1]) {
-    const a = api.add(c, [-0.4 * size, -1 * size, z * size]);
-    const b = api.add(a, [-1.6 * size - s * 1.4 * phase, -3.6 * size, z * 0.6 * size]);
-    api.sweep(a, b, 0.35 * size, 0.12, MAT.accent, PART.acc2);
+  const c: Vec = [c0[0], c0[1] + s * 0.9 * phase, c0[2]];
+  api.ellipsoid(c, api.B.head.R, [2.3 * size, 1.25 * size, 2.3 * size], MAT.glow, PART.glow);
+  api.sphere(api.add(c, [0.3 * size, -0.1 * size, 0]), 0.85 * size, MAT.gold, PART.glow);
+  for (const z of [-1.2, 0, 1.2]) {
+    const a = api.add(c, [-0.2 * size, -0.9 * size, z * size]);
+    const b = api.add(a, [-1.2 * size - s * 0.8 * phase, -2.4 * size, z * 0.5 * size]);
+    api.sweep(a, b, 0.32 * size, 0.14, MAT.accent, PART.acc2);
   }
 }

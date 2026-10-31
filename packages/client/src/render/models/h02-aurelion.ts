@@ -1,4 +1,4 @@
-import { MAT, model, ramp, SKIN, PART, BONE, pauldrons, hairLong, cape, eyes } from './kit';
+import { MAT, model, ramp, SKIN, PART, BONE, pauldrons, cape, eyes } from './kit';
 import type { ExtrasApi } from './kit';
 // @ts-expect-error - plain JS module
 import { registerWeapon, STEEL } from '../heroRig.js';
@@ -66,7 +66,7 @@ export default model({
   size: 1.06,
   shape: { chest: [1.1, 1.06, 1.1], shoulder: 1.22, upper: 1.08, fore: 1.02, thigh: 1.04, head: [1.0, 1.02, 1.0] },
   palettes: [
-    ['#fff3b0', '#f0c048', '#b07a22', '#5e3c12'], // 0 shell: gilded armour
+    ['#fffbe6', '#f2e0a0', '#b89a52', '#4e4026'], // 0 shell: ivory-gold plate (gold trim on top)
     ramp(0x3a2a20),              // 1 core: dark undersuit and joints
     null,                        // 2 steel: the weapons' own colours
     SKIN.fair,                   // 3 skin
@@ -81,8 +81,9 @@ export default model({
     ramp(0xeed8a0),              // 12 fur: golden trim
   ],
   mats: {
-    chest: MAT.shell, shoulder: MAT.shell, upper: MAT.shell, fore: MAT.shell, thigh: MAT.shell, shin: MAT.shell,
-    waist: MAT.gold, pelvis: MAT.gold, hand: MAT.gold, foot: MAT.gold, neck: MAT.skin, head: MAT.skin, face: MAT.skin,
+    chest: MAT.shell, shoulder: MAT.shell, upper: MAT.shell, fore: MAT.shell,
+    waist: MAT.gold, pelvis: MAT.clothA, thigh: MAT.clothA, knee: MAT.gold, shin: MAT.clothB, foot: MAT.clothB,
+    hand: MAT.gold, neck: MAT.skin, head: MAT.skin, face: MAT.skin,
   },
   glow: [MAT.glow],
   weapons: { bow: 'aurelion-goldbow' },
@@ -91,8 +92,12 @@ export default model({
     return { ...p, lean: Number(p.lean ?? 0) - 1.5, hy: Number(p.hy ?? 0) - 0.6 };
   },
   extras(api: ExtrasApi) {
-    // golden hair, slicked back and falling long behind him
-    hairLong(api, MAT.hair, 8, 2.3);
+    // golden hair, slicked straight back (no fringe over the brow) and falling long behind him
+    const s = Number(api.q.cloth ?? 0);
+    api.ellipsoid(api.at('head', [-1.2, 1.0, 0]), api.B.head.R, [3.1, 3.0, 3.1], MAT.hair, PART.hair);
+    const hb = api.add(api.at('chest', [-3.4, -2, 0]), [-s * 2.5, -4, 0]);
+    api.sweep(api.at('head', [-2.2, 0.5, 0]), hb, 2.3, 2.0, MAT.hair, PART.hair);
+    api.sweep(hb, api.add(hb, [-1.2 - s * 2, -4, 0]), 2.0, 1.0, MAT.hair, PART.hair);
 
     // sharp gilded pauldrons, each with a spike
     pauldrons(api, MAT.gold, 1.2, MAT.gold);

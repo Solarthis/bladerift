@@ -1,4 +1,4 @@
-import { MAT, model, ramp, SKIN, PART, BONE, hairLong, chainLinks, faceMask, eyes } from './kit';
+import { MAT, model, ramp, SKIN, PART, BONE, hairLong, chainLinks, eyes } from './kit';
 import type { ExtrasApi, Vec } from './kit';
 // @ts-expect-error - plain JS module
 import { registerWeapon, STEEL } from '../heroRig.js';
@@ -95,9 +95,9 @@ export default model({
     api.sweep(api.at('head', [-1.2, 2.2, 1.8]), api.at('chest', [-3.6, 0, 2.4]), 1.5, 1.1, MAT.hair, PART.hair);
     api.sweep(api.at('head', [-1.2, 2.2, -1.8]), api.at('chest', [-3.6, 0, -2.4]), 1.5, 1.1, MAT.hair, PART.hair);
 
-    // a heavy brow over the eyes, and a black beard on the jaw
-    api.ellipsoid(api.at('head', [2.3, 1.3, 0.6]), api.B.head.R, [1.1, 0.55, 2.3], MAT.dark, PART.acc);
-    faceMask(api, MAT.hair, true);
+    // a heavy brow over the amber eyes, and a short black beard on the jaw (the cheeks and eyes stay visible)
+    api.ellipsoid(api.at('head', [2.3, 1.3, 0.6]), api.B.head.R, [1.1, 0.5, 2.3], MAT.dark, PART.acc);
+    api.ellipsoid(api.at('head', [0.9, -1.9, 0]), api.B.head.R, [2.0, 1.3, 2.1], MAT.hair, PART.hair);
 
     // the scars: raised dark weals across the chest
     const scar = (a: Vec, b: Vec) => api.sweep(api.at('chest', a), api.at('chest', b), 0.3, 0.22, MAT.dark, PART.acc2);

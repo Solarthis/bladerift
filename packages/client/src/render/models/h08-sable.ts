@@ -8,13 +8,13 @@ import { registerWeapon, STEEL } from '../heroRig.js';
  * coiled crouch. Twin slim knives of about 6 px, not the long daggers.
  */
 
-// the twin knives: a slim, lightly curved blade (about 6 px) with a black wrap and a small gold ring at the guard
+// the twin knives: a slim, lightly curved blade (about 6.5 px) on a short black grip, a small gold guard at the fist
 registerWeapon('sable-knife', {
   draw(T: (i: number, k: number, c: number, lift?: number) => void) {
-    for (let i = -2.2; i <= 1.6; i += 0.4) for (let k = -0.6; k <= 0.61; k += 0.4) T(i, k, k > 0 ? STEEL.darkD : STEEL.dark);
-    for (let k = -1.4; k <= 1.41; k += 0.4) T(1.8, k, STEEL.gold);
-    for (let i = 2.2; i <= 8.6 + 0.01; i += 0.4) {
-      const u = (i - 2.2) / 6.4, c = 0.9 * u * u, w = Math.max(0.22, 0.85 * (1 - u * 0.9));
+    for (let i = -1.0; i <= 1.4; i += 0.4) for (let k = -0.6; k <= 0.61; k += 0.4) T(i, k, k > 0 ? STEEL.darkD : STEEL.dark);
+    for (let k = -1.2; k <= 1.21; k += 0.4) T(1.6, k, STEEL.gold);
+    for (let i = 2.0; i <= 8.4 + 0.01; i += 0.4) {
+      const u = (i - 2.0) / 6.4, c = 0.9 * u * u, w = Math.max(0.22, 0.85 * (1 - u * 0.9));
       for (let k = c - w; k <= c + w + 0.01; k += 0.4) T(i, k, k < c - w * 0.3 ? STEEL.hi : k > c + w * 0.3 ? STEEL.d : STEEL.a);
     }
   },
@@ -66,9 +66,10 @@ export default model({
     // a loose strand of black hair at the temple
     api.sweep(api.at('head', [0.8, 0.6, 3.1]), api.at('head', [-0.2, -2.8, 3.0]), 0.5, 0.3, MAT.hair, P.hair);
     // the dark cloth veil over the lower face, under the sharp eyes
-    api.ellipsoid(api.at('head', [1.3, -1.5, 0]), api.B.head.R, [2.5, 1.6, 3.0], MAT.clothB, P.acc);
-    // sharp dark eyes
-    api.sphere(api.at('head', [2.85, 0.35, 1.1]), 0.36, MAT.dark, P.glow);
+    api.ellipsoid(api.at('head', [1.3, -2.1, 0]), api.B.head.R, [2.4, 1.3, 2.9], MAT.clothB, P.acc);
+    // sharp eyes above the veil, with a cold cyan glint
+    api.sphere(api.at('head', [2.8, 0.5, 1.2]), 0.44, MAT.dark, P.glow);
+    api.sphere(api.at('head', [3.0, 0.7, 1.3]), 0.2, MAT.glow, P.glow);
     // the gold belt on the fitted armour
     api.ellipsoid(api.at('waist', [0, -0.6, 0]), api.B.waist.R, [3.6, 0.7, 3.2], MAT.gold, P.acc);
     // a scarf tail behind the veil, streaming with the sway

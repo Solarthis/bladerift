@@ -74,10 +74,10 @@ export default model({
     hairShort(api, MAT.hair, 1.04);
     // a few wild tufts swept back, kept low so the head reads as hair, not a crown
     for (const a of [0.2, 0.9, 1.6]) api.sweep(api.at('head', [0.5, 2.6, 0]), api.at('head', [-1.8 - a, 2.4 + a * 0.8, 0.4 * (a - 0.9)]), 0.9, 0.3, MAT.hair, PART.hair);
-    // the crimson streak across the brow
-    api.sweep(api.at('head', [1.0, 2.8, 2.7]), api.at('head', [-1.4, 2.4, 2.6]), 0.7, 0.5, MAT.accent, PART.hair);
+    // the crimson streak: a short slash across the forehead, clear of the eyes (it reads as a band over them at game size)
+    api.sweep(api.at('head', [1.2, 3.0, 2.6]), api.at('head', [-0.4, 2.8, 2.5]), 0.42, 0.32, MAT.accent, PART.hair);
     // the lion emblem on the breast
     api.ellipsoid(api.at('chest', [0.8, 0.8, 4.6]), api.B.chest.R, [1.9, 2.2, 0.6], MAT.gold, PART.acc);
-    eyes(api, MAT.glow, 0.4);
+    eyes(api, MAT.glow, 0.48);
   },
 });

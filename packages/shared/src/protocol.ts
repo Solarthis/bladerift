@@ -352,6 +352,8 @@ export interface MatchStartMsg { settings: MatchSettings; tick: number; roster: 
 export interface ScoreRow { id: number; seat: number; rounds: number; dealt: number; hits: number }
 export interface MatchEndMsg { rows: ScoreRow[]; wins: [number, number]; winner: number; winnerId: number; nextIn: number }
 export type LobbyCmd =
+  /** The player is leaving the match on purpose (sent before the socket closes): their seat is given up at once. */
+  | { op: 'leave' }
   | { op: 'settings'; settings: Partial<MatchSettings> }
   | { op: 'start' }
   | { op: 'bot'; on: boolean }

@@ -344,6 +344,10 @@ export class TouchSource implements InputSource {
     art.style.setProperty('--fill', String(Math.max(0, Math.min(1, s.rift))));
     const ready = s.rift >= 1;
     art.classList.toggle('ready', ready);
+    // the readout: the charge while it fills, READY once it glows
+    const artLabel = ready ? 'READY' : `${Math.floor(Math.max(0, Math.min(1, s.rift)) * 100)}%`;
+    const artEm = art.querySelector('em')!;
+    if (artEm.textContent !== artLabel) artEm.textContent = artLabel;
     if (ready && !this.artWasReady) this.maybeHint();
     this.artWasReady = ready;
     const heal = this.btnEls.get('heal')!;

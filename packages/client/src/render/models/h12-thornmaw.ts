@@ -48,7 +48,7 @@ export default model({
     ramp(0x120e14), // 9 dark: her eyes
     ramp(0x9a2a2a), // 10 accent: the red scarf
     ramp(0xd8d0c0), // 11 bone
-    ramp(0x1a1424, 0.18, 0.3, 0.5), // 12 fur: the hound, shadow-dark with a violet sheen at the lit edge
+    ramp(0x2a2238, 0.26, 0.3, 0.5), // 12 fur: the hound, shadow-dark with a violet sheen at the lit edge
   ],
   mats: { upper: MAT.shell, fore: MAT.shell, hand: MAT.skin, thigh: MAT.clothA, shin: MAT.clothB, foot: MAT.clothB, knee: MAT.core, waist: MAT.core, pelvis: MAT.clothA },
   glow: [MAT.glow],
@@ -66,7 +66,11 @@ export default model({
     api.ellipsoid(hf(-8, 0, -4.5), api.B.chest.R, [6, 6.2, 4.6], MAT.fur, api.PART.beast);
     api.ellipsoid(hf(-6.2, 6.6, -4), api.B.chest.R, [4.6, 4.2, 4.2], MAT.fur, api.PART.beast);
     api.ellipsoid(hf(-8.6, 11.8, -3.6), api.B.chest.R, [6.4, 5.4, 5], MAT.fur, api.PART.beast);
-    api.sweep(hf(-4.4, 10.4, -3.2), hf(1, 8.4, -2.2), 2.9, 1.9, MAT.fur, api.PART.beast);
+    // a long forward snout with a dark muzzle and nose, passing behind her shoulder
+    api.sweep(hf(-4.4, 10.4, -3.4), hf(5.2, 8.8, -3.2), 2.6, 1.4, MAT.fur, api.PART.beast);
+    api.ellipsoid(hf(6.2, 8.6, -3.2), api.B.chest.R, [2.0, 1.5, 1.6], MAT.dark, api.PART.beast);
+    api.sphere(hf(7.6, 9.0, -3.0), 0.55, MAT.dark, api.PART.beast);
+    api.sphere(hf(1.2, 12.0, -2.6), 0.7, MAT.glow, api.PART.glow);
     api.sweep(hf(-4.6, 8, -3), hf(-0.6, 6.8, -2.2), 1.3, 1.1, MAT.dark, api.PART.beast);
     // the ears, and a ruff of fur down the neck and back
     api.sweep(hf(-10, 15.4, -4.6), hf(-11.4, 20.4, -5.4), 1.8, 0.45, MAT.fur, api.PART.beast);
@@ -75,12 +79,13 @@ export default model({
     api.sphere(hf(-11.6, 6, -4.4), 2.2, MAT.fur, api.PART.beast);
     api.sphere(hf(-12, 2.2, -4.6), 1.9, MAT.fur, api.PART.beast);
     // the glowing purple eye, and a second, dimmer one further back
-    api.sphere(hf(-4.4, 12.6, -0.6), 0.74, MAT.glow, api.PART.glow);
+    api.sphere(hf(-4.4, 12.6, -0.6), 0.9, MAT.glow, api.PART.glow);
     api.sphere(hf(-7.4, 12.6, -2.6), 0.5, MAT.glow, api.PART.glow);
 
     // her: short brown hair with a stray tuft, a dark cloak, a red scarf, the bronze chains
-    hairShort(api, MAT.hair, 1.04);
-    api.sphere(api.at('head', [1.9, 2.5, 0.8]), 0.9, MAT.hair, api.PART.hair);
+    // the hair cap sits back off her brow, leaving the face clear
+    api.ellipsoid(api.at('head', [-1.7, 1.2, 0]), api.B.head.R, [2.9, 2.6, 2.9], MAT.hair, api.PART.hair);
+    api.sphere(api.at('head', [1.5, 2.8, 0.2]), 0.8, MAT.hair, api.PART.hair);
     cape(api, MAT.shell, 12, 2.9);
     scarf(api, MAT.accent);
     chainLinks(api, api.at('chest', [2.4, 3.6, 3.4]), api.at('pelvis', [0.6, -1.4, 2.8]), MAT.gold, 5, 0.45);

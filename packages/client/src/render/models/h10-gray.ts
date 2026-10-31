@@ -52,17 +52,17 @@ export default model({
   shape: { head: [1.02, 1, 1], face: [1, 1, 1.02], neck: 1.05, chest: [1.02, 1, 1.02] },
   bones: { neckUp: 4.6, headUp: 3.3, shoulderOut: 5.9, thigh: 9.0, shin: 8.6 },
   palettes: [
-    ramp(0x4a5060, 0.25, 0.25, 0.5), // 0 shell: the greatcoat, dark grey
+    ramp(0x343a48, 0.28, 0.25, 0.5), // 0 shell: the greatcoat, dark grey
     ramp(0x1c1e24), // 1 core: belt and joints
     null, // 2 steel: the weapons' own colours
-    ramp(0xc8c6cc, 0.25, 0.22, 0.45), // 3 skin: ashen, pale
+    ramp(0xe6dcd2, 0.25, 0.2, 0.42), // 3 skin: pale, warm enough to read against the dark cap
     ramp(0x2c3038), // 4 clothA
-    ramp(0x23262e), // 5 clothB: trousers, cape, cap crown
+    ramp(0x16181e), // 5 clothB: trousers, cape, cap crown
     ramp(0x3a3a42), // 6 hair
     ramp(0xc09a4a, 0.3, 0.3, 0.55), // 7 gold: brass buttons and badge
     ramp(0xdde4f0), // 8 glow: unused
     ramp(0x101216), // 9 dark: gloves, boots, band, visor, mouth
-    ramp(0x7c8494, 0.3, 0.28, 0.5), // 10 accent: the grey fog
+    ramp(0xb4bcc8, 0.3, 0.25, 0.5), // 10 accent: the pale grey fog
     ramp(0xe6e8ec), // 11 bone: shirt collar
     ramp(0x5a5e68), // 12 fur
   ],
@@ -107,9 +107,13 @@ export default model({
     api.sphere(api.at('head', [2.85, 0.2, 1.1]), 0.4, MAT.dark, PART.glow);
     api.sweep(api.at('head', [2.2, -2.1, 0.9]), api.at('head', [2.8, -2.6, 0.9]), 0.22, 0.2, MAT.dark, PART.acc2);
 
-    // the fog: it rolls over the back of his head and the jaw, softening the edges of the face
-    api.ellipsoid(api.at('head', [-1.8, 0.4, 2.0]), api.B.head.R, [1.6, 2.2, 1.1], MAT.accent, PART.hair);
-    api.ellipsoid(api.at('head', [0.8, -3.0, 1.4]), api.B.head.R, [1.4, 0.8, 1.2], MAT.accent, PART.hair);
-    api.sphere(api.at('head', [-3.4, -1.8, -1.4]), 1.2, MAT.accent, PART.hair);
+    // a dark moustache over the upper lip
+    api.ellipsoid(api.at('head', [2.9, -0.9, 0.2]), api.B.head.R, [0.6, 0.35, 1.5], MAT.dark, PART.acc2);
+    // the fog: pale puffs trailing back from his head, streaming with the sway and the air
+    const trail: [number, number, number, number][] = [[-3.2, 1.6, 0.6, 1.5], [-6.0, 1.9, -0.6, 1.2], [-8.6, 1.0, 0.4, 0.9], [-5.2, -0.8, 1.6, 1.1], [-7.6, -2.6, -0.4, 0.8], [-10.2, 0.2, 0, 0.6]];
+    for (const [x, y, z, r] of trail) {
+      const dx = -s * Math.abs(x) * 0.35 - air * 1.5;
+      api.sphere(api.add(api.at('head', [x, y, z]), [dx, Math.sin(x) * 0.4 * s, 0]), r, MAT.accent, PART.hair);
+    }
   },
 });

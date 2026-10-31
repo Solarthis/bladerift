@@ -15,7 +15,19 @@ export type SfxName =
   | 'reload' | 'dryFire' | 'pickupWeapon' | 'pickupHealth' | 'pickupGrenade' | 'hit' | 'headshot' | 'hurt' | 'death'
   | 'kill' | 'jetStart' | 'spawn' | 'uiClick' | 'uiHover' | 'matchStart' | 'matchEnd' | 'countdown' | 'impact'
   | 'swing' | 'punch' | 'railgun' | 'launcher' | 'shieldHit' | 'shieldBreak' | 'pickupShield'
-  | 'flagTake' | 'flagCap' | 'flagReturn' | 'flagDrop' | 'zoneClose';
+  | 'flagTake' | 'flagCap' | 'flagReturn' | 'flagDrop' | 'zoneClose'
+  // Rift Arts (one per ArtId, see ART_SOUNDS) and the duel's strike / landing events
+  | 'artRadiant' | 'artSerpent' | 'artAbyss' | 'artStarfall' | 'artFlashStep' | 'artFrenzy' | 'artBulwark'
+  | 'artVault' | 'artChains' | 'artFate' | 'artPhantom' | 'artFog' | 'artStampede' | 'artNight'
+  | 'starfall' | 'chains' | 'slam'
+  // ranged shots (shoot events: arrow, arcane bolt, orb, frost shard, trap set)
+  | 'arrow' | 'arcane' | 'orb' | 'frost' | 'trapSet';
+
+/** Sound for each Rift Art, indexed by ArtId (packages/shared/src/classes.ts): RadiantCleave .. NightHunt. */
+const ART_SOUNDS: readonly SfxName[] = [
+  'artRadiant', 'artSerpent', 'artAbyss', 'artStarfall', 'artFlashStep', 'artFrenzy', 'artBulwark',
+  'artVault', 'artChains', 'artFate', 'artPhantom', 'artFog', 'artStampede', 'artNight',
+];
 
 interface PlayOpts {
   x?: number;
@@ -88,6 +100,9 @@ const VOICE_CAPS: Partial<Record<SfxName, number>> = {
   matchStart: 2,
   matchEnd: 2,
   countdown: 3,
+  starfall: 2,
+  chains: 2,
+  slam: 2,
 };
 const DEFAULT_VOICE_CAP = 6;
 const MAX_VOICES = 32;
@@ -291,7 +306,34 @@ export class Sfx {
       case 'flagReturn': this.sFlagReturn(opts); break;
       case 'flagDrop': this.sFlagDrop(opts); break;
       case 'zoneClose': this.sZoneClose(opts); break;
+      case 'artRadiant': this.sArtRadiant(opts); break;
+      case 'artSerpent': this.sArtSerpent(opts); break;
+      case 'artAbyss': this.sArtAbyss(opts); break;
+      case 'artStarfall': this.sArtStarfall(opts); break;
+      case 'artFlashStep': this.sArtFlashStep(opts); break;
+      case 'artFrenzy': this.sArtFrenzy(opts); break;
+      case 'artBulwark': this.sArtBulwark(opts); break;
+      case 'artVault': this.sArtVault(opts); break;
+      case 'artChains': this.sArtChains(opts); break;
+      case 'artFate': this.sArtFate(opts); break;
+      case 'artPhantom': this.sArtPhantom(opts); break;
+      case 'artFog': this.sArtFog(opts); break;
+      case 'artStampede': this.sArtStampede(opts); break;
+      case 'artNight': this.sArtNight(opts); break;
+      case 'starfall': this.sStarfall(opts); break;
+      case 'chains': this.sChains(opts); break;
+      case 'slam': this.sSlam(opts); break;
+      case 'arrow': this.sArrow(opts); break;
+      case 'arcane': this.sArcane(opts); break;
+      case 'orb': this.sOrb(opts); break;
+      case 'frost': this.sFrost(opts); break;
+      case 'trapSet': this.sTrapSet(opts); break;
     }
+  }
+
+  /** A Rift Art was unleashed: its own sound (ArtId index), so every Art reads differently at a glance. */
+  playArt(art: number, opts: PlayOpts = {}): void {
+    this.play(ART_SOUNDS[art] ?? 'artRadiant', opts);
   }
 
   /** Continuous jetpack loop for the local player; 0 = off. */
@@ -1160,6 +1202,264 @@ export class Sfx {
     }
     this.tone(v, t + 0.18, 1.4, 'sine', 659.25, 659.25, 0.08, 0.1);
     this.tone(v, t + 0.32, 1.2, 'sine', 783.99, 783.99, 0.06, 0.1);
+  }
+
+  // ---- Rift Arts: one distinct voice each (about a second, a single cast, so they never spam) ----
+
+  /** Radiant Cleave: a sunlit whoosh rising into a bright crescent chime. */
+  private sArtRadiant(o: PlayOpts): void {
+    const v = this.spawn('artRadiant', o, 1.0, 0.25);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.5, 0.42, 1500, 5200, 'bandpass', 0.03, 1.2, 1.2);
+    this.tone(v, t, 0.45, 'triangle', 660, 1320, 0.2, 0.02);
+    this.tone(v, t + 0.08, 0.4, 'sine', 990, 1980, 0.1, 0.03);
+    this.tone(v, t + 0.3, 0.6, 'sine', 1568, 1568, 0.1, 0.005);
+    this.tone(v, t + 0.3, 0.6, 'sine', 2093, 2093, 0.05, 0.005);
+  }
+
+  /** Serpent Rain: a volley of arrow whistles raining down, each one landing with a soft thud. */
+  private sArtSerpent(o: PlayOpts): void {
+    const v = this.spawn('artSerpent', o, 0.9, 0.15);
+    if (!v) return;
+    const t = v.t;
+    for (let i = 0; i < 5; i++) {
+      const at = t + i * 0.07;
+      this.noise(v, at, 0.16, 0.35, 4200, 1600, 'bandpass', 0.01, 2.5, 0.4);
+      this.tone(v, at, 0.08, 'triangle', 330 + i * 20, 260, 0.07, 0.003);
+    }
+    this.noise(v, t + 0.5, 0.12, 0.25, 1200, 300, 'lowpass', 0.003, 0.7, 1.2);
+  }
+
+  /** Abyss Fang: a low lunge sweep, a metallic shriek and a snap at the end of the thrust. */
+  private sArtAbyss(o: PlayOpts): void {
+    const v = this.spawn('artAbyss', o, 0.8, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.35, 'sawtooth', 110, 520, 0.18, 0.02, 2.2);
+    this.noise(v, t, 0.35, 0.45, 600, 3200, 'bandpass', 0.02, 1.5, 1.6);
+    this.tone(v, t + 0.3, 0.25, 'square', 1400, 300, 0.12, 0.002, 2);
+    this.noise(v, t + 0.3, 0.08, 0.45, 4000, 1500, 'highpass', 0.001, 0.7, 1.5);
+  }
+
+  /** Starfall: three bright star chimes twinkling down, over a soft descending whoosh. */
+  private sArtStarfall(o: PlayOpts): void {
+    const v = this.spawn('artStarfall', o, 1.2, 0.35);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.6, 0.2, 6000, 2000, 'bandpass', 0.05, 1.0);
+    [1046.5, 1318.5, 1568, 2093].forEach((f, i) => {
+      this.tone(v, t + i * 0.09, 0.45, 'sine', f, f, 0.12, 0.004);
+      this.tone(v, t + i * 0.09, 0.4, 'triangle', f * 2, f * 2, 0.03, 0.004);
+    });
+    this.tone(v, t + 0.4, 0.5, 'sine', 2400, 900, 0.07, 0.01);
+  }
+
+  /** Flash Step: six quick blinks, each a high zip with a tick, then the final cut-through whoosh. */
+  private sArtFlashStep(o: PlayOpts): void {
+    const v = this.spawn('artFlashStep', o, 1.0, 0.1);
+    if (!v) return;
+    const t = v.t;
+    for (let i = 0; i < 6; i++) {
+      const at = t + i * 0.09;
+      this.tone(v, at, 0.07, 'sine', 1800 + i * 220, 700 + i * 120, 0.14, 0.001);
+      this.noise(v, at, 0.03, 0.35, 8000, 4000, 'highpass', 0.0005, 0.8, 1.2);
+    }
+    this.noise(v, t + 0.55, 0.25, 0.3, 2000, 6000, 'bandpass', 0.01, 1.4, 1);
+  }
+
+  /** Blood Frenzy: a low growl under a racing heartbeat (lub-dub, lub-dub, then faster). */
+  private sArtFrenzy(o: PlayOpts): void {
+    const v = this.spawn('artFrenzy', o, 1.6, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 1.3, 'sawtooth', 55, 62, 0.08, 0.2, 3.0);
+    this.noise(v, t, 1.2, 0.12, 250, 500, 'bandpass', 0.2, 1.5, 2.0, this.pink!);
+    for (const at of [0, 0.2, 0.5, 0.65]) {
+      this.tone(v, t + at, 0.16, 'sine', 70, 40, 0.6, 0.002, 1.6);
+      this.noise(v, t + at, 0.05, 0.25, 300, 120, 'lowpass', 0.002, 0.7, 1.5);
+    }
+  }
+
+  /** Bulwark: a barrier flaring up - a deep bell hum with a metallic clang on top. */
+  private sArtBulwark(o: PlayOpts): void {
+    const v = this.spawn('artBulwark', o, 1.6, 0.3);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 1.2, 'sine', 220, 220, 0.2, 0.005);
+    this.tone(v, t, 1.2, 'sine', 330, 330, 0.12, 0.005);
+    this.tone(v, t, 1.0, 'triangle', 880, 880, 0.12, 0.002);
+    this.tone(v, t, 0.9, 'sine', 1320, 1320, 0.07, 0.002);
+    this.noise(v, t, 0.08, 0.4, 5000, 3000, 'highpass', 0.001, 0.8, 1.5);
+    this.tone(v, t + 0.08, 0.3, 'square', 1100, 660, 0.06, 0.002, 1.5);
+  }
+
+  /** Vault of Ages: a rising vortex as the portals open, then a bell cluster of gates ringing out. */
+  private sArtVault(o: PlayOpts): void {
+    const v = this.spawn('artVault', o, 1.6, 0.45);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.8, 'sine', 120, 640, 0.2, 0.1, 1.0);
+    this.tone(v, t, 0.8, 'triangle', 240, 1280, 0.1, 0.1);
+    this.noise(v, t, 0.8, 0.3, 300, 4000, 'bandpass', 0.15, 2, 1.0, this.pink!);
+    [784, 988, 1175, 1568].forEach((f, i) => this.tone(v, t + 0.45 + i * 0.09, 0.6, 'sine', f, f, 0.08, 0.005));
+  }
+
+  /** Chains of Genesis: a cascade of chain rattles, a rumbling rise and the crack of the ground. */
+  private sArtChains(o: PlayOpts): void {
+    const v = this.spawn('artChains', o, 1.2, 0.15);
+    if (!v) return;
+    const t = v.t;
+    for (let i = 0; i < 8; i++) this.noise(v, t + i * 0.05, 0.02, 0.3, 4200 + Math.random() * 1500, 3000, 'bandpass', 0.0005, 4, 1.2);
+    this.noise(v, t, 0.9, 0.4, 160, 60, 'lowpass', 0.05, 0.7, 1.5, this.pink!);
+    this.noise(v, t + 0.4, 0.15, 0.5, 2400, 900, 'bandpass', 0.001, 0.9, 2.0);
+    this.tone(v, t + 0.4, 0.2, 'square', 300, 80, 0.14, 0.001, 2);
+  }
+
+  /** Rewritten Fate: a warm rising major arpeggio over a soft pad, with a bright shimmer. */
+  private sArtFate(o: PlayOpts): void {
+    const v = this.spawn('artFate', o, 1.5, 0.35);
+    if (!v) return;
+    const t = v.t;
+    [392, 493.88, 587.33, 783.99, 987.77].forEach((f, i) => {
+      this.tone(v, t + i * 0.07, 0.6, 'triangle', f, f, 0.14, 0.005);
+      this.tone(v, t + i * 0.07, 0.5, 'sine', f * 2, f * 2, 0.05, 0.005);
+    });
+    this.tone(v, t, 1.2, 'sine', 196, 196, 0.12, 0.2);
+    this.tone(v, t + 0.1, 1.2, 'sine', 293.66, 293.66, 0.08, 0.2);
+    this.noise(v, t + 0.2, 0.8, 0.08, 6000, 9000, 'highpass', 0.2, 0.7);
+  }
+
+  /** Phantom Hand: a spectral claw hissing along the ground, then the seize and the crush. */
+  private sArtPhantom(o: PlayOpts): void {
+    const v = this.spawn('artPhantom', o, 1.3, 0.15);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.7, 'sine', 320, 90, 0.18, 0.1, 1.2);
+    this.noise(v, t, 0.7, 0.25, 800, 300, 'bandpass', 0.1, 3, 1.5, this.pink!);
+    this.tone(v, t + 0.7, 0.5, 'sawtooth', 120, 40, 0.3, 0.002, 2.5);
+    this.noise(v, t + 0.7, 0.3, 0.5, 500, 120, 'lowpass', 0.002, 0.7, 2.2);
+    this.tone(v, t + 0.7, 0.15, 'sine', 600, 200, 0.1, 0.001);
+  }
+
+  /** Grim Fog: a slow fog swell with detuned, falling minor tones and a soft vanish. */
+  private sArtFog(o: PlayOpts): void {
+    const v = this.spawn('artFog', o, 1.8, 0.4);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 1.4, 0.35, 400, 900, 'lowpass', 0.5, 0.7, 0, this.pink!);
+    this.tone(v, t, 1.4, 'sine', 311.13, 240, 0.11, 0.4);
+    this.tone(v, t, 1.4, 'triangle', 233.08, 174.61, 0.08, 0.5);
+    this.tone(v, t + 0.05, 1.4, 'sine', 277.18, 207.65, 0.06, 0.5);
+    this.noise(v, t + 0.1, 0.3, 0.2, 2000, 500, 'lowpass', 0.05, 0.8);
+  }
+
+  /** Stampede: hooves thundering faster and faster, a fire whoosh and a horse's whinny. */
+  private sArtStampede(o: PlayOpts): void {
+    const v = this.spawn('artStampede', o, 1.5, 0.15);
+    if (!v) return;
+    const t = v.t;
+    for (const at of [0, 0.16, 0.3, 0.42, 0.52, 0.6, 0.67, 0.73]) {
+      this.tone(v, t + at, 0.09, 'sine', 90, 45, 0.45, 0.002, 1.2);
+      this.noise(v, t + at, 0.04, 0.22, 700, 250, 'lowpass', 0.002, 0.8, 1.2);
+    }
+    this.noise(v, t, 0.9, 0.22, 800, 3000, 'bandpass', 0.2, 0.9, 1.2, this.pink!);
+    this.tone(v, t + 0.4, 0.45, 'sawtooth', 700, 1100, 0.07, 0.05, 1.6);
+    this.tone(v, t + 0.4, 0.45, 'sine', 1400, 1900, 0.04, 0.05);
+  }
+
+  /** Night Hunt: the shadow hound's leap - a rising whoosh and a long dark howl falling away. */
+  private sArtNight(o: PlayOpts): void {
+    const v = this.spawn('artNight', o, 1.3, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.5, 0.25, 300, 1800, 'bandpass', 0.1, 1.3, 1.2);
+    this.tone(v, t, 1.0, 'sine', 820, 410, 0.14, 0.15);
+    this.tone(v, t, 1.0, 'triangle', 1230, 615, 0.06, 0.15);
+    this.tone(v, t + 0.25, 0.6, 'sine', 1300, 650, 0.05, 0.1);
+  }
+
+  /** A Starfall bolt lands: a hard star impact with a bright chime fading after it. */
+  private sStarfall(o: PlayOpts): void {
+    const v = this.spawn('starfall', o, 0.9, 0.3);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.15, 0.4, 5000, 1800, 'highpass', 0.002, 0.8, 1.4);
+    this.tone(v, t, 0.4, 'sine', 1500, 400, 0.25, 0.001);
+    this.tone(v, t + 0.05, 0.5, 'triangle', 2000, 800, 0.08, 0.001);
+    this.tone(v, t + 0.15, 0.4, 'sine', 2093, 2093, 0.06, 0.005);
+  }
+
+  /** Chains of Genesis bursts up: a metallic lash, quick rattles and a crack. */
+  private sChains(o: PlayOpts): void {
+    const v = this.spawn('chains', o, 0.8, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.2, 0.4, 3500, 1500, 'bandpass', 0.001, 1.2, 1.5);
+    this.tone(v, t, 0.3, 'square', 180, 420, 0.12, 0.005, 2);
+    for (let i = 0; i < 5; i++) this.noise(v, t + 0.05 + i * 0.04, 0.02, 0.22, 4500, 3000, 'bandpass', 0.0005, 4, 1.2);
+    this.noise(v, t + 0.25, 0.2, 0.35, 1200, 400, 'lowpass', 0.002, 0.7, 2);
+  }
+
+  /** A bow looses: a taut string twang and a whistling arrow past the ear. */
+  private sArrow(o: PlayOpts): void {
+    const v = this.spawn('arrow', o, 0.4, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.12, 'triangle', 420, 180, 0.2, 0.001);
+    this.noise(v, t, 0.04, 0.25, 5000, 2500, 'highpass', 0.001, 0.8);
+    this.tone(v, t + 0.03, 0.25, 'sine', 1800, 1200, 0.04, 0.005);
+  }
+
+  /** Staff bolt: a quick arcane zip with a bright sparkle. */
+  private sArcane(o: PlayOpts): void {
+    const v = this.spawn('arcane', o, 0.35, 0.15);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.25, 'sine', 600, 1400, 0.15, 0.01, 1.2);
+    this.tone(v, t, 0.25, 'triangle', 900, 2100, 0.06, 0.01);
+    this.noise(v, t, 0.2, 0.08, 3000, 6000, 'highpass', 0.01, 1);
+  }
+
+  /** Held staff orb: a swelling hum that bursts into a crackling blast. */
+  private sOrb(o: PlayOpts): void {
+    const v = this.spawn('orb', o, 0.75, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.5, 'sine', 220, 880, 0.2, 0.05, 1.2);
+    this.noise(v, t + 0.35, 0.25, 0.3, 2500, 400, 'bandpass', 0.005, 1, 1.4);
+    this.tone(v, t + 0.35, 0.3, 'sine', 300, 80, 0.25, 0.001);
+  }
+
+  /** Frost shard: a glassy icy shimmer. */
+  private sFrost(o: PlayOpts): void {
+    const v = this.spawn('frost', o, 0.3, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.18, 0.25, 9000, 4000, 'highpass', 0.002, 0.9);
+    this.tone(v, t, 0.2, 'sine', 2600, 1300, 0.12, 0.002);
+    this.tone(v, t + 0.04, 0.15, 'triangle', 1800, 2400, 0.05, 0.005);
+  }
+
+  /** A trap is set: a mechanical clack and a second latch click. */
+  private sTrapSet(o: PlayOpts): void {
+    const v = this.spawn('trapSet', o, 0.25, 0.08);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.04, 'square', 900, 300, 0.14, 0.001, 1.8);
+    this.noise(v, t, 0.03, 0.35, 3000, 1500, 'bandpass', 0.001, 1.2, 1.2);
+    this.tone(v, t + 0.12, 0.06, 'square', 500, 260, 0.1, 0.001, 1.5);
+  }
+
+  /** Night Hunt lands: a heavy slam with a short shower of dark shards. */
+  private sSlam(o: PlayOpts): void {
+    const v = this.spawn('slam', o, 0.9, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.5, 'sine', 70, 30, 0.6, 0.002, 1.6);
+    this.noise(v, t, 0.35, 0.35, 1800, 200, 'lowpass', 0.002, 0.7, 2.4);
+    this.noise(v, t, 0.2, 0.3, 2500, 800, 'bandpass', 0.001, 1.2, 1.5);
+    for (let i = 0; i < 5; i++) this.tone(v, t + 0.04 + i * 0.03, 0.08, 'triangle', 1600 + i * 300, 900, 0.05, 0.001);
   }
 
   private sCountdown(o: PlayOpts): void {

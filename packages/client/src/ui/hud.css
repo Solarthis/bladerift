@@ -6,6 +6,11 @@
 #ui > .hud,
 #ui > .touch { pointer-events: none; }
 
+/* Sizes follow the visible height (--app-h, the value every full-screen layer uses; 1% of it is --u), so the HUD
+   and the thumb cluster are larger on a 1080p window and never smaller than a 375-px landscape phone needs. */
+.hud,
+.touch { --u: calc(var(--app-h) / 100); }
+
 /* ------------------------------------------------------------------ fighter panels */
 .hp-side { width: min(37%, 420px); padding: 4px 6px 0; }
 .hp-top { justify-content: flex-start; gap: 7px; margin-bottom: 5px; font-size: 16px; }
@@ -13,8 +18,8 @@
 /* the hero portrait, framed in the hero's accent colour; object-position keeps the face in the frame */
 .hp-portrait {
   flex: none;
-  width: 36px;
-  height: 36px;
+  width: clamp(30px, calc(var(--u) * 9), 52px);
+  height: clamp(30px, calc(var(--u) * 9), 52px);
   border-radius: 7px;
   overflow: hidden;
   background: #120c1c;
@@ -24,14 +29,14 @@
 .hp-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; }
 .hp-id { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
 .hp-side.right .hp-id { align-items: flex-end; }
-.hp-name { display: block; max-width: 100%; font-size: 16px; line-height: 1.05; }
+.hp-name { display: block; max-width: 100%; font-size: clamp(14px, calc(var(--u) * 4.3), 28px); line-height: 1.05; }
 .hp-hero {
   display: flex;
   gap: 5px;
   max-width: 100%;
   font-family: var(--font);
   font-weight: 800;
-  font-size: 10.5px;
+  font-size: clamp(11px, calc(var(--u) * 2.7), 17px);
   line-height: 1;
   letter-spacing: 0.3px;
   color: var(--dim);
@@ -44,16 +49,18 @@
 .hp-hero i { font-style: italic; font-weight: 600; opacity: 0.75; }
 .hp-side.right .hp-hero { justify-content: flex-end; }
 .hp-pips { flex: none; }
-.hp-bar { height: 20px; }
-.hp-num { font-size: 11px; }
+.hp-bar { height: clamp(18px, calc(var(--u) * 5.2), 30px); }
+.hp-num { font-size: clamp(11px, calc(var(--u) * 2.8), 18px); }
+.hud-round { font-size: clamp(10px, calc(var(--u) * 2.8), 16px); }
+.hud-clock { font-size: clamp(26px, calc(var(--u) * 7.5), 52px); }
 
 /* Rift row: the Art icon (lights up when ready), the segmented gauge, the loadout icons */
 .rift-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
 .hp-side.right .rift-row { flex-direction: row-reverse; }
 .rift-art {
   flex: none;
-  width: 24px;
-  height: 24px;
+  width: clamp(22px, calc(var(--u) * 6.2), 40px);
+  height: clamp(22px, calc(var(--u) * 6.2), 40px);
   border-radius: 6px;
   overflow: hidden;
   background: #120c1c;
@@ -76,7 +83,7 @@
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
-  height: 13px;
+  height: clamp(12px, calc(var(--u) * 3.3), 20px);
   border-radius: 4px;
   background: linear-gradient(180deg, #05040a, #1a1428);
   border: 1px solid rgba(255, 230, 190, 0.28);
@@ -105,7 +112,7 @@
   justify-content: center;
   font-family: var(--font);
   font-weight: 800;
-  font-size: 9px;
+  font-size: clamp(9px, calc(var(--u) * 2.3), 14px);
   line-height: 1;
   letter-spacing: 0.6px;
   color: #fff;
@@ -127,7 +134,7 @@
 }
 .hp-gear { display: flex; gap: 3px; flex: none; }
 .hp-side.right .hp-gear { justify-content: flex-end; }
-.hp-gear img { height: 15px; max-width: 26px; padding: 1px 2px; }
+.hp-gear img { height: clamp(15px, calc(var(--u) * 3.9), 26px); max-width: clamp(26px, calc(var(--u) * 7), 40px); padding: 1px 2px; }
 
 /* status chips and the combo counter, under the gauge */
 .hp-status {
@@ -143,7 +150,7 @@
   display: none;
   font-style: normal;
   font-family: var(--display);
-  font-size: 10px;
+  font-size: clamp(10px, calc(var(--u) * 2.6), 15px);
   line-height: 1;
   letter-spacing: 0.8px;
   padding: 3px 5px 2px;
@@ -168,7 +175,7 @@
   display: none;
   font-family: var(--display);
   font-weight: 400;
-  font-size: 16px;
+  font-size: clamp(16px, calc(var(--u) * 4.4), 30px);
   line-height: 1;
   letter-spacing: 1px;
   color: var(--ac, var(--gold-hi));
@@ -176,6 +183,9 @@
   white-space: nowrap;
 }
 .hp-combo.on { display: inline-block; }
+/* the hit pop grows from the screen edge side of its panel, so it never pushes past the screen edge */
+.hp-side.right .hp-combo { transform-origin: 100% 50%; }
+.hp-side.left .hp-combo { transform-origin: 0 50%; }
 .hp-combo.pop { animation: combo-pop 0.35s cubic-bezier(0.2, 1.8, 0.4, 1); }
 @keyframes combo-pop {
   from { transform: scale(1.7); }
@@ -280,26 +290,36 @@
 .stick-knob { z-index: 1; }
 
 /* ------------------------------------------------------------------ touch: thumb cluster */
-/* A 3-column block anchored to the bottom right, 8px gutters. A (the weapon) is the thumb rest; B sits above it;
-   skill, jump and roll form the left arc; the Art and heal sit above the cluster. Fits 667x375 and 844x390. */
+/* Every tile is the same square (--tb) on one 3x3 grid with an even gutter (--tg), anchored to the bottom-right
+   corner inside the safe area. The thumb rests on A (bottom right); B and heal stack above it; skill, jump and the
+   Art form the middle column; roll sits at the far left of the bottom row. Tile size scales with the window height
+   (56px on a 375-px landscape phone, up to 74px on a large window). */
+.touch {
+  --tb: clamp(56px, calc(var(--u) * 16.5), 74px);
+  --tg: 8px;
+  --step: calc(var(--tb) + var(--tg));
+}
 .tbuttons {
   right: max(6px, env(safe-area-inset-right));
   bottom: max(6px, env(safe-area-inset-bottom));
-  width: 232px;
-  height: 226px;
+  width: calc(var(--tb) * 3 + var(--tg) * 2);
+  height: calc(var(--tb) * 3 + var(--tg) * 2);
 }
-.tb { width: 64px; height: 64px; border-radius: 12px; isolation: isolate; }
+.tb { width: var(--tb); height: var(--tb); border-radius: 12px; isolation: isolate; opacity: 0.9; }
 .tb i { border-radius: 10px; }
-.tb-a { right: 6px; bottom: 6px; width: 76px; height: 76px; opacity: 0.94; }
-.tb-b { right: 6px; bottom: 90px; width: 64px; height: 64px; }
-.tb-skill { right: 90px; bottom: 6px; width: 64px; height: 64px; }
-.tb-jump { right: 90px; bottom: 90px; width: 64px; height: 64px; }
-.tb-roll { right: 162px; bottom: 6px; width: 60px; height: 60px; }
-.tb-art { right: 90px; bottom: 162px; width: 64px; height: 64px; }
-.tb-heal { right: 6px; bottom: 162px; width: 56px; height: 56px; }
+.tb-a { right: 0; bottom: 0; }
+.tb-b { right: 0; bottom: var(--step); }
+.tb-heal { right: 0; bottom: calc(var(--step) * 2); }
+.tb-skill { right: var(--step); bottom: 0; }
+.tb-jump { right: var(--step); bottom: var(--step); }
+.tb-art { right: var(--step); bottom: calc(var(--step) * 2); }
+.tb-roll { right: calc(var(--step) * 2); bottom: 0; }
 .tb-art.ready { border-width: 2px; }
 .tb-art i { filter: grayscale(0.85) brightness(0.5); }
 .tb-art.ready i { filter: none; }
+/* the Art tile's readout: its charge in percent, READY (on a gold tag) when it glows */
+.tb-art em { font-size: 12px; right: 3px; bottom: 3px; padding: 1px 4px 0; border-radius: 4px; background: rgba(8, 6, 14, 0.78); line-height: 1.3; }
+.tb-art.ready em { color: #fff3c4; background: rgba(140, 92, 10, 0.9); }
 .tb-ripple {
   position: absolute;
   z-index: 4;
@@ -319,8 +339,8 @@
 /* first glow of the Rift Art, once per device: a bubble over the Art tile */
 .touch-hint {
   position: absolute;
-  right: 96px;
-  bottom: 240px;
+  right: calc(max(6px, env(safe-area-inset-right)) + var(--step));
+  bottom: calc(max(6px, env(safe-area-inset-bottom)) + var(--step) * 2 + var(--tb) + 10px);
   max-width: 230px;
   padding: 7px 11px;
   border-radius: 10px;
@@ -355,13 +375,7 @@
 /* narrow screens: the epithet goes, the chips and portrait get smaller so the status stays on one line */
 @media (max-width: 760px) {
   .hp-hero i { display: none; }
-  .hp-portrait { width: 30px; height: 30px; }
   .hp-top { gap: 6px; }
-  .chip { font-size: 9px; padding: 2px 4px 1px; letter-spacing: 0.5px; }
+  .chip { padding: 2px 4px 1px; letter-spacing: 0.5px; }
   .hp-status { gap: 3px; }
-}
-
-/* small landscape phones: the HUD keeps its height, the cluster scales down from its bottom-right corner */
-@media (max-height: 360px) {
-  .tbuttons { transform: scale(0.9); transform-origin: 100% 100%; }
 }

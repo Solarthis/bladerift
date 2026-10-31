@@ -60,9 +60,9 @@ export default model({
   size: 1.12,
   shape: {
     chest: [1.3, 1.2, 1.35], pelvis: [1.2, 1, 1.1], waist: 1.25, shoulder: 1.5, upper: 1.45, fore: 1.4, hand: 1.5,
-    thigh: 1.3, knee: 1.25, shin: 1.25, foot: 1.3, head: [1.12, 1, 1.08], face: [1.2, 1, 1.12], neck: 1.5, elbow: 1.3,
+    thigh: 1.3, knee: 1.25, shin: 1.25, foot: 1.3, head: [1.3, 1.2, 1.25], face: [1.25, 1.1, 1.2], neck: 1.5, elbow: 1.3,
   },
-  bones: { neckUp: 2.6, headUp: 2.8, shoulderUp: 2.0, shoulderOut: 6.2, thigh: 8.2, shin: 7.9 },
+  bones: { neckUp: 3.2, headUp: 3.5, shoulderUp: 2.0, shoulderOut: 6.2, thigh: 8.2, shin: 7.9 },
   palettes: [
     ramp(0x6a6a72), // 0 shell: riveted iron plates
     ramp(0x2a2426), // 1 core: dark joints
@@ -80,7 +80,7 @@ export default model({
   ],
   mats: {
     head: MAT.shell, face: MAT.fur, neck: MAT.core, chest: MAT.shell, shoulder: MAT.shell, upper: MAT.shell, fore: MAT.shell,
-    hand: MAT.dark, thigh: MAT.fur, shin: MAT.clothB, foot: MAT.clothB, pelvis: MAT.clothA,
+    hand: MAT.core, thigh: MAT.shell, shin: MAT.clothB, foot: MAT.clothB, pelvis: MAT.clothA,
   },
   glow: [MAT.glow],
   weapons: { hammer: 'engine-hammer' },
@@ -107,14 +107,16 @@ export default model({
     });
 
     // the muzzle: tawny fur, a dark gape, a fang, and the steam vented from the jaw
-    api.sweep(api.at('head', [1.6, -0.2, 0]), api.at('head', [4.4, -1.6, 0]), 2.0, 1.5, MAT.fur, PART.beast);
+    api.sweep(api.at('head', [1.2, -1.0, 0]), api.at('head', [4.8, -1.8, 0]), 2.3, 1.8, MAT.fur, PART.beast);
+    // the fur ruff behind the skull, under the cables
+    for (const z of [-2.0, 0, 2.0]) api.sphere(api.at('head', [-2.4, 0.6, z]), 1.7, MAT.fur, PART.hair);
     api.ellipsoid(api.at('head', [2.6, -2.6, 0]), api.B.head.R, [2.2, 0.55, 1.9], MAT.dark, PART.acc2);
     api.sweep(api.at('head', [3.4, -1.2, 0.9]), api.at('head', [3.8, -3.1, 0.9]), 0.42, 0.1, MAT.bone, PART.acc);
     api.sweep(api.at('head', [2.8, -3.2, -0.5]), api.at('head', [3.1, -1.9, -0.5]), 0.35, 0.1, MAT.bone, PART.acc);
 
     // the eyes: two red lamps under an iron brow
     api.ellipsoid(api.at('head', [2.1, 1.9, 0]), api.B.head.R, [2.2, 0.7, 2.7], MAT.shell, PART.acc);
-    api.sphere(api.at('head', [2.9, 0.1, 1.2]), 0.5, MAT.glow, PART.glow);
+    api.sphere(api.at('head', [3.5, 1.1, 1.5]), 0.6, MAT.glow, PART.glow);
 
     // the shoulders: stacked iron plates with brass rivets
     for (const j of [api.joints.shoulderN, api.joints.shoulderF]) {

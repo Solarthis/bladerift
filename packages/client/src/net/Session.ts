@@ -117,6 +117,9 @@ export class Session extends Emitter<SessionEvents> {
   close() {
     this.closedByUser = true;
     clearInterval(this.pingTimer);
+    // a player who leaves on purpose says so first: the server then gives up their seat at once (a dropped connection
+    // keeps it for 20 s, so the other player would wait that long for a leaver). Older servers ignore the message.
+    if (this.target.kind === 'ws') this.transport?.send(encodeJson(Msg.Lobby, { op: 'leave' }));
     this.transport?.close();
     this.transport = null;
   }
