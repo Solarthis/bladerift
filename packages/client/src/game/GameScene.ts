@@ -1421,7 +1421,8 @@ export class GameScene extends Phaser.Scene {
     const halfW = vw / this.camZoom / 2;
     const halfH = vh / this.camZoom / 2;
     const x = Phaser.Math.Clamp(this.camX, halfW - 120, this.arenaW + 120 - halfW);
-    const y = Math.min(this.camY, this.floor + 70 - halfH);
+    // (touch: a little more floor shows below the fighters, lifting them above the button cluster's lower rows)
+    const y = Math.min(this.camY, this.floor + (pad.right ? 135 : 70) - halfH);
     let sx = 0;
     let sy = 0;
     if (this.shakeT > 0) {
@@ -1447,8 +1448,8 @@ export class GameScene extends Phaser.Scene {
       const stick = document.querySelector('.touch .stick-base')?.getBoundingClientRect();
       const css = window.innerWidth || vw;
       const k = vw / css; // game pixels per CSS pixel
-      this.insets.right = cluster && cluster.width > 0 ? Math.max(0, css - cluster.left) * k * 0.85 : 0;
-      this.insets.left = stick && stick.width > 0 && this.insets.right ? Math.max(0, stick.right) * k * 0.6 : 0;
+      this.insets.right = cluster && cluster.width > 0 ? Math.max(0, css - cluster.left) * k * 0.7 : 0;
+      this.insets.left = stick && stick.width > 0 && this.insets.right ? Math.max(0, stick.right) * k * 0.45 : 0;
     }
     return this.insets;
   }
