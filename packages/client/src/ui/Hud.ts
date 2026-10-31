@@ -3,6 +3,7 @@ import type { NetGame, ViewFighter } from '../net/NetGame';
 import { colorOf, css } from './colors';
 import { artIconOf, skillIcon, weaponIcon } from './icons';
 import { preloadCinematic } from '../game/cinematic';
+import { quotesOf } from './quotes';
 
 const asset = (n: string) => `assets/art/${n}.jpg`;
 /** Hero portraits are h-00..h-13, and HeroDef.portrait is the index. */
@@ -256,8 +257,10 @@ export class Hud {
       }
       case 'match': {
         const f = g.fighters().find((x) => x.seat === e.winner);
-        const name = f ? roster.get(f.id)?.name : '';
-        this.showBanner('WINNER!', 4000, 'win', undefined, true, (name || 'Winner').toUpperCase());
+        const name = (f ? roster.get(f.id)?.name : '') || 'Winner';
+        // the winner's hero has the last word
+        const said = f ? ` · “${quotesOf(f.hero).win}”` : '';
+        this.showBanner('WINNER!', 4000, 'win', undefined, true, name.toUpperCase() + said);
         break;
       }
     }

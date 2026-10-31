@@ -16,6 +16,7 @@ import { sfx } from '../audio/Sfx';
 import { prefs, setPref } from './prefs';
 import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
+import { quotesOf } from './quotes';
 import { crestIcon, dodgeIcon, heroArtIcon, heroWeaponIcon, skillIcon } from './icons';
 import { animatePreview } from './spritePreview';
 import { startTitleShowcase } from './titleShowcase';
@@ -696,7 +697,7 @@ export class App {
     const who = (f: typeof mine, name: string) => {
       const h = heroOf(f.hero);
       return `<div class="vs-side"><div class="vs-frame"><img src="${heroPortrait(h)}" alt=""></div>
-        <b>${esc(h.name)}</b><small>${esc(h.epithet)}</small><span>${esc(name)}</span></div>`;
+        <b>${esc(h.name)}</b><small>${esc(h.epithet)}</small><span>${esc(name)}</span><q class="vs-quote">${esc(quotesOf(f.hero).vs)}</q></div>`;
     };
     const el = document.createElement('div');
     el.className = 'vs-splash';
