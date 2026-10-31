@@ -848,7 +848,10 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         }
         break;
       }
+      // crouching is the guard (every hero): blockT counts its ticks, so a guard raised just before a hit parries it
+      const wasCrouched = s.crouch;
       s.crouch = s.ground && cmd.moveY > 0.5 && Math.abs(ax) < 0.35 ? 1 : 0;
+      s.blockT = s.crouch ? (wasCrouched ? Math.min(s.blockT + 1, 9999) : 1) : 0;
       if (!s.ground) {
         // fast fall: hold down in the air
         if (cmd.moveY > 0.5 && s.vy > -200) s.fast = 1;
@@ -1009,6 +1012,9 @@ function grabLedge(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef)
 }
 
 /** Is the fighter guarding this tick (for hits that arrive now)? */
-export const isBlocking = (s: FighterState) => s.act === Act.Block;
+/** Guarding: the Shield's block, or any hero crouching on the ground (hits from the front are blocked). */
+export const isBlocking = (s: FighterState) => s.act === Act.Block || (s.act === Act.Free && !!s.crouch && !!s.ground);
+/** The guard is the crouch guard (not the Shield's block). */
+export const isCrouchGuard = (s: FighterState) => s.act === Act.Free && !!s.crouch && !!s.ground;
 
 

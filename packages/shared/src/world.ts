@@ -5,7 +5,7 @@
 import { ArenaDef, getArena, solidAt, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS, ROUND, TICK_RATE } from './constants';
 import {
-  Act, copyState, currentMove, FighterState, FoeView, hitstopFor, isActive, isBlocking, isFrozen, meleeConnect, meleeCrit, moveDamage, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
+  Act, copyState, currentMove, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isFrozen, meleeConnect, meleeCrit, moveDamage, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
@@ -220,6 +220,8 @@ export class World {
   private casting: Fighter[] = [];
   /** The hit-stop the last applyHit set (0: none, e.g. a parry). */
   private lastStop = 0;
+  /** The last applyHit was a parried projectile: the projectile flies back at its owner. */
+  private lastParry = false;
 
   constructor(readonly settings: MatchSettings) {
     this.arena = getArena(settings.arenaId);
@@ -319,6 +321,35 @@ export class World {
   }
 
   /** A Rift Art started this tick: its caster froze itself (stepFighter); freeze the opponent and the world as long. */
+  /** A projectile turned around by a parry (or Bulwark): it flies back at its owner and is now `by`'s. */
+  private reflect(p: Projectile, by: Fighter) {
+    p.owner = by.id;
+    p.vx = -p.vx * 1.1;
+    p.vy = -Math.abs(p.vy) * 0.5;
+    p.life = Math.max(p.life, 60);
+    p.wait = 0;
+  }
+
+  /**
+   * An ordinary projectile meeting an enemy's melee swing (from a tick before its hit window until a few ticks after) is
+   * cut out of the air. Rift Art projectiles, unblockable and piercing ones push through.
+   */
+  private deflected(p: Projectile, px: number, py: number): boolean {
+    if (p.art || p.unblockable || p.pierce || p.kind === 'wave' || p.kind === 'steed' || p.kind === 'hand' || (p.wait ?? 0) > 0) return false;
+    for (const f of this.fighters.values()) {
+      if (f.id === p.owner || f.s.act !== Act.Attack) continue;
+      const m = currentMove(f.s, f.load);
+      if (!m || m.arrow || m.arcane || m.gate) continue;
+      if (f.s.actT < m.startup - 1 || f.s.actT >= m.startup + m.active + FIGHTER.deflectLate) continue;
+      const mb = moveBox(m, f.s.x, f.s.y, f.s.face);
+      const pb = { x: Math.min(px, p.x) - 6, y: Math.min(py, p.y) - 8, w: Math.abs(p.x - px) + 12, h: Math.abs(p.y - py) + 16 };
+      if (!overlap(mb, pb)) continue;
+      this.events.push({ t: 'parry', a: f.id, v: 255, x: p.x, y: p.y }); // (v 255: a shot, nobody staggered)
+      return true;
+    }
+    return false;
+  }
+
   private startSuperpause() {
     for (const f of this.casting) {
       const o = this.opponent(f);
@@ -548,6 +579,7 @@ export class World {
   ): boolean {
     const ds = d.s;
     this.lastStop = 0;
+    this.lastParry = false;
     if (d.s.act === Act.KO) return false;
     const DC = classOf(d.load.cls);
     const dirX = a ? (a.s.x <= ds.x ? 1 : -1) : h.x <= ds.x ? 1 : -1;
@@ -568,18 +600,28 @@ export class World {
     h = { ...h, dmg: a ? Math.round(h.dmg * this.dmgScale(a)) : h.dmg };
     const guard = h.guard ?? { blocking: isBlocking(ds), blockT: ds.blockT };
     if (guard.blocking && h.front && !h.breaksGuard) {
+      const crouchGuard = isCrouchGuard(ds);
       const parryWin = FIGHTER.parryWindow * (DC.id === ClassId.Shielder ? 1.6 : 1);
-      if (guard.blockT <= parryWin && a) {
-        a.s.act = Act.Stun;
-        a.s.actT = 0;
-        a.s.stun = FIGHTER.parryStun;
-        a.s.fall = 0;
-        a.s.vx = -dirX * 120;
-        a.s.charge = 0;
-        this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y });
+      if (guard.blockT <= parryWin) {
+        this.events.push({ t: 'parry', a: d.id, v: h.melee === false || !a ? 255 : a.id, x: h.x, y: h.y });
+        // a parry is worth a slice of the Rift gauge
+        if (d.s.act !== Act.Art) d.s.rift = Math.min(RIFT.max, d.s.rift + RIFT.max * 0.06);
+        if (h.melee === false) {
+          // a parried shot flies back at whoever fired it (the projectile loop turns it around)
+          this.lastParry = true;
+          return false;
+        }
+        if (a) {
+          a.s.act = Act.Stun;
+          a.s.actT = 0;
+          a.s.stun = crouchGuard ? FIGHTER.guardParryStun : FIGHTER.parryStun;
+          a.s.fall = 0;
+          a.s.vx = -dirX * 120;
+          a.s.charge = 0;
+        }
         return false;
       }
-      const chip = Math.max(1, Math.round(h.dmg * FIGHTER.chip * DC.chip));
+      const chip = Math.max(1, Math.round(h.dmg * FIGHTER.chip * DC.chip * (crouchGuard ? FIGHTER.guardChip : 1)));
       const hs = hitstopFor(hsDmg, false, art, true);
       this.lastStop = hs;
       ds.hitstop = Math.max(ds.hitstop, hs);
@@ -796,13 +838,16 @@ export class World {
       p.y += p.vy * DT;
       p.life--;
       let dead = p.life <= 0;
+      // a melee swing cuts it out of the air
+      if (!dead && this.deflected(p, px, py)) dead = true;
       // hit a fighter (not its owner)
       for (const f of this.fighters.values()) {
         const bulwark = f.s.act === Act.Art && artIdOf(f.load) === ArtId.Bulwark;
         // the Phantom Hand grasps: a dodge roll does not slip past it (only a real barrier or an Art's invulnerability does)
         const grasp = p.kind === 'hand' && f.s.act === Act.Roll;
         if (dead || f.id === p.owner || f.s.act === Act.KO || (f.s.invuln > 0 && !bulwark && !grasp)) continue;
-        const bb = bodyBox(f.s.x, f.s.y, !!f.s.crouch);
+        // (a crouch guard catches shots on the guard rather than ducking them)
+        const bb = bodyBox(f.s.x, f.s.y, !!f.s.crouch && !isCrouchGuard(f.s));
         if (p.dmg <= 0 && p.kind === 'steed') continue;
         const r = p.kind === 'wave' || p.kind === 'steed' ? 32 : p.kind === 'orb' ? 9 : p.kind === 'hand' ? 22 : 4;
         // the hand reaches up as it passes: a fighter jumping over it is snatched out of the air
@@ -827,6 +872,11 @@ export class World {
           const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' || p.kind === 'relic' || p.kind === 'hand' || p.kind === 'steed' ? 106 : 101;
           const kbY = p.kbY ?? (p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40);
           const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable, art: !!p.art });
+          if (this.lastParry && !p.art && !p.pierce) {
+            // parried: back the way it came, now the parrier's
+            this.reflect(p, f);
+            continue;
+          }
           // the Phantom Hand crushes the heart it grasps and feeds its master
           if (landed && p.kind === 'hand' && !p.skin && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.5));
           if (p.burn && (landed || p.kind === 'steed')) f.s.burnT = Math.max(f.s.burnT, p.burn);

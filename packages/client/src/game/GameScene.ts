@@ -986,6 +986,7 @@ export class GameScene extends Phaser.Scene {
     while (fv.hist.length && now - fv.hist[0].t > 350) fv.hist.shift();
     this.drawTendrils(fv, v, now);
     this.drawGatePortals(fv, v);
+    this.drawGuard(fv, v);
     // Chains of Genesis: the rooted fighter is bound in chains
     this.drawBinds(fv, v);
     // Grim Fog: unseen by the opponent. The veiled fighter is a faint shimmer on their screen; you still see yourself.
@@ -1031,6 +1032,20 @@ export class GameScene extends Phaser.Scene {
       s.update(0);
       if (!this.fx.includes(s)) this.fx.push(s);
     }
+  }
+
+  /** The crouch guard (every hero holds down to guard): a shimmering arc of the hero's energy in front of them. */
+  private drawGuard(fv: FighterView, v: ViewFighter) {
+    if (v.act !== Act.Free || !v.crouch || !v.ground) return;
+    const c = heroEnergy(v.hero);
+    const g = fv.gfxB;
+    const cx = v.x + v.face * 10;
+    const cy = v.y - 20;
+    const a0 = v.face > 0 ? -1.15 : Math.PI - 1.15;
+    const pulse = 0.55 + Math.sin(this.clock * 10) * 0.12;
+    g.lineStyle(6, c.rim, pulse * 0.5).beginPath().arc(cx, cy, 26, a0, a0 + 2.3).strokePath();
+    g.lineStyle(2.5, c.arc, pulse).beginPath().arc(cx, cy, 26, a0, a0 + 2.3).strokePath();
+    g.lineStyle(1, 0xffffff, pulse * 0.8).beginPath().arc(cx, cy, 23, a0 + 0.3, a0 + 2.0).strokePath();
   }
 
   /**
@@ -1635,6 +1650,23 @@ export class GameScene extends Phaser.Scene {
         break;
       }
       case 'parry': {
+        {
+          // the word over the defender: PARRY! for a guard timed just right, CUT! for a shot cut down by a swing
+          const d = find(e.a);
+          if (d) this.addFx(FX.critNumber, d.x, d.y - FIGHTER.h - 10, false, 1.1, { text: d.act === Act.Attack ? 'CUT!' : 'PARRY!' }, 31, 32);
+        }
+        if (e.v === 255) {
+          // a shot cut out of the air or parried back: a bright clang and sparks, nobody staggers
+          this.addAdd(0.2, (g, p) => {
+            g.lineStyle(3 * (1 - p) + 1, 0xffffff, 1 - p);
+            g.strokeCircle(e.x, e.y, 6 + 26 * easeOut3(p));
+          });
+          for (let i = 0; i < 8; i++) this.spark(e.x, e.y, (Math.random() - 0.5) * 260, -60 - Math.random() * 160, 0.35, Math.random() < 0.5 ? 0xffffff : 0xbfe8ff, 2, 260);
+          sfx.play('shieldHit', { x: e.x, y: e.y, pitch: 1.4 });
+          const f = this.views.get(e.a);
+          if (f) f.freezeUntil = performance.now() + 60;
+          break;
+        }
         this.addFx(FX.parry, e.x, e.y + 20, false, 1.3, {}, 16, 26);
         // a parry rings out: a white ring and a bright star at the guard
         this.addAdd(0.28, (g, p) => {

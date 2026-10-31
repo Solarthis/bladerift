@@ -386,6 +386,7 @@ export class App {
           ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
         </table>
         <p>Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
+        <p><b>Guard and parry:</b> hold <b>down</b> on the ground to guard against hits from the side you face (you take a little chip damage; heavy attacks break it). Press down <b>just before</b> a hit lands to <b>parry</b>: a melee attacker is staggered, and a shot flies straight back at whoever fired it. Swinging a melee weapon into a shot cuts it out of the air, so you can fight your way in against archers and casters.</p>
         <p><b>Classes and Rift Arts:</b> every hero fights with its own weapon, special, dodge and Rift Art. The Rift gauge under your health fills slowly on its own and fast when you hit or get hit; when it glows, unleash the Art. The Assassin's <b>Flash Step</b> even works while you are being comboed.</p>
         <ul>
           <li><b>Combos:</b> keep pressing a weapon button to chain its strikes.</li>

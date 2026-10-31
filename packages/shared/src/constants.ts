@@ -97,6 +97,12 @@ export const FIGHTER = {
   /** A block this young parries; a parried attacker is stunned for parryStun ticks. */
   parryWindow: 10,
   parryStun: 54,
+  /** The crouch guard (every hero: hold down on the ground): a parried attacker is stunned this long; damage through
+   * the guard is chip x guardChip (the Shield's block stays the better guard). */
+  guardParryStun: 40,
+  guardChip: 1.6,
+  /** A melee swing cuts enemy projectiles out of the air from a tick before its hit window to `deflectLate` ticks after. */
+  deflectLate: 4,
   /** Damage taken through a block, and the blocker's slide back. */
   chip: 0.15,
   blockPush: 170,
