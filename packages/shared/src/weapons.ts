@@ -272,6 +272,48 @@ export const SKILLS: SkillDef[] = [
     kind: 'shot', proj: 'wave', speed: 820, life: 52, launchY: 32, dmg: 60, kb: 260, stun: 22, boomerang: true },
 ];
 
+/**
+ * Every hero's own dodge (the Roll button; dodge N belongs to hero N). Kinds:
+ *   step  - a near-instant step of `dist` along the stick (8 directions; `horizontal` = left/right only) over `ticks`;
+ *           `behind`: with no direction and the opponent close, it lands behind them
+ *   dash  - a fast burst along the ground (or the air) at `vx` for `ticks`
+ *   leap  - a jump-dodge: `vx` (forward along the stick, or `back` = away from where the hero faces) and `vy`
+ *   phase - the hero dissolves for `ticks`, drifting at `vx` with the stick, untouchable
+ * All are invulnerable for `invuln` ticks; `cancel` = usable out of an attack. Air use costs an air-dash charge.
+ */
+export interface DodgeDef {
+  name: string;
+  blurb: string;
+  kind: 'step' | 'dash' | 'leap' | 'phase';
+  invuln: number;
+  ticks: number;
+  dist?: number;
+  vx?: number;
+  vy?: number;
+  behind?: boolean;
+  horizontal?: boolean;
+  back?: boolean;
+  cancel?: boolean;
+}
+
+export const DODGES: DodgeDef[] = [
+  { name: "Lion's Step", blurb: 'A low, guarded burst step - the king never truly retreats.', kind: 'dash', vx: 720, ticks: 9, invuln: 9 },
+  { name: "Hunter's Vault", blurb: 'A back-flip vault that opens the range for the bow.', kind: 'leap', vx: 430, vy: -560, back: true, ticks: 30, invuln: 11 },
+  { name: 'Gate Step', blurb: 'He steps into a golden gate and out of another.', kind: 'step', dist: 140, ticks: 6, invuln: 10 },
+  { name: 'Pole Vault', blurb: 'Vaults clean over the enemy on his spear.', kind: 'leap', vx: 520, vy: -700, ticks: 34, invuln: 11 },
+  { name: 'Clay Shift', blurb: 'Melts into the earth and glides through it.', kind: 'dash', vx: 520, ticks: 15, invuln: 15 },
+  { name: 'Mirage', blurb: 'An illusion takes the blow; she is already elsewhere.', kind: 'step', dist: 150, ticks: 3, invuln: 10 },
+  { name: 'Turn of the Page', blurb: 'The page turns and he is a few lines further on.', kind: 'step', dist: 125, ticks: 5, horizontal: true, invuln: 9 },
+  { name: 'Flash Step', blurb: 'There and gone in a step - behind you, if you are close.', kind: 'step', dist: 150, ticks: 4, behind: true, cancel: true, invuln: 9 },
+  { name: 'Flash Step', blurb: 'Faster than the eye: any direction, out of any attack, behind you.', kind: 'step', dist: 170, ticks: 3, behind: true, cancel: true, invuln: 9 },
+  { name: 'Beast Bound', blurb: 'A low, heavy pounce that carries the chimera clear.', kind: 'leap', vx: 640, vy: -380, ticks: 26, invuln: 9 },
+  { name: 'Fog Form', blurb: 'He becomes the fog: nothing can touch him while it drifts.', kind: 'phase', vx: 260, ticks: 20, invuln: 20 },
+  { name: 'Cavalry Dash', blurb: "A burst of the conqueror's charge.", kind: 'dash', vx: 900, ticks: 10, invuln: 8 },
+  { name: 'Shadow Sink', blurb: 'She sinks into her shadow and rises behind you.', kind: 'step', dist: 140, ticks: 8, behind: true, invuln: 12 },
+  { name: 'Shield Slide', blurb: 'Slides forward low behind the tower shield.', kind: 'dash', vx: 640, ticks: 12, invuln: 12 },
+];
+export const dodgeOf = (load: { hero?: number }) => DODGES[load.hero ?? 0] ?? DODGES[0];
+
 export const SKILL_FX = {
   bomb: { speedX: 460, speedY: -420, gravity: 1300, radius: 74, dmg: 80, burnTicks: 180, burnDps: 24 },
   frost: { speed: 820, dmg: 70, slowTicks: 150, stun: 18 },

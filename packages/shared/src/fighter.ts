@@ -7,8 +7,8 @@
 import { ArenaDef, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS } from './constants';
 import { Btn, InputCmd } from './input';
-import { Loadout, Move, SKILLS, WEAPONS } from './weapons';
-import { ArtId, ARTS, ClassId, classOf, ClassDef, RIFT } from './classes';
+import { dodgeOf, Loadout, Move, SKILLS, WEAPONS } from './weapons';
+import { ArtId, ARTS, classOf, ClassDef, RIFT } from './classes';
 import { artIdOf } from './heroes';
 
 export const enum Act {
@@ -261,31 +261,39 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     s.skillCd = Math.round(sk.cooldown * C.skillCd);
     s.spawn = 0;
     s.crouch = 0;
-  } else if (b === Buf.Roll && isFlashStepper(load)) {
-    // Flash Step: the assassin is simply somewhere else - along the stick (up and diagonals too), or, with no direction
-    // and the opponent close, right behind them for the backstab
+  } else if (b === Buf.Roll) {
+    // every hero's own dodge (DODGES): on the ground on a cooldown, in the air once per air-dash charge
     if (s.ground ? s.rollCd > 0 : s.dash >= C.dashes) return false;
+    const D = dodgeOf(load);
     let dx = cmd.moveX;
-    let dy = cmd.moveY;
+    let dy = D.horizontal || D.kind !== 'step' ? 0 : cmd.moveY;
     const still = Math.abs(dx) < 0.3 && Math.abs(dy) < 0.3;
-    let vx: number;
-    let vy: number;
-    const T = FLASH.ticks * DT;
-    if (still && FOE && Math.abs(FOE.x - s.x) < FLASH.behindRange && Math.abs(FOE.y - s.y) < 90) {
-      const half = FIGHTER.w / 2;
-      let tx = FOE.x - FOE.face * 30;
-      if (tx < half || tx > arena.w - half) tx = FOE.x + FOE.face * 30;
-      vx = (tx - s.x) / T;
-      vy = (FOE.y - s.y) / T;
-      s.face = FOE.x >= tx ? 1 : -1;
+    const T = D.ticks * DT;
+    let vx = 0;
+    let vy = 0;
+    if (D.kind === 'step') {
+      if (still && D.behind && FOE && Math.abs(FOE.x - s.x) < FLASH.behindRange && Math.abs(FOE.y - s.y) < 90) {
+        // behind the opponent, facing their back
+        const half = FIGHTER.w / 2;
+        let tx = FOE.x - FOE.face * 30;
+        if (tx < half || tx > arena.w - half) tx = FOE.x + FOE.face * 30;
+        vx = (tx - s.x) / T;
+        vy = (FOE.y - s.y) / T;
+        s.face = FOE.x >= tx ? 1 : -1;
+      } else {
+        if (still) dx = s.face;
+        const len = Math.hypot(dx, dy) || 1;
+        vx = ((dx / len) * (D.dist ?? 140)) / T;
+        vy = ((dy / len) * (D.dist ?? 140)) / T;
+        if (Math.abs(dx) > 0.2) s.face = dx > 0 ? 1 : -1;
+      }
     } else {
-      if (still) dx = s.face;
-      const len = Math.hypot(dx, dy) || 1;
-      dx /= len;
-      dy /= len;
-      vx = (dx * FLASH.dist) / T;
-      vy = (dy * FLASH.dist) / T;
-      if (Math.abs(dx) > 0.2) s.face = dx > 0 ? 1 : -1;
+      if (Math.abs(dx) > 0.3) s.face = dx > 0 ? 1 : -1;
+      const backOff = !!D.back && Math.abs(dx) < 0.3;
+      const dir = backOff ? -s.face : s.face;
+      vx = dir * (D.vx ?? 600);
+      vy = D.kind === 'leap' ? (D.vy ?? -500) : 0;
+      // (a back-vault keeps facing the opponent)
     }
     s.act = Act.Roll;
     s.actT = 0;
@@ -296,18 +304,7 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     if (vy < 0) s.ground = 0;
     s.fast = 0;
     s.crouch = 0;
-    s.invuln = Math.max(s.invuln, FLASH.invuln);
-  } else if (b === Buf.Roll) {
-    // on the ground a roll (cooldown); in the air a dash, once per airtime
-    if (s.ground ? s.rollCd > 0 : s.dash >= C.dashes) return false;
-    if (Math.abs(cmd.moveX) > 0.3) s.face = cmd.moveX > 0 ? 1 : -1;
-    s.act = Act.Roll;
-    s.actT = 0;
-    s.rollAir = s.ground ? 0 : 1;
-    if (!s.ground) s.dash++;
-    s.fast = 0;
-    s.crouch = 0;
-    s.invuln = Math.max(s.invuln, s.ground ? FIGHTER.rollInvuln : PHYS.dashInvuln);
+    s.invuln = Math.max(s.invuln, D.invuln);
   } else if (b === Buf.Heal) {
     if (s.flask <= 0 || !s.ground || s.hp >= C.hp) return false;
     s.flask--;
@@ -433,9 +430,11 @@ function flashStepMove(s: FighterState, foe: FoeView, t: number, arena: ArenaDef
 /** The opponent this step (set by stepFighter; read by tryBuffered's Flash Step). */
 let FOE: FoeView | undefined;
 
-/** Flash Step (the Assassins' dodge): a near-instant step in any direction, or behind the opponent. */
-export const FLASH = { ticks: 4, settle: 4, dist: 150, behindRange: 230, invuln: 9 } as const;
-export const isFlashStepper = (load: Loadout) => load.cls === ClassId.Assassin;
+/** The hero dodges (the Roll button): every hero has its own (weapons.ts DODGES). FLASH holds the shared numbers of
+ * the step kind: the settle after a step, and how close the opponent must be for a step to land behind them. */
+export const FLASH = { settle: 4, behindRange: 230 } as const;
+/** The Assassins' Flash Step can be taken out of any attack. */
+export const isFlashStepper = (load: Loadout) => !!dodgeOf(load).cancel;
 
 export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, load: Loadout, foe?: FoeView) {
   FOE = foe;
@@ -492,13 +491,35 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     }
     case Act.Roll: {
       if (s.rollAir === 2) {
-        // Flash Step: the step itself (gravity-free, the velocity set at the start), then a short settle
-        gravity = false;
-        if (s.actT > FLASH.ticks) {
-          s.vx *= 0.35;
-          s.vy = Math.min(s.vy * 0.2, 0);
+        const D = dodgeOf(load);
+        let done = false;
+        if (D.kind === 'step') {
+          // the step itself (gravity-free, the velocity set at the start), then a short settle
+          gravity = false;
+          if (s.actT > D.ticks) {
+            s.vx *= 0.35;
+            s.vy = Math.min(s.vy * 0.2, 0);
+          }
+          done = s.actT >= D.ticks + FLASH.settle;
+        } else if (D.kind === 'dash') {
+          if (!s.ground && s.actT <= D.ticks) {
+            gravity = false;
+            s.vy = 0;
+          }
+          if (s.actT > D.ticks) s.vx = approach(s.vx, 0, PHYS.groundDecel * 2 * DT);
+          done = s.actT >= D.ticks + 4;
+        } else if (D.kind === 'leap') {
+          // a jump: carried by its momentum until it lands (or runs out)
+          done = (s.ground && s.actT > 4) || s.actT >= D.ticks;
+        } else {
+          // phase: drifting with the stick, untouchable, floating if airborne
+          gravity = false;
+          s.vy = 0;
+          s.vx = approach(s.vx, ax * (D.vx ?? 200), PHYS.groundAccel * DT);
+          s.invuln = Math.max(s.invuln, 1);
+          done = s.actT >= D.ticks;
         }
-        if (s.actT >= FLASH.ticks + FLASH.settle) {
+        if (done) {
           s.act = Act.Free;
           s.actT = 0;
           s.rollAir = 0;

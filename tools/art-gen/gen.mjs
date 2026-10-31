@@ -119,6 +119,24 @@ Row 3: (9) FLASH STEP: a shadowy assassin silhouette splitting into fading after
 Row 4: (13) FROST SHARD: a sharp ice crystal bolt with frost mist; (14) SNARE TRAP: an iron bear trap snapping shut; (15) BLINK: a violet
        arcane rune circle with a figure vanishing into sparks; (16) CROSSED SWORDS (generic attack) with a spark at the crossing.`,
   },
+  'icons-specials': {
+    ref: 'icons-abilities.png',
+    prompt: `${ICON_RULES}
+Match the attached sheet's frame and style exactly. Each of the first 14 cells is the signature SPECIAL MOVE of one hero, in hero order
+(hero 0 first, left to right, top row first; cell 15 and 16 are spare):
+Row 1: (1) LION'S ROAR: a royal war cry as a golden LION-HEAD shockwave, concentric gold rings bursting outward from an open lion's mouth;
+       (2) NINE LIVES: three ember-tipped arrows loosed at once in a fan of orange fire; (3) GATE SHOT: a golden gate swinging open, one
+       ornate treasure blade flying straight out of it; (4) RUNE LEAP: a violet rune circle with a spear diving point first in a leap arc.
+Row 2: (5) CHAIN LASH: a living golden chain lashing out like a whip, its tip coiled to bind; (6) PHANTOM STARS: three falling-star bolts of
+       pale pink and violet arcane light streaking down with trails; (7) INK BLOT: a splash of golden ink bursting across a dark page beside a quill
+       nib; (8) SHADOW DIRK: one black dagger hurled out of shadowy smoke, a cold teal edge.
+Row 3: (9) FAN OF KNIVES: three steel knives flung in a spread arc, cyan glints on each blade; (10) TERROR ROAR: a monstrous chimera's open
+       jaws roaring, crimson ripple waves of fear; (11) SCALPEL RAIN: three surgical scalpels arcing down through grey fog, a few drops of red;
+       (12) BUCEPHALUS CHARGE: a great black warhorse rearing and charging with a steel lance levelled at the front.
+Row 4: (13) PLAGUE HOUND: a shadow hound racing low along the ground, sickly green-violet plague mist trailing behind it; (14) SHIELD
+       REBOUND: a teal tower shield spinning in a wide arc with curved return arrows around it; (15) a plain golden rift crack on violet (spare);
+       (16) a plain empty dark card with a gold rim (spare).`,
+  },
   'icons-gear': {
     ref: 'skills.png',
     prompt: `${ICON_RULES}
