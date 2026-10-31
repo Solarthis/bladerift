@@ -1,0 +1,75 @@
+{
+  "id": "h03-nyx",
+  "hero": 3,
+  "name": "Nyx",
+  "epithet": "the Hollow Tide",
+  "refs": [
+    "references/design.png"
+  ],
+  "designRefs": [
+    "../h00-leon/references/approved-sheet.png",
+    "references/portrait.jpg"
+  ],
+  "bible": "Nyx is a slender, pale youth of about twenty, tall and narrow-shouldered, with a fine-boned face, sharp cheekbones and a distant, calm expression. His eyes are pale ice-blue with a cyan glow under heavy black brows. His black hair is thick and wavy, swept back off the forehead and falling to the shoulders with a blue sheen. He wears a long high-collared coat of midnight slate (deep navy-black) to the knees, splitting at the back into two trailing tails, with tarnished silver embroidery in chain-like knots along the collar, cuffs and front. Beneath: a charcoal sleeveless tunic, black trousers, black knee-high boots with silver buckles. Faint translucent jellyfish spirits drift around him: glowing cyan bells with long tentacles. WEAPON: a sea-spear about one and a half times his height. The haft is dark slate-grey with a thin teal inlay; the leaf-shaped blade is pale sea-glass steel with a glowing teal fuller and a barbed, wave-curled crest at its base. He holds it in his RIGHT hand near the butt and his LEFT hand grips the shaft ahead of the centre of balance. Energy and trails: CYAN-TEAL arcs with pale white-blue motes.",
+  "design": "- top row: full-body neutral stance facing right with the spear held upright; a combat stance with the spear couched low; a walking pose; a running pose with the coat tails flying; a jump with the jellyfish spirits trailing; a close-up of the spear head and its wave-curled crest\n- middle rows: six attack and special poses: two thrusts, a low rising sweep, a lunging charge with a cyan wave trail, a diving plunge, a burst of jellyfish spirits\n- bottom row: guard with the spear across the body, hit reaction, knocked down, a calm victory pose with the spear planted, the signature lunge with the cyan wave and jellyfish",
+  "sheets": {
+    "atk-a": {
+      "title": "Basic combo thrusts 1 and 2 (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo thrust 1, anticipation: the spear pulled back to the hip, blade drawn back beside the body, weight on the back foot",
+        "combo thrust 1, strike: a fast two-handed thrust straight forward at chest height, the blade driving out with a short cyan streak kept inside this cell",
+        "combo thrust 1, recovery: the spear pulled back to the hip, body settling toward stance",
+        "combo thrust 2, anticipation: the spear swung low and back, the shaft dropping toward the ground, weight sinking",
+        "combo thrust 2, strike: a low rising thrust, the spear sweeping up from knee height to shoulder height with a bright arc streak kept inside this cell",
+        "combo thrust 2, recovery: spear held high in a guard above the shoulder, follow-through relaxing"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher lunge and aerial thrust (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: the spear drawn back under the arm, couched low, front foot stepping in, body coiling",
+        "combo finisher, strike: a lunging thrust with the whole body driving forward, the spear extended straight ahead, a large cyan trail streaking behind the blade kept inside this cell; the strongest pose",
+        "combo finisher, recovery: full extension relaxing, the spear pulled back, coat tails flaring, settling toward stance",
+        "aerial thrust, anticipation: in mid-air, the spear drawn back level with the hip, body angled forward",
+        "aerial thrust, strike: a diving thrust forward and slightly down, the blade leading, a short cyan trail kept inside this cell",
+        "aerial thrust, recovery: airborne, body tucked around the spear, returning to a ready pose"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge attack and charged lunge (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, the spear pointed point-first beneath the body, speed lines",
+        "plunge, impact: landing in a low crouch, the spear driven point-first into the ground in front, a burst of cyan light and spray",
+        "plunge, recovery: rising from the impact back toward stance, the spear pulled free",
+        "charged lunge, charge: the spear couched under the arm pointing forward, body coiled low, a bright cyan glow building along the blade",
+        "charged lunge, strike: a full-power lunge, the whole body and the spear driving forward in one long straight thrust, a huge cyan trail kept inside this cell",
+        "charged lunge, follow-through: deep follow-through with the spear held out at the end of the lunge, the trail dissipating into motes"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "art": "Abyss Fang: he draws the spear back low while his jellyfish spirits gather around the blade (anticipation 1-2). Execution: a fast, straight lunge across the arena with the spear fully extended, the blade leaving a long cyan wave of sea light with jellyfish and tentacles streaming behind it (execution 1-2, kept inside each cell); recovery: the spear pulled back while the light and spirits fade into faint motes.",
+    "misc": "Skill throw: he flicks a small glowing jellyfish spirit forward from the free hand. Taunt: he turns the spear once in a slow loop, then lowers the blade and gives a cold, half-smile. Victory: he plants the spear point-down beside him with one hand resting on the shaft, the coat tails and spirits drifting around him, calm and distant.",
+    "ko": "Intro: he walks in with the spear held upright at his side, blade toward the sky; he spins it once in a slow flourish, then settles into the stance with the spear held low across the body.",
+    "idle": "The spear is a LANCE, never a sword: a long spear held upright beside the body, the blade tilted slightly forward; the coat tails and jellyfish spirits drift with each breath.",
+    "run": "The spear is carried upright at the side with its butt low and the blade tilting forward above the head; the coat tails stream behind and the jellyfish spirits trail after him.",
+    "air": "The spear is held level with the body, blade forward; the coat tails stream upward and the jellyfish spirits trail behind.",
+    "dash": "The ground dash is a low run with the spear couched under the arm, blade forward; the cyan motes stream behind."
+  },
+  "nativeHeight": 172
+}

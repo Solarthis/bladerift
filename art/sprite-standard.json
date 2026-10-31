@@ -1,0 +1,171 @@
+{
+ "comment": "Shared sprite production standard for every Bladerift fighter. See docs/art/sprite-standard.md. Sheets below are the standard set; a character.json may override frames (sheets) or add notes (sheetNotes).",
+ "width": 1536,
+ "height": 1024,
+ "grid": [
+  4,
+  2
+ ],
+ "standFrac": 0.78,
+ "groundFrac": 0.06,
+ "bodyX": 0.36,
+ "nativeHeight": 176,
+ "style": "Premium, high-detail anime 2D fighting-game sprite art: the look of a carefully hand-pixelled character sprite rendered at high resolution - crisp deliberate dark outlines (not thick black cartoon lines), cel shading with three to four tones per material, bright specular highlights on metal, a cool rim light, an expressive face with a clear eye, anatomically correct hands with readable fingers, convincing anime anatomy, fluid hair and cloth that follow the motion. Exactly the rendering, palette and level of detail of the attached reference sheet. Not vector art, not blurry, not chibi, no photorealism.",
+ "sheets": {
+  "idle": {
+   "title": "Stance and footwork",
+   "frames": [
+    "combat idle loop 1: fighting stance, weapon ready, knees bent, weight centred",
+    "combat idle loop 2: the same stance breathing in, shoulders slightly raised, cape and hair drifting",
+    "combat idle loop 3: the same stance at the top of the breath",
+    "combat idle loop 4: the same stance breathing out, settling back toward frame 1",
+    "standing guard: weapon raised across the body to block, braced, chin down",
+    "crouch: low crouch on bent knees, weapon held low and ready (a crouching guard posture)",
+    "skid: braking hard from a run, front foot planted forward, body leaning back, cape swinging forward",
+    "landing: absorbing a landing from a jump, deep knee bend, one hand low for balance, cape still settling"
+   ]
+  },
+  "run": {
+   "title": "Run cycle (8 frames, loops from frame 8 back to frame 1)",
+   "frames": [
+    "run cycle 1: right foot contact, stride long, body leaning forward, weapon held ready at the side",
+    "run cycle 2: right foot down, body at its lowest",
+    "run cycle 3: passing pose, left knee driving forward, body rising",
+    "run cycle 4: left leg reaching forward, body at its highest, both feet briefly off the ground",
+    "run cycle 5: left foot contact, stride long (the mirror of frame 1)",
+    "run cycle 6: left foot down, body at its lowest",
+    "run cycle 7: passing pose, right knee driving forward, body rising",
+    "run cycle 8: right leg reaching forward, body at its highest, both feet off the ground"
+   ]
+  },
+  "air": {
+   "title": "Jumping, falling, walls and ledges",
+   "frames": [
+    "jump take-off: crouched spring an instant before leaving the ground",
+    "rising: leaping upward, legs tucked under, cape trailing down, weapon held back",
+    "apex: at the top of the jump, knees tucked, body compact, cape billowing",
+    "falling: descending, legs extending to land, cape and hair flowing upward",
+    "fast fall: diving straight down, body straight and streamlined, cape and hair streaming up",
+    "wall slide: back and left shoulder pressed against a wall on the LEFT, one hand bracing on it, sliding down, one foot scraping it",
+    "ledge hang: hanging by both hands from a ledge edge above the head, body dangling below, legs together",
+    "ledge climb: pulling up over the ledge, one knee up, chest over the edge"
+   ]
+  },
+  "dash": {
+   "title": "Dodge, dash and healing",
+   "frames": [
+    "dodge roll 1: dropping low into a forward roll",
+    "dodge roll 2: tucked into a tight ball mid-roll, cape wrapping around",
+    "dodge roll 3: rolling over the shoulder, nearly upside down",
+    "dodge roll 4: coming out of the roll into a low crouch, ready",
+    "ground dash: a fast low burst forward, body almost horizontal, faint speed lines behind",
+    "air dash: dashing horizontally through the air, body stretched forward, cape snapping behind",
+    "heal 1: pulling out a small glass flask of glowing red potion",
+    "heal 2: drinking the potion, head tipped back, a soft red glow"
+   ]
+  },
+  "atk-a": {
+   "title": "Basic combo strikes 1 and 2 (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, anticipation: drawing the weapon back for a quick slash",
+    "combo strike 1, strike: a fast horizontal slash forward with a bright weapon trail kept inside this cell",
+    "combo strike 1, recovery: the follow-through settling back toward stance",
+    "combo strike 2, anticipation: weight shifts, weapon raised high for a diagonal cut",
+    "combo strike 2, strike: a powerful diagonal cut with a bright arc trail kept inside this cell",
+    "combo strike 2, recovery: follow-through low, pulling back toward stance"
+   ]
+  },
+  "atk-b": {
+   "title": "Combo finisher and aerial attack (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: a big wind-up, weapon far back, front foot stepping in",
+    "combo finisher, strike: an overwhelming lunging strike, large bright arc trail kept inside this cell, the strongest pose",
+    "combo finisher, recovery: full extension relaxing, cape flaring, settling toward stance",
+    "aerial attack, anticipation: in mid-air, weapon raised",
+    "aerial attack, strike: a sweeping mid-air slash in front, bright arc trail kept inside this cell",
+    "aerial attack, recovery: airborne, body tucked, returning to a ready pose"
+   ]
+  },
+  "atk-c": {
+   "title": "Plunge attack and heavy attack (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, weapon pointed down beneath the body, speed lines",
+    "plunge, impact: landing in a low crouch, weapon driven into the ground in front, a burst of light and dust",
+    "plunge, recovery: rising from the impact back toward stance",
+    "heavy attack, charge: body coiled, weapon held far back, a bright glow building on it",
+    "heavy attack, strike: a devastating full-power strike with a huge bright arc trail kept inside this cell",
+    "heavy attack, follow-through: deep follow-through, trail dissipating"
+   ]
+  },
+  "hurt": {
+   "title": "Getting hit, knocked down and getting up",
+   "frames": [
+    "light hit: flinching back from a blow, head snapped back, eyes squeezed",
+    "light hit recovery: catching the balance, guard coming back up",
+    "heavy hit: body bent backward by a heavy blow, arms flung out, pain on the face",
+    "launched: knocked off the feet and flying backward through the air",
+    "knockdown fall: falling onto the back, about to hit the ground",
+    "knocked down: lying flat on the back on the ground, weapon still in hand",
+    "getting up: pushing up onto one knee",
+    "back on guard: rising back into the fighting stance"
+   ]
+  },
+  "art": {
+   "title": "Signature special move (Rift Art): anticipation, execution, recovery",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "special anticipation 1: gathering power, a glowing aura starting",
+    "special anticipation 2: the instant before release, power at its peak",
+    "special execution 1: releasing the special move (its effect kept inside this cell)",
+    "special execution 2: the special move at full force (its effect kept inside this cell)",
+    "special recovery 1: power fading",
+    "special recovery 2: returning to stance"
+   ]
+  },
+  "misc": {
+   "title": "Skill throw, taunt and victory",
+   "frames": [
+    "skill throw 1: reaching back with the free hand to throw a small item",
+    "skill throw 2: throwing it forward, arm extended",
+    "skill throw 3: follow-through after the throw",
+    "taunt 1: a confident taunt gesture (character-specific)",
+    "taunt 2: the taunt's second beat",
+    "victory 1: the start of the victory pose",
+    "victory 2: the victory pose at its height",
+    "victory 3: the victory pose held, cape and hair settling"
+   ]
+  },
+  "ko": {
+   "title": "Defeat and intro",
+   "frames": [
+    "defeat 1: staggering from the final blow",
+    "defeat 2: dropping to the knees, weapon slipping",
+    "defeat 3: collapsing forward",
+    "defeat 4: lying motionless on the ground",
+    "intro 1: walking in, weapon lowered, calm",
+    "intro 2: raising the weapon",
+    "intro 3: a flourish of the weapon",
+    "intro 4: settling into the fighting stance, ready"
+   ]
+  }
+ }
+}

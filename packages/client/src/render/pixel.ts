@@ -5,7 +5,7 @@
  */
 import Phaser from 'phaser';
 // @ts-expect-error - plain JS vendor module
-import { posed, createFx, createFrame, clearFrame, composite, hex } from '../vendor/pixelfx/core/index.js';
+import { posed, createFx, createFrame, clearFrame, hex } from '../vendor/pixelfx/core/index.js';
 // @ts-expect-error - plain JS vendor module
 import { WEAPONS as RIG_WEAPONS } from '../vendor/pixelfx/core/rig.js';
 // @ts-expect-error - plain JS vendor module
@@ -284,21 +284,355 @@ interface FxInstance {
 let fxSerial = 0;
 
 /**
+ * PixelFX's composite(frame, out, null) written straight into an ImageData's words. With no background, a colour pixel
+ * is its own RGBA bytes, so the colour buffer is copied in one pass (no per-pixel byte stores); only pixels with light
+ * take the vendor's blend (the same arithmetic, written to the byte view so the rounding matches). Returns whether the
+ * frame had anything in it.
+ */
+function compositeInto(f: { w: number; h: number; color: Uint32Array; light: Uint32Array }, out8: Uint8ClampedArray, out32: Uint32Array): boolean {
+  const n = f.w * f.h;
+  const C = f.color;
+  const L = f.light;
+  out32.set(C);
+  let any = false;
+  for (let i = 0; i < n; i++) {
+    const l = L[i] & 0xffffff;
+    if (!l) {
+      if (C[i]) any = true;
+      continue;
+    }
+    any = true;
+    const c = C[i];
+    let r = c & 255;
+    let g = (c >>> 8) & 255;
+    let b = (c >>> 16) & 255;
+    let a = c >>> 24;
+    const lr = l & 255;
+    const lg = (l >>> 8) & 255;
+    const lb = (l >>> 16) & 255;
+    if (a < 255) {
+      // over transparency: premultiply what's there, add the light, divide by the new alpha
+      const pa = a / 255;
+      const pr = r * pa + lr;
+      const pg = g * pa + lg;
+      const pb = b * pa + lb;
+      const na = Math.min(1, Math.max(pa, Math.max(lr, lg, lb) / 255));
+      if (na > 0) {
+        r = Math.min(255, pr / na);
+        g = Math.min(255, pg / na);
+        b = Math.min(255, pb / na);
+        a = na * 255;
+      }
+    } else {
+      r = Math.min(255, r + lr);
+      g = Math.min(255, g + lg);
+      b = Math.min(255, b + lb);
+    }
+    const j = i * 4;
+    out8[j] = r;
+    out8[j + 1] = g;
+    out8[j + 2] = b;
+    out8[j + 3] = a;
+  }
+  return any;
+}
+
+// ------------------------------------------------------------------ live effect canvases
+
+/** Spare canvas textures of live effects, by size: making and dropping a canvas per effect costs a stall. */
+const texPool = new Map<string, Phaser.Textures.CanvasTexture[]>();
+const TEX_POOL_MAX = 8;
+
+function takeTex(scene: Phaser.Scene, w: number, h: number): Phaser.Textures.CanvasTexture {
+  const spare = texPool.get(`${w}x${h}`)?.pop();
+  if (spare) {
+    spare.context.clearRect(0, 0, w, h);
+    return spare;
+  }
+  const tex = scene.textures.createCanvas(`fxt${++fxSerial}`, w, h)!;
+  tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+  return tex;
+}
+
+function giveTex(scene: Phaser.Scene, tex: Phaser.Textures.CanvasTexture) {
+  const k = `${tex.width}x${tex.height}`;
+  let list = texPool.get(k);
+  if (!list) texPool.set(k, (list = []));
+  if (list.length < TEX_POOL_MAX) list.push(tex);
+  else scene.textures.remove(tex);
+}
+
+// ------------------------------------------------------------------ baked effects
+//
+// A one-shot effect with the same options always draws the same frames (its randomness is seeded), so it is rendered
+// once, in the background, one frame per game frame, into one sprite sheet per layer (each frame in its own cell, the
+// effect's own frame size); every later instance plays frames from the sheet. Loops (their particles run on), per-number
+// text and very large effects stay live.
+
+/** Largest frame (px) that is baked, and the most a single effect may take (px, both layers). */
+const BAKE_MAX_FRAME = 80000;
+const BAKE_MAX_PIXELS = 3000000;
+/** All baked sheets together (px, both layers): about 40 MB of GPU memory at most. */
+const BAKE_MAX_TOTAL = 10000000;
+const SHEET_MAX = 4096;
+const FADE = 0.3;
+const BLANK_KEY = 'fx-blank';
+
+/** Live effects whose paint is owed (their simulation has moved on since they were last painted). */
+const livePaint = new Set<FxSprite>();
+
+/**
+ * Paints the live effects that are owed, within a time budget (ms) for the frame: the most-deferred effect always
+ * paints (so none starves), the others while the budget lasts. The simulations keep their own steps, so a deferred
+ * paint shows the effect as it is, a frame later.
+ */
+export function paintLive(budgetMs: number) {
+  if (livePaint.size === 0) return;
+  const owed = [...livePaint].sort((a, b) => b.deferred - a.deferred);
+  let spent = 0;
+  let first = true;
+  for (const f of owed) {
+    livePaint.delete(f);
+    if (f.dead) continue;
+    if (!first && spent >= budgetMs) {
+      f.deferred++;
+      livePaint.add(f);
+      continue;
+    }
+    const t0 = performance.now();
+    f.paintNow();
+    spent += performance.now() - t0;
+    first = false;
+  }
+}
+
+interface Baked {
+  n: number;
+  step: number;
+  duration: number;
+  /** The origin and size of a frame, and the sheets (null for a layer with nothing in it). */
+  ox: number;
+  oy: number;
+  cw: number;
+  ch: number;
+  sheetB: string | null;
+  sheetF: string | null;
+}
+
+/** Per effect, per options key: a baked variant, 'pending' while it renders, or 'none' when it cannot be baked. */
+const bakes = new Map<FxModule, Map<string, Baked | 'pending' | 'none'>>();
+let bakedPixels = 0;
+let sheetSerial = 0;
+
+interface BakeJob {
+  key: string;
+  mod: FxModule;
+  fx: FxInstance;
+  w: number;
+  h: number;
+  ox: number;
+  oy: number;
+  n: number;
+  step: number;
+  cols: number;
+  i: number;
+  frameB: ReturnType<typeof createFrame>;
+  frameF: ReturnType<typeof createFrame>;
+  imgB: ImageData;
+  imgF: ImageData;
+  s32B: Uint32Array;
+  s32F: Uint32Array;
+  texB: Phaser.Textures.CanvasTexture;
+  texF: Phaser.Textures.CanvasTexture;
+  ctxB: CanvasRenderingContext2D;
+  ctxF: CanvasRenderingContext2D;
+  hasB: boolean;
+  hasF: boolean;
+  /** Layers uploaded to the GPU once the last frame is in (one step each). */
+  finishing: boolean;
+  pendingUpload: ('B' | 'F')[];
+}
+
+const bakeQueue: BakeJob[] = [];
+
+const bakeKey = (opts: Record<string, unknown>) => JSON.stringify(opts);
+
+/** The baked variant of an effect with these options, if it is ready. */
+function bakedFor(mod: FxModule, opts: Record<string, unknown>): Baked | null {
+  if (mod.meta.loop || 'text' in opts) return null;
+  const v = bakes.get(mod)?.get(bakeKey(opts));
+  return v && typeof v === 'object' ? v : null;
+}
+
+/** Variants asked for, whose sheets are made within the bake budget (see bakeFrames). */
+const bakeRequests: [Phaser.Scene, FxModule, Record<string, unknown>][] = [];
+
+/** Ask for a variant to be baked (once). */
+function queueBake(scene: Phaser.Scene, mod: FxModule, opts: Record<string, unknown>) {
+  if (mod.meta.loop || 'text' in opts) return;
+  if (bakes.get(mod)?.has(bakeKey(opts))) return;
+  bakeRequests.push([scene, mod, opts]);
+}
+
+/** Makes a requested variant's sheets and queues its frames. */
+function startBake(scene: Phaser.Scene, mod: FxModule, opts: Record<string, unknown>) {
+  const key = bakeKey(opts);
+  let m = bakes.get(mod);
+  if (!m) bakes.set(mod, (m = new Map()));
+  if (m.has(key)) return;
+  const [w, h] = mod.meta.size;
+  const [ox, oy] = mod.meta.origin;
+  const step = 1 / (mod.meta.fps ?? 30);
+  const n = Math.max(1, Math.ceil((mod.meta.duration ?? 1) / step - 1e-9));
+  const cols = Math.min(n, Math.floor(SHEET_MAX / w));
+  const rows = Math.ceil(n / Math.max(1, cols));
+  const need = 2 * n * w * h;
+  if (w * h > BAKE_MAX_FRAME || n * w * h > BAKE_MAX_PIXELS || cols < 1 || rows * h > SHEET_MAX || bakedPixels + need > BAKE_MAX_TOTAL) {
+    m.set(key, 'none');
+    return;
+  }
+  bakedPixels += need;
+  m.set(key, 'pending');
+  const sheet = (tag: string) => {
+    const tk = `fxsheet${++sheetSerial}${tag}`;
+    const tex = scene.textures.createCanvas(tk, cols * w, rows * h)!;
+    tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    for (let i = 0; i < n; i++) tex.add(String(i), 0, (i % cols) * w, Math.floor(i / cols) * h, w, h);
+    return tex;
+  };
+  const texB = sheet('b');
+  const texF = sheet('f');
+  const imgB = texB.context.createImageData(w, h);
+  const imgF = texF.context.createImageData(w, h);
+  bakeQueue.push({
+    key,
+    mod,
+    fx: createFx(mod, { ...opts, x: ox, y: oy, flip: false }) as FxInstance,
+    w,
+    h,
+    ox,
+    oy,
+    n,
+    step,
+    cols,
+    i: 0,
+    frameB: createFrame(w, h),
+    frameF: createFrame(w, h),
+    imgB,
+    imgF,
+    s32B: new Uint32Array(imgB.data.buffer),
+    s32F: new Uint32Array(imgF.data.buffer),
+    texB,
+    texF,
+    ctxB: texB.context,
+    ctxF: texF.context,
+    hasB: false,
+    hasF: false,
+    finishing: false,
+    pendingUpload: [],
+  });
+}
+
+/** Bakes queued variants for up to `budgetMs` (at least one step), so the frames keep their pace. */
+export function bakeFrames(budgetMs: number) {
+  const t0 = performance.now();
+  while (bakeRequests.length && performance.now() - t0 < budgetMs) {
+    const [scene, mod, opts] = bakeRequests.shift()!;
+    startBake(scene, mod, opts);
+  }
+  while (bakeStep() && performance.now() - t0 < budgetMs) {
+    // keep going while the budget lasts
+  }
+}
+
+/** Queue effects that a match is about to use (their first use then plays from a sheet). */
+export function prewarmEffects(scene: Phaser.Scene, list: [FxModule, Record<string, unknown>][]) {
+  for (const [mod, opts] of list) queueBake(scene, mod, opts);
+}
+
+/** Renders the next frame of the first queued variant; false when nothing is queued. */
+function bakeStep(): boolean {
+  const job = bakeQueue[0];
+  if (!job) return false;
+  if (job.i < job.n) {
+    if (job.i > 0) job.fx.update(job.step);
+    clearFrame(job.frameB);
+    clearFrame(job.frameF);
+    job.fx.draw(job.frameB, 'back');
+    job.fx.draw(job.frameF, 'front');
+    const col = job.i % job.cols;
+    const row = (job.i - col) / job.cols;
+    if (compositeInto(job.frameB, job.imgB.data, job.s32B)) {
+      job.hasB = true;
+      job.ctxB.putImageData(job.imgB, col * job.w, row * job.h);
+    }
+    if (compositeInto(job.frameF, job.imgF.data, job.s32F)) {
+      job.hasF = true;
+      job.ctxF.putImageData(job.imgF, col * job.w, row * job.h);
+    }
+    job.i++;
+    return true;
+  }
+  // every frame is in: upload each layer once (a step apiece), then the variant is ready
+  if (!job.finishing) {
+    job.finishing = true;
+    job.pendingUpload = ['B', 'F'];
+  }
+  const layer = job.pendingUpload.shift();
+  if (layer === 'B') {
+    if (job.hasB) job.texB.refresh();
+    return true;
+  }
+  if (layer === 'F') {
+    if (job.hasF) job.texF.refresh();
+    bakeQueue.shift();
+    bakes.get(job.mod)!.set(job.key, {
+      n: job.n,
+      step: job.step,
+      duration: job.mod.meta.duration ?? 1,
+      ox: job.ox,
+      oy: job.oy,
+      cw: job.w,
+      ch: job.h,
+      sheetB: job.hasB ? job.texB.key : null,
+      sheetF: job.hasF ? job.texF.key : null,
+    });
+  }
+  return true;
+}
+
+/**
  * A live PixelFX effect in the world: two canvas textures (behind and in front of the fighters), composited at the
- * effect's own frame rate. Placed at a world point, mirrored for facing.
+ * effect's own frame rate. Placed at a world point, mirrored for facing. A one-shot effect whose variant is baked plays
+ * the sheet's frames instead (see bakeStep).
  */
 export class FxSprite {
   readonly back: Phaser.GameObjects.Image;
   readonly front: Phaser.GameObjects.Image;
-  private fx: FxInstance;
-  private frameB: ReturnType<typeof createFrame>;
-  private frameF: ReturnType<typeof createFrame>;
-  private texB: Phaser.Textures.CanvasTexture;
-  private texF: Phaser.Textures.CanvasTexture;
-  private imgB: ImageData;
-  private imgF: ImageData;
+  private fx: FxInstance | null = null;
+  private baked: Baked | null = null;
+  private frameIdx = -1;
+  /** Effect seconds played (baked playback). */
+  private tau = 0;
+  /** Effect time at which stop() was called (Infinity while it runs). */
+  private stopAt = Infinity;
+  private frameB!: ReturnType<typeof createFrame>;
+  private frameF!: ReturnType<typeof createFrame>;
+  private texB!: Phaser.Textures.CanvasTexture;
+  private texF!: Phaser.Textures.CanvasTexture;
+  private imgB!: ImageData;
+  private imgF!: ImageData;
+  private imgB32!: Uint32Array;
+  private imgF32!: Uint32Array;
+  /** Whether each layer's texture holds pixels (so a layer that goes empty is uploaded once more, cleared). */
+  private hadB = false;
+  private hadF = false;
   private acc = 0;
+  /** A live paint is owed (the simulation has moved on since the last one), and how often it was deferred. */
+  private paintDue = false;
+  deferred = 0;
   private readonly step: number;
+  private readonly duration: number;
   /** Seconds of effect time per real second. */
   rate = 1;
   /** Frozen (hit-stop) while > 0. */
@@ -319,21 +653,47 @@ export class FxSprite {
   ) {
     const [w, h] = mod.meta.size;
     const [ox, oy] = mod.meta.origin;
+    this.step = 1 / (mod.meta.fps ?? 30);
+    this.duration = mod.meta.duration ?? 1;
+    const bk = bakedFor(mod, opts);
+    if (bk) {
+      this.baked = bk;
+      if (!scene.textures.exists(BLANK_KEY)) scene.textures.createCanvas(BLANK_KEY, 1, 1);
+      const mk = (key: string | null, depth: number) => {
+        const img = scene.add
+          .image(x, y, key ?? BLANK_KEY, key ? '0' : undefined)
+          .setOrigin(bk.ox / bk.cw, bk.oy / bk.ch)
+          .setScale(PIX)
+          .setFlipX(flip)
+          .setDepth(depth);
+        if (!key) img.setVisible(false);
+        return img;
+      };
+      this.back = mk(bk.sheetB, depthBack);
+      this.front = mk(bk.sheetF, depthFront);
+      return;
+    }
+    queueBake(scene, mod, opts);
     this.fx = createFx(mod, { ...opts, x: ox, y: oy, flip: false }) as FxInstance;
     this.frameB = createFrame(w, h);
     this.frameF = createFrame(w, h);
-    const id = ++fxSerial;
-    this.texB = scene.textures.createCanvas(`fxb${id}`, w, h)!;
-    this.texF = scene.textures.createCanvas(`fxf${id}`, w, h)!;
-    for (const t of [this.texB, this.texF]) t.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.texB = takeTex(scene, w, h);
+    this.texF = takeTex(scene, w, h);
     this.imgB = this.texB.context.createImageData(w, h);
     this.imgF = this.texF.context.createImageData(w, h);
+    this.imgB32 = new Uint32Array(this.imgB.data.buffer);
+    this.imgF32 = new Uint32Array(this.imgF.data.buffer);
     const mk = (tex: Phaser.Textures.CanvasTexture, depth: number) =>
       scene.add.image(x, y, tex.key).setOrigin(ox / w, oy / h).setScale(PIX).setFlipX(flip).setDepth(depth);
     this.back = mk(this.texB, depthBack);
     this.front = mk(this.texF, depthFront);
-    this.step = 1 / (mod.meta.fps ?? 30);
-    this.render();
+    // the first paint waits for the frame's paint budget (paintLive)
+    this.owe();
+  }
+
+  private owe() {
+    this.paintDue = true;
+    livePaint.add(this);
   }
 
   setPosition(x: number, y: number) {
@@ -348,38 +708,81 @@ export class FxSprite {
       this.freeze -= dt;
       return;
     }
+    if (this.baked) return this.playBaked(dt);
     this.acc += dt * this.rate;
-    if (this.acc < this.step) return;
-    const adv = Math.min(this.acc, 0.2);
-    this.acc = 0;
-    this.fx.update(adv);
-    if (this.fx.done() || this.age > this.maxAge) return this.destroy();
+    if (this.acc >= this.step) {
+      // the simulation always advances on its own steps; only the paint can wait (see paintLive)
+      const adv = Math.min(this.acc, 0.2);
+      this.acc = 0;
+      this.fx!.update(adv);
+      if (this.fx!.done() || this.age > this.maxAge) return this.destroy();
+      this.owe();
+    }
+  }
+
+  /** Paints the current state now (paintLive decides when). */
+  paintNow() {
     this.render();
+    this.paintDue = false;
+    this.deferred = 0;
+    livePaint.delete(this);
+  }
+
+  private playBaked(dt: number) {
+    const b = this.baked!;
+    this.tau += dt * this.rate;
+    const idx = Math.min(b.n - 1, Math.floor(this.tau / b.step + 1e-6));
+    if (idx !== this.frameIdx) {
+      this.frameIdx = idx;
+      if (b.sheetB) this.back.setFrame(String(idx));
+      if (b.sheetF) this.front.setFrame(String(idx));
+    }
+    if (this.stopAt < Infinity) {
+      const a = Math.max(0, 1 - (this.tau - this.stopAt) / FADE);
+      this.back.setAlpha(a);
+      this.front.setAlpha(a);
+    }
+    const ended = this.tau >= this.duration || (this.stopAt < Infinity && this.tau - this.stopAt >= FADE);
+    if (ended || this.age > this.maxAge) return this.destroy();
   }
 
   stop() {
-    this.fx.stop();
+    if (this.baked) {
+      if (this.stopAt === Infinity) this.stopAt = this.tau;
+      return;
+    }
+    this.fx!.stop();
   }
 
   private render() {
     clearFrame(this.frameB);
     clearFrame(this.frameF);
-    this.fx.draw(this.frameB, 'back');
-    this.fx.draw(this.frameF, 'front');
-    composite(this.frameB, this.imgB.data, null);
-    composite(this.frameF, this.imgF.data, null);
-    this.texB.context.putImageData(this.imgB, 0, 0);
-    this.texF.context.putImageData(this.imgF, 0, 0);
-    this.texB.refresh();
-    this.texF.refresh();
+    this.fx!.draw(this.frameB, 'back');
+    this.fx!.draw(this.frameF, 'front');
+    // a layer that is empty now and was empty before has nothing new to upload (most effects are one-sided)
+    const anyB = compositeInto(this.frameB, this.imgB.data, this.imgB32);
+    const anyF = compositeInto(this.frameF, this.imgF.data, this.imgF32);
+    if (anyB || this.hadB) {
+      this.texB.context.putImageData(this.imgB, 0, 0);
+      this.texB.refresh();
+    }
+    if (anyF || this.hadF) {
+      this.texF.context.putImageData(this.imgF, 0, 0);
+      this.texF.refresh();
+    }
+    this.hadB = anyB;
+    this.hadF = anyF;
   }
 
   destroy() {
     if (this.dead) return;
     this.dead = true;
+    livePaint.delete(this);
     this.back.destroy();
     this.front.destroy();
-    this.scene.textures.remove(this.texB);
-    this.scene.textures.remove(this.texF);
+    if (!this.baked) {
+      giveTex(this.scene, this.texB);
+      giveTex(this.scene, this.texF);
+    }
   }
 }

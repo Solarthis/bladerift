@@ -1,0 +1,73 @@
+{
+  "id": "h09-gorvax",
+  "hero": 9,
+  "name": "Gorvax",
+  "epithet": "the Chimera Engine",
+  "refs": [
+    "references/design.png"
+  ],
+  "designRefs": [
+    "../h00-leon/references/approved-sheet.png",
+    "references/portrait.jpg"
+  ],
+  "bible": "A hulking, hunched chimera-engine warrior: enormous and heavy-boned, shoulders far wider than his head, a low forward-leaning stance. Head: a lion-like skull with a tawny muzzle of short fur, a dark iron brow plate, two glowing RED eyes deep under the brow, a snarl of long ivory fangs with thin steam venting from the jaw, and two curved dark goat HORNS sweeping back from the crown. A thick MANE of black riveted cables with tarnished BRASS rings falls from the skull over the shoulders and back. Armour: scuffed DARK IRON-GREY plates over chest and shoulders, brass-riveted stacked pauldrons, a black leather harness, brass-trimmed greaves and black boots. A segmented iron SERPENT tail trails low behind him, its links edged dull red. WEAPON: an ENGINE-HAMMER, a dark iron piston shaft as long as his body from hip to head with two brass collars, ending in a squat iron block as big as his chest, with a glowing red core in its face and a riveted brass band. Always held in BOTH hands: right hand low near the butt, left hand above it, the head out in front. Effects and weapon trails: RED-ORANGE embers, steam and sparks with a crimson glow.",
+  "design": "- top row: full-body neutral stance facing right; a combat stance with the hammer ready; a lumbering walking pose; a charging run; a leaping jump with the hammer back; a close-up of the engine-hammer head\n- middle rows: six attack poses: two heavy overhead hammer smashes, a wide sideways hammer sweep, a ground slam with cracked earth, an airborne hammer swing, a Blood Frenzy rage pose; red embers and steam in each\n- bottom row: guard with the hammer across the body, hit reaction, knocked down, victory pose with the hammer planted, the Blood Frenzy aura at full force",
+  "sheets": {
+    "atk-a": {
+      "title": "Heavy basic smashes 1 and 2 (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo smash 1, anticipation: both hands raising the hammer high overhead, weight shifting onto the back foot, the head far back",
+        "combo smash 1, strike: a crushing overhead smash, the hammer head crashing down in front, a red dust burst and embers kept inside this cell",
+        "combo smash 1, recovery: the hammer dragged down toward the ground, the body settling back toward stance",
+        "combo smash 2, anticipation: the hammer wound back low across the body, torso twisted, shoulders coiled",
+        "combo smash 2, strike: a wide, heavy horizontal sweep at waist height, the hammer head flat across the air, a red arc of embers kept inside this cell",
+        "combo smash 2, recovery: the follow-through pulling the hammer round, body rocking forward, steam venting"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher and aerial smash (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: a huge wind-up, the hammer raised high over the head in both hands, one foot stepping in",
+        "combo finisher, strike: the hammer slammed straight down into the ground in front, cracked earth and a shockwave of dust kept inside this cell, the strongest pose",
+        "combo finisher, recovery: wrenching the hammer free from the ground, body hunched over, steam and sparks",
+        "aerial smash, anticipation: airborne, hammer raised behind the head with both hands",
+        "aerial smash, strike: a sweeping mid-air hammer blow forward and down, a red arc of embers kept inside this cell",
+        "aerial smash, recovery: airborne, body hunched and compact, hammer tucked in front, returning to a ready pose"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge and heavy attack (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving headfirst, the hammer held overhead with its head pointing down, red speed lines",
+        "plunge, impact: landing in a low crouch, the hammer head driven into the ground, sparks and a burst of dust kept inside this cell",
+        "plunge, recovery: rising from the impact, the hammer dragged back toward stance",
+        "heavy attack, charge: body coiled low, the hammer drawn back low behind the hip, the red core glowing and steam pouring from the plate seams",
+        "heavy attack, strike: a devastating upward swing, the hammer rising from low in front to high overhead, a huge trail of red embers kept inside this cell",
+        "heavy attack, follow-through: deep follow-through with the hammer raised high, steam and embers dissipating"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "idle": "The mane cables and the steam from the jaw sway and drift with each breath; the hammer head stays low and steady in both hands.",
+    "run": "Heavy, lumbering strides, the body low and leaning forward; the hammer is carried low in both hands near the ground, the mane and tail bouncing with each step.",
+    "art": "Blood Frenzy, six seconds of rage: anticipation 1, he roars, the mane cables glow red-hot and steam bursts from every plate seam; anticipation 2, a crimson rage aura erupts around him, the eyes blazing, the hammer raised; execution 1, he slams the hammer down and a huge red shockwave of rage bursts outward, kept inside the cell; execution 2, full frenzy, the hammer high and crimson embers swirling around him, kept inside the cell; recovery 1, the aura fades into steam; recovery 2, he stands tall with the hammer resting on his shoulder, still faintly glowing.",
+    "misc": "Skill throw: he tears a smouldering iron canister from his harness and hurls it forward with one arm. Taunt: he thumps his chest with a fist and roars, the mane flaring, then drags the hammer head across the ground in a shower of sparks. Victory: he plants the hammer head-down in front of him with one fist raised, roaring, steam rising from the jaw and seams, the cables settling.",
+    "ko": "Intro: he lumbers in with the hammer lowered and dragging, head down; he raises the hammer onto his shoulder and roars, steam bursting from the jaw; he swings the hammer round in a flourish and slams its butt into the ground; he settles into a low, hunched stance with the cables swinging."
+  },
+  "nativeHeight": 210
+}

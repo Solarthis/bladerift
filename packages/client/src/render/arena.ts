@@ -25,26 +25,35 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef) {
     grove: [0x2a3a30, 0x3c5040, 0x141e18],
   };
   const [mid, lit, dark] = STONE[theme] ?? STONE.bridge;
-  /** A carved stone mass with masonry courses; `litLeft` / `litRight` say which faces catch the light. */
+  /** A carved stone mass with masonry courses, baked once into a texture (a Graphics with thousands of mortar strokes is
+   * re-tessellated every frame); `litLeft` / `litRight` say which faces catch the light. */
+  const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
   const stone = (x: number, y: number, w: number, h: number, litLeft: boolean, litRight: boolean, depth: number) => {
-    const g = scene.add.graphics().setDepth(depth);
-    g.fillStyle(mid, 1).fillRect(x, y, w, h);
-    g.lineStyle(1, dark, 0.9);
-    for (let yy = y + 18; yy < y + h; yy += 18) g.lineBetween(x, yy, x + w, yy);
-    for (let yy = y, row = 0; yy < y + h; yy += 18, row++)
-      for (let xx = x + (row % 2 ? 14 : 28); xx < x + w; xx += 28) g.lineBetween(xx, yy, xx, Math.min(yy + 18, y + h));
-    g.fillStyle(litLeft ? lit : dark, 1).fillRect(x, y, 3, h);
-    g.fillStyle(litRight ? lit : dark, 1).fillRect(x + w - 3, y, 3, h);
-    g.lineStyle(2, 0x0b0814, 1).strokeRect(x, y, w, h);
-    return g;
+    const key = `stone-${theme}-${w}x${h}-${litLeft ? 1 : 0}${litRight ? 1 : 0}`;
+    if (!scene.textures.exists(key)) {
+      const tex = scene.textures.createCanvas(key, w, h)!;
+      const g = tex.context;
+      g.fillStyle = hex(mid);
+      g.fillRect(0, 0, w, h);
+      g.fillStyle = hex(dark);
+      for (let yy = 18; yy < h; yy += 18) g.fillRect(0, yy, w, 1);
+      for (let yy = 0, row = 0; yy < h; yy += 18, row++)
+        for (let xx = row % 2 ? 14 : 28; xx < w; xx += 28) g.fillRect(xx, yy, 1, Math.min(18, h - yy));
+      g.fillStyle = hex(litLeft ? lit : dark);
+      g.fillRect(0, 0, 3, h);
+      g.fillStyle = hex(litRight ? lit : dark);
+      g.fillRect(w - 3, 0, 3, h);
+      g.strokeStyle = '#0b0814';
+      g.lineWidth = 2;
+      g.strokeRect(1, 1, w - 2, h - 2);
+      tex.refresh();
+    }
+    return scene.add.image(x, y, key).setOrigin(0, 0).setDepth(depth);
   };
   // the walls: tall masonry beyond the edges, the inner face lit (you wall-jump off it), shading off into the dark
   for (const left of [true, false]) {
     const x = left ? -400 : W;
     stone(x, a.floor - 1400, 400, 1400, !left, left, -1);
-    const shade = scene.add.graphics().setDepth(-1);
-    shade.fillGradientStyle(0x07050b, 0x07050b, 0x07050b, 0x07050b, left ? 0.85 : 0, left ? 0 : 0.85, left ? 0.85 : 0, left ? 0 : 0.85);
-    shade.fillRect(x, a.floor - 1400, 400, 1400);
   }
   // platforms
   for (const p of a.platforms) {

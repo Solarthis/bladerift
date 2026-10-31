@@ -1,0 +1,74 @@
+{
+  "id": "h01-kharon",
+  "hero": 1,
+  "name": "Kharon",
+  "epithet": "the Chainbound",
+  "refs": [
+    "references/design.png"
+  ],
+  "designRefs": [
+    "../h00-leon/references/approved-sheet.png",
+    "references/portrait.jpg"
+  ],
+  "bible": "A towering giant of a hunter, hunched forward under the weight of his curse, with enormous shoulders, a thick neck and a heavy, scarred, muscular bare torso. Gaunt weathered face with a heavy black brow, deep-set glowing AMBER eyes and a short black beard. Long MATTED BLACK hair falling past the shoulder blades. Weathered TAN skin with raised dark scars across the chest and arms. RUSTED IRON-BROWN chains with dull bronze links are slung diagonally across the chest and wrapped round both forearms. A ragged BLOOD-RED cloth sash hangs over one shoulder and streams down the back in torn strips. Black-brown leather loincloth and trousers, dark leather hip straps, black-brown boots. WEAPON: a huge black GREATBOW nearly as tall as his whole body, a recurve of black lacquered horn on a blackened iron riser, rust-bound tips and a thick dark sinew cord. He holds the bow upright in front of him in his LEFT hand at the wrapped grip, and draws the cord with his RIGHT hand back to the cheek. Black arrows with bronze-brown fletching ride in a hip quiver. Energy and trails: EMBER AMBER streaks with dark grey smoke and orange-red sparks.",
+  "design": "- top row: full-body neutral stance facing right, towering and hunched, the greatbow held upright in the left hand; a three-quarter close-up of the head with amber eyes, matted hair and beard; a close view of the bow's grip, rust-bound tips and cord\n- second row: a combat stance with the bow held low; the full draw with the cord at the cheek; a running pose with chains swinging and the sash streaming; a jump with the bow raised\n- third row: an arrow release with an ember-amber trail; a plunge with the bow pointed straight down; a fully drawn power shot with a large ember comet; a crouched guard with the bow held across the body\n- bottom row: a hit reaction with chains snapping, a knocked-down pose, a victory pose planting the bow butt-first, the Serpent Rain volley of ember arrows arcing skyward",
+  "sheets": {
+    "atk-a": {
+      "title": "Basic combo strikes 1 and 2: arrow shots (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: he draws an arrow from the quiver at his hip and nocks it, the greatbow held upright in the left hand, the right hand pulling the cord back toward the cheek",
+        "combo strike 1, strike: the arrow loosed forward with a sharp snap, a streak of ember-amber light and smoke trailing from it, kept inside this cell, the bow still bent",
+        "combo strike 1, recovery: the bow lowered after the shot, the cord still humming, the right hand back at the hip",
+        "combo strike 2, anticipation: a faster second draw, the bow tilted slightly up, the arrow drawn back to the ear and held",
+        "combo strike 2, strike: a second arrow shot forward and slightly downward, a bright ember-amber arc trail kept inside this cell, sparks flying off the bow limb",
+        "combo strike 2, recovery: the bow swept down and back toward stance, chains swinging forward"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher: a triple arrow volley, and an aerial shot (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: a huge full draw, the greatbow bent far back by the right hand at the shoulder, the left arm braced forward, body coiled and the weight sinking onto the back leg",
+        "combo finisher, strike: three arrows loosed together in a fan forward, ember streaks kept inside this cell, the body lunging into the shot, the strongest pose",
+        "combo finisher, recovery: deep follow-through, the bow arm extended, the chains and red sash flaring, settling back toward stance",
+        "aerial attack, anticipation: in mid-air with the body tucked, the greatbow raised and an arrow nocked and drawn",
+        "aerial attack, strike: a shot fired downward and forward from the air, a sweeping ember arc trail kept inside this cell",
+        "aerial attack, recovery: airborne, body tucked, the bow returning to a ready pose"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge: a downward shot, and a fully drawn power shot (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air, the greatbow pointed straight down beneath the body with an arrow nocked on the cord, speed lines and smoke streaming upward",
+        "plunge, impact: landing in a low crouch, the arrow driven into the ground in front with a burst of cinders and dust, the bow braced in the left hand",
+        "plunge, recovery: rising from the impact back toward stance, the bow lifted again",
+        "heavy attack, charge: the greatbow drawn to full draw, the cord pulled to the jaw, the arrowhead glowing with building ember light, body coiled",
+        "heavy attack, strike: a fully drawn power shot released with a huge ember comet trail kept inside this cell, the bow limbs flexing wide",
+        "heavy attack, follow-through: deep follow-through, the bow arm extended, embers dissipating"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "idle": "The greatbow is always held upright in front of him in the LEFT hand, its lower limb near the ground; the right hand stays empty and relaxed. The chains and the red sash drift with the breath. Keep the bow the same height and angle in all four loop frames.",
+    "run": "He runs with a heavy, loping stride, the bow held upright in the left hand and tilting with each step. The chains swing on the chest and the red sash streams behind him.",
+    "air": "Airborne, the bow stays in the left hand. In the rising and falling frames the chains and the ragged red sash fly upward behind him.",
+    "art": "Serpent Rain, Kharon's Rift Art. Anticipation 1: he draws the greatbow up toward the sky with the cord at his cheek. Anticipation 2: the instant before release, the arrowhead blazing ember-amber, power at its peak. Execution 3: he looses a volley of arrows skyward, the shafts curving up and back toward the centre of the cell, kept inside the cell. Execution 4: a serpentine coil of ember arrows and smoke drops down around the target spot near the right of the cell like a striking snake, kept inside the cell. Recovery 5: the bow lowered, the embers fading to ash. Recovery 6: back to stance, the bow upright in the left hand.",
+    "misc": "Skill throw: he flings a barbed iron chain link forward from his free right hand. Taunt: he snaps an arrow shaft across his knee and lets the broken pieces fall (a debt repaid), then bares his teeth and raises his chin, the chains rattling. Victory: he plants the greatbow butt-first in the ground beside him, rests a hand on it and lifts his head to the sky with a grim, triumphant look, the chains and red sash settling.",
+    "ko": "Intro: he walks in hunched and slow with the greatbow held upright by its grip in the left hand, chains clinking. He raises the bow overhead with a fierce stare, draws one arrow from the quiver and nocks it, flourishes the bow once in a wide arc, and settles into the stance with the bow upright. Defeat: he staggers, drops to one knee with the bow still in hand, then collapses forward."
+  },
+  "nativeHeight": 204
+}

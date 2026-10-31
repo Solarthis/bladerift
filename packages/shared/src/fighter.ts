@@ -153,12 +153,31 @@ export function currentMove(s: FighterState, load: Loadout): Move | null {
   return moveOf(load.weapons[s.slot], s.move);
 }
 
+const heavies = new Map<number, Move>();
+/** The heavy attack (the B button: every fighter fights with one signature weapon): a weapon's charged move, or else its combo
+ * finisher made slower and stronger, guard-breaking. */
+export function heavyOf(weapon: number): Move | null {
+  const w = WEAPONS[weapon];
+  if (!w) return null;
+  if (w.charged) return w.charged;
+  let h = heavies.get(weapon);
+  if (!h) {
+    const last = w.combo[w.combo.length - 1];
+    h = {
+      ...last, startup: last.startup + 6, recovery: last.recovery + 6, dmg: Math.round(last.dmg * 1.4), kbX: Math.round(last.kbX * 1.25),
+      kbY: last.kbY + 60, stun: last.stun + 8, breaksGuard: true, shake: Math.max(last.shake ?? 0, 0.6),
+    };
+    heavies.set(weapon, h);
+  }
+  return h;
+}
+
 export function moveOf(weapon: number, move: number): Move | null {
   const w = WEAPONS[weapon];
   if (!w) return null;
   if (move === MOVE_AIR) return w.air;
   if (move === MOVE_PLUNGE) return w.plunge ?? w.air;
-  if (move === MOVE_CHARGED) return w.charged ?? w.combo[0];
+  if (move === MOVE_CHARGED) return heavyOf(weapon);
   if (move === MOVE_ART) return ART_FANG;
   return w.combo[move] ?? w.combo[0];
 }
@@ -205,7 +224,14 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     const slot = b === Buf.A ? 0 : 1;
     const w = WEAPONS[load.weapons[slot]];
     if (!w) return false;
-    if (w.block) {
+    // the heavy button: B with the same weapon in both hands (every hero's kit) is the heavy attack on the ground (a charged
+    // weapon charges it, released at any time) and the plunge in the air
+    const heavy = slot === 1 && load.weapons[1] === load.weapons[0];
+    if (heavy && !s.ground) {
+      startAttack(s, slot, w.plunge ? MOVE_PLUNGE : MOVE_AIR);
+    } else if (heavy && !w.charged) {
+      startAttack(s, slot, MOVE_CHARGED);
+    } else if (w.block) {
       if (!s.ground) startAttack(s, slot, MOVE_AIR);
       else {
         s.act = Act.Block;
@@ -522,7 +548,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       s.vx = approach(s.vx, ax * PHYS.runSpeed * 0.3 * speedK, PHYS.groundAccel * DT);
       if (Math.abs(ax) > 0.3) s.face = ax > 0 ? 1 : -1;
       if (held) s.charge = Math.min(c.max, s.charge + 1);
-      else if (s.charge < c.min) {
+      else if (s.charge < c.min && !(s.slot === 1 && load.weapons[1] === load.weapons[0])) {
         const step = s.comboWin > 0 ? s.combo : 0;
         startAttack(s, s.slot, s.ground ? step : MOVE_AIR);
         s.combo = (step + 1) % w.combo.length;

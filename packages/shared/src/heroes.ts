@@ -62,9 +62,9 @@ export const artIdOf = (load: { hero?: number; cls: number }) => heroOf(load.her
 /** Signature weapon per class (ClassId order). */
 const SIGNATURE: WeaponId[] = [WeaponId.Sword, WeaponId.Bow, WeaponId.Lance, WeaponId.Staff, WeaponId.Daggers, WeaponId.Hammer, WeaponId.Shield, WeaponId.Scythe];
 
-export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb, cls: ClassId.Saber, hero: 0 };
+export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Sword], skill: SkillId.Bomb, cls: ClassId.Saber, hero: 0 };
 
-/** Validate an untrusted loadout: the hero fixes the class and the signature weapon (slot A). */
+/** Validate an untrusted loadout: the hero fixes the class and the kit (the signature weapon in both slots: A light, B heavy). */
 export function sanitizeLoadout(v: unknown): Loadout {
   const o = (v && typeof v === 'object' ? v : {}) as { weapons?: unknown[]; skill?: unknown; hero?: unknown; cls?: unknown };
   let hero = Number.isInteger(o.hero) && (o.hero as number) >= 0 && (o.hero as number) < HERO_COUNT ? (o.hero as number) : -1;
@@ -75,7 +75,5 @@ export function sanitizeLoadout(v: unknown): Loadout {
   }
   const cls = HEROES[hero].cls;
   const w0 = SIGNATURE[cls];
-  let w1 = isWeapon(o.weapons?.[1]) ? (o.weapons![1] as WeaponId) : DEFAULT_LOADOUT.weapons[1];
-  if (w1 === w0) w1 = w0 === WeaponId.Bow ? WeaponId.Daggers : WeaponId.Bow;
-  return { weapons: [w0, w1], skill: isSkill(o.skill) ? o.skill : DEFAULT_LOADOUT.skill, cls, hero };
+  return { weapons: [w0, w0], skill: isSkill(o.skill) ? o.skill : DEFAULT_LOADOUT.skill, cls, hero };
 }

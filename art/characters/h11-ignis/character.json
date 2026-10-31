@@ -1,0 +1,74 @@
+{
+  "id": "h11-ignis",
+  "hero": 11,
+  "name": "Ignis",
+  "epithet": "the Crimson Rider",
+  "refs": [
+    "references/design.png"
+  ],
+  "designRefs": [
+    "../h00-leon/references/approved-sheet.png",
+    "references/portrait.jpg"
+  ],
+  "bible": "A lean, athletic rider in his early twenties, leaning forward with fierce, eager energy. Sharp golden-amber eyes under a hard dark brow; a determined face with a short jaw and a faint grin. Flame-red hair, spiked and swept straight back off the brow in tall, sharp tufts like fire. Dark NAVY riding coat of heavy cloth with a bone-white collar lining, GOLD-embroidered front trim, two GOLD epaulettes over rounded shoulder pads, and long split coat-tails to mid-thigh. Charcoal breeches, a black leather belt with a round gold buckle, tall dark-brown riding boots, brown leather gauntlets with brass rivets. A long CRIMSON cape with a dark-gold border streams from his shoulders. WEAPON: a war scythe about one and a third times his height, with a dark iron-red haft wrapped in gold bands and a broad, forward-curving blade of living flame: bright yellow edge, orange heart, dark red trailing side. Both hands grip it: the RIGHT hand low near the butt, the LEFT hand a third of the way up the haft; the blade always leads to the right. Trails and sparks are ORANGE-GOLD flame. The burning warhorse appears only in his Rift Art, never in his standing or attacking poses.",
+  "design": "- top row: full-body neutral stance facing right; a combat stance with the flame scythe ready; a walking pose; a running pose with the scythe carried low\n- upper middle row: a jump with the scythe held back; a wide reaping sweep with an orange-gold arc; an overhead cleave\n- lower middle row: a mid-air slash; a plunge with the blade driven down; a full upright flame spin; a hooking pull\n- bottom row: standing guard with the scythe across the body; a hit reaction; knocked down; a victory pose with the scythe planted; the Stampede special move (rider and burning warhorse charging)\n- inset at the top right: the scythe alone, large, showing the gold-banded iron-red haft and the flame blade from the side, for weapon identity\n- all figures share one costume, one scythe design and one scale\n- the warhorse appears only in the special move",
+  "sheets": {
+    "atk-a": {
+      "title": "Scythe combo strikes 1 and 2 (3 frames each): wide reaping sweeps",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: the scythe drawn back low across his body, its flame trailing behind, weight on the back foot",
+        "combo strike 1, strike: a huge horizontal reaping sweep with the broad flame blade, a wide orange-gold fire arc kept inside this cell",
+        "combo strike 1, recovery: the sweep finishing in front, cape whipping round, the blade lowered toward the ground",
+        "combo strike 2, anticipation: the scythe whipped up and back over his right shoulder, blade high behind him, body coiled",
+        "combo strike 2, strike: a heavy diagonal reap down toward the front with a bright orange arc kept inside this cell",
+        "combo strike 2, recovery: the blade pulled down and back, sparks scattering, returning toward stance"
+      ]
+    },
+    "atk-b": {
+      "title": "Scythe combo hook, and aerial sweep (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: the scythe wound far back over his shoulder, the hooked blade high, front foot stepping in",
+        "combo finisher, strike: a lunging hook-cut, the flame blade snapping round in a tight fiery hook while the haft is hauled back toward his hip, the hook's arc kept inside this cell",
+        "combo finisher, recovery: the hook completed, cape flaring, the scythe drawn in against his body",
+        "aerial attack, anticipation: in mid-air, the scythe raised high behind his head, body arched",
+        "aerial attack, strike: a sweeping mid-air slash in front, the broad flame arc kept inside this cell",
+        "aerial attack, recovery: airborne, body tucked, the scythe pulled in to his chest, coat tails flying up"
+      ]
+    },
+    "atk-c": {
+      "title": "Scythe plunge and upright flame spin (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, the scythe blade pointed down beneath him, flames streaming upward behind, speed lines",
+        "plunge, impact: landing in a low crouch, the blade driven point-first into the ground in front, a burst of embers and dust kept inside this cell",
+        "plunge, recovery: pulling the scythe free and rising back toward stance",
+        "heavy attack, charge: the scythe held low at his side, its flame building along the blade, weight coiled",
+        "heavy attack, strike: an upright full-body spin, the scythe whirling round him in a wide ring of fire kept inside this cell, cape flaring out",
+        "heavy attack, follow-through: the spin ends with the blade swung high overhead, the flame dissipating into embers"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "idle": "Ignis holds the scythe ready across his body: both hands on the haft, the flame blade up and forward to the right, its edge flickering. Cape and red hair drift with each breath.",
+    "run": "He carries the scythe low at his right side, blade pointing back and down, its flame trailing behind him. The cape streams back with each stride.",
+    "dash": "Ground dash: the scythe held level and forward at the hip like a lance, a streak of flame trailing it. Air dash: body stretched forward, scythe level, cape snapping behind.",
+    "art": "Stampede (Rift Art): he mounts a burning warhorse and charges. The warhorse is a dark-iron horse with glowing orange seams, flames pouring from its hooves and a flame mane and tail streaming back; it is seen from the side and exists only in these six frames. Frame 1: Ignis stands with one boot planted and the scythe drawn back low; embers swirl at his feet and the faint flaming outline of a horse's head forms behind his shoulder. Frame 2: at the peak, the full burning warhorse rears behind him, the scythe couched under his arm. Frame 3: Ignis is mounted and the horse gallops to the right with a fire trail behind it across the cell. Frame 4: the horse at full gallop, the scythe sweeping forward in a flaming arc, a burst of sparks at the right side of the cell where the trample lands. Frame 5: the horse slows and breaks into embers, Ignis hauls the scythe back up. Frame 6: Ignis is back on his feet in stance, the scythe resting over his shoulder, a few embers falling. The whole composition, horse included, stays inside each cell.",
+    "misc": "Taunt: he spins the scythe once round his wrist in a flourish, then points the flame blade at the opponent with a cocky grin, one hand on his hip. Victory: he plants the scythe blade-up in front of him with both hands on the haft, flame rising round the blade, cape flaring, a proud smile.",
+    "ko": "Intro: he walks in with the scythe over his shoulder and the blade back; he swings it down in front of him in a flourish of flame and settles into his stance with the blade forward."
+  },
+  "nativeHeight": 176
+}

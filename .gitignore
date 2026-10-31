@@ -17,3 +17,10 @@ tools/character-pipeline/source/armourtest-v1.png
 .old-tests/
 .old-client/
 tools/art-gen/source/*.log
+
+# sprite pipeline: derived outputs (regenerate with tools/sprites/process.py)
+art/characters/*/frames/
+art/characters/*/previews/
+art/characters/*/sheets/old/
+art/characters/*/sheets/*.log
+art/characters/*/references/*.log

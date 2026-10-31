@@ -1,0 +1,93 @@
+{
+  "id": "h07-hollowmask",
+  "hero": 7,
+  "name": "Hollowmask",
+  "epithet": "the Grasping Shade",
+  "refs": [
+    "references/design.png"
+  ],
+  "designRefs": [
+    "../h00-leon/references/approved-sheet.png",
+    "references/portrait.jpg"
+  ],
+  "bible": "A lean, stooped assassin, tall and narrow with a hunched, gliding carriage and shoulders rolled forward. FACE: a smooth bone-white skull mask with carved flat planes at the brow and cheekbones, a long narrow jaw, two deep black eye sockets with a faint teal glow inside, and one hairline crack running from the left socket down to the jaw. HAIR: none visible; a black cowl covers the crown and falls to the shoulders with ragged, torn edges. COSTUME: a close-fitting charcoal-black bodysuit with dark slate-grey leather straps and bracers, and a black belt. A long ragged near-black cloak with grey-tan tattered hems hangs to the knees and streams behind him. WEAPON: a pair of short, slim, slightly curved bone-white knives, each blade no longer than the hand from wrist to fingertip, on short black wrapped grips with no guard. One knife in each hand, usually reverse-grip with the blade running along the forearm. The RIGHT hand is human and holds the right knife. The LEFT hand is a pale, translucent spectral claw of long fingers that closes around the left knife's grip. His spectral energy, claw glow and trails are MINT-TEAL light with white cores.",
+  "design": "- top row: full-body neutral stance facing right, hunched and slim; a combat stance with both knives reverse-grip; a walking pose; a running pose; a jump; a close-up of the skull mask under the cowl\n- middle rows: six attack and special poses: quick stabs, reverse-grip slashes, a low lunge, a downward plunge, the overhead claw sweep, the spectral claw skimming the ground with mint light\n- bottom row: guard, hit reaction, knocked down, a victory pose, the Phantom Hand special with its mint claw reaching forward",
+  "sheets": {
+    "run": {
+      "title": "Run cycle (8 frames, loops from frame 8 back to frame 1)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "run cycle 1: right foot contact, stride long and low, torso pitched far forward and hunched, the right knife held reverse-grip at the hip, cloak streaming behind",
+        "run cycle 2: right foot down, body at its lowest, skull tipped forward, cloak lifting off the ground",
+        "run cycle 3: passing pose, left knee driving forward, the spectral left claw held low at the side with its knife tucked in",
+        "run cycle 4: left leg reaching forward, body at its highest, both feet briefly off the ground, knives drawn in close",
+        "run cycle 5: left foot contact, stride long and low (the mirror of frame 1), torso far forward",
+        "run cycle 6: left foot down, body at its lowest, cloak trailing",
+        "run cycle 7: passing pose, right knee driving forward, the right knife tucked at the hip, body rising",
+        "run cycle 8: right leg reaching forward, body at its highest, both feet off the ground, claw and knife held in close"
+      ]
+    },
+    "atk-a": {
+      "title": "Basic combo strikes 1 and 2: quick reverse-grip knife work (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: the right knife pulled back low at the hip in reverse grip, blade along the forearm, body crouched and coiled, the spectral left claw held close to the chest",
+        "combo strike 1, strike: a fast straight stab forward with the right knife, arm fully extended, the knife point leading, a short mint trail kept inside this cell",
+        "combo strike 1, recovery: the stab withdrawn, the knife snapping back to the hip, weight already shifting forward",
+        "combo strike 2, anticipation: the spectral left claw swinging its knife back across the chest, body twisting, reverse grip",
+        "combo strike 2, strike: a short reverse-grip slash across the body from the left knife, a sharp mint arc trail kept inside this cell, cloak whipping round",
+        "combo strike 2, recovery: both knives drawn back into a low guard, skull tipped forward, settling into a hunched stance"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher and aerial attack: lunge and mid-air slash (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: a deep low crouch, both knives dropped to the sides in forward grip, the spectral claw pulled back behind the hip, weight sinking",
+        "combo finisher, strike: a lunging double stab, both knives thrust forward together as he drives off the ground, body stretched flat, a bright mint trail kept inside this cell, the strongest pose",
+        "combo finisher, recovery: body fully extended, the cloak flaring out behind, the knives pulled back in, settling low",
+        "aerial attack, anticipation: in mid-air, body tucked and hunched, both knives drawn back in reverse grip above the shoulders",
+        "aerial attack, strike: a sweeping downward double slash with both knives in reverse grip, a mint arc trail kept inside this cell",
+        "aerial attack, recovery: airborne, knees tucked, the knives folded in close, the cloak billowing upward, returning to a ready pose"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge attack and heavy attack: knife dive and claw sweep (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: diving head-first straight down, both knives pointed at the ground in reverse grip, the spectral claw trailing under the body, mint speed lines",
+        "plunge, impact: landing in a low crouch, both knives driven into the ground in front, a burst of mint light and dust kept inside this cell",
+        "plunge, recovery: rising from the impact, the knives pulled free and drawn back to the sides",
+        "heavy attack, charge: body coiled, the spectral claw pulled far back with a glowing mint light building in its palm, the right knife held reverse-grip behind him",
+        "heavy attack, strike: a wide overhead sweep of the spectral claw and knife, body rising into the swing, a huge mint arc trail kept inside this cell",
+        "heavy attack, follow-through: deep follow-through, the claw dragging low, mint motes dissipating"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "idle": "Both knives held reverse-grip in front of the body, the spectral left claw loose and slowly curling its fingers; the hunched head tilts slightly between breaths; the cloak sways.",
+    "air": "In the air both knives are drawn in reverse-grip; the spectral claw trails below him and the cloak billows upward.",
+    "dash": "Ground dash: he flattens into a low glide, the cloak streaming back as a long ragged shape, the spectral claw stretched forward.",
+    "hurt": "The skull cannot show an expression: pain shows through the whole head snapping back, the cowl whipping, the mint claw flickering, and the body folding over. Both knives stay in hand.",
+    "art": "Phantom Hand: anticipation 1-2, the spectral left claw grows long and pale and reaches low toward the ground, fingers spreading, mint light pooling in its palm. Execution 3-4, the huge translucent claw races along the ground toward the right edge of the cell, fingers closing into a crushing grip, mint light and motes trailing from it, kept inside the cell. Recovery 5-6, the claw dissolves into drifting mint motes as he rises back to a hunched stance.",
+    "misc": "Skill throw: the thrown item is a single bone-white knife flicked overhand with the right hand. Taunt: he tilts the skull slowly to one side, the cloak flaring, and beckons with the spectral claw by curling its fingers toward the opponent. Victory: he stands upright with the skull lifted toward the viewer, the right knife turned reverse-grip and held low, the spectral claw slowly opening as if releasing a soul, mint motes drifting around him.",
+    "ko": "Intro: he walks in slowly and hunched, the skull tipped to one side, the spectral claw hanging loose; he lifts the claw to the level of the mask, flicks both knives into reverse grip in a fast flourish with mint trails, and settles into the hunched stance. Defeat: the skull's crack widens as he drops to one knee and then falls forward."
+  },
+  "nativeHeight": 170
+}

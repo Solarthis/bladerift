@@ -96,7 +96,7 @@ describe('roster', () => {
         expect(l.hero).toBe(h.id);
         expect(l.cls).toBe(h.cls);
         expect(l.weapons[0]).toBe(CLASSES[h.cls].signature);
-        expect(l.weapons[1]).not.toBe(l.weapons[0]);
+        expect(l.weapons[1]).toBe(l.weapons[0]);
         expect(l.skill).toBe(SkillId.Trap);
         expect(artIdOf(l)).toBe(h.art);
       }
@@ -109,9 +109,9 @@ describe('roster', () => {
     ]);
   });
 
-  it("the second weapon and the skill stay the player's choice when valid", () => {
+  it("the kit is the hero's weapon in both slots; the skill stays the player's choice when valid", () => {
     const l = sanitizeLoadout({ hero: LEON, weapons: [WeaponId.Hammer, WeaponId.Lance], skill: SkillId.Frost });
-    expect(l.weapons).toEqual([WeaponId.Sword, WeaponId.Lance]);
+    expect(l.weapons).toEqual([WeaponId.Sword, WeaponId.Sword]);
     expect(l.skill).toBe(SkillId.Frost);
   });
 
@@ -210,15 +210,15 @@ describe('new Rift Arts', () => {
   });
 
   it('Phantom Hand (Hollowmask): runs along the floor, ignores a raised shield and holds the target stunned', () => {
-    const { w, fa, fb } = duel(HOLLOWMASK, LEON, 300);
+    const { w, fa, fb } = duel(HOLLOWMASK, 13, 300);
     const log: GameEvent[] = [];
     const hp0 = fb.s.hp;
     const handY = new Set<number>();
     let stunned = 0;
     let blocking = false;
-    // Leon raises his shield (slot B) from the first tick and keeps it up
-    play(w, 1, special, () => ({ btn: Btn.B }), log);
-    play(w, 100, nothing, () => ({ btn: Btn.B }), log, (w) => {
+    // Aegis raises her tower shield (A) from the first tick and keeps it up
+    play(w, 1, special, () => ({ btn: Btn.A }), log);
+    play(w, 100, nothing, () => ({ btn: Btn.A }), log, (w) => {
       w.projectiles.forEach((p) => p.kind === 'hand' && handY.add(Math.round(p.y)));
       if (fb.s.act === Act.Block) blocking = true;
       if (fb.s.act === Act.Stun && fb.s.stun > 0) stunned++;
@@ -413,7 +413,7 @@ describe('protocol round-trip', () => {
     expect(b.buff).toBe(true);
     expect(b.veil).toBe(false);
     expect(b.rift).toBe(1000);
-    expect(b.weapons).toEqual([WeaponId.Staff, WeaponId.Shield]);
+    expect(b.weapons).toEqual([WeaponId.Staff, WeaponId.Staff]);
 
     // the recipient's own fighter is sent whole
     expect(snap.self).not.toBeNull();

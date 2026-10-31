@@ -5,9 +5,10 @@ import {
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
 import type { InputSource } from '../input/Controls';
-import { FighterCanvas, fighterLut, FxModule, FxSprite, PIX, Pose } from '../render/pixel';
+import { bakeFrames, FighterCanvas, fighterLut, FxModule, FxSprite, paintLive, PIX, Pose, prewarmEffects } from '../render/pixel';
 import { poseFor } from '../render/poses';
 import { warmFighter } from '../render/warm';
+import { heroSpritesReady, loadHeroSprites, SpriteFighterView } from '../render/spriteFighter';
 import { FX, PAL, swingFx } from '../render/fxmap';
 import { sfx } from '../audio/Sfx';
 import { prefs } from '../ui/prefs';
@@ -196,7 +197,11 @@ interface FighterView {
   /** The hero the view was built with (a changed hero rebuilds it). */
   hero: number;
   canvas: FighterCanvas;
+  /** The image on screen: the sprite fighter's once its atlas is loaded, else the rig canvas's. */
   img: Phaser.GameObjects.Image;
+  rigImg: Phaser.GameObjects.Image;
+  /** The hero drawn from its generated animation atlas (render/spriteFighter.ts), when it has one. */
+  sprite: SpriteFighterView | null;
   tag: Phaser.GameObjects.Text;
   ghosts: { img: Phaser.GameObjects.Image; tex: Phaser.Textures.CanvasTexture; life: number }[];
   ghostI: number;
@@ -298,6 +303,8 @@ export class GameScene extends Phaser.Scene {
   private clock = 0;
   private arenaW = 1280;
   private floor = 600;
+  /** The arena's world-space Graphics and their bounds, hidden while off-camera (see cullArena). */
+  private arenaCull: { g: Phaser.GameObjects.Graphics; x0: number; y0: number; x1: number; y1: number }[] = [];
   private camX = 640;
   private camY = 400;
   private camZoom = 1;
@@ -339,7 +346,15 @@ export class GameScene extends Phaser.Scene {
     this.arenaW = arena.w;
     this.floor = arena.floor;
     this.cameras.main.setBackgroundColor('#0d0a14');
+    const before = new Set<Phaser.GameObjects.GameObject>(this.children.list);
     buildArena(this, this.game0!.arena);
+    this.arenaCull = arenaCullables(this, before);
+    // the hits and swings of every weapon, baked in the background from the start of the match
+    prewarmEffects(this, [
+      [FX.hitSpark, {}], [FX.critHit, {}], [FX.bluntHit, {}], [FX.parry, {}], [FX.shieldBlock, {}], [FX.heavyLanding, {}], [FX.heal, {}], [FX.poof, {}],
+      [FX.swordSlash, {}], [FX.doubleSlash, {}], [FX.spinSlash, {}], [FX.scytheReap, {}], [FX.thrust, {}], [FX.spearSweep, {}], [FX.claw, { palette: PAL.cyan }],
+      [FX.daggerFlurry, {}], [FX.heavyCleave, {}],
+    ]);
     this.camX = arena.w / 2;
     this.camY = arena.floor - 200;
     this.vecB = this.add.graphics().setDepth(9);
@@ -419,9 +434,28 @@ export class GameScene extends Phaser.Scene {
       this.fx[i].update(dt);
       if (this.fx[i].dead) this.fx.splice(i, 1);
     }
+    paintLive(6);
     this.drawVecs(dt);
     this.drawParts(dt);
     this.updateCamera(list, dt);
+    this.cullArena();
+    bakeFrames(3);
+  }
+
+  /**
+   * The arena's masonry is drawn with thousands of stroked lines, and Phaser re-tessellates every Graphics command on
+   * every frame, so off-screen stone (the side walls, mostly) is hidden while the camera cannot see it.
+   */
+  private cullArena() {
+    const cam = this.cameras.main;
+    const hw = cam.width / cam.zoom / 2 + 64;
+    const hh = cam.height / cam.zoom / 2 + 64;
+    const cx = cam.midPoint.x;
+    const cy = cam.midPoint.y;
+    for (const c of this.arenaCull) {
+      const on = c.x1 >= cx - hw && c.x0 <= cx + hw && c.y1 >= cy - hh && c.y0 <= cy + hh;
+      if (c.g.visible !== on) c.g.setVisible(on);
+    }
   }
 
   // ------------------------------------------------------------------ helpers
@@ -538,15 +572,18 @@ export class GameScene extends Phaser.Scene {
     const color = colorOf(r?.color ?? v.seat * 5);
     const lut = fighterLut(color, accentOf(r?.look?.accent ?? 0));
     const canvas = new FighterCanvas(this, `fighter${v.id}`, lut, v.hero);
-    // render this fighter's whole move set into the frame cache in the background (smooth animation on phones)
-    warmFighter(v.hero, v.weapons, v.skill);
+    // the hero's sprite atlas loads on demand; the rig draws the fighter until it is there (or if the hero has none)
+    void loadHeroSprites(this, v.hero).then((meta) => {
+      // no sprites for this hero: render the rig's whole move set into its frame cache in the background instead
+      if (!meta) warmFighter(v.hero, v.weapons, v.skill);
+    });
     const img = this.add.image(v.x, v.y, canvas.key).setOrigin(canvas.originX, canvas.originY).setScale(canvas.worldScale).setDepth(10);
     const tag = this.add
       .text(v.x, v.y - 70, r?.name ?? '', { fontFamily: 'Lilita One, sans-serif', fontSize: '12px', color: '#' + color.toString(16).padStart(6, '0'), stroke: '#0b0814', strokeThickness: 3 })
       .setOrigin(0.5, 1)
       .setDepth(30);
     fv = {
-      id: v.id, hero: v.hero, canvas, img, tag, ghosts: [], ghostI: 0, ghostAt: 0, frozenT: 0, freezeUntil: 0, flashUntil: 0, lastSeq: -1, runPhase: 0,
+      id: v.id, hero: v.hero, canvas, img, rigImg: img, sprite: null, tag, ghosts: [], ghostI: 0, ghostAt: 0, frozenT: 0, freezeUntil: 0, flashUntil: 0, lastSeq: -1, runPhase: 0,
       lastX: v.x, wasGround: true, landAt: -10, status: {}, stunnedUntil: 0, koT: 0, color, shown: null,
       gfxB: this.add.graphics().setDepth(9), gfx: this.add.graphics().setDepth(11), hist: [], hound: null, veilOn: false,
     };
@@ -564,9 +601,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private removeView(id: number, fv: FighterView) {
-    fv.img.destroy();
+    fv.rigImg.destroy();
+    fv.sprite?.destroy();
     fv.tag.destroy();
-    for (const gh of fv.ghosts) gh.img.destroy();
+    // the after-image and the figure canvases are textures: drop them with the view (no leak across matches)
+    for (const gh of fv.ghosts) {
+      gh.img.destroy();
+      if (this.textures.exists(gh.tex.key)) this.textures.remove(gh.tex);
+    }
     for (const s of Object.values(fv.status)) s?.destroy();
     fv.gfx.destroy();
     fv.gfxB.destroy();
@@ -574,6 +616,7 @@ export class GameScene extends Phaser.Scene {
       fv.hound.img.destroy();
       fv.hound.tex.destroy();
     }
+    if (this.textures.exists(fv.canvas.key)) this.textures.remove(fv.canvas.key);
     this.views.delete(id);
   }
 
@@ -593,10 +636,23 @@ export class GameScene extends Phaser.Scene {
     const pose = poseFor({ ...v, actTf: t }, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt });
     const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : 0;
     const tint = v.slowed ? 0xffffd2a8 : 0;
-    fv.canvas.draw(stripXY(pose), flash, tint);
-    fv.img.setPosition(v.x, v.y).setFlipX(v.face < 0);
-    // KO: topple over backwards
-    if (v.act === Act.KO) {
+    // the sprite takes over from the rig as soon as the hero's atlas is in
+    if (!fv.sprite) {
+      const meta = heroSpritesReady(v.hero);
+      if (meta) {
+        fv.sprite = new SpriteFighterView(this, v.hero, meta, 10);
+        fv.rigImg.setVisible(false);
+        fv.img = fv.sprite.img;
+      }
+    }
+    if (fv.sprite) {
+      fv.sprite.draw({ ...v, actTf: t }, v.x, v.y, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt }, flash, tint);
+    } else {
+      fv.canvas.draw(stripXY(pose), flash, tint);
+      fv.img.setPosition(v.x, v.y).setFlipX(v.face < 0);
+    }
+    // KO: the rig topples over backwards (sprite fighters have their own defeat animation)
+    if (v.act === Act.KO && !fv.sprite) {
       fv.koT = Math.min(1, fv.koT + dt * 3);
       fv.img.setAngle(-v.face * 85 * Phaser.Math.Easing.Cubic.Out(fv.koT));
     } else {
@@ -608,9 +664,15 @@ export class GameScene extends Phaser.Scene {
     if (pose.ghost && now - fv.ghostAt > 45) {
       fv.ghostAt = now;
       const gh = fv.ghosts[fv.ghostI++ % fv.ghosts.length];
-      gh.tex.context.clearRect(0, 0, gh.tex.width, gh.tex.height);
-      gh.tex.context.drawImage(fv.canvas.tex.getSourceImage() as HTMLCanvasElement, 0, 0);
-      gh.tex.refresh();
+      if (fv.sprite) {
+        // a sprite's after-image is the same atlas frame, tinted flat
+        const sp = fv.sprite.img;
+        gh.img.setTexture(fv.sprite.textureKey, fv.sprite.current).setOrigin(sp.originX, sp.originY).setScale(fv.sprite.worldScale);
+      } else {
+        gh.tex.context.clearRect(0, 0, gh.tex.width, gh.tex.height);
+        gh.tex.context.drawImage(fv.canvas.tex.getSourceImage() as HTMLCanvasElement, 0, 0);
+        gh.tex.refresh();
+      }
       gh.img.setPosition(v.x, v.y).setFlipX(v.face < 0).setVisible(true).setAlpha(0.5);
       gh.life = 0.22;
     }
@@ -658,7 +720,8 @@ export class GameScene extends Phaser.Scene {
       }
       fv.veilOn = true;
     } else {
-      fv.img.clearTint();
+      // (a sprite sets its own tint each frame: hit flash, slow)
+      if (!fv.sprite) fv.img.clearTint();
       if (fv.veilOn) {
         // the veil lifts: the fog clears off the figure
         fv.veilOn = false;
@@ -756,7 +819,8 @@ export class GameScene extends Phaser.Scene {
       const fv = this.views.get(id);
       const v = fv?.shown;
       if (!fv || !v || v.act !== Act.Attack) return;
-      if (sw) this.addFx(sw.mod, v.x, v.y, v.face < 0, sw.rate, sw.opts);
+      // (a sprite fighter's frames carry their own painted weapon trails: no procedural trail on top)
+      if (sw && !fv.sprite) this.addFx(sw.mod, v.x, v.y, v.face < 0, sw.rate, sw.opts);
       // the hammer's third blow and any hammer plunge crack the ground
       if (weapon === WeaponId.Hammer && move === 2) {
         this.addFx(FX.groundSlam, v.x + v.face * 40, v.y, v.face < 0, 1.8);
@@ -964,8 +1028,10 @@ export class GameScene extends Phaser.Scene {
         break;
       }
       case 'shoot': {
-        const names = ['swing', 'grenadeThrow', 'railgun', 'reload'] as const;
-        sfx.play(names[e.kind] ?? 'swing', { volume: 0.8, pitch: e.kind === 0 ? 1.5 : 1 });
+        // kinds: 0 arrow, 1 bomb, 2 frost, 3 trap, 4 arcane bolt, 5 orb; 6+ are Rift Art projectiles (the Art's own sound covers them)
+        const names = ['arrow', 'grenadeThrow', 'frost', 'trapSet', 'arcane', 'orb'] as const;
+        const name = names[e.kind];
+        if (name) sfx.play(name, { volume: 0.8 });
         break;
       }
       case 'boom': {
@@ -977,7 +1043,7 @@ export class GameScene extends Phaser.Scene {
         for (let i = 0; i < 16; i++) {
           this.spark(e.x + (Math.random() - 0.5) * 30, e.y - 2, (Math.random() - 0.5) * 260, -Math.random() * 140, 0.6, 0x5a2aa8, 3, 300);
         }
-        sfx.play('explosion', { x: e.x, y: e.y });
+        sfx.play('slam', { x: e.x, y: e.y });
         this.shake(0.9);
         this.punch = Math.max(this.punch, 0.03);
         break;
@@ -1015,7 +1081,7 @@ export class GameScene extends Phaser.Scene {
       }
       case 'art': {
         const v = find(e.p);
-        sfx.play('railgun', { pitch: 0.7, volume: 0.9 });
+        sfx.playArt(e.art, { volume: 0.9 });
         this.shake(0.35);
         // the beat: a colour wash and a short zoom punch, well under a third of a second
         this.flash(ART_FLASH[e.art] ?? 0xffffff, 0.2, 150);
@@ -1037,12 +1103,12 @@ export class GameScene extends Phaser.Scene {
             const rise = 72 * Phaser.Math.Easing.Cubic.Out(Math.min(1, p * 2.2)) * (1 - p * 0.5);
             this.chainLine(g, e.x, e.y, e.x + 4 * Math.sin(p * 9), e.y - rise, 7, 0xffd84a, 1 - p);
           });
-          sfx.play('impact', { x: e.x, y: e.y, pitch: 0.8 });
+          sfx.play('chains', { x: e.x, y: e.y, pitch: 0.8 });
         } else {
           // Starfall (Lumi): a star comes down onto the mark
           this.addFx(FX.starFall, e.x, e.y, false, 1.25, { palette: PAL.violet }, 16, 26, 0.7);
           this.ring(e.x, e.y, 8, 70, 0.4, 0xd8b8ff, 3);
-          sfx.play('explosion', { x: e.x, y: e.y, pitch: 1.6, volume: 0.8 });
+          sfx.play('starfall', { x: e.x, y: e.y, pitch: 1.6, volume: 0.8 });
         }
         this.shake(0.55);
         break;
@@ -1365,6 +1431,78 @@ export class GameScene extends Phaser.Scene {
     pv.gfx?.destroy();
     pv.tex?.destroy();
   }
+}
+
+/**
+ * World bounds of a Graphics built only from fills, strokes and line styles (padded for line widths), read from its
+ * command buffer: [opcode, arguments...] with Phaser's fixed arities. Null when it holds anything else, so unknown
+ * content is never culled.
+ */
+function commandBounds(g: Phaser.GameObjects.Graphics): [number, number, number, number] | null {
+  const b = g.commandBuffer as unknown[];
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  const pt = (x: number, y: number) => {
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  };
+  let i = 0;
+  while (i < b.length) {
+    const op = b[i++] as number;
+    switch (op) {
+      case 1: // BEGIN_PATH
+      case 2: // CLOSE_PATH
+      case 8: // FILL_PATH
+      case 9: // STROKE_PATH
+      case 14: // SAVE
+      case 15: // RESTORE
+        break;
+      case 3: {
+        // FILL_RECT x, y, w, h
+        const x = b[i] as number;
+        const y = b[i + 1] as number;
+        pt(x, y);
+        pt(x + (b[i + 2] as number), y + (b[i + 3] as number));
+        i += 4;
+        break;
+      }
+      case 4: // LINE_TO x, y
+      case 5: // MOVE_TO x, y
+        pt(b[i] as number, b[i + 1] as number);
+        i += 2;
+        break;
+      case 6: // LINE_STYLE width, colour, alpha
+        i += 3;
+        break;
+      case 7: // FILL_STYLE colour, alpha
+        i += 2;
+        break;
+      case 21: // GRADIENT_FILL_STYLE: four alphas, four colours
+        i += 8;
+        break;
+      default:
+        return null;
+    }
+  }
+  if (x0 > x1) return null;
+  const pad = 8;
+  return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
+}
+
+/** The world-space Graphics a build step added to the scene (not screen-fixed ones), with their bounds. */
+function arenaCullables(scene: Phaser.Scene, before: Set<Phaser.GameObjects.GameObject>) {
+  const out: { g: Phaser.GameObjects.Graphics; x0: number; y0: number; x1: number; y1: number }[] = [];
+  for (const o of scene.children.list) {
+    if (before.has(o) || !(o instanceof Phaser.GameObjects.Graphics)) continue;
+    if (o.scrollFactorX !== 1 || o.scrollFactorY !== 1) continue;
+    const bb = commandBounds(o);
+    if (bb) out.push({ g: o, x0: bb[0], y0: bb[1], x1: bb[2], y1: bb[3] });
+  }
+  return out;
 }
 
 /** The rig's own floor offsets are left to the simulation (it already moves the fighter). */

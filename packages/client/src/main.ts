@@ -9,8 +9,11 @@ import { App } from './ui/App';
 import { markUpdateReady, setUpdater } from './update';
 
 // Dev bench for animations (?lab): every weapon move and state side by side, no game UI.
-const LAB = new URL(location.href).searchParams.has('lab');
-if (LAB) void import('./dev/PoseLab').then((m) => m.startPoseLab());
+// Sprite bench (?sprites&hero=N): every state of a sprite fighter at game speed.
+const SPRITES = new URL(location.href).searchParams.has('sprites');
+const LAB = SPRITES || new URL(location.href).searchParams.has('lab');
+if (SPRITES) void import('./dev/SpriteLab').then((m) => m.startSpriteLab());
+else if (LAB) void import('./dev/PoseLab').then((m) => m.startPoseLab());
 const app = LAB ? null : new App();
 app?.start();
 (window as unknown as { bladerift: App | null }).bladerift = app;

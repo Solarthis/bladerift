@@ -1,0 +1,16 @@
+{
+  "id": "h00-leon",
+  "hero": 0,
+  "name": "Leon Valcrest",
+  "epithet": "the Lionheart King",
+  "refs": [
+    "references/approved-sheet.png"
+  ],
+  "bible": "A young knight-king and master swordsman with a disciplined, noble fighting style. Golden-blond hair, swept back and wild, falling to the jaw at the back; determined blue eyes; a handsome, focused face. Regal polished SILVER plate armour with GOLD trim and engraved gold filigree: layered rounded pauldrons, a breastplate, articulated gauntlets, greaves and pointed sabatons. NAVY-BLUE undersuit and trousers showing at the joints and thighs. A long IVORY tabard with gold embroidery hangs front and back from a dark belt with a gold buckle. A long CRIMSON cape with a gold border and a slightly tattered hem flows from the shoulders. WEAPON: an ornate longsword with a golden LION-HEAD crossguard, a navy-and-gold wrapped grip and pommel with a blue gem, and a steel blade with a glowing sapphire-blue fuller. He grips it in his RIGHT hand; the left hand joins on the grip for heavy two-handed strikes. His sword energy and weapon trails are BLUE-WHITE arcs with GOLD sparks.",
+  "sheetNotes": {
+    "art": "Radiant Cleave: he gathers blue-white and gold light into the sword (anticipation), then hurls a huge crescent wave of blue-white light forward with a mighty horizontal sweep (execution), the wave leaving the blade toward the right edge of the cell; recovery with the sword lowered, light motes fading.",
+    "misc": "Taunt: he points the sword forward at the opponent, then raises his chin with a confident half-smile. Victory: he plants the sword point-down in front of him with both hands on the lion crossguard, cape flowing, a regal calm look; a soft blue-gold glow.",
+    "ko": "Intro: he walks in with the sword lowered at his side, raises it in a knightly salute before his face, swings it down in a flourish, and takes his stance."
+  },
+  "nativeHeight": 176
+}

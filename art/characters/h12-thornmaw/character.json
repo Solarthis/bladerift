@@ -1,0 +1,74 @@
+{
+  "id": "h12-thornmaw",
+  "hero": 12,
+  "name": "Thornmaw",
+  "epithet": "the Black Hound",
+  "refs": [
+    "references/design.png"
+  ],
+  "designRefs": [
+    "../h00-leon/references/approved-sheet.png",
+    "references/portrait.jpg"
+  ],
+  "bible": "A slight, quiet young woman, small and light, a head shorter than the other riders, with a calm face: pale skin, deep-set dark eyes with a faint violet tint, a small straight nose and a tight, unsmiling mouth. Short tousled brown hair, side-swept with one stray tuft over the ear, ending at the jaw. A long dark charcoal-violet hooded cloak with a ragged hem reaching the calves, over a plum-black high-collared coat. A deep red wool scarf at her throat. Heavy bronze chains with dark iron links cross her chest and loop at the hip. Black leather trousers, dark brown ankle boots with bronze buckles, black fingerless gloves. WEAPON: a slender war scythe about as tall as her head and shoulders, with a black bramble-wrapped haft studded with tiny thorns, and a narrow, sickle-thin blade of smoke-black steel whose inner edge is serrated with thorn-like points that glow violet. Both hands grip it: the RIGHT low on the haft, the LEFT high near the blade's neck; the blade always leads to the right. Trails and smoke are VIOLET-PURPLE. The shadow hound is a separate summon, never present in her standing or attacking poses; it appears only in her Rift Art.",
+  "design": "- top row: full-body neutral stance facing right; a standing idle with the scythe planted butt-first; a walking pose; a running pose with the scythe over the shoulder\n- upper middle row: a low crouch; a wide low reaping sweep with a violet arc; a fast diagonal reap from overhead\n- lower middle row: a mid-air dive-slash; a plunge with the blade driven down; a low spinning reap skimming the ground; a long dragging hook\n- bottom row: standing guard with the scythe across the body; a hit reaction; knocked down; a victory pose with the scythe planted; the Night Hunt special move (her and the hound leaping and slamming down)\n- inset at the top right: the shadow hound alone in side view, large and dark with violet glowing eyes, its shoulder height about her head height, in the same style, as an identity reference only\n- inset at the top left: the scythe alone, small, showing the bramble-wrapped haft and the thin thorned blade from the side\n- all figures share one costume, one scythe design and one scale\n- the hound appears only in the special move and its inset",
+  "sheets": {
+    "atk-a": {
+      "title": "Scythe combo strikes 1 and 2 (3 frames each): quick low and high reaps",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: the scythe pulled back low behind her, the blade trailing near the ground, weight dropping onto the back foot",
+        "combo strike 1, strike: a wide horizontal reaping sweep from behind her at waist height, the thin blade carving a violet arc kept inside this cell",
+        "combo strike 1, recovery: the blade swinging through and rising over her shoulder, body turning back toward stance",
+        "combo strike 2, anticipation: the scythe raised high over her head with the blade pointing back, feet set, body narrow and tense",
+        "combo strike 2, strike: a fast diagonal reap down from overhead, the thorned edge leaving a violet arc kept inside this cell",
+        "combo strike 2, recovery: the scythe low and forward after the cut, body settling, violet motes fading"
+      ]
+    },
+    "atk-b": {
+      "title": "Scythe combo hook, and aerial dive-slash (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: the scythe wound far back low behind her, the hooked blade pointing forward, her body leaning back to pull",
+        "combo finisher, strike: a long dragging hook, the blade catching out in front and sweeping back to her with a tight violet arc kept inside this cell, the haft pulled hard toward her hip",
+        "combo finisher, recovery: the hook held at her hip, cloak swirling, violet motes drifting from the thorns",
+        "aerial attack, anticipation: in mid-air, the scythe raised high behind her head, body arched",
+        "aerial attack, strike: a sweeping dive-slash in front, a thin violet arc kept inside this cell",
+        "aerial attack, recovery: airborne, body tucked round the haft, cloak hem streaming upward"
+      ]
+    },
+    "atk-c": {
+      "title": "Scythe plunge and low spinning reap (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, the scythe pointed down beneath her like a spike, dark violet speed lines, cloak streaming upward",
+        "plunge, impact: landing in a low crouch, the blade driven point-first into the ground in front, a burst of dark shards and violet dust kept inside this cell",
+        "plunge, recovery: pulling the scythe free and rising back toward stance, the shards fading",
+        "heavy attack, charge: body dropped low, the scythe drawn far back along the ground, the thorns glowing bright violet along the blade",
+        "heavy attack, strike: a tight, fast spinning reap low to the ground, the scythe whirling round her in a violet blur skimming the floor, kept inside this cell",
+        "heavy attack, follow-through: the spin ending with the blade dragging low, its violet trail dissolving"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "idle": "Thornmaw stands with the scythe planted butt-first on the ground beside her right foot, the haft leaning against her left shoulder and the blade curving up over her head. Her head is bowed a little, her weight light, the cloak sways with each breath. No hound in this pose.",
+    "run": "She carries the scythe over her left shoulder with the haft across it and the blade trailing behind her. Light, fast steps, the cloak and the chains swinging.",
+    "dash": "Ground dash: low and fast, the scythe tucked under her arm with its blade trailing violet smoke. Air dash: body stretched forward, the scythe pulled in close, cloak snapping behind.",
+    "art": "Night Hunt (Rift Art): she leaps onto the opponent with the shadow hound and slams down with it. The shadow hound is a large dark wolf-hound made of shadow and smoke, with violet glowing eyes and a violet sheen on its lit edge; it appears only in these six frames, at her side and never bigger than its cell allows, shoulder height about her head height. Frame 1: Thornmaw crouched low with the scythe planted, the hound's dark shape forming as smoke beside her, violet motes rising. Frame 2: at the peak she is coiled to leap, the hound fully formed at her side with its eyes lit, the scythe held back. Frame 3: both launch into the air: Thornmaw in mid-leap with the scythe raised, the hound bounding beside her toward the right, dark shadow trails behind them. Frame 4: the slam: hound and Thornmaw come down onto the opponent, the scythe driven point-first into the ground, a dark shockwave and violet cracks spreading across the floor. Frame 5: the hound breaks into dark smoke, Thornmaw pulls the scythe out of the ground, violet shards floating. Frame 6: Thornmaw rises back into a calm stance, the hound's last violet eye fading to nothing. The whole composition, hound included, stays inside each cell.",
+    "misc": "Taunt: she lifts the scythe one-handed and turns its blade once above her head in a slow violet arc, then lowers it and tilts her head with a quiet, unsettling half-smile. Victory: she plants the scythe butt-first in front of her, both hands on the haft, bowing her head; violet motes rise from the thorns of the blade.",
+    "ko": "Intro: she walks in slowly with the scythe dragging by its butt and the blade low; she lifts it to her shoulder, spins it once in a tight quick flourish, and settles into her stance with the blade set forward."
+  },
+  "nativeHeight": 164
+}

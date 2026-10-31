@@ -37,7 +37,7 @@ describe('classes', () => {
     for (const C of CLASSES) {
       const l = sanitizeLoadout({ weapons: [WeaponId.Hammer, WeaponId.Hammer], skill: 0, hero: heroFor(C.id) });
       expect(l.weapons[0]).toBe(C.signature);
-      expect(l.weapons[1]).not.toBe(C.signature);
+      expect(l.weapons[1]).toBe(C.signature); // the kit: one weapon, A light and B heavy
     }
     const { fa, fb } = duel(ClassId.Assassin, ClassId.Berserker);
     expect(fa.s.hp).toBe(CLASSES[ClassId.Assassin].hp);

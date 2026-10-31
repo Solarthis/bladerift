@@ -1,0 +1,75 @@
+{
+  "id": "h04-verdan",
+  "hero": 4,
+  "name": "Verdan",
+  "epithet": "the Clay-Born",
+  "refs": [
+    "references/design.png"
+  ],
+  "designRefs": [
+    "../h00-leon/references/approved-sheet.png",
+    "references/portrait.jpg"
+  ],
+  "bible": "Verdan is androgynous, tall and slender, with pale fired-porcelain skin, a soft oval face, a fine jaw and calm gold-green eyes with a gentle, knowing look. Hair is very long, pale sage-green, falling past the waist in a loose braid over one shoulder. Costume: a long ivory robe with a high collar and wide sleeves tied at the wrists, a long ivory sash wound at the waist, all edged with gold embroidery and a moss-green hem; under it an ivory undertunic and dark moss-olive trousers. Living GOLD CHAINS coil around both forearms and upper arms, with loose links trailing from the free arm and drifting like thread. WEAPON: a lance about one and a half times his height. The shaft is pale celadon glazed clay with fine cracks, wound with a spiral of gold chain links, and loose chain coils at the butt. The blade is a leaf-shaped gold spearhead with a jade-green vein down its centre and a ring of gold chain at the socket. He grips the lance in his RIGHT hand at mid-shaft; his LEFT hand holds the shaft below the blade for thrusts. Energy and trails: GOLD light with jade-green glints; the chains glow gold.",
+  "design": "- top row: full-body neutral stance facing right with the lance held upright; a combat stance with the lance lowered across the hips; a walking pose with the sash and long braid swinging; a running pose with the robe flowing; a jump with the chains trailing; a close-up of the gold leaf blade and the chain-wound shaft\n- middle rows: six attack and special poses: two thrusts, a low rising sweep, a lunging charge with a gold trail, a diving plunge, a burst of living chains from the ground\n- bottom row: guard with the lance across the body and chains raised, hit reaction, knocked down, a calm victory pose with the lance planted, the signature gold chains binding upward with a jade glow",
+  "sheets": {
+    "atk-a": {
+      "title": "Basic combo thrusts 1 and 2 (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo thrust 1, anticipation: the lance drawn back to the hip, gold chains tightening around the forearm, weight on the back foot",
+        "combo thrust 1, strike: a fast two-handed thrust straight forward at chest height, the gold blade driving out with a short gold streak kept inside this cell",
+        "combo thrust 1, recovery: the lance pulled back to the hip, loose chains swinging after the thrust, body settling toward stance",
+        "combo thrust 2, anticipation: the lance swung low and back, the chain-wound shaft dropping toward the ground, sash whipping forward",
+        "combo thrust 2, strike: a low rising thrust, the lance sweeping up from knee height to shoulder height with a bright gold arc kept inside this cell",
+        "combo thrust 2, recovery: lance held high in a guard above the shoulder, chains and braid settling"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher lunge and aerial thrust (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: the lance drawn back under the arm, couched low, front foot stepping in, chains pulled taut across the body",
+        "combo finisher, strike: a lunging thrust with the whole body driving forward, the lance extended straight ahead, a large gold trail streaking behind the blade kept inside this cell; the strongest pose",
+        "combo finisher, recovery: full extension relaxing, the lance pulled back, robe and sash flaring, settling toward stance",
+        "aerial thrust, anticipation: in mid-air, the lance drawn back level with the hip, robe lifting, body angled forward",
+        "aerial thrust, strike: a diving thrust forward and slightly down, the gold blade leading, a short gold trail kept inside this cell",
+        "aerial thrust, recovery: airborne, body tucked around the lance, long braid and chains streaming, returning to a ready pose"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge attack and charged lunge (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, the lance pointed point-first beneath the body, robe and chains streaming up, speed lines",
+        "plunge, impact: landing in a low crouch, the lance driven point-first into the ground in front, a burst of gold light and dust",
+        "plunge, recovery: rising from the impact back toward stance, the lance pulled free",
+        "charged lunge, charge: the lance couched under the arm pointing forward, body coiled low, chains wound tight, a bright gold glow building along the blade",
+        "charged lunge, strike: a full-power lunge, the whole body and the lance driving forward in one long straight thrust, a huge gold trail kept inside this cell",
+        "charged lunge, follow-through: deep follow-through with the lance held out at the end of the lunge, the trail dissipating into gold motes"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "art": "Chains of Genesis: he plants the lance point-down in front of him and raises his free hand, gold chains spinning up around his body (anticipation 1-2). Execution: living gold chains burst up out of the ground in front of him and whip toward the opponent, binding them in glowing links, jade light at the centre (execution 1-2, kept inside each cell); recovery: the chains sink back down into the ground, the lance drawn up.",
+    "misc": "Skill throw: he flicks a loose gold chain link forward from the free hand. Taunt: he raises the lance and loops it once, then lifts his chin with a calm, faintly amused smile and one hand open. Victory: he rests the lance point-down on the ground with both hands on the shaft; the chains loop around him in a slow gold glow and the long hair settles.",
+    "ko": "Intro: he walks in with the lance lowered and the chains loose at his side, raises the lance upright with one hand, spins it once in a slow flourish that unwinds a length of gold chain, then settles into the stance, calm.",
+    "idle": "The lance is a LANCE, never a sword: held upright beside the body in the right hand, the gold blade tilted slightly forward; loose gold chains drift from the free arm and the long hair moves with each breath.",
+    "run": "The lance is carried upright at the side with its butt low; loose gold chains swing from the free arm; the long green hair and the sash flow behind.",
+    "air": "The lance is held level with the body, blade forward; the chains and hair stream upward and the robe billows.",
+    "dash": "The ground dash is a low, fast burst with the lance couched forward; gold chains trail behind like streamers."
+  },
+  "nativeHeight": 180
+}

@@ -1,0 +1,74 @@
+{
+  "id": "h10-gray",
+  "hero": 10,
+  "name": "Mr. Gray",
+  "epithet": "the Faceless",
+  "refs": [
+    "references/design.png"
+  ],
+  "designRefs": [
+    "../h00-leon/references/approved-sheet.png",
+    "references/portrait.jpg"
+  ],
+  "bible": "A tall, slim, gaunt gentleman of about fifty: narrow-shouldered, very upright, long-legged, with a composed and unhurried bearing. Face: pale, angular and smooth, half-shadowed under the peak of his cap, calm narrow grey eyes and a faint polite half-smile; the cheeks and jaw dissolve at their edges into drifting grey fog. Headwear: a black PEAKED CAP with a dark charcoal crown, a black band and a tarnished BRASS cog-and-star badge. Costume: a long dark charcoal-grey GREATCOAT to mid-calf with a high turned-up collar and a short cape over the shoulders, a double row of tarnished brass buttons, a black leather belt with a brass buckle, a thin brass watch chain across the waistcoat, dark charcoal trousers, polished black boots and black leather gloves. WEAPON: a long black lacquered BATON-CUDGEL about as long as his forearm and upper arm together, with a heavy ridged black-steel head and a brass butt cap; the right hand grips it low on a black leather wrap, and the left hand joins only for the heavy strikes. Effects are pale silver-grey fog swirls with cool white glints.",
+  "design": "- top row: full-body neutral stance facing right; a composed combat stance with the baton ready; a measured walking pose; a stride with the coat swinging; a leaping jump with the coat billowing; a close-up of the cap and the baton head\n- middle rows: six attack poses: two heavy overhead baton blows, a wide sideways sweep, a stepping ground slam with fog, an airborne baton blow, a Grim Fog pose with his outline dissolving into fog; grey fog and silver glints in each\n- bottom row: guard with the baton across the body, hit reaction, knocked down, victory pose with the baton upright like a cane, the Grim Fog cloud at full spread",
+  "sheets": {
+    "atk-a": {
+      "title": "Heavy baton blows 1 and 2 (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "baton blow 1, anticipation: raising the baton high overhead in the right hand, the left hand joining, weight back, coat swinging back",
+        "baton blow 1, strike: a crushing downward blow, the weighted head crashing down in front, a pale fog burst kept inside this cell",
+        "baton blow 1, recovery: the baton carried down, the body settling back toward stance, the coat swinging forward",
+        "baton blow 2, anticipation: the baton drawn back low across the body, torso turned, the coat flaring",
+        "baton blow 2, strike: a wide, precise sideways sweep at waist height, a grey-silver arc of fog kept inside this cell",
+        "baton blow 2, recovery: the follow-through, the baton swung round, the body recovering composed and upright"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher and aerial blow (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: a deliberate wind-up, the baton raised high overhead in both hands, the coat sweeping back",
+        "combo finisher, strike: a stepping overhead slam, the baton driven down into the ground in front, a shockwave of grey fog kept inside this cell, the strongest pose",
+        "combo finisher, recovery: lifting the baton back up, the cap tilted, fog trailing",
+        "aerial blow, anticipation: airborne, baton raised behind the head in one hand, the long coat billowing up",
+        "aerial blow, strike: a sweeping mid-air baton blow forward and down, a silver fog arc kept inside this cell",
+        "aerial blow, recovery: airborne, body tucked, the baton held across the body, returning toward ready"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge and heavy attack (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving headfirst, the baton pointed straight down under the body, the coat streaming up, grey fog trailing",
+        "plunge, impact: landing in a low crouch, the weighted head driven into the ground, a burst of dust and fog kept inside this cell",
+        "plunge, recovery: rising from the crouch, the baton lifted back toward stance, cap straightened",
+        "heavy attack, charge: body coiled, the baton drawn far back over the shoulder, pale fog gathering around it",
+        "heavy attack, strike: a devastating full-power diagonal overhead blow, a huge grey-silver fog arc kept inside this cell",
+        "heavy attack, follow-through: deep follow-through with the coat flaring, the fog dissipating"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "idle": "The coat and cape sway gently with each breath, and thin fog drifts from the edges of his face and the cuffs of his gloves; the baton stays steady in the right hand.",
+    "run": "Long, unhurried strides with a composed upright posture; the long greatcoat swings wide behind him on each step and the cape lifts with the motion; the baton is carried low at the right side.",
+    "air": "The long greatcoat and cape billow upward in every airborne frame, the coat tails trailing and the fog streaming behind.",
+    "art": "Grim Fog, the vanishing: anticipation 1, he tips his cap and fog coils around his boots and coat, his outline softening; anticipation 2, his body dissolves at the edges into dense swirling grey fog, only the cap and the baton still clear; execution 1, he has vanished into a thick grey-white fog cloud that bursts outward, only a faint silhouette of coat and a brass glint showing within; execution 2, the cloud at full spread, a blurred shape and a silver fog ring, kept inside the cell; recovery 1, the fog thins and he reforms, cap and baton visible; recovery 2, he stands upright again, straightening his coat as the fog disperses.",
+    "misc": "Skill throw: from inside his coat he takes a small black smoke canister and throws it forward underhand, the arm extended. Taunt: he tips his cap to the opponent with a polite half-smile, then taps the baton lightly against his gloved palm. Victory: he sets the baton upright in front of him like a cane and straightens his cap, a calm, pleased look as the fog curls around his boots.",
+    "ko": "Intro: he walks in at an unhurried pace with the baton lowered behind his back; he raises the baton before his face in a courteous salute; he flicks it in a neat flourish; he settles into a composed stance with fog curling at his feet."
+  },
+  "nativeHeight": 188
+}

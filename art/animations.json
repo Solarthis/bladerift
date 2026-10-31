@@ -1,0 +1,258 @@
+{
+ "comment": "Animation library shared by every fighter: each animation names its frames as sheet:index (0-based, reading order of the sheet grid). fps is the playback rate for time-driven animations; attack/art animations are driven by the move's startup/active/recovery instead (see packages/client/src/render/spriteAnim.ts). air: frames drawn airborne (not snapped to the ground line).",
+ "anims": {
+  "idle": {
+   "frames": [
+    "idle:0",
+    "idle:1",
+    "idle:2",
+    "idle:3"
+   ],
+   "fps": 6,
+   "loop": true
+  },
+  "guard": {
+   "frames": [
+    "idle:4"
+   ]
+  },
+  "crouch": {
+   "frames": [
+    "idle:5"
+   ]
+  },
+  "skid": {
+   "frames": [
+    "idle:6"
+   ]
+  },
+  "land": {
+   "frames": [
+    "idle:7"
+   ]
+  },
+  "run": {
+   "frames": [
+    "run:0",
+    "run:1",
+    "run:2",
+    "run:3",
+    "run:4",
+    "run:5",
+    "run:6",
+    "run:7"
+   ],
+   "fps": 12,
+   "loop": true
+  },
+  "jumpStart": {
+   "frames": [
+    "air:0"
+   ]
+  },
+  "rise": {
+   "frames": [
+    "air:1"
+   ],
+   "air": true
+  },
+  "apex": {
+   "frames": [
+    "air:2"
+   ],
+   "air": true
+  },
+  "fall": {
+   "frames": [
+    "air:3"
+   ],
+   "air": true
+  },
+  "fastFall": {
+   "frames": [
+    "air:4"
+   ],
+   "air": true
+  },
+  "wallSlide": {
+   "frames": [
+    "air:5"
+   ],
+   "air": true
+  },
+  "ledge": {
+   "frames": [
+    "air:6"
+   ],
+   "air": true
+  },
+  "climb": {
+   "frames": [
+    "air:7"
+   ],
+   "air": true
+  },
+  "roll": {
+   "frames": [
+    "dash:0",
+    "dash:1",
+    "dash:2",
+    "dash:3"
+   ]
+  },
+  "dash": {
+   "frames": [
+    "dash:4"
+   ]
+  },
+  "airDash": {
+   "frames": [
+    "dash:5"
+   ],
+   "air": true
+  },
+  "heal": {
+   "frames": [
+    "dash:6",
+    "dash:7"
+   ]
+  },
+  "combo0": {
+   "frames": [
+    "atk-a:0",
+    "atk-a:1",
+    "atk-a:2"
+   ],
+   "attack": true
+  },
+  "combo1": {
+   "frames": [
+    "atk-a:3",
+    "atk-a:4",
+    "atk-a:5"
+   ],
+   "attack": true
+  },
+  "combo2": {
+   "frames": [
+    "atk-b:0",
+    "atk-b:1",
+    "atk-b:2"
+   ],
+   "attack": true
+  },
+  "airAttack": {
+   "frames": [
+    "atk-b:3",
+    "atk-b:4",
+    "atk-b:5"
+   ],
+   "attack": true,
+   "air": true
+  },
+  "plunge": {
+   "frames": [
+    "atk-c:0",
+    "atk-c:1",
+    "atk-c:2"
+   ],
+   "attack": true,
+   "airFrames": [
+    0
+   ]
+  },
+  "heavy": {
+   "frames": [
+    "atk-c:3",
+    "atk-c:4",
+    "atk-c:5"
+   ],
+   "attack": true
+  },
+  "hitLight": {
+   "frames": [
+    "hurt:0",
+    "hurt:1"
+   ]
+  },
+  "hitHeavy": {
+   "frames": [
+    "hurt:2"
+   ]
+  },
+  "launched": {
+   "frames": [
+    "hurt:3"
+   ],
+   "air": true
+  },
+  "knockFall": {
+   "frames": [
+    "hurt:4"
+   ],
+   "air": true
+  },
+  "down": {
+   "frames": [
+    "hurt:5"
+   ]
+  },
+  "getUp": {
+   "frames": [
+    "hurt:6",
+    "hurt:7"
+   ]
+  },
+  "art": {
+   "frames": [
+    "art:0",
+    "art:1",
+    "art:2",
+    "art:3",
+    "art:4",
+    "art:5"
+   ],
+   "attack": true
+  },
+  "throw": {
+   "frames": [
+    "misc:0",
+    "misc:1",
+    "misc:2"
+   ]
+  },
+  "taunt": {
+   "frames": [
+    "misc:3",
+    "misc:4"
+   ],
+   "fps": 3
+  },
+  "victory": {
+   "frames": [
+    "misc:5",
+    "misc:6",
+    "misc:7"
+   ],
+   "fps": 4
+  },
+  "ko": {
+   "frames": [
+    "ko:0",
+    "ko:1",
+    "ko:2",
+    "ko:3"
+   ],
+   "fps": 6
+  },
+  "intro": {
+   "frames": [
+    "ko:4",
+    "ko:5",
+    "ko:6",
+    "ko:7"
+   ],
+   "fps": 4
+  }
+ }
+}

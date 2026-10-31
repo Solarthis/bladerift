@@ -230,7 +230,6 @@ export class App {
     const C = classOf(h.cls);
     const A = ARTS[h.art] ?? ARTS[0];
     const wa = WEAPONS[C.signature];
-    const wb = WEAPONS[p.load.weapons[1]];
     const sk = SKILLS[p.load.skill];
     const slot = (x: HeroDef) => (x.slot === 'True' ? 'True' : x.slot === 'False' ? 'False' : 'Extra');
     const pick = (kind: string, i: number, icon: string, name: string, on: boolean) =>
@@ -250,10 +249,6 @@ export class App {
     }).join('');
     const bar = (label: string, v: number) => `<div class="hs-bar"><span>${label}</span><i>${'<b></b>'.repeat(v)}${'<em></em>'.repeat(5 - v)}</i></div>`;
     const skills = Array.from({ length: SKILL_COUNT }, (_, i) => pick('skill', i, skillIcon(i), SKILLS[i].name, p.load.skill === i)).join('');
-    const weapons = Array.from({ length: WEAPON_COUNT }, (_, i) => i)
-      .filter((i) => i !== C.signature)
-      .map((i) => pick('w1', i, weaponIcon(i), WEAPONS[i].name, p.load.weapons[1] === i))
-      .join('');
     const sw = (kind: string, list: { name: string; rgb: number }[], cur: number) =>
       list.map((c, i) => `<button class="sw ${cur === i ? 'on' : ''}" data-pick="${kind}" data-i="${i}" style="--c:${css(c.rgb)}" title="${c.name}" aria-label="${c.name}"></button>`).join('');
     const title = this.editing ? 'Player 2 hero' : 'Your hero';
@@ -286,9 +281,8 @@ export class App {
               <div class="hs-inline"><div class="hs-lbl">Accent</div><div class="sws small">${sw('accent', ACCENTS, p.look?.accent ?? 0)}</div></div>
             </div>
             <div class="hs-gear-b">
-              <div class="hs-lbl">Second weapon <small>${esc(wb.name)}</small></div>
-              <div class="hs-tiles">${weapons}</div>
-              <p class="hs-note">${esc(wb.blurb)}</p>
+              <div class="hs-lbl">Weapon <small>${esc(wa.name)}</small></div>
+              <p class="hs-note">${esc(h.name)} fights with ${esc(wa.name.toLowerCase())} alone: light combo on one button, a heavy strike on the other (a plunge in the air).</p>
               <div class="hs-lbl">Skill <small>${esc(sk.name)}</small></div>
               <div class="hs-tiles">${skills}</div>
               <p class="hs-note">${esc(sk.blurb)}</p>
@@ -375,7 +369,7 @@ export class App {
       <div class="card howto">
         <p>Knock your opponent out to win the round. Win the number of rounds set in the lobby (1, 2 or 3) to take the match. If time runs out, more health wins.</p>
         <table><tr><th></th><th>Keyboard</th><th>Player 1</th><th>Player 2</th></tr>
-          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Signature weapon', 'a')}${row('Second weapon', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
+          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
         </table>
         <p>Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
         <p><b>Classes and Rift Arts:</b> every class has a signature weapon and a Rift Art. The Rift gauge under your health fills slowly on its own and fast when you hit or get hit; when it glows, unleash the Art. The Assassin's <b>Flash Step</b> even works while you are being comboed.</p>
@@ -430,11 +424,6 @@ export class App {
         else if (k === 'hero') p.load = sanitizeLoadout({ ...p.load, hero: i }); // the hero fixes class, signature and Rift Art
         else if (k === 'accent') p.look = { ...p.look!, accent: i };
         else if (k === 'skill') p.load = { ...p.load, skill: i };
-        else {
-          // second weapon: the signature (slot A) is the hero's, so only slot B is a choice
-          const w: Loadout['weapons'] = [p.load.weapons[0], i];
-          p.load = sanitizeLoadout({ weapons: w, skill: p.load.skill, hero: p.load.hero, cls: p.load.cls });
-        }
         sfx.play('uiClick');
         saveProfile(this.editing, p);
         this.show('fighter');

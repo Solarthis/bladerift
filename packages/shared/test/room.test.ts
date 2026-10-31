@@ -292,7 +292,7 @@ describe('room: seating and connections', () => {
   it('a loadout sent in the hello is sanitised', () => {
     const room = makeRoom();
     const a = connect(room, 'Ann', { load: { weapons: [WeaponId.Sword, WeaponId.Sword], skill: 99 } as never });
-    expect(rosterOf(room, a.id)?.load.weapons[0]).not.toBe(rosterOf(room, a.id)?.load.weapons[1]);
+    expect(rosterOf(room, a.id)?.load.weapons[0]).toBe(rosterOf(room, a.id)?.load.weapons[1]);
     expect(rosterOf(room, a.id)?.load.skill).toBe(DEFAULT_LOADOUT.skill);
   });
 });
@@ -457,15 +457,15 @@ describe('room: lobby commands and host control', () => {
     expect(room.botOn).toBe(false);
   });
 
-  it('a loadout with the same weapon twice becomes two different weapons and an unknown skill falls back', () => {
+  it("a loadout's weapons become the hero's kit and an unknown skill falls back", () => {
     const room = makeRoom();
     const a = connect(room, 'Ann', { hostKey: KEY });
     lobby(a, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Sword], skill: SkillId.Bomb, cls: 0 } });
     expect(rosterOf(room, a.id)?.load.weapons[0]).toBe(WeaponId.Sword);
-    expect(rosterOf(room, a.id)?.load.weapons[1]).not.toBe(WeaponId.Sword);
-    // slot A is always the class's signature weapon (class 1, Archer: the bow)
+    expect(rosterOf(room, a.id)?.load.weapons[1]).toBe(WeaponId.Sword);
+    // both slots are always the hero's signature weapon (hero 1, an Archer: the bow)
     lobby(a, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Sword], skill: 99 as never, hero: 1 } });
-    expect(rosterOf(room, a.id)?.load.weapons).toEqual([WeaponId.Bow, WeaponId.Sword]);
+    expect(rosterOf(room, a.id)?.load.weapons).toEqual([WeaponId.Bow, WeaponId.Bow]);
     expect(rosterOf(room, a.id)?.load.skill).toBe(DEFAULT_LOADOUT.skill);
   });
 
@@ -475,7 +475,7 @@ describe('room: lobby commands and host control', () => {
     const b = connect(room, 'Ben');
     lobby(b, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb } });
     lobby(a, { op: 'start' });
-    expect(room.world!.fighters.get(b.id)?.load.weapons).toEqual([WeaponId.Sword, WeaponId.Bow]);
+    expect(room.world!.fighters.get(b.id)?.load.weapons).toEqual([WeaponId.Sword, WeaponId.Sword]);
   });
 
   it('names are cleaned: symbols stripped, capped at 16 characters, empty becomes Duelist', () => {
