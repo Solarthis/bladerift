@@ -68,6 +68,8 @@ export class SpriteFighterView {
   readonly img: Phaser.GameObjects.Image;
   private frame = '';
   private readonly scale: number;
+  /** A colour wash for the second fighter of a mirror match (0 = none), like a fighting game's alternate palette. */
+  altTint = 0;
 
   constructor(scene: Phaser.Scene, readonly hero: number, readonly meta: SpriteAtlasMeta, depth = 10) {
     this.scale = STAND_WORLD / (meta.base ?? meta.native);
@@ -106,7 +108,8 @@ export class SpriteFighterView {
       this.img.setTint(flash > 0.5 ? 0xffffff : 0xffd8d8);
     } else {
       this.img.tintMode = Phaser.TintModes.MULTIPLY;
-      if (tint) this.img.setTint(tint & 0xffffff);
+      const t = tint || this.altTint;
+      if (t) this.img.setTint(t & 0xffffff);
       else this.img.clearTint();
     }
   }

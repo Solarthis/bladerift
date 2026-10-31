@@ -647,6 +647,8 @@ export class GameScene extends Phaser.Scene {
       const meta = heroSpritesReady(v.hero);
       if (meta) {
         fv.sprite = new SpriteFighterView(this, v.hero, meta, 10);
+        // a mirror match: the second seat's fighter wears the alternate (cool) colours
+        if (v.seat === 1 && list.some((o) => o.id !== v.id && o.hero === v.hero)) fv.sprite.altTint = 0xa8b8ff;
         fv.rigImg.setVisible(false);
         fv.img = fv.sprite.img;
       }
