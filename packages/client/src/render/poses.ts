@@ -3,7 +3,7 @@
  * The attack tracks are PixelFX's own acted moves (wind-up, a snap to the strike, follow-through, recovery), re-timed
  * onto Bladerift's startup / active / recovery ticks so what you see is exactly when the hit can land.
  */
-import { Act, ArtId, classOf, FIGHTER, heroOf, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, TICK_RATE, WEAPONS, WeaponId } from '@bladerift/shared';
+import { Act, ArtId, FIGHTER, heroOf, heroWeapon, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, TICK_RATE, WEAPONS, WeaponId } from '@bladerift/shared';
 // @ts-expect-error - plain JS vendor module
 import { lerpPose } from '../vendor/pixelfx/core/act.js';
 
@@ -46,6 +46,8 @@ const HOLD: Record<number, Pose> = {
   [WeaponId.Bow]: { weapon: 'bow', sa: -0.4, fx: 12, fy: -20, bx: 6, by: -17 },
   [WeaponId.Shield]: { offWeapon: 'shield', sb: 0, bx: 10, by: -24, fx: 6, fy: -18 },
   [WeaponId.Staff]: { weapon: 'staff', sa: -1.45, fx: 11, fy: -21, bx: 7, by: -16 },
+  // the Gate: empty-handed, a king's open palm (the treasures fly from the portals behind him)
+  [WeaponId.Gate]: { sa: -0.6, fx: 12, fy: -24, bx: 6, by: -18 },
 };
 
 const hold = (w: number): Pose => ({ ...READY, ...(HOLD[w] ?? {}) });
@@ -204,6 +206,8 @@ function trackFor(w: number, move: number): Key[] {
     case WeaponId.Hammer: t = move === 2 || move === MOVE_PLUNGE ? hammerSmash() : move === MOVE_AIR ? airSlash(w) : hammerSwing(); break;
     case WeaponId.Bow: t = bowShot(move === MOVE_CHARGED); break;
     case WeaponId.Shield: t = shieldBash(); break;
+    // the Gate: the staff's commanding gesture with nothing in the hand
+    case WeaponId.Gate: t = staffCast(move === MOVE_CHARGED).map(([k, p, e]): Key => [k, { ...p, weapon: undefined }, e]); break;
     default: t = swordSlash(WeaponId.Sword);
   }
   TRACKS.set(k, t);
@@ -372,7 +376,7 @@ function artKeys(art: number, sig: number): Key[] {
 /** The Art pose at its tick. NightHunt leaves the ground: rising on the leap, falling, then the slam on landing. */
 function artPose(v: ViewFighter, t: number): Pose {
   const h = heroOf(v.hero);
-  const sig = classOf(h.cls).signature;
+  const sig = heroWeapon(h.id);
   if (h.art === ArtId.NightHunt) {
     const S = hold(sig);
     if (!v.ground && t >= 6) {
@@ -425,10 +429,10 @@ export function poseFor(v: ViewFighter, ctx: PoseCtx): Pose {
         const AIM = { ...base, crouch: 4, lean: -2, fx: 18, fy: -28, sa: 0, bx: -3, by: -29, nocked: true, pull: true, ffx: 11, fbx: -9 };
         return t < 6 ? { ...AIM, bx: 10, by: -27, pull: false } : AIM;
       }
-      if (w === WeaponId.Staff) {
+      if (w === WeaponId.Staff || w === WeaponId.Gate) {
         // the staff hauled up over the shoulder, the orb gathering at its head and flickering as it charges
         const qv = v.charge > 30 ? q(Math.sin(ctx.time * 40) * 0.8, 0.4) : 0;
-        return { ...base, crouch: 4, lean: -2, fx: 6, fy: -36 + qv, sa: -2.0, bx: -4, by: -34, ffx: 10, fbx: -9 };
+        return { ...base, weapon: w === WeaponId.Gate ? undefined : base.weapon, crouch: 4, lean: -2, fx: 6, fy: -36 + qv, sa: -2.0, bx: -4, by: -34, ffx: 10, fbx: -9 };
       }
       // the lance pulled back, quivering as it charges
       const qv = v.charge > 30 ? q(Math.sin(ctx.time * 60) * 0.6, 0.3) : 0;

@@ -79,8 +79,19 @@ function silhouette(x: number, y: number, caps: Cap[], els: Ell[], rim = 1.1): n
   return inside(x, y, caps, els, -rim) ? 2 : 1;
 }
 
-/** A burning warhorse at full gallop, facing right: black body, fire along the tail, the mane and the rim. */
-function paintHorse(tex: PixelTex, t: number) {
+/** How a horse is coloured: Bucephalus aflame (black, fire) or Death's pale horse (bone-white, violet smoke). */
+interface HorseLook {
+  body: string;
+  rim: [string, string];
+  /** The tail and mane: hot, mid, dark. */
+  flame: [string, string, string];
+  eye: string;
+}
+const BUCEPHALUS: HorseLook = { body: '#120a0c', rim: ['#ff7a2a', '#9a2a12'], flame: ['#ffe27a', '#ff8a2a', '#c8301a'], eye: '#ffe27a' };
+const PALE_HORSE: HorseLook = { body: '#d8d2e2', rim: ['#a070ff', '#4a2a88'], flame: ['#ece0ff', '#8a5ae0', '#3d1e6e'], eye: '#c09cff' };
+
+/** A warhorse at full gallop, facing right: fire (or smoke) along the tail, the mane and the rim. */
+function paintHorse(tex: PixelTex, t: number, look: HorseLook = BUCEPHALUS) {
   const p = t * 15;
   const leg = (hx: number, hy: number, ph: number): Cap[] => {
     const a = 0.75 * Math.sin(ph);
@@ -102,18 +113,18 @@ function paintHorse(tex: PixelTex, t: number) {
       const d = Math.abs(y - cy);
       if (d < w) {
         const h = 1 - d / w;
-        return h > 0.7 ? rgbOf('#ffe27a') : h > 0.35 ? rgbOf('#ff8a2a') : rgbOf('#c8301a');
+        return rgbOf(h > 0.7 ? look.flame[0] : h > 0.35 ? look.flame[1] : look.flame[2]);
       }
     }
     if (x > 27 && x < 36) {
       const top = 10.5 - (x - 27) * 0.85 - flick(x) * 2.2;
-      if (y < top && y > top - 2.8) return rgbOf(flick(x + 1) > 0.5 ? '#ffae35' : '#ff6a20');
+      if (y < top && y > top - 2.8) return rgbOf(flick(x + 1) > 0.5 ? look.flame[0] : look.flame[1]);
     }
     const s = silhouette(x, y, caps, els);
     if (s === 0) return 0;
-    if (s === 1) return flick(x) > 0.3 ? rgbOf('#ff7a2a') : rgbOf('#9a2a12');
-    if (x > 39 && x < 40.5 && Math.abs(y - 4.8) < 0.8) return rgbOf('#ffe27a');
-    return rgbOf('#120a0c');
+    if (s === 1) return rgbOf(flick(x) > 0.3 ? look.rim[0] : look.rim[1]);
+    if (x > 39 && x < 40.5 && Math.abs(y - 4.8) < 0.8) return rgbOf(look.eye);
+    return rgbOf(look.body);
   });
 }
 
@@ -282,6 +293,8 @@ const ART_FLASH: Record<number, number> = {
 
 /** Relic weapons of Vault of Ages: the BootScene's art, plus the ones this scene loads. */
 const WEAPON_SPRITES = ['w-sword', 'w-scythe', 'w-lance', 'w-hammer', 'w-dagger'];
+/** Gilgamesh's treasures (the Gate, Gate Shot, Vault of Ages): painted gold and silver, horizontal, point to the right. */
+const RELIC_SPRITES = ['r-gold-sword', 'r-silver-sword', 'r-gold-spear', 'r-silver-axe', 'r-gold-halberd', 'r-silver-greatsword', 'r-gold-shortsword', 'r-silver-glaive'];
 
 const STEP_MS = 1000 / TICK_RATE;
 /** Live effect sprites above which optional ambient effects are skipped (phones). */
@@ -543,7 +556,7 @@ export class GameScene extends Phaser.Scene {
 
   preload() {
     // the relic weapons of Vault of Ages (BootScene loads the rest)
-    for (const k of WEAPON_SPRITES) if (!this.textures.exists(k)) this.load.image(k, `assets/art/${k}.png`);
+    for (const k of [...WEAPON_SPRITES, ...RELIC_SPRITES]) if (!this.textures.exists(k)) this.load.image(k, `assets/art/${k}.png`);
   }
 
   private get game0(): NetGame | null {
@@ -1052,7 +1065,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Night Hunt: the shadow hound, leaping behind the caster and landing in a slam. */
+  /** Pale Horse (the NightHunt Art): Death's pale horse rises from her shadow, carries her onto the opponent and slams down. */
   private houndFor(fv: FighterView, v: ViewFighter, on: boolean) {
     if (!on) {
       if (fv.hound) {
@@ -1064,8 +1077,8 @@ export class GameScene extends Phaser.Scene {
     }
     if (!fv.hound) {
       if (!this.roomFor()) return;
-      const tex = new PixelTex(this, `hound${v.id}`, 56, 44);
-      const img = this.add.image(v.x, v.y, tex.key).setScale(2.1).setDepth(8).setAlpha(0.92);
+      const tex = new PixelTex(this, `palehorse${v.id}`, 46, 34);
+      const img = this.add.image(v.x, v.y, tex.key).setScale(2.6).setDepth(8).setAlpha(0.94);
       fv.hound = { tex, img, step: -1 };
     }
     const h = fv.hound;
@@ -1074,9 +1087,10 @@ export class GameScene extends Phaser.Scene {
     const step = Math.floor(this.clock * 15) * 3 + pose;
     if (step !== h.step) {
       h.step = step;
-      paintHound(h.tex, pose, this.clock);
+      // the gallop on the leap, the legs still while it falls onto the target
+      paintHorse(h.tex, pose === 1 ? Math.floor(this.clock * 4) / 4 : this.clock, PALE_HORSE);
     }
-    h.img.setPosition(v.x - v.face * 12, v.y - 46 + (pose === 2 ? 6 : 0)).setFlipX(v.face < 0);
+    h.img.setPosition(v.x - v.face * 6, v.y - 40 + (pose === 2 ? 6 : 0)).setFlipX(v.face < 0).setRotation(pose === 0 ? -v.face * 0.25 : pose === 1 ? v.face * 0.15 : 0);
   }
 
   /** Swing effect lined up with the move's first hitting tick (`actT` ticks already elapsed). */
@@ -1626,7 +1640,12 @@ export class GameScene extends Phaser.Scene {
           if (c) this.skillCast(skill, c);
           break;
         }
-        // kinds: 0 arrow, 1 bomb, 2 frost, 3 trap, 4 arcane bolt, 5 orb; 6+ are Rift Art projectiles (the Art's own sound covers them)
+        // kinds: 0 arrow, 1 bomb, 2 frost, 3 trap, 4 arcane bolt, 5 orb, 7 the Gate's volley;
+        // 6 is a Rift Art projectile (the Art's own sound covers it)
+        if (e.kind === 7) {
+          sfx.play('specGate', { volume: 0.45 });
+          break;
+        }
         const names = ['arrow', 'grenadeThrow', 'frost', 'trapSet', 'arcane', 'orb'] as const;
         const name = names[e.kind];
         if (name) sfx.play(name, { volume: 0.8 });
@@ -1782,10 +1801,10 @@ export class GameScene extends Phaser.Scene {
       pv.fx.back.setScale(2.6, 3.4);
       pv.gfx = this.add.graphics().setDepth(15);
     } else if (p.kind === 'relic') {
-      // Vault of Ages: a real weapon, point-first, out of a golden portal
-      // (gold and silver treasures: every third blade is silver)
-      pv.img = this.add.image(p.x, p.y, WEAPON_SPRITES[p.id % WEAPON_SPRITES.length]).setScale(0.28).setTint(p.id % 3 === 0 ? 0xe4ecf6 : 0xffd870).setDepth(14);
+      // the Gate and Vault of Ages: a treasure, point-first, out of a golden portal
+      pv.img = this.add.image(p.x, p.y, RELIC_SPRITES[p.id % RELIC_SPRITES.length]).setScale(p.heavy ? 0.3 : 0.22).setDepth(14);
       this.ring(p.x, p.y, 4, 26, 0.3, 0xffe08a, 2.5);
+      this.ring(p.x, p.y, 2, 14, 0.5, 0xfff4c0, 1.5, true);
     } else if (p.kind === 'hand') {
       // Phantom Hand: a spectral claw racing along the floor
       pv.tex = new PixelTex(this, `hand${p.id}`, 26, 20);
@@ -2365,9 +2384,9 @@ export class GameScene extends Phaser.Scene {
         }
         this.shake(0.9);
         break;
-      case SkillId.NineLives: // three embers loosed from the bow
-        if (this.roomFor()) this.addFx(FX.poof, x + f * 22, y - 40, f < 0, 1.1, { palette: PAL.fire }, 14, 16, 0.5);
-        for (let i = 0; i < 8; i++) this.spark(x + f * 22, y - 40, f * (40 + Math.random() * 120), -Math.random() * 120, 0.45, Math.random() < 0.5 ? 0xffae35 : 0xff6a20, 2, 120);
+      case SkillId.NineLives: // three Hydra-venom arrows loosed from the bow
+        if (this.roomFor()) this.addFx(FX.poof, x + f * 22, y - 40, f < 0, 1.1, { palette: PAL.serpent }, 14, 16, 0.5);
+        for (let i = 0; i < 8; i++) this.spark(x + f * 22, y - 40, f * (40 + Math.random() * 120), -Math.random() * 120, 0.45, Math.random() < 0.5 ? 0x9cff3a : 0x3a8a1a, 2, 120);
         break;
       case SkillId.GateShot: // a small gold portal opens for the blade
         if (this.roomFor()) {
@@ -2445,11 +2464,11 @@ export class GameScene extends Phaser.Scene {
   private spawnSkin(pv: ProjView, p: NetProjectile) {
     pv.gfx = this.takeGfx();
     switch (p.skin - 1) {
-      case SkillId.NineLives: // ember arrows: the fire-coloured arrow
-        pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, { palette: PAL.fire }, 14, 14, 10);
+      case SkillId.NineLives: // Hydra-venom arrows: the venom-green arrow
+        pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, { palette: PAL.serpent }, 14, 14, 10);
         break;
       case SkillId.GateShot: // a golden blade out of a small gold portal ring
-        pv.img = this.add.image(p.x, p.y, WEAPON_SPRITES[0]).setScale(0.3).setTint(0xffd870).setDepth(14);
+        pv.img = this.add.image(p.x, p.y, 'r-gold-sword').setScale(0.45).setDepth(14);
         this.ring(p.x, p.y, 4, 30, 0.35, 0xffe08a, 2.5);
         if (this.roomFor()) {
           const por = this.addFx(FX.portal, p.x, p.y, false, 1, { palette: PAL.gold }, 14, 16, 0.35);
@@ -2481,7 +2500,7 @@ export class GameScene extends Phaser.Scene {
         pv.fx?.setPosition(p.x, p.y);
         pv.fx?.front.setRotation(a);
         pv.fx?.back.setRotation(a);
-        if (Math.random() < 0.8) this.spark(p.x - face * 8 + (Math.random() - 0.5) * 6, p.y + (Math.random() - 0.5) * 6, -face * (10 + Math.random() * 30), -20 - Math.random() * 40, 0.45, Math.random() < 0.5 ? 0xffae35 : 0xff6a20, 2, -60);
+        if (Math.random() < 0.8) this.spark(p.x - face * 8 + (Math.random() - 0.5) * 6, p.y + (Math.random() - 0.5) * 6, -face * (10 + Math.random() * 30), -20 - Math.random() * 40, 0.45, Math.random() < 0.5 ? 0x9cff3a : 0x3a8a1a, 2, -60);
         break;
       }
       case SkillId.GateShot: {
@@ -2566,7 +2585,7 @@ export class GameScene extends Phaser.Scene {
     }
     switch (pv.skin - 1) {
       case SkillId.NineLives:
-        for (let i = 0; i < 6; i++) this.spark(x, y, (Math.random() - 0.5) * 80, -Math.random() * 60, 0.45, Math.random() < 0.5 ? 0xffae35 : 0xff6a20, 2, 120);
+        for (let i = 0; i < 6; i++) this.spark(x, y, (Math.random() - 0.5) * 80, -Math.random() * 60, 0.45, Math.random() < 0.5 ? 0x9cff3a : 0x3a8a1a, 2, 120);
         break;
       case SkillId.GateShot:
         this.ring(x, y, 4, 30, 0.25, 0xffe08a, 2.5);

@@ -4,9 +4,9 @@
  * is there (or for a hero without one) the game keeps drawing the rig.
  */
 import Phaser from 'phaser';
-import { FIGHTER } from '@bladerift/shared';
+import { Act, FIGHTER } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
-import { spriteFrameFor, type SpriteAtlasMeta, type SpriteCtx } from './spriteAnim';
+import { hurtLevel, spritePoseFor, type SpriteAtlasMeta, type SpriteCtx, type SpritePose } from './spriteAnim';
 
 /** Atlas folder per hero id (the same names as the art sources in art/characters/). */
 export const SPRITE_IDS = [
@@ -93,17 +93,62 @@ export class SpriteFighterView {
   private readonly scale: number;
   /** A colour wash for the second fighter of a mirror match (0 = none), like a fighting game's alternate palette. */
   altTint = 0;
+  /** The hit strength of the current hit-stun, judged at its start (the hit-stop the blow froze it for, the knockback). */
+  private hurt: 0 | 1 | 2 = 0;
+  private hurtStop = 0;
+  private hurtKb = 0;
+  private lastAct = -1;
+  private lastT = 0;
+  /** Time the fighter spent frozen (hit-stop, superpause): its time-driven loops (idle, run) hold still meanwhile. */
+  private lagT = 0;
+  private lagRun = 0;
+  private lastTime = Number.NaN;
+  private lastRun = 0;
+  /** The knockdown tilt (degrees, clockwise), applied just before rendering (the scene resets the angle each frame). */
+  private rot = 0;
+  private rotPending = false;
 
   constructor(scene: Phaser.Scene, readonly hero: number, readonly meta: SpriteAtlasMeta, depth = 10) {
     this.scale = STAND_WORLD / (meta.base ?? meta.native);
     const first = meta.anims.idle?.frames[0] ?? Object.keys(meta.frames)[0];
     this.img = scene.add.image(0, 0, texKey(hero), first).setScale(this.scale).setDepth(depth);
     this.apply(first, 1);
+    scene.events.on(Phaser.Scenes.Events.PRE_RENDER, this.preRender, this);
   }
 
   /** The frame for this fighter right now. */
   frameFor(v: ViewFighter, ctx: SpriteCtx) {
-    return spriteFrameFor(v, ctx, this.meta);
+    return this.poseFor(v, ctx).frame;
+  }
+
+  /** The pose (frame and offsets), with this view's memory: the hit strength of the stun and the frozen clock. */
+  private poseFor(v: ViewFighter, ctx: SpriteCtx): SpritePose {
+    // the hit strength: a new stun (or a new hit of the combo: the action time starts over) is judged afresh
+    if (v.act === Act.Stun) {
+      if (this.lastAct !== Act.Stun || v.actTf < this.lastT - 0.01) {
+        this.hurtStop = 0;
+        this.hurtKb = 0;
+      }
+      this.hurtStop = Math.max(this.hurtStop, v.hitstop);
+      if (v.actTf < 3) this.hurtKb = Math.max(this.hurtKb, Math.abs(v.vx));
+      this.hurt = hurtLevel(this.hurtStop, this.hurtKb, v.fall);
+    }
+    this.lastAct = v.act;
+    this.lastT = v.actTf;
+    // frozen: the idle breath and the run cycle stop with the body
+    if (!Number.isNaN(this.lastTime) && (v.hitstop > 0 || v.pause > 0)) {
+      this.lagT += Math.max(0, ctx.time - this.lastTime);
+      this.lagRun += ctx.runPhase - this.lastRun;
+    }
+    this.lastTime = ctx.time;
+    this.lastRun = ctx.runPhase;
+    return spritePoseFor(v, {
+      ...ctx,
+      time: ctx.time - this.lagT,
+      runPhase: ctx.runPhase - this.lagRun,
+      shakeT: ctx.shakeT ?? ctx.time,
+      hurt: ctx.hurt ?? (v.act === Act.Stun ? this.hurt : undefined),
+    }, this.meta);
   }
 
   private apply(name: string, face: number) {
@@ -120,11 +165,17 @@ export class SpriteFighterView {
 
   /** Place and pose: `flash` 0..1 whitens (a hit), `tint` an ARGB colour wash (0 = none). */
   draw(v: ViewFighter, x: number, y: number, ctx: SpriteCtx, flash: number, tint: number) {
-    const name = this.frameFor(v, ctx);
+    const pose = this.poseFor(v, ctx);
+    const name = pose.frame;
     // the wall-slide frame is drawn with the wall behind; the game faces a sliding fighter toward the wall
     const wallFrame = this.meta.anims.wallSlide?.frames.includes(name);
     this.apply(name, wallFrame ? -v.face : v.face);
-    this.img.setPosition(x, y);
+    const face = v.face < 0 ? -1 : 1;
+    // the lunge (toward where the fighter faces), the hit-stop shake, a bounce; a squash about the feet
+    this.img.setPosition(x + pose.dx * face, y + pose.dy);
+    this.img.setScale(this.scale * pose.sx, this.scale * pose.sy);
+    this.rot = pose.rot * face;
+    this.rotPending = true;
     if (flash > 0.5) {
       // a hit: the figure flashes white (fill); the weaker invulnerability flicker is an alpha blink (GameScene)
       this.img.tintMode = Phaser.TintModes.FILL;
@@ -135,6 +186,18 @@ export class SpriteFighterView {
       if (t) this.img.setTint(t & 0xffffff);
       else this.img.clearTint();
     }
+  }
+
+  /** The knockdown tilt turns the figure about its body centre (not the feet anchor): set last thing before the render. */
+  private preRender() {
+    if (!this.rotPending) return;
+    this.rotPending = false;
+    const r = Phaser.Math.DegToRad(this.rot);
+    this.img.setRotation(r);
+    if (!r) return;
+    const p = this.meta.native * 0.42 * this.scale;
+    this.img.x -= p * Math.sin(r);
+    this.img.y += p * (Math.cos(r) - 1);
   }
 
   /** Current frame name (for after-images). */
@@ -151,6 +214,7 @@ export class SpriteFighterView {
   }
 
   destroy() {
+    this.img.scene?.events.off(Phaser.Scenes.Events.PRE_RENDER, this.preRender, this);
     this.img.destroy();
   }
 }

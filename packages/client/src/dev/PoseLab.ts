@@ -10,7 +10,7 @@
  */
 // @ts-expect-error - plain JS vendor module
 import { posed } from '../vendor/pixelfx/core/index.js';
-import { Act, ARTS, ArtId, CLASSES, FIGHTER, HEROES, heroOf, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, WEAPONS } from '@bladerift/shared';
+import { Act, ARTS, ArtId, CLASSES, FIGHTER, HEROES, heroOf, heroWeapon, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, WEAPONS } from '@bladerift/shared';
 import type { HeroDef } from '@bladerift/shared';
 import { fighterLut, HERO_SCALE, paintHero } from '../render/pixel';
 import { poseFor } from '../render/poses';
@@ -105,8 +105,7 @@ function stateCells(w: number, hero: number, colours: [number, number]): Cell[] 
 
 /** A hero's Rift Art: its own cell (Piercing Fang is the lance's lunge, an attack move). */
 function artCell(h: HeroDef): Cell {
-  const cls = CLASSES[h.cls];
-  const w = cls.signature;
+  const w = heroWeapon(h.id);
   const colours: [number, number] = [h.armor, h.accent];
   const base = { ground: true, vx: 0, vy: 0, hero: h.id, cls: h.cls };
   const name = ARTS[h.art].name;
@@ -131,7 +130,7 @@ export function startPoseLab() {
   K = heroOnly >= 0 ? HERO_SCALE : 1;
   if (heroOnly >= 0) {
     const h = heroOf(heroOnly);
-    const w = CLASSES[h.cls].signature;
+    const w = heroWeapon(h.id);
     const col: [number, number] = [h.armor, h.accent];
     cells.push(...stateCells(w, h.id, col).map((c) => ({ ...c, base: { ...c.base, cls: h.cls } })));
     cells.push(artCell(h));
@@ -139,7 +138,7 @@ export function startPoseLab() {
     for (let w = 0; w < WEAPONS.length; w++) {
       if (only >= 0 && w !== only) continue;
       cells.push(...stateCells(w, -1, DEFAULT_COLOURS));
-      for (const h of HEROES) if (CLASSES[h.cls].signature === w) cells.push(artCell(h));
+      for (const h of HEROES) if (heroWeapon(h.id) === w) cells.push(artCell(h));
     }
   }
 

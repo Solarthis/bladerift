@@ -1,4 +1,4 @@
-import { heroOf, WeaponId } from '@bladerift/shared';
+import { heroOf, weaponLookOf, WeaponId } from '@bladerift/shared';
 
 // Square framed icons (tools/art-gen: icons-gear / icons-abilities sheets, sliced by slice.py).
 const W: Record<number, string> = {
@@ -20,6 +20,8 @@ const CRESTS = ['c-saber', 'c-archer', 'c-lancer', 'c-caster', 'c-assassin', 'c-
 
 const art = (n: string) => `assets/art/${n}.jpg`;
 export const weaponIcon = (w: number) => art(W[w] ?? 'g-sword');
+/** A hero's own weapon icon (Jack's surgical knives, Alexander's kopis, Enkidu's chains...). */
+export const heroWeaponIcon = (hero: number) => art(weaponLookOf(hero).icon);
 export const skillIcon = (s: number) => art(S[s] ?? 'i-art');
 /** Each hero's own dodge (d-00.jpg .. d-13.jpg, by hero id; icons-dodges sheet); the generic roll until it exists. */
 export const dodgeIcon = (hero: number) => art(hero >= 0 && hero < 14 ? `d-${String(hero).padStart(2, '0')}` : 'i-roll');

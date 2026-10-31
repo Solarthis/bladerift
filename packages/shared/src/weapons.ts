@@ -72,7 +72,8 @@ export interface Move {
   arrow?: boolean;
   /** The projectile is an arcane bolt (staff) or, charged, an exploding orb, instead of an arrow. */
   arcane?: boolean;
-  /** Treasured blades fired from portals behind the hero (the Gate): `blades` of them (the charged move: 2 up to 9). */
+  /** Treasured blades fired from portals behind the hero (the Gate): `blades` of them (the charged move: 2 up to 9). The
+   * move's dmg is the whole volley's, shared among the blades; only the last carries the full knockback and stun. */
   gate?: boolean;
   blades?: number;
   /** Screen shake strength for the client (0..1). */
@@ -209,11 +210,11 @@ export const WEAPONS: WeaponDef[] = [
     blurb: 'Golden portals open behind him and fire treasured blades. Hold to open more gates: up to nine blades at once.',
     combo: [
       { startup: 7, active: 1, recovery: 12, dmg: 46, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 15, arrow: true, gate: true, blades: 1 },
-      { startup: 8, active: 1, recovery: 16, dmg: 32, box: b(0, 0, 0, 0), kbX: 150, kbY: 60, stun: 15, arrow: true, gate: true, blades: 2 },
+      { startup: 8, active: 1, recovery: 16, dmg: 64, box: b(0, 0, 0, 0), kbX: 150, kbY: 60, stun: 15, arrow: true, gate: true, blades: 2 },
     ],
     air: { startup: 6, active: 1, recovery: 12, dmg: 40, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 14, arrow: true, gate: true, blades: 1 },
-    // per blade: the count grows with the hold (2 at the threshold, 9 at full)
-    charged: { startup: 3, active: 1, recovery: 20, dmg: 24, dmgMax: 26, box: b(0, 0, 0, 0), kbX: 200, kbY: 90, stun: 18, arrow: true, gate: true, min: 10, max: 60 },
+    // the whole volley's damage, shared among its blades: the count grows with the hold (2 at the threshold, 9 at full)
+    charged: { startup: 3, active: 1, recovery: 20, dmg: 70, dmgMax: 170, box: b(0, 0, 0, 0), kbX: 200, kbY: 90, stun: 18, arrow: true, gate: true, min: 10, max: 60 },
     arrowSpeed: 1050,
   },
 ];
@@ -263,11 +264,11 @@ export interface SkillDef {
 export const SKILLS: SkillDef[] = [
   { id: SkillId.LionsRoar, name: "Lion's Roar", blurb: 'A royal war cry: a golden shockwave throws everyone close away.', cooldown: 420, startup: 9, recovery: 14,
     kind: 'aura', radius: 92, dmg: 70, kb: 420, kbY: 200, stun: 26 },
-  { id: SkillId.NineLives, name: 'Nine Lives', blurb: 'Three ember arrows loosed at once in a fan.', cooldown: 360, startup: 10, recovery: 12,
+  { id: SkillId.NineLives, name: 'Nine Lives', blurb: "Three arrows dipped in the Hydra's venom, loosed at once in a fan.", cooldown: 360, startup: 10, recovery: 12,
     kind: 'shot', proj: 'arrow', count: 3, spread: 0.16, speed: 1100, life: 70, gravity: 160, dmg: 42, kb: 160, stun: 14 },
-  { id: SkillId.GateShot, name: 'Gate Shot', blurb: 'A golden gate opens and fires one treasured blade straight through.', cooldown: 380, startup: 8, recovery: 12,
+  { id: SkillId.GateShot, name: 'Gate Shot', blurb: 'A great golden gate opens behind him and launches one colossal treasured blade that pierces straight through.', cooldown: 380, startup: 8, recovery: 12,
     kind: 'shot', proj: 'relic', speed: 1150, life: 60, launchY: 32, dmg: 88, kb: 260, stun: 22, pierce: true },
-  { id: SkillId.RuneLeap, name: 'Rune Leap', blurb: 'A rune-fired leap over the enemy, spear first.', cooldown: 360, startup: 5, recovery: 16,
+  { id: SkillId.RuneLeap, name: 'Salmon Leap', blurb: 'The salmon leap his teacher Scáthach taught him: a soaring vault over the enemy, spear first.', cooldown: 360, startup: 5, recovery: 16,
     kind: 'dash', vx: 620, vy: -620, active: 22, dmg: 78, kb: 300, kbY: 220, stun: 26 },
   { id: SkillId.ChainLash, name: 'Chain Lash', blurb: 'A living chain lashes out and binds the target where it stands.', cooldown: 420, startup: 9, recovery: 14,
     kind: 'shot', proj: 'hand', speed: 1000, life: 26, launchY: 34, dmg: 48, kb: 0, stun: 20, root: 72 },
@@ -279,11 +280,11 @@ export const SKILLS: SkillDef[] = [
     kind: 'shot', proj: 'arrow', speed: 1500, life: 40, gravity: 0, dmg: 58, kb: 120, stun: 22, unblockable: true },
   { id: SkillId.FanOfKnives, name: 'Fan of Knives', blurb: 'Three knives flung in a spread, faster than the eye.', cooldown: 300, startup: 4, recovery: 10,
     kind: 'shot', proj: 'arrow', count: 3, spread: 0.2, speed: 1350, life: 34, gravity: 0, dmg: 30, kb: 80, stun: 12 },
-  { id: SkillId.TerrorRoar, name: 'Terror Roar', blurb: 'The chimera roars: everyone near is frozen in fear.', cooldown: 480, startup: 12, recovery: 16,
+  { id: SkillId.TerrorRoar, name: 'Terror Roar', blurb: 'Humbaba roars - a roar like the flood - and everyone near is frozen in fear.', cooldown: 480, startup: 12, recovery: 16,
     kind: 'aura', radius: 120, dmg: 30, kb: 60, stun: 54 },
   { id: SkillId.ScalpelRain, name: 'Scalpel Rain', blurb: 'Three scalpels arc through the fog; the wounds keep bleeding.', cooldown: 360, startup: 8, recovery: 12,
     kind: 'shot', proj: 'arrow', count: 3, spread: 0.18, speed: 760, life: 70, gravity: 900, launchY: 50, dmg: 32, kb: 90, stun: 12, burn: 150 },
-  { id: SkillId.BucephalusCharge, name: 'Bucephalus Charge', blurb: 'A short, unstoppable charge on the great warhorse.', cooldown: 420, startup: 7, recovery: 14,
+  { id: SkillId.BucephalusCharge, name: 'Bucephalus Charge', blurb: 'A short, unstoppable charge on Bucephalus, his great black warhorse.', cooldown: 420, startup: 7, recovery: 14,
     kind: 'dash', vx: 980, vy: 0, active: 16, dmg: 82, kb: 440, kbY: 180, stun: 28 },
   { id: SkillId.PlagueHound, name: 'Plague Hound', blurb: 'A shadow hound races along the ground; its bite slows and sickens.', cooldown: 420, startup: 10, recovery: 14,
     kind: 'shot', proj: 'hand', speed: 760, life: 60, launchY: 14, dmg: 56, kb: 160, stun: 18, slow: 100, burn: 120 },
@@ -325,9 +326,9 @@ export const DODGES: DodgeDef[] = [
   { name: 'Turn of the Page', blurb: 'The page turns and he is a few lines further on.', kind: 'step', dist: 125, ticks: 5, horizontal: true, invuln: 9 },
   { name: 'Flash Step', blurb: 'There and gone in a step - behind you, if you are close.', kind: 'step', dist: 150, ticks: 4, behind: true, cancel: true, invuln: 9 },
   { name: 'Flash Step', blurb: 'Faster than the eye: any direction, out of any attack, behind you.', kind: 'step', dist: 170, ticks: 3, behind: true, cancel: true, invuln: 9 },
-  { name: 'Beast Bound', blurb: 'A low, heavy pounce that carries the chimera clear.', kind: 'leap', vx: 640, vy: -380, ticks: 26, invuln: 9 },
+  { name: 'Beast Bound', blurb: 'A low, heavy pounce that carries the guardian clear.', kind: 'leap', vx: 640, vy: -380, ticks: 26, invuln: 9 },
   { name: 'Fog Form', blurb: 'He becomes the fog: nothing can touch him while it drifts.', kind: 'phase', vx: 260, ticks: 20, invuln: 20 },
-  { name: 'Cavalry Dash', blurb: "A burst of the conqueror's charge.", kind: 'dash', vx: 900, ticks: 10, invuln: 8 },
+  { name: 'Cavalry Dash', blurb: "A burst of the Companions' charge.", kind: 'dash', vx: 900, ticks: 10, invuln: 8 },
   { name: 'Shadow Sink', blurb: 'She sinks into her shadow and rises behind you.', kind: 'step', dist: 140, ticks: 8, behind: true, invuln: 12 },
   { name: 'Shield Slide', blurb: 'Slides forward low behind the tower shield.', kind: 'dash', vx: 640, ticks: 12, invuln: 12 },
 ];

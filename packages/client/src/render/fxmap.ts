@@ -177,7 +177,7 @@ export function swingFx(weapon: number, move: number): SwingFx | null {
       return move === 3 ? s(FX.daggerFlurry, 1.8) : s(FX.claw, 2);
     case WeaponId.Hammer:
       if (move === 2 || move === MOVE_PLUNGE) return null; // the slam plays ground-slam on impact
-      return s(FX.heavyCleave, 1.8);
+      return s(FX.claw, 1.7); // Humbaba's claws: raking cuts
     case WeaponId.Staff:
       return null; // the bolt itself is the effect
     default:
@@ -197,7 +197,7 @@ export interface HeroEnergy {
 }
 export const HERO_ENERGY: HeroEnergy[] = [
   { arc: 0x8ccaff, rim: 0x2a6aff, spark: 0xffd84a }, // 0 Richard: blue-white arcs, gold sparks
-  { arc: 0xffa040, rim: 0xc8401a, spark: 0xff6a2a }, // 1 Alcides: ember amber, orange-red sparks
+  { arc: 0x9cff3a, rim: 0x2a7a1a, spark: 0xe0ff8a }, // 1 Alcides: Hydra venom green
   { arc: 0xffd060, rim: 0xd88a10, spark: 0xfff0a0 }, // 2 Gilgamesh: molten gold, white-hot core
   { arc: 0x5af0e0, rim: 0x108a9a, spark: 0xd0fbff }, // 3 Cu Chulainn: cyan-teal, pale motes
   { arc: 0xffd84a, rim: 0x2aa86a, spark: 0x9affc0 }, // 4 Enkidu: gold with jade glints
@@ -205,7 +205,7 @@ export const HERO_ENERGY: HeroEnergy[] = [
   { arc: 0xffb848, rim: 0xb86a10, spark: 0xfff0c0 }, // 6 Dumas: golden ink
   { arc: 0x6affc8, rim: 0x109a70, spark: 0xe0fff4 }, // 7 Hassan: mint-teal, white cores
   { arc: 0x3ce0f5, rim: 0x1a6ad0, spark: 0xd8fbff }, // 8 Hashashin: cyan #3ce0f5
-  { arc: 0xff5a1a, rim: 0xb0101a, spark: 0xffae35 }, // 9 Humbaba: red-orange embers, crimson glow
+  { arc: 0xff3a2a, rim: 0x9a0a14, spark: 0xffae35 }, // 9 Humbaba: crimson claw rakes, fire-breath sparks
   { arc: 0xd0dcf0, rim: 0x6a7490, spark: 0xff4a5a }, // 10 Jack: steel and fog, a red cut
   { arc: 0xff8a1a, rim: 0xd8300a, spark: 0xffe27a }, // 11 Alexander: orange-gold flame
   { arc: 0xa86aff, rim: 0x5a1ab0, spark: 0xd8b8ff }, // 12 Pale Rider: violet-purple

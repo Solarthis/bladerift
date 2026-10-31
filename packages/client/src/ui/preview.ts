@@ -1,7 +1,7 @@
 // A fighter drawn into a menu canvas: the same PixelFX rig, colours and weapon hold as in the game.
 // @ts-expect-error - plain JS vendor module
 import { posed } from '../vendor/pixelfx/core/index.js';
-import { classOf, heroOf } from '@bladerift/shared';
+import { heroOf, heroWeapon } from '@bladerift/shared';
 import { fighterLut, HERO_SCALE, paintHero } from '../render/pixel';
 import { poseFor } from '../render/poses';
 import { accentOf, colorOf } from './colors';
@@ -11,12 +11,12 @@ const PW = 80 * HERO_SCALE;
 const PH = 80 * HERO_SCALE;
 
 /**
- * A hero with its costume, in the idle pose holding his class's signature weapon, as PW x PH pixels with the feet at
+ * A hero with its costume, in the idle pose holding his own weapon, as PW x PH pixels with the feet at
  * (PW / 2, PH - 14). `flip` mirrors him.
  */
 export function heroPreviewPixels(hero: number, flip: boolean): Uint32Array {
   const h = heroOf(hero);
-  const weapon = classOf(h.cls).signature;
+  const weapon = heroWeapon(h.id);
   const v = { act: 0, actTf: 0, ground: true, vx: 0, vy: 0, weapons: [weapon, weapon], slot: 0, move: 0, charge: 0, skill: 0, face: 1 } as unknown as ViewFighter;
   const pose = poseFor(v, { time: 0, runPhase: 0 });
   const px = new Uint32Array(PW * PH);

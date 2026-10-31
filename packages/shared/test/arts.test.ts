@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Act, ArtId, Btn, CLASSES, ClassId, FIGHTER, HEROES, InputCmd, Loadout, RIFT, ROUND, sanitizeLoadout, SkillId, World, WeaponId } from '../src/index';
+import { Act, ArtId, Btn, CLASSES, ClassId, FIGHTER, HEROES, heroWeapon, InputCmd, Loadout, RIFT, ROUND, sanitizeLoadout, SkillId, World, WeaponId } from '../src/index';
 
 /** Every Rift Art starts with the superpause: its timeline runs after it. */
 const SP = FIGHTER.superpause;
@@ -36,12 +36,14 @@ function run(w: World, n: number, a: (i: number) => InputCmd, b: (i: number) => 
 }
 
 describe('classes', () => {
-  it('slot A is always the signature weapon; health and speed follow the class', () => {
-    for (const C of CLASSES) {
-      const l = sanitizeLoadout({ weapons: [WeaponId.Hammer, WeaponId.Hammer], skill: 0, hero: heroFor(C.id) });
-      expect(l.weapons[0]).toBe(C.signature);
-      expect(l.weapons[1]).toBe(C.signature); // the kit: one weapon, A light and B heavy
+  it("slot A is always the hero's own weapon; health and speed follow the class", () => {
+    for (const h of HEROES) {
+      const l = sanitizeLoadout({ weapons: [WeaponId.Hammer, WeaponId.Hammer], skill: 0, hero: h.id });
+      expect(l.weapons[0]).toBe(heroWeapon(h.id));
+      expect(l.weapons[1]).toBe(heroWeapon(h.id)); // the kit: one weapon, A light and B heavy
     }
+    // as in their legends: no bow for Gilgamesh, knives for Jack, a sword for Alexander
+    expect([heroWeapon(2), heroWeapon(10), heroWeapon(11)]).toEqual([WeaponId.Gate, WeaponId.Daggers, WeaponId.Sword]);
     const { fa, fb } = duel(ClassId.Assassin, ClassId.Berserker);
     expect(fa.s.hp).toBe(CLASSES[ClassId.Assassin].hp);
     expect(fb.s.hp).toBe(CLASSES[ClassId.Berserker].hp);

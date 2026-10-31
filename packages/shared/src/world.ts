@@ -677,7 +677,9 @@ export class World {
         const k = heavy && c ? Math.max(0, Math.min(1, (s.charge - c.min) / Math.max(1, c.max - c.min))) : 0;
         const n = heavy ? 2 + Math.round(7 * k) : m.blades ?? 1;
         const o = this.opponent(f);
+        const per = Math.round(moveDamage(s, f.load, m) / n);
         for (let i = 0; i < n; i++) {
+          const last = i === n - 1;
           // portals fan out behind the shoulders: alternating heights, further back for later blades
           const px = s.x - s.face * (18 + (i % 3) * 22 + Math.floor(i / 3) * 10);
           const py = s.y - 54 - ((i * 37) % 5) * 13;
@@ -687,10 +689,10 @@ export class World {
           const sp = w.arrowSpeed * (heavy ? 1.15 : 1);
           this.projectiles.push({
             id: this.nextId++ % 65536, kind: 'relic', owner: f.id, x: px, y: py, vx: ((tx - px) / d) * sp, vy: ((ty - py) / d) * sp,
-            dmg: heavy && c ? c.dmg : m.dmg, kb: m.kbX, kbY: m.kbY, stun: m.stun, life: Math.round(0.9 * TICK_RATE), heavy, gravity: 0, wait: i * 3,
+            dmg: per, kb: last ? m.kbX : 40, kbY: last ? m.kbY : 0, stun: last ? m.stun : 8, life: Math.round(0.9 * TICK_RATE), heavy: heavy && last, gravity: 0, wait: i * 3,
           });
         }
-        this.events.push({ t: 'shoot', p: f.id, kind: 6 });
+        this.events.push({ t: 'shoot', p: f.id, kind: 7 });
         return;
       }
       if (m.arcane) {

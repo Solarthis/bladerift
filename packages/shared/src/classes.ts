@@ -78,19 +78,19 @@ export interface ClassDef {
 
 export const ARTS: ArtDef[] = [
   { id: ArtId.RadiantCleave, name: 'Radiant Cleave', blurb: 'Gathers sunlight into the blade and hurls a crescent wave across the arena.', ticks: 40 },
-  { id: ArtId.HailOfArrows, name: 'Serpent Rain', blurb: 'Looses a volley skyward that rains down around the opponent.', ticks: 30 },
-  { id: ArtId.PiercingFang, name: 'Abyss Fang', blurb: 'An unstoppable lunge across the arena that ignores guards.', ticks: 44 },
+  { id: ArtId.HailOfArrows, name: 'Serpent Rain', blurb: "Looses a volley skyward that falls around the opponent like the Hydra's striking heads.", ticks: 30 },
+  { id: ArtId.PiercingFang, name: 'Gáe Bulg', blurb: "The barbed spear's unstoppable lunge across the arena: it ignores guards.", ticks: 44 },
   { id: ArtId.ThunderCall, name: 'Starfall', blurb: 'Calls three falling stars down on the opponent\'s position.', ticks: 36 },
   { id: ArtId.FlashStep, name: 'Flash Step', blurb: 'Untouchable: vanish, reappear behind the opponent and unleash a six-cut flurry. Use it as a counter mid-attack.', ticks: 54 },
-  { id: ArtId.BloodFrenzy, name: 'Blood Frenzy', blurb: 'Six seconds of rage: hits cannot stagger you, you hit harder and recover faster.', ticks: 24 },
-  { id: ArtId.Bulwark, name: 'Bulwark', blurb: 'Two seconds untouchable behind a barrier that reflects projectiles and shoves attackers back.', ticks: 120 },
-  { id: ArtId.VaultOfAges, name: 'Vault of Ages', blurb: 'Rift portals open behind him and fire a storm of legendary weapons.', ticks: 50 },
+  { id: ArtId.BloodFrenzy, name: 'Seven Terrors', blurb: 'He dons his seven auras of terror: six seconds in which hits cannot stagger him, he hits harder and recovers faster.', ticks: 24 },
+  { id: ArtId.Bulwark, name: 'Bulwark', blurb: 'Two seconds untouchable inside a ring of fire that reflects projectiles and shoves attackers back.', ticks: 120 },
+  { id: ArtId.VaultOfAges, name: 'Vault of Ages', blurb: 'The Gate opens wide: golden portals behind him fire a storm of gold and silver treasures.', ticks: 50 },
   { id: ArtId.ChainsOfGenesis, name: 'Chains of Genesis', blurb: 'Living chains burst from the ground under the opponent and bind them fast.', ticks: 30 },
   { id: ArtId.RewrittenFate, name: 'Rewritten Fate', blurb: 'Rewrites the chapter: heals over a quarter of health and empowers every blow for eight seconds.', ticks: 30 },
   { id: ArtId.PhantomHand, name: 'Phantom Hand', blurb: 'A spectral claw races along the ground, snatches the opponent even out of a roll or a jump, and crushes them, feeding its master.', ticks: 28 },
   { id: ArtId.GrimFog, name: 'Grim Fog', blurb: 'Vanishes into fog: unseen by the opponent for six seconds, and the first blow from the fog lands as a devastating crit.', ticks: 20 },
-  { id: ArtId.Stampede, name: 'Stampede', blurb: 'A burning warhorse thunders across the arena, trampling and setting the opponent alight.', ticks: 36 },
-  { id: ArtId.NightHunt, name: 'Night Hunt', blurb: 'Leaps onto the opponent with the shadow hound and slams down with it.', ticks: 50 },
+  { id: ArtId.Stampede, name: 'Stampede', blurb: 'Bucephalus, wreathed in flame, thunders across the arena, trampling and setting the opponent alight.', ticks: 36 },
+  { id: ArtId.NightHunt, name: 'Pale Horse', blurb: "Death's pale horse rises from her shadow: she rides it onto the opponent and slams down with it.", ticks: 50 },
 ];
 
 export const CLASSES: ClassDef[] = [
@@ -102,7 +102,7 @@ export const CLASSES: ClassDef[] = [
   },
   {
     id: ClassId.Archer, name: 'Archer', title: 'Death from afar', signature: WeaponId.Bow, art: ArtId.HailOfArrows,
-    blurb: 'Light on its feet, arrows fly faster and further. Keep your distance and make them come to you.',
+    blurb: 'Light on its feet; shots fly faster and further. Keep your distance and make them come to you.',
     hp: 1020, dmg: 1.0, speed: 1.12, airJumps: 1, dashes: 1, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 0.9, arrowSpeed: 1.3,
     bars: { power: 3, speed: 4, health: 2, reach: 5 },
   },
@@ -138,7 +138,7 @@ export const CLASSES: ClassDef[] = [
   },
   {
     id: ClassId.Rider, name: 'Rider', title: 'Master of the charge', signature: WeaponId.Scythe, art: ArtId.Stampede,
-    blurb: 'Fast and far-reaching: rides the arena, sweeps wide with a war scythe and tramples with a summoned mount.',
+    blurb: 'Fast and far-reaching: rides the arena and tramples with a summoned mount.',
     hp: 980, dmg: 0.93, speed: 1.2, airJumps: 1, dashes: 2, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
     bars: { power: 3, speed: 4, health: 3, reach: 4 },
   },

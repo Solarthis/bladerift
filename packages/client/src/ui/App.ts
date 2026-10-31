@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
   ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, dodgeOf, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout,
-  SKILLS, WEAPONS, WEAPON_COUNT,
+  heroWeapon, SKILLS, weaponLookOf, WeaponId, WEAPONS, WEAPON_COUNT,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
 import { GameScene, LocalPlayer } from '../game/GameScene';
@@ -16,7 +16,7 @@ import { sfx } from '../audio/Sfx';
 import { prefs, setPref } from './prefs';
 import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
-import { crestIcon, dodgeIcon, heroArtIcon, skillIcon, weaponIcon } from './icons';
+import { crestIcon, dodgeIcon, heroArtIcon, heroWeaponIcon, skillIcon } from './icons';
 import { animatePreview } from './spritePreview';
 import { startTitleShowcase } from './titleShowcase';
 import { prefetchHeroSprites } from '../render/spriteFighter';
@@ -241,7 +241,10 @@ export class App {
     const h = heroOf(p.load.hero);
     const C = classOf(h.cls);
     const A = ARTS[h.art] ?? ARTS[0];
-    const wa = WEAPONS[C.signature];
+    const wa = weaponLookOf(h.id);
+    // a hero with a weapon of its own (not the class's) reaches as far as that weapon does
+    const hw = heroWeapon(h.id);
+    const reach = hw === C.signature ? C.bars.reach : ({ [WeaponId.Daggers]: 1, [WeaponId.Sword]: 3, [WeaponId.Gate]: 5 } as Record<number, number>)[hw] ?? C.bars.reach;
     // the hero's own special and dodge (skill N and DODGES[N] belong to hero N): nothing to pick, the hero fixes them
     const sp = SKILLS[h.id];
     const dg = dodgeOf({ hero: h.id });
@@ -279,7 +282,7 @@ export class App {
           </div>
           <div class="card hs-info" data-keep="info">
             <p class="hs-lore">${esc(h.lore)}</p>
-            <div class="hs-bars">${bar('Power', C.bars.power)}${bar('Speed', C.bars.speed)}${bar('Health', C.bars.health)}${bar('Reach', C.bars.reach)}</div>
+            <div class="hs-bars">${bar('Power', C.bars.power)}${bar('Speed', C.bars.speed)}${bar('Health', C.bars.health)}${bar('Reach', reach)}</div>
             <p class="hs-blurb">${esc(C.blurb)}</p>
             <div class="hs-item hs-special"><img src="${skillIcon(h.id)}" alt=""><div><small>Special</small><b>${esc(sp.name)}</b><p>${esc(sp.blurb)}</p></div></div>
             <div class="hs-item hs-dodge"><img src="${dodgeIcon(h.id)}" alt=""><div><small>Dodge</small><b>${esc(dg.name)}</b><p>${esc(dg.blurb)}</p></div></div>
@@ -292,8 +295,8 @@ export class App {
             </div>
             <div class="hs-gear-b">
               <div class="hs-item hs-art"><img src="${heroArtIcon(h.id)}" alt=""><div><small>Rift Art</small><b>${esc(A.name)}</b><p>${esc(A.blurb)}</p></div></div>
-              <div class="hs-item hs-sig"><img src="${weaponIcon(C.signature)}" alt=""><div><small>Signature weapon, locked to the hero</small><b>${esc(wa.name)}</b><p>${esc(wa.blurb)}</p></div></div>
-              <p class="hs-note">${esc(h.name)} fights with ${esc(wa.name.toLowerCase())} alone: light combo on one button, a heavy strike on the other (a plunge in the air).</p>
+              <div class="hs-item hs-sig"><img src="${heroWeaponIcon(h.id)}" alt=""><div><small>Signature weapon, locked to the hero</small><b>${esc(wa.name)}</b><p>${esc(wa.blurb)}</p></div></div>
+              <p class="hs-note">${esc(h.name)} fights with the ${esc(wa.name)} alone: light ${WEAPONS[hw].arrowSpeed ? 'shots' : 'combo'} on one button, ${hw === WeaponId.Gate ? 'a held volley' : WEAPONS[hw].arrowSpeed ? 'a held shot' : 'a heavy strike'} on the other${WEAPONS[hw].arrowSpeed ? '' : ' (a plunge in the air)'}.</p>
             </div>
           </div>
         </div>
@@ -324,7 +327,7 @@ export class App {
         }
         return `<div class="seat empty"><div class="seat-empty">Waiting for a challenger…</div>${takeSide}</div>`;
       }
-      const gear = r.load.weapons.map((w) => `<img src="${weaponIcon(w)}" title="${WEAPONS[w].name}">`).join('') + `<img src="${skillIcon(r.load.skill)}" title="${SKILLS[r.load.skill].name}">`;
+      const gear = `<img src="${heroWeaponIcon(r.load.hero ?? 0)}" title="${weaponLookOf(r.load.hero ?? 0).name}">` + `<img src="${skillIcon(r.load.skill)}" title="${SKILLS[r.load.skill].name}">`;
       const which = this.sessions.findIndex((x) => x.selfId === r.id);
       const hero = heroOf(r.load.hero);
       return `<div class="seat" style="--c:${css(colorOf(r.color))}">
@@ -382,7 +385,7 @@ export class App {
           ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
         </table>
         <p>Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
-        <p><b>Classes and Rift Arts:</b> every class has a signature weapon and a Rift Art. The Rift gauge under your health fills slowly on its own and fast when you hit or get hit; when it glows, unleash the Art. The Assassin's <b>Flash Step</b> even works while you are being comboed.</p>
+        <p><b>Classes and Rift Arts:</b> every hero fights with its own weapon, special, dodge and Rift Art. The Rift gauge under your health fills slowly on its own and fast when you hit or get hit; when it glows, unleash the Art. The Assassin's <b>Flash Step</b> even works while you are being comboed.</p>
         <ul>
           <li><b>Combos:</b> keep pressing a weapon button to chain its strikes.</li>
           <li><b>Hold</b> the Lance to charge a lunge, the Bow for a heavy shot, the Shield to block. Block just before a hit to <b>parry</b>.</li>
@@ -659,7 +662,7 @@ export class App {
             const f = g.fighters(now).find((x) => x.self);
             if (f) {
               this.touch.show({
-                aIcon: weaponIcon(f.weapons[0]), bIcon: weaponIcon(f.weapons[1]), skillIcon: skillIcon(f.skill), artIcon: heroArtIcon(f.hero),
+                aIcon: heroWeaponIcon(f.hero), bIcon: heroWeaponIcon(f.hero), skillIcon: skillIcon(f.skill), artIcon: heroArtIcon(f.hero),
                 skillCd: f.skillCd / ((SKILLS[f.skill]?.cooldown ?? 1) * classOf(f.cls).skillCd), rollCd: f.rollCd / 40, flask: f.flask, rift: f.rift / RIFT.max,
               });
             }
