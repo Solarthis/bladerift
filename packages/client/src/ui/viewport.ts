@@ -34,6 +34,16 @@ export function measureViewport() {
   let vw = vv && vv.width > 0 ? vv.width : innerWidth || document.documentElement.clientWidth;
   let vh = vv && vv.height > 0 ? vv.height : innerHeight || document.documentElement.clientHeight;
   let top = Math.round(vv?.offsetTop ?? 0);
+  if (isIPhone() && !isStandalone() && !typing()) {
+    // iOS 26 Safari can leave the visual viewport stuck SHORTER than the window (after the keyboard closed or the toolbar
+    // moved, with no event): the bottom of the screen then shows a dark band under the game. While nobody is typing, the
+    // larger of the visual viewport and the window is what is really on screen.
+    const win = Math.max(innerHeight || 0, document.documentElement.clientHeight || 0);
+    if (win > vh) {
+      vh = win;
+      top = 0;
+    }
+  }
   if (isIPhone() && isStandalone() && !typing() && screen.width > 0 && screen.height > 0) {
     // (iOS reports screen in portrait terms whatever the orientation; the viewport's shape says which way round)
     const long = Math.max(screen.width, screen.height);

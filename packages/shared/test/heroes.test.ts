@@ -6,14 +6,14 @@ import {
 
 /** Hero id by display name (the roster is fixed, so names are stable handles). */
 const hero = (name: string) => HEROES.find((h) => h.name === name)!.id;
-const LEON = hero('Leon Valcrest');
-const AURELION = hero('Aurelion');
-const VERDAN = hero('Verdan');
-const QUILL = hero('Quill');
-const HOLLOWMASK = hero('Hollowmask');
-const MR_GRAY = hero('Mr. Gray');
-const IGNIS = hero('Ignis');
-const THORNMAW = hero('Thornmaw');
+const LEON = hero('Richard Lionheart');
+const AURELION = hero('Gilgamesh');
+const VERDAN = hero('Enkidu');
+const QUILL = hero('Alexandre Dumas');
+const HOLLOWMASK = hero('Hassan');
+const MR_GRAY = hero('Jack the Ripper');
+const IGNIS = hero('Alexander');
+const THORNMAW = hero('Pale Rider');
 
 /** A loadout for a hero: slot A is its signature weapon, slot B the given second weapon (Shield by default: blockable). */
 const loadOf = (h: number, second: WeaponId = WeaponId.Shield) => sanitizeLoadout({ weapons: [0, second], skill: SkillId.Bomb, hero: h });
@@ -120,7 +120,7 @@ describe('roster', () => {
       // no usable hero: the class decides (its first hero)
       expect(sanitizeLoadout({ hero: bad, cls: 7 }).hero).toBe(IGNIS);
     }
-    expect(sanitizeLoadout({ hero: 99, cls: 5 }).hero).toBe(hero('Gorvax'));
+    expect(sanitizeLoadout({ hero: 99, cls: 5 }).hero).toBe(hero('Humbaba'));
     expect(sanitizeLoadout({ cls: 99 }).hero).toBe(LEON);
     expect(sanitizeLoadout(undefined).hero).toBe(LEON);
     expect(sanitizeLoadout({ hero: 'x', cls: 'x', weapons: 'nope', skill: 99 })).toMatchObject({ hero: LEON, cls: ClassId.Saber, skill: SkillId.Bomb });
@@ -318,7 +318,7 @@ describe('new Rift Arts', () => {
   });
 
   it('Bulwark keeps its invulnerable barrier (smoke)', () => {
-    const { w, fa } = duel(hero('Aegis Marrow'), LEON, 300);
+    const { w, fa } = duel(hero('Brynhildr'), LEON, 300);
     play(w, 1, special);
     play(w, 20);
     expect(fa.s.invuln).toBeGreaterThan(50);

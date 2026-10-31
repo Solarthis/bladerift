@@ -90,9 +90,11 @@ def split_cells(im, cols, rows):
     a = solid.astype(np.int32)
     ycuts = [0] + [best_cut(a.sum(axis=1), r * chh, chh // 4) for r in range(1, rows)] + [H]
     owner = np.full((H, W), -1, np.int32)   # cell index of every pixel by the border cut
+    xcuts_by_row = []
     for r in range(rows):
         y0, y1 = ycuts[r], ycuts[r + 1]
         xcuts = [0] + [best_cut(a[y0:y1].sum(axis=0), c * cw, cw // 3) for c in range(1, cols)] + [W]
+        xcuts_by_row.append(xcuts)
         for c in range(cols):
             owner[y0:y1, xcuts[c]:xcuts[c + 1]] = r * cols + c
     n, lab, st, _ = cv2.connectedComponentsWithStats(solid.astype(np.uint8), connectivity=8)
@@ -152,9 +154,106 @@ def split_cells(im, cols, rows):
         can[ys[ok] - oy, xs[ok] - ox] = im[ys[ok], xs[ok]]
         lost = int((~ok).sum())
         outside = int(((xs < c * cw) | (xs >= (c + 1) * cw)).sum())
-        cells.append(can)
+        xc = xcuts_by_row[r]
+        lines = (xc[c] - ox, xc[c + 1] - ox, ycuts[r] - oy, ycuts[r + 1] - oy)
+        F = feather_map(can, lines)
+        # the seam where this frame was split from a touching neighbour: fade toward it too
+        y0c, y1c, x0c, x1c = max(0, oy), min(H, oy + can.shape[0]), max(0, ox), min(W, ox + can.shape[1])
+        mine_c = (assign[y0c:y1c, x0c:x1c] == k) & solid[y0c:y1c, x0c:x1c]
+        other_c = solid[y0c:y1c, x0c:x1c] & (assign[y0c:y1c, x0c:x1c] >= 0) & (assign[y0c:y1c, x0c:x1c] != k)
+        seam = cv2.dilate(other_c.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+        seam &= mine_c
+        if seam.sum() > 12:
+            dist = cv2.distanceTransform((~seam).astype(np.uint8), cv2.DIST_L2, 5)
+            Fs = np.ones(can.shape[:2], np.float32)
+            Fs[y0c - oy:y1c - oy, x0c - ox:x1c - ox] = np.clip(dist / FEATHER, 0, 1)
+            F = np.minimum(F, Fs)
+        cells.append((can, F))
         spill.append(outside + lost * 10)
     return cells, pad, cw, chh, spill
+
+
+FEATHER = 56  # source px over which a cut-off trail fades out
+
+
+def feather_map(can, lines):
+    """Alpha multipliers that fade the frame out toward any straight line it is cut off at: its cell's borders (where the
+    model ran an effect into the cell edge, or where two touching frames were split) and the canvas edges. A border only
+    counts when the frame runs into it and stops there (pixels on the line, almost none beyond)."""
+    a = can[:, :, 3] > 24
+    Hc, Wc = a.shape
+    F = np.ones(a.shape, np.float32)
+    xl, xr, yt, yb = lines
+    cands = [('L', max(0, xl)), ('L', 0), ('R', min(Wc, xr)), ('R', Wc), ('T', max(0, yt)), ('T', 0), ('B', min(Hc, yb)), ('B', Hc)]
+    X = np.arange(Wc, dtype=np.float32)[None, :]
+    Y = np.arange(Hc, dtype=np.float32)[:, None]
+    for side, v in cands:
+        v = int(v)
+        if side == 'L':
+            on = a[:, v:v + 2].sum() if v < Wc else 0
+            beyond = a[:, max(0, v - 6):max(0, v - 1)].sum()
+            if on > 12 and beyond < on * 0.05:
+                F *= np.clip((X - v) / FEATHER, 0, 1)
+        elif side == 'R':
+            on = a[:, max(0, v - 2):v].sum()
+            beyond = a[:, v + 1:v + 6].sum() if v < Wc else 0
+            if on > 12 and beyond < on * 0.05:
+                F *= np.clip((v - X) / FEATHER, 0, 1)
+        elif side == 'T':
+            on = a[v:v + 2, :].sum() if v < Hc else 0
+            beyond = a[max(0, v - 6):max(0, v - 1), :].sum()
+            if on > 12 and beyond < on * 0.05:
+                F *= np.clip((Y - v) / FEATHER, 0, 1)
+        else:
+            on = a[max(0, v - 2):v, :].sum()
+            beyond = a[v + 1:v + 6, :].sum() if v < Hc else 0
+            if on > 12 and beyond < on * 0.05:
+                F *= np.clip((v - Y) / FEATHER, 0, 1)
+    # straight edges drawn into the art itself (the model clipped an effect at an invisible box): a column (or row) where a
+    # long run of silhouette pixels all end at the same x (or y). Nothing in a figure or a natural trail does that.
+    ys, xs = np.nonzero(a)
+    if len(ys):
+        h = ys.max() - ys.min() + 1
+        need = max(40, int(h * 0.12))
+        for axis in (0, 1):
+            m = a if axis == 0 else a.T
+            Xg = X if axis == 0 else Y.T
+            Yg = Y if axis == 0 else X.T
+            # right/bottom ends: opaque here, clear next; left/top ends: opaque here, clear before
+            ends_r = m[:, :-1] & ~m[:, 1:]
+            ends_l = m[:, 1:] & ~m[:, :-1]
+            for ends, sign, shift in ((ends_r, 1, 0), (ends_l, -1, 1)):
+                # a hand-wobbled straight edge: row ends gathered over a 9-column window, each window's peak once
+                W9 = 9
+                win = np.convolve(ends.sum(axis=0).astype(np.float32), np.ones(W9, np.float32), 'same')
+                used = np.zeros(len(win), bool)
+                for x in np.argsort(-win):
+                    if win[x] < need:
+                        break
+                    if used[x]:
+                        continue
+                    lo_, hi_ = max(0, x - W9 // 2), min(len(win), x + W9 // 2 + 1)
+                    used[max(0, x - W9):x + W9] = True
+                    band_ends = ends[:, lo_:hi_].any(axis=1)
+                    rows_ = np.nonzero(band_ends)[0]
+                    y0, y1 = rows_.min(), rows_.max()
+                    if (y1 - y0 + 1) > band_ends.sum() * 1.6:  # scattered, not one straight run
+                        continue
+                    # the edge must be the silhouette's outer boundary there (nothing of the frame beyond it)
+                    xe_ = hi_ if sign > 0 else lo_
+                    beyond = m[y0:y1 + 1, xe_:].sum() if sign > 0 else m[y0:y1 + 1, :xe_].sum()
+                    if beyond > band_ends.sum() * 2:
+                        continue
+                    x = int(np.median(np.nonzero(ends[rows_, lo_:hi_])[1])) + lo_
+                    xe = x + shift
+                    D = FEATHER * 2  # a bright effect needs a long fade to stop reading as a wall
+                    ramp = np.clip((xe - Xg) / D if sign > 0 else (Xg - xe) / D, 0, 1)
+                    # the fade covers the edge's own rows and tapers off above and below it (no step)
+                    outside = np.maximum(y0 - Yg, Yg - y1).clip(0)
+                    w = np.clip(1 - outside / D, 0, 1)
+                    R = (1 - w * (1 - ramp)).astype(np.float32)
+                    F *= R if axis == 0 else R.T
+    return F
 
 
 def measure(frame, pad, cw, chh):
@@ -197,6 +296,7 @@ def measure(frame, pad, cw, chh):
 # ------------------------------------------------------------------ load every sheet the animations need
 needed = sorted({f.split(':')[0] for a in ANIMS.values() for f in a['frames']})
 frames = {}   # "sheet:i" -> canvas
+feathers = {}  # "sheet:i" -> alpha multipliers (cut-off trails fade out)
 meas = {}
 spills = {}
 geom = None
@@ -211,12 +311,15 @@ for sh in needed:
     cols, rows = spec.get('grid', STD['grid'])
     cells, pad, cw, chh, spill = split_cells(im, cols, rows)
     geom = (pad, cw, chh)
-    for i, c in enumerate(cells):
+    for i, (c, fm) in enumerate(cells):
         key = f'{sh}:{i}'
         frames[key] = c
+        feathers[key] = fm
         meas[key] = measure(c, pad, cw, chh)
         spills[key] = spill[i]
-        Image.fromarray(c).save(os.path.join(FRAMES, f'{sh}-{i}.png'))
+        prev = c.copy()
+        prev[:, :, 3] = (prev[:, :, 3] * fm).astype(np.uint8)
+        Image.fromarray(prev).save(os.path.join(FRAMES, f'{sh}-{i}.png'))
 if missing:
     print('missing sheets (their animations are skipped):', ' '.join(missing))
 if not frames:
@@ -289,11 +392,19 @@ for key in used:
     nw, nh = max(1, int(round(w * s))), max(1, int(round(h * s)))
     # premultiplied area downscale (no dark fringes), then a hard alpha edge
     f = c.astype(np.float32) / 255.0
+    Fm = feathers.get(key)
+    if Fm is not None:
+        f[:, :, 3] *= Fm
     f[:, :, :3] *= f[:, :, 3:4]
     d = cv2.resize(f, (nw, nh), interpolation=cv2.INTER_AREA)
     al = d[:, :, 3:4]
     rgb = np.where(al > 1e-4, d[:, :, :3] / np.maximum(al, 1e-4), 0)
     alpha = (al[:, :, 0] >= 0.5).astype(np.float32)
+    if Fm is not None and Fm.min() < 0.999:
+        # in the faded band keep soft alpha (a dissolving trail), elsewhere the hard pixel-art edge
+        fd = cv2.resize(Fm, (nw, nh), interpolation=cv2.INTER_AREA)
+        soft = fd < 0.995
+        alpha = np.where(soft, np.clip(al[:, :, 0] * 1.15, 0, 1) * (al[:, :, 0] > 0.04), alpha)
     out = np.dstack([np.clip(rgb, 0, 1), alpha])
     small[key] = ((out * 255).round().astype(np.uint8), ax * s, ay * s)
     qa[key] = {'h': m['h'], 'feetDrift': (m['feet'] + 1 - sheet_ground.get(row, ground)) if key not in air_frames else None,

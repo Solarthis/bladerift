@@ -136,6 +136,70 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 .hdr .back { font-size: 24px; line-height: 1; min-width: var(--tap); padding: 4px 12px; }
 
 /* ------------------------------------------------------------------ title */
+/* ---- the title screen: key art, the rift's glow, embers, and two live heroes facing off around the menu */
+.screen-title { overflow: hidden; }
+.title-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: #0b0812; }
+.title-art {
+  position: absolute; inset: -4%; background: url('assets/art/title-key.jpg') center 35% / cover no-repeat;
+  animation: title-drift 38s ease-in-out infinite alternate; filter: saturate(1.08);
+}
+@keyframes title-drift { from { transform: scale(1.02) translate(-1%, 0); } to { transform: scale(1.1) translate(1.2%, -1%); } }
+.title-bg::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 34% 52% at 50% 50%, rgba(10, 6, 18, 0.72), rgba(10, 6, 18, 0.25) 70%, transparent),
+    linear-gradient(to bottom, rgba(8, 5, 14, 0.15), transparent 30%, transparent 62%, rgba(8, 5, 14, 0.92));
+}
+.title-rift {
+  position: absolute; left: 50%; top: 4%; width: min(46vw, 560px); height: 60%; transform: translateX(-50%);
+  background: radial-gradient(ellipse 18% 50% at 50% 50%, rgba(255, 214, 140, 0.32), rgba(176, 108, 255, 0.18) 45%, transparent 72%);
+  filter: blur(6px); animation: rift-pulse 4.2s ease-in-out infinite; mix-blend-mode: screen;
+}
+@keyframes rift-pulse { 0%, 100% { opacity: 0.65; transform: translateX(-50%) scaleY(0.96); } 50% { opacity: 1; transform: translateX(-50%) scaleY(1.04); } }
+.ember {
+  position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%;
+  background: #ffcf7a; box-shadow: 0 0 8px 2px rgba(255, 170, 70, 0.75); opacity: 0;
+  animation: ember-rise 9s linear infinite;
+}
+.ember:nth-child(3n) { background: #c9a2ff; box-shadow: 0 0 8px 2px rgba(170, 110, 255, 0.7); }
+.ember:nth-child(3) { left: 11%; animation-delay: 6.81s; animation-duration: 10.9s; }
+.ember:nth-child(4) { left: 48%; animation-delay: 6.08s; animation-duration: 7.2s; }
+.ember:nth-child(5) { left: 85%; animation-delay: 5.35s; animation-duration: 8.5s; }
+.ember:nth-child(6) { left: 22%; animation-delay: 4.62s; animation-duration: 9.8s; }
+.ember:nth-child(7) { left: 59%; animation-delay: 3.89s; animation-duration: 11.1s; }
+.ember:nth-child(8) { left: 96%; animation-delay: 3.16s; animation-duration: 7.4s; }
+.ember:nth-child(9) { left: 33%; animation-delay: 2.43s; animation-duration: 8.7s; }
+.ember:nth-child(10) { left: 70%; animation-delay: 1.70s; animation-duration: 10.0s; }
+.ember:nth-child(11) { left: 7%; animation-delay: 0.97s; animation-duration: 11.3s; }
+.ember:nth-child(12) { left: 44%; animation-delay: 0.24s; animation-duration: 7.6s; }
+.ember:nth-child(13) { left: 81%; animation-delay: 8.51s; animation-duration: 8.9s; }
+.ember:nth-child(14) { left: 18%; animation-delay: 7.78s; animation-duration: 10.2s; }
+.ember:nth-child(15) { left: 55%; animation-delay: 7.05s; animation-duration: 11.5s; }
+.ember:nth-child(16) { left: 92%; animation-delay: 6.32s; animation-duration: 7.8s; }
+@keyframes ember-rise {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: translate(40px, -105vh) scale(0.4); opacity: 0; }
+}
+.title-hero { position: absolute; bottom: 0; z-index: 1; width: 34vw; height: 82%; pointer-events: none; filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.6)); }
+.title-hero.left { left: 0; }
+.title-hero.right { right: 0; }
+.screen-title .title-wrap { position: relative; z-index: 2; }
+.screen-title .menu button.big {
+  min-width: 290px; background: linear-gradient(180deg, rgba(42, 30, 58, 0.88), rgba(22, 15, 32, 0.92));
+  border: 1px solid rgba(233, 182, 74, 0.55); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 236, 190, 0.12);
+  backdrop-filter: blur(4px); transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s;
+}
+.screen-title .menu button.big:hover, .screen-title .menu button.big:focus-visible {
+  transform: translateY(-2px) scale(1.02); border-color: #ffd98a; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55), 0 0 18px rgba(233, 182, 74, 0.35);
+}
+.screen-title .menu .row button { background: rgba(20, 14, 30, 0.82); backdrop-filter: blur(4px); }
+.screen-title .tag { color: #e9dcc6; text-shadow: 0 2px 8px #000; }
+.screen-title .logo { filter: drop-shadow(0 6px 0 #2a1430) drop-shadow(0 0 34px rgba(233, 182, 74, 0.5)) drop-shadow(0 0 60px rgba(150, 90, 255, 0.35)); }
+@media (prefers-reduced-motion: reduce) { .title-art, .title-rift, .ember { animation: none; } }
+@media (max-height: 480px) { .title-hero { height: 88%; width: 30vw; } .screen-title .menu button.big { min-width: 250px; } }
+@media (orientation: portrait) { .title-hero { display: none; } }
+
 .title-wrap {
   min-height: 100%;
   display: flex;
@@ -608,6 +672,20 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 }
 .tb i { position: absolute; inset: 0; background: center / cover no-repeat; border-radius: 8px; }
 .tb span { display: none; }
+/* the two attack tiles share the weapon art: a caption tells them apart, and the heavy one burns hotter */
+.tb-a span, .tb-b span {
+  display: block; position: absolute; left: 0; right: 0; top: 2px; z-index: 2; text-align: center;
+  font-family: var(--display); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;
+  color: #fff4e0; text-shadow: 0 1px 2px #000, 0 0 4px #000;
+}
+.tb-b { border-color: rgba(255, 120, 60, 0.75); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 10px rgba(255, 90, 30, 0.45); }
+.tb-b i { filter: saturate(1.25) contrast(1.08); }
+.tb-b i::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(ellipse 80% 70% at 50% 90%, rgba(255, 90, 20, 0.55), transparent 70%);
+  mix-blend-mode: screen;
+}
+.tb-b span { color: #ffc27a; }
 .tb em {
   position: absolute;
   right: 4px;

@@ -51,13 +51,17 @@ export interface SpriteCtx {
   introT?: number;
 }
 
-/** Frame index within an attack-timed animation of 4 frames: anticipation, strike, extension, recovery. */
+/** Frame index within an attack-timed animation: anticipation (the startup), the strike, then the follow-through and
+ * recovery. The strike is the painted money frame (the full weapon trail): it holds for the whole hit window and at
+ * least STRIKE_HOLD ticks (~120 ms) even when the hit itself lasts 3 ticks, so the swing reads instead of flashing. */
+const STRIKE_HOLD = 7;
 function attackFrame(startup: number, active: number, recovery: number, t: number, n: number) {
   if (n <= 1) return 0;
   if (t < startup) return 0;
   const a = t - startup;
-  if (a < Math.max(1, Math.ceil(active * 0.6))) return Math.min(1, n - 1);
-  if (a < active + recovery * 0.45) return Math.min(2, n - 1);
+  const strike = Math.min(Math.max(active, STRIKE_HOLD), active + recovery * 0.6);
+  if (a < strike) return Math.min(1, n - 1);
+  if (n >= 4 && a < strike + (active + recovery - strike) * 0.5) return 2;
   return n - 1;
 }
 

@@ -231,6 +231,33 @@ await block('title', async () => {
   await ctx.close();
 });
 
+// ---- iPhone in Safari (iOS 26): the visual viewport can get stuck SHORTER than the window with no event; no dark band
+await block('iPhone Safari, stuck short viewport', async () => {
+  const ctx = await browser.newContext({
+    viewport: { width: 844, height: 390 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1',
+  });
+  const t = await ctx.newPage();
+  await t.goto(url);
+  await t.waitForSelector('.screen-title');
+  await fakeVV(t, 330);
+  await t.waitForTimeout(1600);
+  check(Math.abs((await appH(t)) - 390) <= 1, `iPhone Safari, title: a stuck short visual viewport leaves no band (--app-h ${await appH(t)}, want 390)`);
+  await fakeVV(t, null);
+  await t.click('[data-act="practice"]');
+  await t.click('[data-act="start"]', { timeout: 10000 });
+  await t.waitForFunction(() => document.body.dataset.screen === 'game', null, { timeout: 15000 });
+  await t.waitForTimeout(2500);
+  await fakeVV(t, 330);
+  await t.waitForTimeout(1600);
+  const canvas = (await rect(t, '#game canvas'))?.h ?? 0;
+  const tiles = await rects(t, '.touch .tb');
+  const lowest = Math.max(...tiles.map((x) => x.b));
+  check(Math.abs((await appH(t)) - 390) <= 1 && Math.abs(canvas - 390) <= 1 && lowest > 360,
+    `iPhone Safari, match: a stuck short visual viewport leaves no band (--app-h ${await appH(t)}, canvas ${canvas}, lowest tile ${Math.round(lowest)}, want 390)`);
+  await ctx.close();
+});
+
 // ---- iPhone home-screen app (852x393 screen): stale viewports in both directions must not change the app's size
 await block('iPhone home-screen app', async () => {
   const ctx = await browser.newContext({

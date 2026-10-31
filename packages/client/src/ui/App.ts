@@ -18,6 +18,7 @@ import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
 import { crestIcon, heroArtIcon, skillIcon, weaponIcon } from './icons';
 import { animatePreview } from './spritePreview';
+import { startTitleShowcase } from './titleShowcase';
 import { prefetchHeroSprites } from '../render/spriteFighter';
 import { measureViewport, setViewport, viewH, viewW } from './viewport';
 
@@ -169,6 +170,10 @@ export class App {
     this.ui.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => keep.set(el.dataset.keep!, [el.scrollLeft, el.scrollTop]));
     this.ui.innerHTML = `<div class="screen screen-${s}">${this.render(s)}</div>`;
     this.bind(this.ui.firstElementChild as HTMLElement);
+    // the title screen's face-off of two live heroes
+    const tl = this.ui.querySelector<HTMLCanvasElement>('canvas.title-hero.left');
+    const tr = this.ui.querySelector<HTMLCanvasElement>('canvas.title-hero.right');
+    if (tl && tr) startTitleShowcase(tl, tr);
     // the hero select's live sprite preview
     this.ui.querySelectorAll<HTMLCanvasElement>('canvas.hs-sprite').forEach((cv) => void animatePreview(cv, Number(cv.dataset.hero)));
     this.ui.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => {
@@ -180,7 +185,9 @@ export class App {
   private render(s: Screen): string {
     switch (s) {
       case 'title':
-        return `<div class="title-wrap">
+        return `<div class="title-bg" aria-hidden="true"><div class="title-art"></div><div class="title-rift"></div>${'<i class="ember"></i>'.repeat(14)}</div>
+        <canvas class="title-hero left" aria-hidden="true"></canvas><canvas class="title-hero right" aria-hidden="true"></canvas>
+        <div class="title-wrap">
           ${/\/bladerift\//.test(location.pathname) ? '<a class="arcade-back" href="../" aria-label="Back to all games">‹ All games</a>' : ''}
           <div class="logo"><span>BLADE</span><span>RIFT</span></div>
           <div class="tag">One rift. Two fighters. Pick your blades.</div>

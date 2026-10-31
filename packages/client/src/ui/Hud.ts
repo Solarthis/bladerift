@@ -163,7 +163,8 @@ export class Hud {
           s.epithet.textContent = h.epithet;
           s.artIcon.src = artIconOf(h.art);
           s.artWrap.title = ARTS[h.art]?.name ?? 'Rift Art';
-          s.gear.innerHTML = `<img src="${weaponIcon(f.weapons[0])}" title="${WEAPONS[f.weapons[0]]?.name}"><img src="${weaponIcon(f.weapons[1])}" title="${WEAPONS[f.weapons[1]]?.name}"><img src="${skillIcon(f.skill)}" title="${SKILLS[f.skill]?.name}">`;
+          // the kit: one weapon (light and heavy attacks) and the skill
+          s.gear.innerHTML = `<img src="${weaponIcon(f.weapons[0])}" title="${WEAPONS[f.weapons[0]]?.name}"><img src="${skillIcon(f.skill)}" title="${SKILLS[f.skill]?.name}">`;
         } else {
           s.heroName.textContent = '';
           s.epithet.textContent = '';

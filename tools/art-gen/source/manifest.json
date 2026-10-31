@@ -96,6 +96,14 @@
       "ref": "icons-abilities.png",
       "seconds": 95,
       "at": "2026-10-31T16:14:25.755Z"
+    },
+    {
+      "name": "title-key",
+      "ok": true,
+      "prompt": "A WIDE 16:9 TITLE SCREEN BACKGROUND for BLADERIFT, an original premium anime 2D fighting game, image size 1536x864.\nA colossal glowing violet-and-gold RIFT tears the night sky open above a ruined moonlit stone bridge and a gothic castle skyline;\ncrackling rift light, drifting embers and petals, layered depth haze. Far in the distance, small heroic silhouettes stand on the\nbridge facing each other. Painted in the attached sheet's high-detail anime fighting-game style.\nComposition: the CENTRE third stays darker and calm (a logo and menu are drawn over it), the rift and the brightest light sit in the\nupper middle, the left and right thirds frame it. NO characters in the foreground, NO text, NO logo, NO user interface.",
+      "ref": "../../../art/characters/h00-leon/references/approved-sheet.png",
+      "seconds": 65,
+      "at": "2026-10-31T20:41:11.007Z"
     }
   ]
 }

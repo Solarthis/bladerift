@@ -163,10 +163,11 @@ export interface TouchButtonState {
   rift: number;
 }
 
-// square, framed image tiles (the art carries the meaning; no text labels)
+// square, framed image tiles (the art carries the meaning; the two attacks share the hero's weapon art, so they carry a
+// small caption: the light combo and the heavy strike)
 const BUTTONS: { id: string; bit: number; label: string; cls: string }[] = [
-  { id: 'a', bit: Btn.A, label: '', cls: 'tb-a' },
-  { id: 'b', bit: Btn.B, label: '', cls: 'tb-b' },
+  { id: 'a', bit: Btn.A, label: 'Light', cls: 'tb-a' },
+  { id: 'b', bit: Btn.B, label: 'Heavy', cls: 'tb-b' },
   { id: 'skill', bit: Btn.Skill, label: '', cls: 'tb-skill' },
   { id: 'jump', bit: Btn.Jump, label: '', cls: 'tb-jump' },
   { id: 'roll', bit: Btn.Roll, label: '', cls: 'tb-roll' },

@@ -85,6 +85,15 @@ Row 2: (5) THORNMAW, the Black Hound: a quiet girl with short brown hair and a s
        shield; cool teal background.
        (7) an empty dark card with only a faint golden rift crack (spare). (8) an empty dark card with only a faint golden rift crack (spare).`,
   },
+  'title-key': {
+    ref: '../../../art/characters/h00-leon/references/approved-sheet.png',
+    prompt: `A WIDE 16:9 TITLE SCREEN BACKGROUND for BLADERIFT, an original premium anime 2D fighting game, image size 1536x864.
+A colossal glowing violet-and-gold RIFT tears the night sky open above a ruined moonlit stone bridge and a gothic castle skyline;
+crackling rift light, drifting embers and petals, layered depth haze. Far in the distance, small heroic silhouettes stand on the
+bridge facing each other. Painted in the attached sheet's high-detail anime fighting-game style.
+Composition: the CENTRE third stays darker and calm (a logo and menu are drawn over it), the rift and the brightest light sit in the
+upper middle, the left and right thirds frame it. NO characters in the foreground, NO text, NO logo, NO user interface.`,
+  },
   'icons-arts2': {
     ref: 'icons-abilities.png',
     prompt: `${ICON_RULES.replace('exact 4 x 4 grid', 'exact 4 x 2 grid').replace('1024x1024, so every icon is 256x256', '1024x512, so every icon is 256x256')}

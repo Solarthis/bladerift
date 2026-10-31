@@ -61,7 +61,7 @@ interface Bot {
   brain: BotBrain;
 }
 
-const BOT_NAMES = ['Grimsby', 'Vex', 'Moira', 'Thorne', 'Ashka', 'Brannock', 'Sable', 'Wick'];
+const BOT_NAMES = ['Grimsby', 'Vex', 'Moira', 'Thorne', 'Ashka', 'Brannock', 'Corva', 'Wick'];
 const RESULTS_SECONDS = 15;
 const RECONNECT_GRACE_MS = 20_000;
 const MAX_FRAME = 4096;

@@ -262,7 +262,15 @@ setInterval(() => {
   }
 }, 15_000);
 
-server.listen(PORT, () => console.log(`Bladerift online server on :${PORT} (protocol v${PROTOCOL_VERSION})`));
+// Standalone it listens on PORT. Mounted in the MAT games server (games-hub/server/online.mjs, one Node app for every
+// game), the host routes this game's requests here instead and owns the port.
+const mounted = (globalThis as { __MAT_MOUNTED?: boolean }).__MAT_MOUNTED === true;
+if (!mounted) server.listen(PORT, () => console.log(`Bladerift online server on :${PORT} (protocol v${PROTOCOL_VERSION})`));
+/** For the MAT games server: hand this game a request or a WebSocket upgrade (paths without the game's prefix). */
+export const mount = {
+  request: (req: IncomingMessage, res: ServerResponse) => server.emit('request', req, res),
+  upgrade: (req: IncomingMessage, socket: Duplex, head: Buffer) => server.emit('upgrade', req, socket, head),
+};
 for (const sig of ['SIGINT', 'SIGTERM'] as const)
   process.on(sig, () => {
     // players see "the server restarted" instead of a silent drop and 15 s of retries
