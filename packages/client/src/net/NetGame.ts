@@ -51,8 +51,11 @@ export interface ViewFighter {
   rollAir: boolean;
   fast: boolean;
   frenzy: boolean;
+  buff: boolean;
+  veil: boolean;
   rift: number;
   cls: number;
+  hero: number;
   /** Fractional action time for smooth pose stepping (ticks). */
   actTf: number;
   self: boolean;
@@ -332,6 +335,9 @@ export class NetGame {
     o.frenzy = s.frenzy > 0;
     o.rift = s.rift;
     o.cls = nf.cls;
+    o.hero = nf.hero;
+    o.buff = s.buff > 0;
+    o.veil = s.veil > 0;
     o.weapons = nf.weapons;
     o.skill = nf.skill;
   }

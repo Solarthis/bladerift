@@ -4,6 +4,7 @@ export * from './arena';
 export * from './input';
 export * from './weapons';
 export * from './classes';
+export * from './heroes';
 export * from './fighter';
 export * from './world';
 export * from './protocol';

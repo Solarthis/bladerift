@@ -116,3 +116,19 @@ square_icons('icons-abilities', ['i-jump', 'i-roll', 'i-heal', 'i-art', 'a-cleav
                                  'a-flash', 'a-frenzy', 'a-bulwark', 'k-bomb', 'k-frost', 'k-trap', 'k-blink', 'i-attack'])
 square_icons('icons-gear', ['g-sword', 'g-scythe', 'g-lance', 'g-daggers', 'g-hammer', 'g-bow', 'g-shield', 'g-staff',
                             'c-saber', 'c-archer', 'c-lancer', 'c-caster', 'c-assassin', 'c-berserker', 'c-shielder', 'c-blank'])
+
+
+def portraits(name, first, count, w=240, h=320):
+    """A 2x4 sheet of framed portrait cards: exact cells (hero portraits h-00.jpg ...)."""
+    img = cv2.imread(os.path.join(SRC, name + '.png'), cv2.IMREAD_COLOR)
+    H, W = img.shape[:2]
+    for i in range(count):
+        r, c = divmod(i, 4)
+        cell = img[r * H // 2:(r + 1) * H // 2, c * W // 4:(c + 1) * W // 4]
+        cell = cv2.resize(cell, (w, h), interpolation=cv2.INTER_AREA)
+        cv2.imwrite(os.path.join(OUT, 'h-%02d.jpg' % (first + i)), cell, [cv2.IMWRITE_JPEG_QUALITY, 86])
+    print(name, count, 'portraits')
+
+
+portraits('portraits-1', 0, 8)
+portraits('portraits-2', 8, 6)

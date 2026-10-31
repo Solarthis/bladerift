@@ -215,23 +215,11 @@ export const isWeapon = (v: unknown): v is WeaponId => Number.isInteger(v) && (v
 export const isSkill = (v: unknown): v is SkillId => Number.isInteger(v) && (v as number) >= 0 && (v as number) < SKILL_COUNT;
 
 export interface Loadout {
-  /** Slot A is always the class's signature weapon. */
+  /** Slot A is always the hero's class signature weapon. */
   weapons: [WeaponId, WeaponId];
   skill: SkillId;
-  /** Fighter class (classes.ts ClassId). */
+  /** Fighter class (classes.ts ClassId), derived from the hero. */
   cls: number;
-}
-
-/** Signature weapon of each class (classes.ts keeps the full class table; repeated here to avoid an import cycle). */
-const SIGNATURE: WeaponId[] = [WeaponId.Sword, WeaponId.Bow, WeaponId.Lance, WeaponId.Staff, WeaponId.Daggers, WeaponId.Hammer, WeaponId.Shield];
-
-export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb, cls: 0 };
-
-export function sanitizeLoadout(v: unknown): Loadout {
-  const o = (v && typeof v === 'object' ? v : {}) as { weapons?: unknown[]; skill?: unknown; cls?: unknown };
-  const cls = Number.isInteger(o.cls) && (o.cls as number) >= 0 && (o.cls as number) < SIGNATURE.length ? (o.cls as number) : 0;
-  const w0 = SIGNATURE[cls];
-  let w1 = isWeapon(o.weapons?.[1]) ? o.weapons![1] as WeaponId : DEFAULT_LOADOUT.weapons[1];
-  if (w1 === w0) w1 = w0 === WeaponId.Bow ? WeaponId.Daggers : WeaponId.Bow;
-  return { weapons: [w0, w1], skill: isSkill(o.skill) ? o.skill : DEFAULT_LOADOUT.skill, cls };
+  /** Hero (heroes.ts). */
+  hero: number;
 }

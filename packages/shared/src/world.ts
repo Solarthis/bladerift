@@ -9,6 +9,7 @@ import {
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
+import { artIdOf } from './heroes';
 import { Box, Loadout, Move, SKILL_FX, SkillId, WEAPONS, WeaponId } from './weapons';
 
 export interface MatchSettings {
@@ -24,8 +25,8 @@ export const DEFAULT_SETTINGS: MatchSettings = { arenaId: 'bridge', wins: ROUND.
 export type Phase = 'intro' | 'fight' | 'ko' | 'over';
 export const PHASES: Phase[] = ['intro', 'fight', 'ko', 'over'];
 
-export type ProjKind = 'arrow' | 'bomb' | 'frost' | 'arcane' | 'orb' | 'wave';
-export const PROJ_KINDS: ProjKind[] = ['arrow', 'bomb', 'frost', 'arcane', 'orb', 'wave'];
+export type ProjKind = 'arrow' | 'bomb' | 'frost' | 'arcane' | 'orb' | 'wave' | 'relic' | 'hand' | 'steed';
+export const PROJ_KINDS: ProjKind[] = ['arrow', 'bomb', 'frost', 'arcane', 'orb', 'wave', 'relic', 'hand', 'steed'];
 
 /** Caster's Thunder Call: a strike aimed at the opponent shortly before it lands (the marker is shown meanwhile). */
 export interface Strike {
@@ -35,6 +36,8 @@ export interface Strike {
   y: number;
   at: number;
   aimed: boolean;
+  /** 0 star / lightning (Starfall), 1 binding chains (Chains of Genesis). */
+  kind: number;
 }
 
 export interface Projectile {
@@ -53,6 +56,11 @@ export interface Projectile {
   heavy: boolean;
   /** Ticks before it appears (a volley's staggered arrows). */
   wait?: number;
+  /** Ignores guards. */
+  unblockable?: boolean;
+  /** Tramples through: hits once, keeps going. */
+  pierce?: boolean;
+  burn?: number;
 }
 
 export interface Trap {
@@ -83,8 +91,8 @@ export type GameEvent =
   | { t: 'match'; winner: number }
   /** p started its Rift Art (classes.ts ArtId). */
   | { t: 'art'; p: number; art: number }
-  /** A Thunder Call bolt landed. */
-  | { t: 'strike'; x: number; y: number };
+  /** A Starfall bolt or Chains of Genesis landed. */
+  | { t: 'strike'; x: number; y: number; kind: number };
 
 export interface Fighter {
   id: number;
@@ -360,10 +368,10 @@ export class World {
     if (s.act === Act.Roll && before !== Act.Roll) this.events.push({ t: 'roll', p: f.id });
     if (s.act === Act.Heal && before !== Act.Heal) this.events.push({ t: 'heal', p: f.id });
     if (s.act === Act.Attack && s.actT === 0) {
-      if (s.move === MOVE_ART) this.events.push({ t: 'art', p: f.id, art: classOf(f.load.cls).art });
+      if (s.move === MOVE_ART) this.events.push({ t: 'art', p: f.id, art: artIdOf(f.load) });
       else this.events.push({ t: 'swing', p: f.id, w: f.load.weapons[s.slot], m: s.move });
     }
-    if (s.act === Act.Art && s.actT === 0 && before !== Act.Art) this.events.push({ t: 'art', p: f.id, art: classOf(f.load.cls).art });
+    if (s.act === Act.Art && s.actT === 0 && before !== Act.Art) this.events.push({ t: 'art', p: f.id, art: artIdOf(f.load) });
     void hpBefore;
     this.recordHistory(f);
   }
@@ -430,6 +438,12 @@ export class World {
       if (Math.abs(seen.x - a.s.x) > reach * 0.68) crit = tip = true;
     }
     if (crit) dmg = Math.round(dmg * (backstab ? C.backstab : 1.4));
+    // out of the Grim Fog: the first blow crits and reveals
+    if (a.s.veil > 0) {
+      if (!crit) dmg = Math.round(dmg * 1.5);
+      crit = true;
+      a.s.veil = 0;
+    }
     void tip;
     const ix = (Math.max(box.x, seen.x - FIGHTER.w / 2) + Math.min(box.x + box.w, seen.x + FIGHTER.w / 2)) / 2;
     const iy = Math.max(box.y, seen.y - FIGHTER.h) + Math.min(box.h, FIGHTER.h) / 2;
@@ -453,6 +467,7 @@ export class World {
     let k = C.dmg;
     if (C.id === ClassId.Berserker && a.s.hp < C.hp / 3) k *= 1.4 / 1.2;
     if (a.s.frenzy > 0) k *= 1.25;
+    if (a.s.buff > 0) k *= 1.3;
     return k;
   }
 
@@ -472,7 +487,7 @@ export class World {
     const DC = classOf(d.load.cls);
     const dirX = a ? (a.s.x <= ds.x ? 1 : -1) : h.x <= ds.x ? 1 : -1;
     // Bulwark: nothing gets through; a swing into it staggers the attacker
-    if (ds.act === Act.Art && DC.art === ArtId.Bulwark) {
+    if (ds.act === Act.Art && artIdOf(d.load) === ArtId.Bulwark) {
       if (a && h.melee !== false) {
         a.s.act = Act.Stun;
         a.s.actT = 0;
@@ -644,10 +659,11 @@ export class World {
       let dead = p.life <= 0;
       // hit a fighter (not its owner)
       for (const f of this.fighters.values()) {
-        const bulwark = f.s.act === Act.Art && classOf(f.load.cls).art === ArtId.Bulwark;
+        const bulwark = f.s.act === Act.Art && artIdOf(f.load) === ArtId.Bulwark;
         if (dead || f.id === p.owner || f.s.act === Act.KO || (f.s.invuln > 0 && !bulwark)) continue;
         const bb = bodyBox(f.s.x, f.s.y, !!f.s.crouch);
-        const r = p.kind === 'wave' ? 30 : p.kind === 'orb' ? 9 : 4;
+        if (p.dmg <= 0 && p.kind === 'steed') continue;
+        const r = p.kind === 'wave' || p.kind === 'steed' ? 32 : p.kind === 'orb' ? 9 : p.kind === 'hand' ? 14 : 4;
         const pb = { x: Math.min(px, p.x) - 4, y: Math.min(py, p.y) - r, w: Math.abs(p.x - px) + 8, h: Math.abs(p.y - py) + r * 2 };
         if (!overlap(bb, pb)) continue;
         const owner = this.fighters.get(p.owner);
@@ -665,8 +681,17 @@ export class World {
         } else {
           const front = (p.vx < 0) === (f.s.face > 0);
           const guardOk = isBlocking(f.s) && front;
-          const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' ? 106 : 101;
-          this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY: p.kind === 'wave' ? 260 : p.heavy ? 160 : 40, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false });
+          const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' || p.kind === 'relic' || p.kind === 'hand' || p.kind === 'steed' ? 106 : 101;
+          const kbY = p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40;
+          this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable });
+          if (p.burn) f.s.burnT = Math.max(f.s.burnT, p.burn);
+          if (p.pierce) {
+            // trampled once: keeps running, harmless now
+            p.dmg = 0;
+            p.pierce = false;
+            p.owner = f.id;
+            continue;
+          }
           if (p.kind === 'frost' && !guardOk) f.s.slowT = SKILL_FX.frost.slowTicks;
         }
         dead = true;
@@ -681,9 +706,9 @@ export class World {
             p.y = Math.min(p.y, surfaceBelow(A, p.x, py));
             this.explode(p, this.fighters.get(p.owner));
           }
-          // the light wave rolls along the floor; only walls stop it
-          if (p.kind === 'wave' && !wallHit) {
-            p.y = Math.min(p.y, surfaceBelow(A, p.x, py) - 30);
+          // the light wave, the hand and the steed run along the floor; only walls stop them
+          if ((p.kind === 'wave' || p.kind === 'hand' || p.kind === 'steed') && !wallHit) {
+            p.y = Math.min(p.y, solidBelow(A, p.x, py) - (p.kind === 'hand' ? 14 : 30));
             p.vy = 0;
             out.push(p);
             continue;
@@ -720,7 +745,7 @@ export class World {
       const C = classOf(f.load.cls);
       const o = this.opponent(f);
       const t = s.actT;
-      switch (C.art) {
+      switch (artIdOf(f.load)) {
         case ArtId.RadiantCleave:
           if (t === 18) {
             this.projectiles.push({ id: this.nextId++ % 65536, kind: 'wave', owner: f.id, x: s.x + s.face * 30, y: s.y - 30, vx: s.face * 720, vy: 0, dmg: 200, kb: 380, stun: 42, life: Math.round(1.4 * TICK_RATE), heavy: true });
@@ -739,7 +764,54 @@ export class World {
           }
           break;
         case ArtId.ThunderCall:
-          if (t === 10) for (let k = 0; k < 3; k++) this.strikes.push({ id: this.nextId++ % 65536, owner: f.id, x: o ? o.s.x : s.x, y: o ? o.s.y : s.y, at: this.tick + 26 + k * 24, aimed: false });
+          if (t === 10) for (let k = 0; k < 3; k++) this.strikes.push({ id: this.nextId++ % 65536, owner: f.id, x: o ? o.s.x : s.x, y: o ? o.s.y : s.y, at: this.tick + 26 + k * 24, aimed: false, kind: 0 });
+          break;
+        case ArtId.ChainsOfGenesis:
+          if (t === 8) this.strikes.push({ id: this.nextId++ % 65536, owner: f.id, x: o ? o.s.x : s.x, y: o ? o.s.y : s.y, at: this.tick + 22, aimed: false, kind: 1 });
+          break;
+        case ArtId.VaultOfAges:
+          // rift portals behind him fire a stream of relic weapons at staggered heights
+          if (t >= 10 && t <= 40 && (t - 10) % 3 === 0) {
+            const k = (t - 10) / 3;
+            const y = s.y - 22 - ((k * 7) % 4) * 14;
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'relic', owner: f.id, x: s.x - s.face * (24 + (k % 3) * 18), y, vx: s.face * 820, vy: 0, dmg: 30, kb: 60, stun: 10, life: Math.round(1.3 * TICK_RATE), heavy: k % 4 === 3 });
+            this.events.push({ t: 'shoot', p: f.id, kind: 7 });
+          }
+          break;
+        case ArtId.PhantomHand:
+          if (t === 12) {
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 780, vy: 0, dmg: 150, kb: 0, stun: 64, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true });
+            this.events.push({ t: 'shoot', p: f.id, kind: 8 });
+          }
+          break;
+        case ArtId.Stampede:
+          if (t === 14) {
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'steed', owner: f.id, x: s.x - s.face * 80, y: s.y - 30, vx: s.face * 900, vy: 0, dmg: 170, kb: 420, stun: 40, life: Math.round(2 * TICK_RATE), heavy: true, pierce: true, burn: 150, unblockable: true });
+            this.events.push({ t: 'shoot', p: f.id, kind: 9 });
+          }
+          break;
+        case ArtId.NightHunt:
+          if (t === 6) {
+            const dx = (o ? o.s.x : s.x + s.face * 200) - s.x;
+            s.vx = Math.max(-950, Math.min(950, dx / 0.45));
+            s.vy = -620;
+            s.ground = 0;
+            s.face = dx >= 0 ? 1 : -1;
+          }
+          if (t > 10 && s.ground && !s.charge) {
+            s.charge = 1;
+            this.events.push({ t: 'boom', x: s.x, y: s.y });
+            if (o && o.s.act !== Act.KO && o.s.invuln <= 0 && Math.abs(o.s.x - s.x) < 85 && Math.abs(o.s.y - s.y) < 70) {
+              this.applyHit(f, o, { dmg: 165, kbX: 300, kbY: 360, stun: 38, crit: false, w: 106, x: o.s.x, y: o.s.y - 26, front: false, breaksGuard: true });
+            }
+            s.actT = Math.max(s.actT, 36);
+          }
+          break;
+        case ArtId.BloodFrenzy:
+          // the roar knocks everyone close away
+          if (t === 12 && o && o.s.act !== Act.KO && o.s.invuln <= 0 && Math.abs(o.s.x - s.x) < 110 && Math.abs(o.s.y - s.y) < 80) {
+            this.applyHit(f, o, { dmg: 50, kbX: 380, kbY: 200, stun: 20, crit: false, w: 106, x: o.s.x, y: o.s.y - 26, front: false, breaksGuard: true, melee: false });
+          }
           break;
         case ArtId.FlashStep: {
           if (!o || o.s.act === Act.KO) break;
@@ -784,9 +856,16 @@ export class World {
       }
       if (this.tick < st.at) continue;
       this.strikes.splice(i, 1);
-      this.events.push({ t: 'strike', x: st.x, y: st.y });
+      this.events.push({ t: 'strike', x: st.x, y: st.y, kind: st.kind });
       if (o && o.s.act !== Act.KO && o.s.invuln <= 0 && Math.abs(o.s.x - st.x) < 36 && o.s.y > st.y - 130 && o.s.y <= st.y + 4) {
-        this.applyHit(owner, o, { dmg: 105, kbX: 80, kbY: 320, stun: 30, crit: false, w: 105, x: st.x, y: o.s.y - 30, front: false, melee: false, breaksGuard: true });
+        if (st.kind === 1) {
+          // the chains bind: rooted where they stand
+          this.applyHit(owner, o, { dmg: 120, kbX: 0, kbY: 0, stun: 24, crit: false, w: 107, x: st.x, y: o.s.y - 30, front: false, melee: false, breaksGuard: true });
+          o.s.rootT = Math.max(o.s.rootT, 110);
+          o.s.vx = 0;
+        } else {
+          this.applyHit(owner, o, { dmg: 105, kbX: 80, kbY: 320, stun: 30, crit: false, w: 105, x: st.x, y: o.s.y - 30, front: false, melee: false, breaksGuard: true });
+        }
       }
     }
   }

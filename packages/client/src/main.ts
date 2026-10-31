@@ -2,6 +2,8 @@ import '@fontsource/lilita-one/400.css';
 import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './styles.css';
+import './ui/roster.css';
+import './ui/hud.css';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './ui/App';
 import { markUpdateReady, setUpdater } from './update';

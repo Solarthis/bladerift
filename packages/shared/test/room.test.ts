@@ -5,7 +5,8 @@ import {
   Msg, msgType, RosterEntry, WelcomeMsg,
 } from '../src/protocol';
 import { MAX_PLAYERS, PROTOCOL_VERSION, TICK_RATE } from '../src/constants';
-import { DEFAULT_LOADOUT, SkillId, WeaponId } from '../src/weapons';
+import { SkillId, WeaponId } from '../src/weapons';
+import { DEFAULT_LOADOUT } from '../src/heroes';
 import type { InputCmd } from '../src/input';
 
 const KEY = 'host-key';
@@ -463,7 +464,7 @@ describe('room: lobby commands and host control', () => {
     expect(rosterOf(room, a.id)?.load.weapons[0]).toBe(WeaponId.Sword);
     expect(rosterOf(room, a.id)?.load.weapons[1]).not.toBe(WeaponId.Sword);
     // slot A is always the class's signature weapon (class 1, Archer: the bow)
-    lobby(a, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Sword], skill: 99 as never, cls: 1 } });
+    lobby(a, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Sword], skill: 99 as never, hero: 1 } });
     expect(rosterOf(room, a.id)?.load.weapons).toEqual([WeaponId.Bow, WeaponId.Sword]);
     expect(rosterOf(room, a.id)?.load.skill).toBe(DEFAULT_LOADOUT.skill);
   });

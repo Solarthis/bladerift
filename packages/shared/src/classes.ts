@@ -13,8 +13,9 @@ export const enum ClassId {
   Assassin = 4,
   Berserker = 5,
   Shielder = 6,
+  Rider = 7,
 }
-export const CLASS_COUNT = 7;
+export const CLASS_COUNT = 8;
 
 export const enum ArtId {
   RadiantCleave = 0,
@@ -24,6 +25,13 @@ export const enum ArtId {
   FlashStep = 4,
   BloodFrenzy = 5,
   Bulwark = 6,
+  VaultOfAges = 7,
+  ChainsOfGenesis = 8,
+  RewrittenFate = 9,
+  PhantomHand = 10,
+  GrimFog = 11,
+  Stampede = 12,
+  NightHunt = 13,
 }
 
 export interface ArtDef {
@@ -69,13 +77,20 @@ export interface ClassDef {
 }
 
 export const ARTS: ArtDef[] = [
-  { id: ArtId.RadiantCleave, name: 'Radiant Cleave', blurb: 'Gathers light into the blade and hurls a crescent wave across the arena.', ticks: 40 },
-  { id: ArtId.HailOfArrows, name: 'Hail of Arrows', blurb: 'Looses a volley skyward that rains down around the opponent.', ticks: 30 },
-  { id: ArtId.PiercingFang, name: 'Piercing Fang', blurb: 'An unstoppable lunge across the arena that ignores guards.', ticks: 44 },
-  { id: ArtId.ThunderCall, name: 'Thunder Call', blurb: 'Calls three lightning strikes down on the opponent\'s position.', ticks: 36 },
+  { id: ArtId.RadiantCleave, name: 'Radiant Cleave', blurb: 'Gathers sunlight into the blade and hurls a crescent wave across the arena.', ticks: 40 },
+  { id: ArtId.HailOfArrows, name: 'Serpent Rain', blurb: 'Looses a volley skyward that rains down around the opponent.', ticks: 30 },
+  { id: ArtId.PiercingFang, name: 'Abyss Fang', blurb: 'An unstoppable lunge across the arena that ignores guards.', ticks: 44 },
+  { id: ArtId.ThunderCall, name: 'Starfall', blurb: 'Calls three falling stars down on the opponent\'s position.', ticks: 36 },
   { id: ArtId.FlashStep, name: 'Flash Step', blurb: 'Untouchable: vanish, reappear behind the opponent and unleash a six-cut flurry. Use it as a counter mid-attack.', ticks: 54 },
   { id: ArtId.BloodFrenzy, name: 'Blood Frenzy', blurb: 'Six seconds of rage: hits cannot stagger you, you hit harder and recover faster.', ticks: 24 },
   { id: ArtId.Bulwark, name: 'Bulwark', blurb: 'Two seconds untouchable behind a barrier that reflects projectiles and shoves attackers back.', ticks: 120 },
+  { id: ArtId.VaultOfAges, name: 'Vault of Ages', blurb: 'Rift portals open behind him and fire a storm of legendary weapons.', ticks: 50 },
+  { id: ArtId.ChainsOfGenesis, name: 'Chains of Genesis', blurb: 'Living chains burst from the ground under the opponent and bind them fast.', ticks: 30 },
+  { id: ArtId.RewrittenFate, name: 'Rewritten Fate', blurb: 'Rewrites the chapter: heals a fifth of health and empowers every blow for seven seconds.', ticks: 30 },
+  { id: ArtId.PhantomHand, name: 'Phantom Hand', blurb: 'A spectral claw races along the ground, seizes the opponent and crushes them.', ticks: 40 },
+  { id: ArtId.GrimFog, name: 'Grim Fog', blurb: 'Vanishes into fog: unseen by the opponent for five seconds, and the first blow from the fog crits.', ticks: 20 },
+  { id: ArtId.Stampede, name: 'Stampede', blurb: 'A burning warhorse thunders across the arena, trampling and setting the opponent alight.', ticks: 36 },
+  { id: ArtId.NightHunt, name: 'Night Hunt', blurb: 'Leaps onto the opponent with the shadow hound and slams down with it.', ticks: 50 },
 ];
 
 export const CLASSES: ClassDef[] = [
@@ -120,6 +135,12 @@ export const CLASSES: ClassDef[] = [
     blurb: 'The guardian: huge health, wider parry timing, chip damage halved. Bulwark turns the tables.',
     hp: 1250, dmg: 0.9, speed: 0.92, airJumps: 1, dashes: 1, rollCd: 1.1, recovery: 1, backstab: 1.5, chip: 0.5, skillCd: 1, arrowSpeed: 1,
     bars: { power: 2, speed: 2, health: 5, reach: 2 },
+  },
+  {
+    id: ClassId.Rider, name: 'Rider', title: 'Master of the charge', signature: WeaponId.Scythe, art: ArtId.Stampede,
+    blurb: 'Fast and far-reaching: rides the arena, sweeps wide with a war scythe and tramples with a summoned mount.',
+    hp: 980, dmg: 1, speed: 1.2, airJumps: 1, dashes: 2, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
+    bars: { power: 3, speed: 4, health: 3, reach: 4 },
   },
 ];
 

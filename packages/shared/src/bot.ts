@@ -6,13 +6,13 @@
  * Everything comes from its seeded Rng, so a seed always plays the same match.
  */
 import { DT, FIGHTER } from './constants';
-import { ArtId, CLASSES, CLASS_COUNT, RIFT } from './classes';
+import { ArtId, RIFT } from './classes';
 import { solidAt, surfaceBelow } from './arena';
 import { Act, currentMove } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
 import { Box, Loadout, Move, SKILL_FX, SKILLS, SkillId, WEAPONS, WeaponId } from './weapons';
-import { sanitizeLoadout } from './weapons';
+import { HEROES, HERO_COUNT, sanitizeLoadout } from './heroes';
 import { bodyBox, Fighter, moveBox, Projectile, ProjKind, World } from './world';
 
 export type BotDifficulty = 'easy' | 'normal' | 'hard';
@@ -122,9 +122,9 @@ const slotOf = (load: Loadout, pred: (w: WeaponId) => boolean) => (pred(load.wea
 
 export function botLoadout(seed: number): Loadout {
   const rng = new Rng(seed * 2654435761);
-  const cls = rng.int(CLASS_COUNT);
+  const hero = rng.int(HERO_COUNT);
   const second = [WeaponId.Bow, WeaponId.Shield, WeaponId.Daggers, WeaponId.Lance, WeaponId.Scythe, WeaponId.Sword];
-  return sanitizeLoadout({ weapons: [CLASSES[cls].signature, second[rng.int(second.length)]], skill: rng.int(4) as SkillId, cls });
+  return sanitizeLoadout({ weapons: [0, second[rng.int(second.length)]], skill: rng.int(4) as SkillId, hero });
 }
 
 /** The opponent's melee swing that can still reach us, with a margin for steps and lunges. */
@@ -247,12 +247,15 @@ export class BotBrain {
     const dist = Math.abs(dx);
     const aligned = Math.abs(o.y - s.y) < 40;
     const facing = s.face === (dx >= 0 ? 1 : -1);
-    switch (CLASSES[me.load.cls]?.art) {
+    switch (HEROES[me.load.hero]?.art) {
       case ArtId.FlashStep: return s.act === Act.Stun || (o.act === Act.Attack && dist < 140) || this.rng.next() < 0.004;
       case ArtId.PiercingFang: return aligned && facing && dist > 90 && dist < 520 && s.act === Act.Free;
       case ArtId.RadiantCleave: return aligned && facing && dist > 110 && s.act === Act.Free;
       case ArtId.BloodFrenzy: return dist < 220 && s.act === Act.Free;
       case ArtId.Bulwark: return (o.act === Act.Attack && dist < 120) || this.rng.next() < 0.003;
+      case ArtId.PhantomHand: case ArtId.Stampede: return aligned && facing && dist > 80 && s.act === Act.Free;
+      case ArtId.NightHunt: return dist > 120 && dist < 520 && s.act === Act.Free;
+      case ArtId.GrimFog: case ArtId.RewrittenFate: return s.act === Act.Free && dist > 160;
       default: return s.act === Act.Free;
     }
   }

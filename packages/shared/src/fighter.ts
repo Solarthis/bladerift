@@ -8,7 +8,8 @@ import { ArenaDef, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS } from './constants';
 import { Btn, InputCmd } from './input';
 import { Loadout, Move, SKILL_FX, SKILLS, SkillId, WEAPONS } from './weapons';
-import { ArtId, artOf, classOf, ClassDef, RIFT } from './classes';
+import { ArtId, ARTS, classOf, ClassDef, RIFT } from './classes';
+import { artIdOf } from './heroes';
 
 export const enum Act {
   Free = 0,
@@ -117,6 +118,10 @@ export interface FighterState {
   rift: number;
   /** Berserker's Blood Frenzy ticks left (no stagger, harder hits, faster recovery). */
   frenzy: number;
+  /** Rewritten Fate: empowered blows ticks left. */
+  buff: number;
+  /** Grim Fog: unseen by the opponent ticks left (the first blow from it crits and ends it). */
+  veil: number;
 }
 
 /** Every state field, in wire order (protocol.ts sends the whole state to its owner for prediction). */
@@ -124,7 +129,7 @@ export const STATE_KEYS: (keyof FighterState)[] = [
   'x', 'y', 'vx', 'vy', 'face', 'ground', 'jumps', 'drop', 'act', 'actT', 'slot', 'move', 'combo', 'comboWin', 'buf', 'bufT',
   'charge', 'rollCd', 'skillCd', 'invuln', 'stun', 'slowT', 'rootT', 'burnT', 'flask', 'hp', 'prevBtn', 'moveSeq', 'blockT',
   'lock', 'jumpHeld', 'spawn', 'wall', 'slide', 'wallT', 'wallSide', 'wlock', 'dash', 'rollAir', 'fast', 'crouch', 'coyote',
-  'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy',
+  'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil',
 ];
 
 export function newFighterState(x: number, y: number, face: number, cls = 0): FighterState {
@@ -133,7 +138,7 @@ export function newFighterState(x: number, y: number, face: number, cls = 0): Fi
     comboWin: 0, buf: 0, bufT: 0, charge: 0, rollCd: 0, skillCd: 0, invuln: 0, stun: 0, slowT: 0, rootT: 0, burnT: 0,
     flask: FIGHTER.flasks, hp: classOf(cls).hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
     wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
-    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0,
+    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0,
   };
 }
 
@@ -191,7 +196,7 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
   if (!b) return false;
   const C = classOf(load.cls);
   if (b === Buf.Special) {
-    if (!startArt(s, C)) return false;
+    if (!startArt(s, C, artIdOf(load))) return false;
     s.buf = 0;
     s.bufT = 0;
     return true;
@@ -263,21 +268,21 @@ function onPlatform(s: FighterState, arena: ArenaDef) {
 }
 
 /** Start the class's Rift Art if the gauge is full. */
-function startArt(s: FighterState, C: ClassDef): boolean {
+function startArt(s: FighterState, C: ClassDef, artId: ArtId): boolean {
   if (s.rift < RIFT.max) return false;
   s.rift = 0;
   s.crouch = 0;
   s.charge = 0;
   s.stun = 0;
-  if (C.art === ArtId.PiercingFang) {
+  if (artId === ArtId.PiercingFang) {
     startAttack(s, 0, MOVE_ART);
     return true;
   }
   s.act = Act.Art;
   s.actT = 0;
-  const art = artOf(C.id);
-  if (C.art === ArtId.FlashStep || C.art === ArtId.Bulwark) s.invuln = Math.max(s.invuln, art.ticks);
-  if (C.art === ArtId.BloodFrenzy) s.invuln = Math.max(s.invuln, art.ticks);
+  const art = ARTS[artId];
+  if (artId === ArtId.FlashStep || artId === ArtId.Bulwark) s.invuln = Math.max(s.invuln, art.ticks);
+  if (artId === ArtId.BloodFrenzy) s.invuln = Math.max(s.invuln, art.ticks);
   return true;
 }
 
@@ -343,7 +348,10 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   if (press & Btn.A) { s.buf = Buf.A; s.bufT = FIGHTER.buffer; }
   if (press & Btn.Special) { s.buf = Buf.Special; s.bufT = FIGHTER.buffer; }
   const C = classOf(load.cls);
+  const ART = artIdOf(load);
   if (s.frenzy > 0) s.frenzy--;
+  if (s.buff > 0) s.buff--;
+  if (s.veil > 0) s.veil--;
   // the Rift gauge fills on its own while the round is live (hits fill it faster: the World adds those)
   if (!locked && s.act !== Act.Art && s.rift < RIFT.max) s.rift = Math.min(RIFT.max, s.rift + RIFT.passive);
 
@@ -358,7 +366,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   switch (s.act) {
     case Act.Stun: {
       // the assassin's Flash Step breaks out of a combo
-      if (s.buf === Buf.Special && C.art === ArtId.FlashStep && startArt(s, C)) {
+      if (s.buf === Buf.Special && ART === ArtId.FlashStep && startArt(s, C, ART)) {
         s.buf = 0;
         break;
       }
@@ -519,7 +527,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       const total = end + Math.round(rec);
       const chainAt = end + Math.ceil(rec * 0.35);
       // any attack can be cancelled into the Rift Art
-      if (s.buf === Buf.Special && s.move !== MOVE_ART && startArt(s, C)) {
+      if (s.buf === Buf.Special && s.move !== MOVE_ART && startArt(s, C, ART)) {
         s.buf = 0;
         break;
       }
@@ -539,19 +547,28 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       break;
     }
     case Act.Art: {
-      const art = artOf(C.id);
-      if (C.art === ArtId.FlashStep) {
+      const art = ARTS[ART];
+      if (ART === ArtId.FlashStep) {
         // the World moves the assassin behind the opponent and lands the flurry; hold still in the air meanwhile
         gravity = false;
         s.vx = 0;
         s.vy = 0;
-      } else if (C.art === ArtId.Bulwark) {
+      } else if (ART === ArtId.Bulwark) {
         s.vx = approach(s.vx, ax * 60, PHYS.groundDecel * DT);
+      } else if (ART === ArtId.NightHunt) {
+        // the pounce keeps the leap's momentum (the World launches it)
+        if (s.ground && s.actT > 10) s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
       } else s.vx = approach(s.vx, 0, (s.ground ? PHYS.groundDecel : PHYS.airDecel) * DT);
       if (s.actT >= art.ticks) {
         s.act = Act.Free;
         s.actT = 0;
-        if (C.art === ArtId.BloodFrenzy) s.frenzy = 360;
+        if (ART === ArtId.BloodFrenzy) s.frenzy = 360;
+        if (ART === ArtId.RewrittenFate) {
+          s.hp = Math.min(C.hp, s.hp + C.hp * 0.2);
+          s.buff = 420;
+        }
+        if (ART === ArtId.GrimFog) s.veil = 300;
+        s.charge = 0;
       }
       break;
     }

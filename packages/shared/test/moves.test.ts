@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Act, ArenaDef, Btn, copyState, FIGHTER, getArena, InputCmd, Loadout, newFighterState, PHYS, SkillId, stepFighter, WeaponId } from '../src/index';
 
-const LOAD: Loadout = { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb, cls: 0 };
+const LOAD: Loadout = { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb, cls: 0, hero: 0 };
 const c = (moveX = 0, buttons = 0, moveY = 0): InputCmd => ({ seq: 0, moveX, moveY, buttons, viewTick: 0 });
 
 /** A small test arena: a floor, a tall block on the right with room between it and the right wall. */

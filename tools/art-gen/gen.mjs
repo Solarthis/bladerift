@@ -38,7 +38,53 @@ const ICON_RULES = `Rules for the whole sheet:
   readable at 48 px: bold silhouette, strong rim light, painterly hand-painted style matching the attached reference.
 - NO text, NO letters, NO numbers, NO labels anywhere. Icons never bleed into each other; keep the grid perfectly aligned.`;
 
+const PORTRAIT_RULES = `Rules for the whole sheet:
+- A set of character PORTRAIT CARDS for an original dark-fantasy duelling game, laid out as an exact grid of 2 rows x 4 columns of equal
+  portrait-shaped cells (image size 1536x1024, each card 384x512, filling its cell edge to edge).
+- EVERY card shares the same frame: a thin bevelled dark-iron border with small gold corner studs, matching the attached reference's frame.
+- Inside: a head-and-shoulders (bust) portrait, three-quarter view, dramatic rim light, a moody themed background colour per character,
+  painterly hand-painted style with crisp pixel-art-inspired edges, strong readable silhouette and expression.
+- These are ORIGINAL characters created for this game: they must NOT resemble any existing anime, manga, game or film character.
+- NO text, NO names, NO letters anywhere.`;
+
 const JOBS = {
+  'portraits-1': {
+    ref: 'icons-gear.png',
+    prompt: `${PORTRAIT_RULES}
+Row 1: (1) LEON VALCREST, the Lionheart King: a young crusader king, short wild golden-blond hair with one crimson streak, fierce red eyes,
+       ornate white-and-gold plate armour with a lion emblem, a red cape; warm sunset background.
+       (2) KHARON, the Chainbound: a towering, scarred giant archer with long matted black hair, a heavy jaw, glowing amber eyes, bound in rusted
+       chains and a ragged red cloth; a huge black bow over his shoulder; dark ember background.
+       (3) AURELION, the Gilded Sovereign: an arrogant golden-haired king with slicked-back hair and crimson eyes, gleaming gold armour with sharp
+       pauldrons, swirling golden rift portals behind him; radiant gold background.
+       (4) NYX, the Hollow Tide: a pale, dark-haired young man in a long black coat, cold blue eyes, translucent ghostly jellyfish-like spirits drifting
+       around him; deep night-blue background.
+Row 2: (5) VERDAN, the Clay-Born: an androgynous, serene figure with very long flowing mint-green hair and green eyes, simple pale robes,
+       living golden chains coiling around one raised hand; soft green background.
+       (6) LUMI SORRELLE, the Illusionist: a playful young woman sorcerer with pastel-pink bob hair, violet eyes, a crimson academy coat, glowing
+       arcane sigils floating over her palms; magenta background.
+       (7) QUILL, the Storyteller: a broad, cheerful man with wild orange hair and a short beard, a loose white shirt and waistcoat, a quill pen and an open
+       glowing book; warm orange background.
+       (8) HOLLOWMASK: a shadowy assassin wearing a white skull mask, a tattered black hood and cloak, one elongated spectral clawed arm;
+       sickly teal background.`,
+  },
+  'portraits-2': {
+    ref: 'icons-gear.png',
+    prompt: `${PORTRAIT_RULES}
+Row 1: (1) SABLE, the Veiled Blade: a lithe female assassin in a dark indigo hood with a cloth mask over her lower face, sharp dark eyes, twin curved
+       daggers crossed in front of her; deep indigo background with a cyan slash of light.
+       (2) GORVAX, the Chimera Engine: a monstrous hulking chimera of iron plates and beast flesh, a lion-like mane of cables, two glowing red eyes, a
+       steam-vented jaw; burning red background.
+       (3) MR. GRAY, the Faceless: a tall, composed gentleman in a dark grey police-style greatcoat and cap, a calm half-smile, the edges of his face
+       dissolving into grey fog, a black baton on his shoulder; foggy grey-blue background.
+       (4) IGNIS, the Crimson Rider: a fiery young rider with spiky crimson hair and golden eyes, a dark blue riding coat with gold trim, a flaming
+       spectral warhorse head behind him; blazing orange-red background.
+Row 2: (5) THORNMAW, the Black Hound: a quiet girl with short brown hair and a scarf, riding with a colossal shadow wolf-hound whose glowing
+       eyes loom behind her; dusky purple background.
+       (6) AEGIS MARROW, the Warden: a stoic young woman knight with silver short hair, teal eyes, heavy teal-and-steel armour, a towering tower
+       shield; cool teal background.
+       (7) an empty dark card with only a faint golden rift crack (spare). (8) an empty dark card with only a faint golden rift crack (spare).`,
+  },
   'icons-abilities': {
     ref: 'skills.png',
     prompt: `${ICON_RULES}

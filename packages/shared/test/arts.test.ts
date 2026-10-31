@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { Act, ArtId, Btn, CLASSES, ClassId, InputCmd, Loadout, RIFT, ROUND, sanitizeLoadout, SkillId, World, WeaponId } from '../src/index';
+import { Act, ArtId, Btn, CLASSES, ClassId, HEROES, InputCmd, Loadout, RIFT, ROUND, sanitizeLoadout, SkillId, World, WeaponId } from '../src/index';
 
-const loadFor = (cls: ClassId, b = WeaponId.Bow): Loadout => sanitizeLoadout({ weapons: [0, b], skill: SkillId.Bomb, cls });
+/** The hero whose Art is the class's own (Sable for the assassin's Flash Step, Leon for Saber...). */
+const heroFor = (cls: ClassId) => HEROES.find((h) => h.cls === cls && h.art === CLASSES[cls].art)!.id;
+const loadFor = (cls: ClassId, b = WeaponId.Bow): Loadout => sanitizeLoadout({ weapons: [0, b], skill: SkillId.Bomb, hero: heroFor(cls) });
 const cmd = (seq: number, moveX = 0, buttons = 0): InputCmd => ({ seq, moveX, moveY: 0, buttons, viewTick: 0 });
 
 /** A live duel, fighters `gap` apart, A of class `a`, B of class `b`, A's gauge full. */
@@ -33,7 +35,7 @@ function run(w: World, n: number, a: (i: number) => InputCmd, b: (i: number) => 
 describe('classes', () => {
   it('slot A is always the signature weapon; health and speed follow the class', () => {
     for (const C of CLASSES) {
-      const l = sanitizeLoadout({ weapons: [WeaponId.Hammer, WeaponId.Hammer], skill: 0, cls: C.id });
+      const l = sanitizeLoadout({ weapons: [WeaponId.Hammer, WeaponId.Hammer], skill: 0, hero: heroFor(C.id) });
       expect(l.weapons[0]).toBe(C.signature);
       expect(l.weapons[1]).not.toBe(C.signature);
     }
@@ -127,6 +129,11 @@ describe('Rift Arts', () => {
     const { w, fa } = duel(ClassId.Berserker, ClassId.Saber, 40);
     run(w, 30, (i) => cmd(i, 0, i === 1 ? Btn.Special : 0));
     expect(fa.s.frenzy).toBeGreaterThan(300);
+    // (the roar knocked the saber away: bring it back in reach)
+    const fb = w.fighters.get(2)!;
+    fb.s.x = fa.s.x + 40;
+    fb.s.act = Act.Free;
+    fb.s.stun = 0;
     const hp = fa.s.hp;
     run(w, 30, (i) => cmd(i), (i) => cmd(i, 0, i % 3 === 1 ? Btn.A : 0));
     expect(fa.s.hp).toBeLessThan(hp);

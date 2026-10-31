@@ -7,7 +7,8 @@ import {
 } from './protocol';
 import { DEFAULT_SETTINGS, MatchSettings, World } from './world';
 import { botLook, PlayerLook, sanitizeColor, sanitizeLook } from './look';
-import { DEFAULT_LOADOUT, Loadout, sanitizeLoadout } from './weapons';
+import { Loadout } from './weapons';
+import { DEFAULT_LOADOUT, sanitizeLoadout } from './heroes';
 
 /** Minimal socket surface the room needs; implemented by `ws` on the server and by an in-memory pair offline. */
 export interface RoomSocket {
