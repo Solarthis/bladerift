@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="22" data-pivot="22 8">
+  <defs>
+    <clipPath id="wp-sg-stock"><path d="M-6.6 -3 L-18.6 -1.6 Q-20 -1.4 -20 0 L-20 6.4 Q-20 7.6 -18.6 7.4 L-6.6 3 Z"/></clipPath>
+    <clipPath id="wp-sg-pump"><rect x="11.4" y="-0.6" width="10" height="4.6" rx="1.6"/></clipPath>
+    <clipPath id="wp-sg-rec"><rect x="-7.4" y="-3.8" width="14" height="6.8" rx="1.2"/></clipPath>
+  </defs>
+  <g transform="translate(22 8)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- stock -->
+    <path d="M-6.6 -3 L-18.6 -1.6 Q-20 -1.4 -20 0 L-20 6.4 Q-20 7.6 -18.6 7.4 L-6.6 3 Z" fill="#9a6a3f"/>
+    <g clip-path="url(#wp-sg-stock)"><path d="M-22 3.6 L-5 0.6 L-5 9 L-22 9 Z" fill="#74492c"/><path d="M-18.6 -0.8 L-8 -2.2 L-8 -1.2 L-18.6 0.2 Z" fill="#c08b55"/><path d="M-22 -3 L-18.4 -3 L-18.4 9 L-22 9 Z" fill="#2b2433"/></g>
+    <path d="M-6.6 -3 L-18.6 -1.6 Q-20 -1.4 -20 0 L-20 6.4 Q-20 7.6 -18.6 7.4 L-6.6 3 Z" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <path d="M-18.4 -1.4 L-18.4 7.2" fill="none" stroke="#1b1420" stroke-width="1"/>
+    <!-- grip + guard -->
+    <path d="M-4 2 L1 2 L-0.2 8.4 Q-0.4 9.2 -1.2 9.2 L-4.4 9.2 Q-5.4 9.2 -5.2 8.2 Z" fill="#9a6a3f" stroke="#1b1420" stroke-width="2.2"/>
+    <path d="M1 2.6 L3.4 2.6 Q3.6 5.2 2 5.2" fill="none" stroke="#1b1420" stroke-width="1.6"/>
+    <!-- mag tube + barrel -->
+    <rect x="5" y="0" width="19" height="2.4" fill="#454d5d" stroke="#1b1420" stroke-width="1.8"/>
+    <rect x="5" y="-3" width="22.4" height="3.2" rx="0.6" fill="#5f697b" stroke="#1b1420" stroke-width="2.2"/>
+    <path d="M6 -2.2 L26 -2.2" fill="none" stroke="#9aa6b8" stroke-width="0.9"/>
+    <rect x="25.4" y="-4.2" width="1.6" height="1.4" fill="#1b1420"/>
+    <!-- pump -->
+    <rect x="11.4" y="-0.6" width="10" height="4.6" rx="1.6" fill="#9a6a3f"/>
+    <g clip-path="url(#wp-sg-pump)"><rect x="10" y="2.2" width="13" height="3" fill="#74492c"/><rect x="12" y="0" width="8.6" height="0.9" fill="#c08b55"/></g>
+    <rect x="11.4" y="-0.6" width="10" height="4.6" rx="1.6" fill="none" stroke="#1b1420" stroke-width="2.2"/>
+    <path d="M13.8 0.6 L13.8 3 M16.4 0.6 L16.4 3 M19 0.6 L19 3" fill="none" stroke="#1b1420" stroke-width="0.9"/>
+    <!-- receiver -->
+    <rect x="-7.4" y="-3.8" width="14" height="6.8" rx="1.2" fill="#5f697b"/>
+    <g clip-path="url(#wp-sg-rec)"><rect x="-8" y="0.6" width="16" height="3" fill="#454d5d"/><rect x="-6.6" y="-3" width="12" height="1" fill="#9aa6b8"/></g>
+    <rect x="-7.4" y="-3.8" width="14" height="6.8" rx="1.2" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <rect x="-3" y="-1.6" width="5.4" height="1.8" rx="0.6" fill="#f2b632" stroke="#1b1420" stroke-width="0.9"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="26" data-pivot="12 13">
+  <!-- shield cell: a hexagonal energy cell with a glowing core and a shield emblem -->
+  <g transform="translate(12 13)" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M0 -11 L9.5 -5.5 L9.5 5.5 L0 11 L-9.5 5.5 L-9.5 -5.5 Z" fill="#2c3a52"/>
+    <path d="M0 -8.4 L7.3 -4.2 L7.3 4.2 L0 8.4 L-7.3 4.2 L-7.3 -4.2 Z" fill="#3fa9ff"/>
+    <path d="M0 -8.4 L7.3 -4.2 L7.3 0 L-7.3 0 L-7.3 -4.2 Z" fill="#7fd0ff"/>
+    <path d="M0 -5.6 L4.4 -3.8 L4.4 0.4 Q4.4 4 0 6 Q-4.4 4 -4.4 0.4 L-4.4 -3.8 Z" fill="#effaff" stroke="#1b1420" stroke-width="1.4"/>
+    <path d="M0 -3.6 L2.4 -2.6 L2.4 0.2 Q2.4 2.4 0 3.6 Z" fill="#9fdcff"/>
+    <path d="M0 -11 L9.5 -5.5 L9.5 5.5 L0 11 L-9.5 5.5 L-9.5 -5.5 Z" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <path d="M-6.4 -5 L-2.8 -7.1" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+  </g>
+</svg>

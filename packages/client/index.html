@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d0a14" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Bladerift" />
+    <meta name="description" content="Bladerift: one-on-one medieval duels in your browser. Online, on one device, or against a bot." />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
+    <title>Bladerift</title>
+    <style>
+      /* First paint before the app CSS loads: match the menu sky so there is no white/blue flash. */
+      html, body { margin: 0; height: 100%; background: #0d0a14; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="game"></div>
+      <div id="backdrop"></div>
+      <div id="ui"></div>
+      <div id="rotate" role="alert">
+        <div class="rot-card">
+          <div class="rot-phone" aria-hidden="true"></div>
+          <b>Turn your device</b>
+          <span>Bladerift plays in landscape. Rotate to fight.</span>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

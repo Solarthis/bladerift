@@ -1,0 +1,14 @@
+Use your built-in image_gen tool (not the CLI) to generate ONE image, then copy the generated PNG to
+C:\Users\vascu\Projects\skyfire-squad\tools\character-pipeline\concepts\armour-parts-v1.png and print the source path and the final path. Do not write or change any other files.
+
+The attached image is a REFERENCE for character identity and art style only (a tactical jetpack soldier in olive-and-sand angular armour, green visor, headset, brown hair).
+
+Image to generate: a game-ready "cutout puppet parts sheet" for a 2D side-scrolling shooter rig.
+- Subject: the same soldier, strict side view facing RIGHT, broken into separate body parts laid out in a tidy grid with generous empty space between every part (no part touching another):
+  1) head with neck (no helmet, brown hair, green visor goggles, small headset), 2) torso/chest with armour vest (no arms, no head, no legs), 3) pelvis/hips with belt and pouch,
+  4) upper arm (shoulder armour), 5) forearm ending in a gloved fist, 6) thigh with knee pad, 7) shin ending in a combat boot (flat sole, side view),
+  8) compact jetpack seen from the side with a cyan glowing panel.
+- Every limb part straight, aligned vertically, with rounded joint ends that can overlap the neighbouring part.
+- Style: polished hand-drawn 2D action-game art, clean confident dark-brown linework (not thick black), two-tone cel shading, light from top-left, athletic proportions about 4.5 heads tall overall.
+- Background: fully transparent (alpha), no shadows, no text, no labels, no weapon.
+- Size 1536x1024, landscape.

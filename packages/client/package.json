@@ -1,0 +1,24 @@
+{
+  "name": "@bladerift/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "node ../../tools/build-art.mjs && vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "@bladerift/shared": "0.1.0",
+    "phaser": "^4.2.1",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@fontsource/lilita-one": "^5.3.0",
+    "@fontsource/nunito": "^5.2.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/qrcode": "^1.5.5",
+    "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0"
+  }
+}

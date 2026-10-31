@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="24" data-pivot="15 14">
+  <defs><clipPath id="pk-g1"><ellipse cx="0" cy="1.4" rx="5.4" ry="6"/></clipPath><clipPath id="pk-g2"><ellipse cx="0" cy="1.4" rx="5.4" ry="6"/></clipPath><clipPath id="pk-g3"><ellipse cx="0" cy="1.4" rx="5.4" ry="6"/></clipPath></defs>
+  <g transform="translate(7 14.5) rotate(-24)"><g stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="5.6" cy="-6.4" r="2.2" fill="none" stroke="#1b1420" stroke-width="2.2"/>
+    <circle cx="5.6" cy="-6.4" r="2.2" fill="none" stroke="#c9ccd4" stroke-width="0.9"/>
+    <ellipse cx="0" cy="1.4" rx="5.4" ry="6" fill="#6f7f45"/>
+    <g clip-path="url(#pk-g1)">
+      <ellipse cx="2" cy="3.6" rx="5.6" ry="6.2" fill="#55623a"/>
+      <ellipse cx="-0.4" cy="1" rx="4.4" ry="5.2" fill="#6f7f45"/>
+      <ellipse cx="-2.4" cy="-1.6" rx="1.4" ry="2" fill="#94a35f"/>
+    </g>
+    <ellipse cx="0" cy="1.4" rx="5.4" ry="6" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <path d="M-5 1.4 L5 1.4 M0 -4.4 L0 7.2" fill="none" stroke="#1b1420" stroke-width="0.9"/>
+    <rect x="-2.6" y="-7" width="5.2" height="3" rx="0.8" fill="#4a5160" stroke="#1b1420" stroke-width="1.8"/>
+    <path d="M2.6 -6 Q6.4 -5.2 6 1" fill="none" stroke="#1b1420" stroke-width="2.6"/>
+    <path d="M2.6 -6 Q6.4 -5.2 6 1" fill="none" stroke="#9aa3b3" stroke-width="1"/>
+  </g>
+</g>
+  <g transform="translate(23 14.5) rotate(22)"><g stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="5.6" cy="-6.4" r="2.2" fill="none" stroke="#1b1420" stroke-width="2.2"/>
+    <circle cx="5.6" cy="-6.4" r="2.2" fill="none" stroke="#c9ccd4" stroke-width="0.9"/>
+    <ellipse cx="0" cy="1.4" rx="5.4" ry="6" fill="#6f7f45"/>
+    <g clip-path="url(#pk-g3)">
+      <ellipse cx="2" cy="3.6" rx="5.6" ry="6.2" fill="#55623a"/>
+      <ellipse cx="-0.4" cy="1" rx="4.4" ry="5.2" fill="#6f7f45"/>
+      <ellipse cx="-2.4" cy="-1.6" rx="1.4" ry="2" fill="#94a35f"/>
+    </g>
+    <ellipse cx="0" cy="1.4" rx="5.4" ry="6" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <path d="M-5 1.4 L5 1.4 M0 -4.4 L0 7.2" fill="none" stroke="#1b1420" stroke-width="0.9"/>
+    <rect x="-2.6" y="-7" width="5.2" height="3" rx="0.8" fill="#4a5160" stroke="#1b1420" stroke-width="1.8"/>
+    <path d="M2.6 -6 Q6.4 -5.2 6 1" fill="none" stroke="#1b1420" stroke-width="2.6"/>
+    <path d="M2.6 -6 Q6.4 -5.2 6 1" fill="none" stroke="#9aa3b3" stroke-width="1"/>
+  </g>
+</g>
+  <g transform="translate(15 11) rotate(0)"><g stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="5.6" cy="-6.4" r="2.2" fill="none" stroke="#1b1420" stroke-width="2.2"/>
+    <circle cx="5.6" cy="-6.4" r="2.2" fill="none" stroke="#c9ccd4" stroke-width="0.9"/>
+    <ellipse cx="0" cy="1.4" rx="5.4" ry="6" fill="#6f7f45"/>
+    <g clip-path="url(#pk-g2)">
+      <ellipse cx="2" cy="3.6" rx="5.6" ry="6.2" fill="#55623a"/>
+      <ellipse cx="-0.4" cy="1" rx="4.4" ry="5.2" fill="#6f7f45"/>
+      <ellipse cx="-2.4" cy="-1.6" rx="1.4" ry="2" fill="#94a35f"/>
+    </g>
+    <ellipse cx="0" cy="1.4" rx="5.4" ry="6" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <path d="M-5 1.4 L5 1.4 M0 -4.4 L0 7.2" fill="none" stroke="#1b1420" stroke-width="0.9"/>
+    <rect x="-2.6" y="-7" width="5.2" height="3" rx="0.8" fill="#4a5160" stroke="#1b1420" stroke-width="1.8"/>
+    <path d="M2.6 -6 Q6.4 -5.2 6 1" fill="none" stroke="#1b1420" stroke-width="2.6"/>
+    <path d="M2.6 -6 Q6.4 -5.2 6 1" fill="none" stroke="#9aa3b3" stroke-width="1"/>
+  </g>
+</g>
+</svg>

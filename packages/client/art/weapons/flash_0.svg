@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="26" height="20" data-pivot="2 10">
+  <g transform="translate(2 10)" stroke-linejoin="round">
+    <path d="M0.00 -3.00 L6.00 -5.50 L9.00 -2.40 L21.00 0.00 L9.00 2.40 L6.00 5.50 L0.00 3.00 Z" fill="#e2401f" stroke="#e2401f" stroke-width="1.6"/>
+    <path d="M0.00 -2.58 L5.16 -4.73 L7.74 -2.06 L18.06 0.00 L7.74 2.06 L5.16 4.73 L0.00 2.58 Z" fill="#ff8a1f"/>
+    <path d="M0.00 -1.92 L3.84 -3.52 L5.76 -1.54 L13.44 0.00 L5.76 1.54 L3.84 3.52 L0.00 1.92 Z" fill="#ffd25e"/>
+    <path d="M0.00 -1.14 L2.28 -2.09 L3.42 -0.91 L7.98 0.00 L3.42 0.91 L2.28 2.09 L0.00 1.14 Z" fill="#fff6c9"/>
+    <ellipse cx="1.6" cy="0" rx="3" ry="2.6" fill="#fff6c9"/>
+  </g>
+</svg>

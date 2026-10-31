@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="26" height="22" data-pivot="13 12">
+  <defs><clipPath id="pk-mk"><rect x="-10" y="-6" width="20" height="14" rx="3"/></clipPath></defs>
+  <g transform="translate(13 12)" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M-4 -6 L-4 -8.6 Q-4 -9.8 -2.8 -9.8 L2.8 -9.8 Q4 -9.8 4 -8.6 L4 -6" fill="none" stroke="#1b1420" stroke-width="3.6"/>
+    <path d="M-4 -6 L-4 -8.6 Q-4 -9.8 -2.8 -9.8 L2.8 -9.8 Q4 -9.8 4 -8.6 L4 -6" fill="none" stroke="#5d6675" stroke-width="1.4"/>
+    <rect x="-10" y="-6" width="20" height="14" rx="3" fill="#f4f1ec"/>
+    <g clip-path="url(#pk-mk)">
+      <path d="M5 -8 Q9 0 4 10 L12 10 L12 -8 Z" fill="#c9c2cf"/>
+      <rect x="-12" y="5" width="24" height="5" fill="#c9c2cf"/>
+      <rect x="-8.6" y="-4.8" width="9" height="1.3" rx="0.6" fill="#ffffff"/>
+    </g>
+    <rect x="-10" y="-6" width="20" height="14" rx="3" fill="none" stroke="#1b1420" stroke-width="2.5"/>
+    <path d="M-1.9 -3.4 L1.9 -3.4 L1.9 -0.4 L4.9 -0.4 L4.9 3.4 L1.9 3.4 L1.9 6.4 L-1.9 6.4 L-1.9 3.4 L-4.9 3.4 L-4.9 -0.4 L-1.9 -0.4 Z" fill="#e2403a" stroke="#1b1420" stroke-width="1.5"/>
+    <path d="M-1 -2.4 L0.8 -2.4 M-3.9 0.6 L-2.6 0.6" fill="none" stroke="#ff8a7e" stroke-width="0.9"/>
+  </g>
+</svg>

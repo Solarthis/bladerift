@@ -1,0 +1,61 @@
+{
+  "tool": "codex exec + built-in image_gen",
+  "images": [
+    {
+      "name": "weapons",
+      "ok": true,
+      "prompt": "The attached image is a STYLE reference only (linework and shading). Generate a game-ready sheet of EIGHT original medieval-fantasy\nweapons for a 2D duelling game, laid out as a grid of exactly 2 rows x 4 columns. Every weapon is perfectly HORIZONTAL with its handle /\ngrip on the LEFT and the business end pointing RIGHT, as if lying flat on a table seen from directly above its side:\nRow 1: (1) a large war SCYTHE: long dark ash-wood shaft with leather wraps, a huge curved steel blade at the RIGHT end curving downward,\n       a small bronze collar; (2) a knight's LANCE / long spear: long slim shaft with a bronze rondel hand guard near the left third and a\n       long leaf-shaped steel spearhead at the right; (3) a LONGSWORD: leather-wrapped grip and round pommel at the left, a plain steel\n       crossguard, a long straight double-edged blade with a fuller pointing right; (4) a WAR HAMMER: a long iron-banded wooden haft with\n       a heavy square steel hammer head at the right end, head oriented vertically (striking faces up and down).\nRow 2: (5) one curved DAGGER: short leather grip, small guard, curved blade pointing right; (6) a recurve longBOW drawn as seen from the\n       side with the bow standing VERTICALLY (limbs up and down, string on the LEFT side, grip in the middle); (7) a TOWER SHIELD seen from\n       the FRONT: a tall rounded-top kite shield standing vertically, steel rim, painted deep teal field with a simple bronze star boss; (8) a single ARROW, horizontal, fletching on the left, steel head pointing right.\nColour: weathered steel, dark wood, brown leather, small bronze accents; the blades are bright enough to read against dark backgrounds.\n\nRules for the whole sheet:\n- Strict orthographic SIDE VIEW. No perspective.\n- Every item sits alone in its own grid cell, centred, with wide empty transparent space around it. Items never touch or overlap.\n- Style: polished hand-painted 2D action-game art matching the attached reference's linework and shading: clean confident dark\n  linework (not thick black outlines), crisp two- to three-tone cel shading, light from the top-left, subtle highlights.\n- Fully transparent background. NO hands, NO people, NO glow, NO motion trails, NO drop shadows, NO halos, NO text, NO labels.\n- Image size 1536x1024 (landscape).",
+      "ref": "weapons-style-v2.png",
+      "seconds": 117,
+      "at": "2026-10-31T14:15:28.243Z"
+    },
+    {
+      "name": "skills",
+      "ok": true,
+      "prompt": "The attached image is a STYLE reference only (linework and shading). Generate a game-ready sheet of EIGHT original fantasy items for\na 2D duelling game, laid out as a grid of exactly 2 rows x 4 columns:\nRow 1: (1) a round black-iron FIRE BOMB with a short lit fuse and a small brass cap, (2) a FROST SHARD: a sharp elongated ice crystal\n       bolt lying horizontally, point RIGHT, pale cyan and white, (3) a SNARE TRAP: an open iron bear-trap seen from the side, jaws open,\n       lying flat, (4) a BLINK RUNE: a flat round violet runestone with a glowing-looking (painted, not actual glow) arcane symbol.\nRow 2: (5) a small glass HEALTH FLASK with a cork, filled with bright red liquid, (6) a small pile of ORANGE EMBERS / a flame flick\n       for a burn effect (painted, no glow), (7) a closed SNARE TRAP (jaws snapped shut), (8) a cracked ICE CHUNK.\n\nRules for the whole sheet:\n- Strict orthographic SIDE VIEW. No perspective.\n- Every item sits alone in its own grid cell, centred, with wide empty transparent space around it. Items never touch or overlap.\n- Style: polished hand-painted 2D action-game art matching the attached reference's linework and shading: clean confident dark\n  linework (not thick black outlines), crisp two- to three-tone cel shading, light from the top-left, subtle highlights.\n- Fully transparent background. NO hands, NO people, NO glow, NO motion trails, NO drop shadows, NO halos, NO text, NO labels.\n- Image size 1536x1024 (landscape).",
+      "ref": "weapons-style-v2.png",
+      "seconds": 119,
+      "at": "2026-10-31T14:15:30.740Z"
+    },
+    {
+      "name": "bridge",
+      "ok": true,
+      "prompt": "Rules:\n- A 2D side-scrolling game BACKGROUND for a one-on-one duelling arena, painted in a rich, atmospheric, painterly\n  pixel-art-inspired style with soft light shafts and depth haze (distant layers bluer and lighter).\n- Wide landscape composition, image size 1536x1024. The horizon and main structures sit in the upper two thirds.\n- The bottom fifth of the image must be a calm, dark, mostly flat band (the game draws its own floor over it).\n- The centre must stay open and uncluttered so two small fighters remain readable in front of it.\n- NO characters, NO creatures, NO people, NO text, NO user interface, NO frames or borders.\nScene: a ruined stone ARCH BRIDGE high above a misty harbour at night, a huge pale full moon low behind it, silhouettes of tall sailing\nship masts and ropes in the haze, distant city spires, cool blue and violet palette with warm moonlight glow.",
+      "ref": null,
+      "seconds": 84,
+      "at": "2026-10-31T14:14:54.802Z"
+    },
+    {
+      "name": "embers",
+      "ok": true,
+      "prompt": "Rules:\n- A 2D side-scrolling game BACKGROUND for a one-on-one duelling arena, painted in a rich, atmospheric, painterly\n  pixel-art-inspired style with soft light shafts and depth haze (distant layers bluer and lighter).\n- Wide landscape composition, image size 1536x1024. The horizon and main structures sit in the upper two thirds.\n- The bottom fifth of the image must be a calm, dark, mostly flat band (the game draws its own floor over it).\n- The centre must stay open and uncluttered so two small fighters remain readable in front of it.\n- NO characters, NO creatures, NO people, NO text, NO user interface, NO frames or borders.\nScene: the battlements of a BURNING CASTLE at sunset: crumbling towers and broken walls in silhouette, a blazing orange and pink sky,\ndrifting smoke columns, dead twisted trees, warm orange, magenta and deep purple palette.",
+      "ref": null,
+      "seconds": 97,
+      "at": "2026-10-31T14:15:08.644Z"
+    },
+    {
+      "name": "crypt",
+      "ok": true,
+      "prompt": "Rules:\n- A 2D side-scrolling game BACKGROUND for a one-on-one duelling arena, painted in a rich, atmospheric, painterly\n  pixel-art-inspired style with soft light shafts and depth haze (distant layers bluer and lighter).\n- Wide landscape composition, image size 1536x1024. The horizon and main structures sit in the upper two thirds.\n- The bottom fifth of the image must be a calm, dark, mostly flat band (the game draws its own floor over it).\n- The centre must stay open and uncluttered so two small fighters remain readable in front of it.\n- NO characters, NO creatures, NO people, NO text, NO user interface, NO frames or borders.\nScene: a vast underground CRYPT hall: gothic arches, hanging chains and iron cages, green-teal ghostly light pouring from openings,\nmoss on old stone, deep teal and emerald palette with small warm candle accents.",
+      "ref": null,
+      "seconds": 86,
+      "at": "2026-10-31T14:14:56.894Z"
+    },
+    {
+      "name": "grove",
+      "ok": true,
+      "prompt": "Rules:\n- A 2D side-scrolling game BACKGROUND for a one-on-one duelling arena, painted in a rich, atmospheric, painterly\n  pixel-art-inspired style with soft light shafts and depth haze (distant layers bluer and lighter).\n- Wide landscape composition, image size 1536x1024. The horizon and main structures sit in the upper two thirds.\n- The bottom fifth of the image must be a calm, dark, mostly flat band (the game draws its own floor over it).\n- The centre must stay open and uncluttered so two small fighters remain readable in front of it.\n- NO characters, NO creatures, NO people, NO text, NO user interface, NO frames or borders.\nScene: an ancient misty FOREST GROVE at dawn: tall pale tree trunks fading into fog, hanging vines and chains, ruined wooden\nwatchtowers, soft cyan light shafts through the canopy, teal, mint and pale gold palette.",
+      "ref": null,
+      "seconds": 91,
+      "at": "2026-10-31T14:15:02.115Z"
+    },
+    {
+      "name": "platforms",
+      "ok": true,
+      "prompt": "The attached image is a STYLE reference only. Generate a sheet of FOUR horizontal game PLATFORM strips for a 2D side-view duelling\ngame, stacked as 4 rows, each strip spanning nearly the full width (about 1400 px wide, 160 px tall), seen exactly from the side, with\na flat walkable top edge and a seamless repeating pattern so the strip can be tiled horizontally:\nRow 1: weathered blue-grey moonlit STONE bridge deck with a carved balustrade lip; Row 2: charred castle STONE with glowing-orange cracks\n(painted, no glow) and broken bricks; Row 3: mossy green-teal crypt STONE blocks with hanging moss; Row 4: dark WOODEN planks on beams\nwith iron brackets and a few leaves.\nFully transparent background around the strips, NO text, NO labels, NO characters, image size 1536x1024.",
+      "ref": "weapons-style-v2.png",
+      "seconds": 184,
+      "at": "2026-10-31T14:16:35.267Z"
+    }
+  ]
+}

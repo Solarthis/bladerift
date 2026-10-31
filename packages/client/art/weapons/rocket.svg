@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="62" height="28" data-pivot="25 13">
+  <defs>
+    <clipPath id="wp-rk-tube"><path d="M-19 -4.6 L28 -4.6 L28 3.8 L-19 3.8 Z"/></clipPath>
+    <clipPath id="wp-rk-bell"><path d="M27 -5.8 L33.6 -6.8 L33.6 6 L27 5 Z"/></clipPath>
+  </defs>
+  <g transform="translate(25 13)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- grips -->
+    <path d="M-2.6 3.4 L1.8 3.4 L1 10.4 Q0.8 11.2 0 11.2 L-2.8 11.2 Q-3.8 11.2 -3.6 10.2 Z" fill="#3d3546" stroke="#1b1420" stroke-width="2.2"/>
+    <path d="M7 3.4 L10.8 3.4 L10.4 9.6 Q10.2 10.4 9.4 10.4 L7.6 10.4 Q6.6 10.4 6.6 9.4 Z" fill="#3d3546" stroke="#1b1420" stroke-width="2.2"/>
+    <!-- rear flare -->
+    <path d="M-18.4 -4.4 L-23 -6.2 L-23 5.4 L-18.4 3.6 Z" fill="#454d5d" stroke="#1b1420" stroke-width="2.2"/>
+    <path d="M-22 -4.6 L-22 3.8" fill="none" stroke="#1b1420" stroke-width="0.9"/>
+    <!-- tube -->
+    <path d="M-19 -4.6 L28 -4.6 L28 3.8 L-19 3.8 Z" fill="#6f7f45"/>
+    <g clip-path="url(#wp-rk-tube)">
+      <rect x="-20" y="0.6" width="50" height="4" fill="#55623a"/>
+      <rect x="-18" y="-3.8" width="45" height="1.2" fill="#94a35f"/>
+      <path d="M-14 -5 L-11 -5 L-14 4 L-17 4 Z M-8 -5 L-5 -5 L-8 4 L-11 4 Z" fill="#1b1420"/>
+      <path d="M-11 -5 L-8 -5 L-11 4 L-14 4 Z M-17 -5 L-14 -5 L-17 4 L-20 4 Z" fill="#f2b632"/>
+      <rect x="16" y="-5" width="2" height="9" fill="#55623a"/>
+    </g>
+    <path d="M-19 -4.6 L28 -4.6 L28 3.8 L-19 3.8 Z" fill="none" stroke="#1b1420" stroke-width="2.5"/>
+    <path d="M-5 -4.4 L-5 3.6 M16 -4.4 L16 3.6 M18 -4.4 L18 3.6" fill="none" stroke="#1b1420" stroke-width="1"/>
+    <!-- muzzle bell -->
+    <path d="M27 -5.8 L33.6 -6.8 L33.6 6 L27 5 Z" fill="#5f697b"/>
+    <g clip-path="url(#wp-rk-bell)"><rect x="26" y="1.6" width="9" height="5" fill="#454d5d"/><rect x="28" y="-5.6" width="5" height="1" fill="#9aa6b8"/></g>
+    <path d="M27 -5.8 L33.6 -6.8 L33.6 6 L27 5 Z" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <!-- sight -->
+    <path d="M3 -4.6 L4 -9 L10 -9 L11 -4.6" fill="#454d5d" stroke="#1b1420" stroke-width="2"/>
+    <rect x="9" y="-8.4" width="1.4" height="2.6" fill="#e2401f"/>
+  </g>
+</svg>

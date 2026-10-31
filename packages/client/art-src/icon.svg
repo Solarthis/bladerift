@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Skyfire Squad app icon. Full-bleed; key art kept inside the central maskable safe zone (r = 205). -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1747"/>
+      <stop offset="0.45" stop-color="#7a3166"/>
+      <stop offset="0.8" stop-color="#e8694a"/>
+      <stop offset="1" stop-color="#ffb35e"/>
+    </linearGradient>
+  </defs>
+  <g id="art">
+    <rect width="512" height="512" fill="url(#sky)"/>
+    <circle cx="318" cy="300" r="132" fill="#ffd98a" opacity="0.18"/>
+    <circle cx="318" cy="300" r="104" fill="#ffd98a"/>
+    <path d="M214 330h208v10H214zM220 356h196v12H220zM236 384h164v12H236z" fill="#f0784a" opacity="0.7"/>
+    <path d="M0 512V420l70-6 18-40h92l14 36 120-4 18-34h80l16 38 84 6v96z" fill="#1b1420"/>
+    <g fill="#ffe2c4" opacity="0.5">
+      <path d="M70 150a22 22 0 0 1 34-18 30 30 0 0 1 56 4 20 20 0 0 1 14 32H76a17 17 0 0 1-6-18z"/>
+      <path d="M372 92a16 16 0 0 1 25-13 22 22 0 0 1 41 3 14 14 0 0 1 10 23h-71a12 12 0 0 1-5-13z"/>
+    </g>
+    <!-- trooper (from ui/art.ts trooperSvg), flying up-right -->
+    <g transform="translate(256 250) rotate(-14) scale(3.85) translate(-40 -46)" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M22 58c-8 12-7 28 2 40 4-11 11-16 8-29z" fill="#ff8a1f" stroke="#1b1420" stroke-width="2.5"/>
+      <path d="M25 62c-4 8-3 16 2 23 1-7 5-9 4-16z" fill="#fff1a8"/>
+      <rect x="14" y="30" width="18" height="30" rx="5" fill="#7d8799" stroke="#1b1420" stroke-width="3"/>
+      <path d="M17 36h12" stroke="#ffc93c" stroke-width="4"/>
+      <path d="M34 60l-6 16h9l5-14zM44 60l2 16h9l-3-16z" fill="#55623a" stroke="#1b1420" stroke-width="3"/>
+      <path d="M26 76h13v6H24zM44 76h13l2 6H44z" fill="#3a2a2a" stroke="#1b1420" stroke-width="2.5"/>
+      <rect x="28" y="34" width="26" height="28" rx="7" fill="#6f7f45" stroke="#1b1420" stroke-width="3"/>
+      <path d="M31 40h20v8H31z" fill="#ffc93c" stroke="#1b1420" stroke-width="2"/>
+      <path d="M46 44h24v6H46z" fill="#4a5160" stroke="#1b1420" stroke-width="3"/>
+      <circle cx="48" cy="48" r="5" fill="#f2c49b" stroke="#1b1420" stroke-width="2.5"/>
+      <circle cx="40" cy="22" r="15" fill="#f2c49b" stroke="#1b1420" stroke-width="3"/>
+      <path d="M24 22a16 16 0 0 1 32 0z" fill="#ffc93c" stroke="#1b1420" stroke-width="3"/>
+      <path d="M38 22h18v7a6 6 0 0 1-6 6h-6a6 6 0 0 1-6-6z" fill="#2a2f3a" stroke="#1b1420" stroke-width="2.5"/>
+      <path d="M42 25h10" stroke="#8fd3ff" stroke-width="2.5"/>
+      <path d="M30 13a10 10 0 0 1 8-4" stroke="#ffffff" stroke-opacity=".7" stroke-width="3" fill="none"/>
+    </g>
+    <!-- speed streaks -->
+    <g stroke="#fff3dc" stroke-width="9" stroke-linecap="round" opacity="0.8">
+      <path d="M118 236l-34 10M132 280l-44 14M150 322l-28 9"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="26" height="14" data-pivot="12 7">
+  <defs><clipPath id="wp-rp-body"><path d="M-8 -2.6 L6 -2.6 L6 2.6 L-8 2.6 Z"/></clipPath></defs>
+  <g transform="translate(12 7)" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M-6 -2.4 L-10 -5.4 L-10.6 -2.2 Z M-6 2.4 L-10 5.4 L-10.6 2.2 Z" fill="#5f697b" stroke="#1b1420" stroke-width="1.8"/>
+    <rect x="-10.4" y="-2" width="3" height="4" fill="#454d5d" stroke="#1b1420" stroke-width="1.6"/>
+    <path d="M-8 -2.6 L6 -2.6 L6 2.6 L-8 2.6 Z" fill="#6f7f45"/>
+    <g clip-path="url(#wp-rp-body)"><rect x="-9" y="0.6" width="16" height="3" fill="#55623a"/><rect x="-7" y="-2" width="12" height="0.9" fill="#94a35f"/><rect x="0" y="-3" width="1.6" height="6" fill="#f2b632"/></g>
+    <path d="M-8 -2.6 L6 -2.6 L6 2.6 L-8 2.6 Z" fill="none" stroke="#1b1420" stroke-width="2"/>
+    <path d="M6 -2.6 Q11.6 -1.6 12.2 0 Q11.6 1.6 6 2.6 Z" fill="#e2401f" stroke="#1b1420" stroke-width="2"/>
+    <path d="M7 -1.6 Q9.6 -1.2 10.6 -0.4" fill="none" stroke="#ff8a6a" stroke-width="0.9"/>
+  </g>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" data-pivot="12 12">
+  <g transform="translate(12 12)" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M0 -11 Q1.6 -1.6 11 0 Q1.6 1.6 0 11 Q-1.6 1.6 -11 0 Q-1.6 -1.6 0 -11 Z" fill="#fff" fill-opacity="0.55"/>
+    <path d="M0 -8 Q1 -1 8 0 Q1 1 0 8 Q-1 1 -8 0 Q-1 -1 0 -8 Z" fill="#fff"/>
+    <circle r="2.4" fill="#fff"/>
+  </g>
+</svg>

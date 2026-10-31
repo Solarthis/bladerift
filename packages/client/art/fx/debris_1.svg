@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" data-pivot="5 5">
+  <g transform="translate(5 5)" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M3.35 -0.43 L1.59 2.51 L-2.78 1.34 L-3.03 -1.44 L0.4 -2.64 Z" fill="#8f8799" stroke="#1b1420" stroke-width="1.4"/>
+    <path d="M1.94 -0.85 L0.67 1.26 L-2.48 0.42 L-2.66 -1.58 L-0.19 -2.44 Z" fill="#cdc6d2"/>
+    <path d="M-0.08 -1.29 L-0.61 -0.4 L-1.92 -0.75 L-2 -1.59 L-0.97 -1.95 Z" fill="#f4f1f6"/>
+  </g>
+</svg>

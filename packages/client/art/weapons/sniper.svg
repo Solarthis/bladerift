@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="66" height="26" data-pivot="23 13">
+  <defs>
+    <clipPath id="wp-sn-stock"><path d="M-5 -3.2 L-19.6 -2.6 Q-21 -2.6 -21 -1.2 L-21 5 Q-21 6.4 -19.6 6.4 L-15.6 6.4 Q-12 3.2 -8.6 3.4 L-5 3 Z"/></clipPath>
+    <clipPath id="wp-sn-body"><path d="M-6.4 -3.4 L16 -3 L16 2.2 L-6.4 2.8 Z"/></clipPath>
+    <clipPath id="wp-sn-scope"><path d="M-3 -10.4 L13 -10.4 L13 -5.6 L-3 -5.6 Z"/></clipPath>
+  </defs>
+  <g transform="translate(23 13)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- stock -->
+    <path d="M-5 -3.2 L-19.6 -2.6 Q-21 -2.6 -21 -1.2 L-21 5 Q-21 6.4 -19.6 6.4 L-15.6 6.4 Q-12 3.2 -8.6 3.4 L-5 3 Z" fill="#c4a173"/>
+    <g clip-path="url(#wp-sn-stock)"><path d="M-23 2.2 L-4 0.4 L-4 8 L-23 8 Z" fill="#9c7b52"/><path d="M-19.6 -1.8 L-7 -2.4 L-7 -1.4 L-19.6 -0.8 Z" fill="#e2c495"/><path d="M-23 -4 L-19.4 -4 L-19.4 8 L-23 8 Z" fill="#2b2433"/></g>
+    <path d="M-5 -3.2 L-19.6 -2.6 Q-21 -2.6 -21 -1.2 L-21 5 Q-21 6.4 -19.6 6.4 L-15.6 6.4 Q-12 3.2 -8.6 3.4 L-5 3 Z" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <path d="M-19.4 -2.6 L-19.4 6.2 M-14.6 -0.6 L-9.6 -0.8" fill="none" stroke="#1b1420" stroke-width="1"/>
+    <!-- grip -->
+    <path d="M-3.4 2 L1.6 2 L0.4 8.6 Q0.2 9.4 -0.6 9.4 L-3.8 9.4 Q-4.8 9.4 -4.6 8.4 Z" fill="#9c7b52" stroke="#1b1420" stroke-width="2.2"/>
+    <path d="M1.4 2.4 L3.6 2.4 Q3.8 5 2.2 5" fill="none" stroke="#1b1420" stroke-width="1.6"/>
+    <!-- barrel -->
+    <path d="M15 -1.5 L37 -1.1 L37 0.9 L15 1.5 Z" fill="#5f697b" stroke="#1b1420" stroke-width="1.8"/>
+    <path d="M16 -0.8 L36 -0.5" fill="none" stroke="#9aa6b8" stroke-width="0.7"/>
+    <rect x="36.4" y="-2.2" width="3.4" height="4.2" rx="0.6" fill="#2e3441" stroke="#1b1420" stroke-width="1.8"/>
+    <path d="M37.6 -2.2 L37.6 2 M38.8 -2.2 L38.8 2" fill="none" stroke="#5d6675" stroke-width="0.6"/>
+    <!-- folded bipod -->
+    <path d="M17 2 L28 2.8" fill="none" stroke="#1b1420" stroke-width="2.6"/>
+    <path d="M17 2 L28 2.8" fill="none" stroke="#454d5d" stroke-width="1"/>
+    <!-- body / forestock -->
+    <path d="M-6.4 -3.4 L16 -3 L16 2.2 L-6.4 2.8 Z" fill="#c4a173"/>
+    <g clip-path="url(#wp-sn-body)"><path d="M-8 0.4 L18 0.2 L18 4 L-8 4 Z" fill="#9c7b52"/><path d="M-6 -2.6 L15 -2.2 L15 -1.4 L-6 -1.8 Z" fill="#e2c495"/><path d="M-6 -4 L4 -4 L4 4 L-6 4 Z" fill="#5f697b"/></g>
+    <path d="M-6.4 -3.4 L16 -3 L16 2.2 L-6.4 2.8 Z" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <path d="M4 -3.2 L4 2.6" fill="none" stroke="#1b1420" stroke-width="1"/>
+    <!-- bolt -->
+    <path d="M-2 -1 L-4.4 3.6" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <circle cx="-4.6" cy="3.8" r="1.4" fill="#9aa6b8" stroke="#1b1420" stroke-width="1.2"/>
+    <!-- scope -->
+    <path d="M1 -5.6 L1 -3.4 M9 -5.6 L9 -3.4" fill="none" stroke="#1b1420" stroke-width="2.4"/>
+    <path d="M-3 -10.4 L13 -10.4 L13 -5.6 L-3 -5.6 Z" fill="#454d5d"/>
+    <g clip-path="url(#wp-sn-scope)"><rect x="-4" y="-7.4" width="18" height="2" fill="#2e3441"/><rect x="-2" y="-9.8" width="14" height="1" fill="#5d6675"/></g>
+    <path d="M-3 -10.4 L13 -10.4 L13 -5.6 L-3 -5.6 Z" fill="none" stroke="#1b1420" stroke-width="2.2"/>
+    <rect x="12.4" y="-11.4" width="3.2" height="6.8" rx="1" fill="#454d5d" stroke="#1b1420" stroke-width="2"/>
+    <rect x="-5.2" y="-11" width="2.8" height="6" rx="1" fill="#454d5d" stroke="#1b1420" stroke-width="2"/>
+    <rect x="14.6" y="-10.2" width="1" height="4.4" fill="#6fd8ee"/>
+    <rect x="3.4" y="-11.8" width="3" height="1.6" rx="0.4" fill="#5f697b" stroke="#1b1420" stroke-width="1"/>
+  </g>
+</svg>

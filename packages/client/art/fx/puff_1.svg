@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" data-pivot="10 10">
+  <g transform="translate(10 10)" stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="0" cy="0" r="6.14" fill="#8d8598"/><circle cx="4.46" cy="-1.48" r="4.66" fill="#8d8598"/><circle cx="1.29" cy="4.52" r="4.45" fill="#8d8598"/><circle cx="-4.06" cy="-0.09" r="4.52" fill="#8d8598"/><circle cx="0.59" cy="-3.73" r="4.63" fill="#8d8598"/><circle cx="0" cy="0" r="5.04" fill="#c3bbcc"/><circle cx="4.46" cy="-1.48" r="3.56" fill="#c3bbcc"/><circle cx="1.29" cy="4.52" r="3.35" fill="#c3bbcc"/><circle cx="-4.06" cy="-0.09" r="3.42" fill="#c3bbcc"/><circle cx="0.59" cy="-3.73" r="3.53" fill="#c3bbcc"/><circle cx="-0.84" cy="-1.01" r="4.23" fill="#ece8f0"/><circle cx="2.91" cy="-2.25" r="2.99" fill="#ece8f0"/><circle cx="0.25" cy="2.79" r="2.81" fill="#ece8f0"/><circle cx="-4.25" cy="-1.08" r="2.88" fill="#ece8f0"/><circle cx="-0.35" cy="-4.14" r="2.97" fill="#ece8f0"/><circle cx="-2.52" cy="-2.69" r="2.02" fill="#ffffff"/><circle cx="-2" cy="-0.88" r="1.34" fill="#ffffff"/><circle cx="-2.28" cy="-4.18" r="1.41" fill="#ffffff"/>
+  </g>
+</svg>

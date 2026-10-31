@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.cache/
+*.log
+certs/
+.env
+evidence/raw/
+packages/client/public/assets/gen/
+
+# character pipeline: derived / scratch outputs (regenerate with slice.py, build_rig.py, capture.mjs)
+tools/character-pipeline/parts/
+tools/character-pipeline/preview/
+tools/character-pipeline/previews/_frames_*/
+tools/character-pipeline/previews/*.gif
+tools/character-pipeline/source/*.log
+tools/character-pipeline/source/armourtest-v1.png
+.old-tests/
+.old-client/
+tools/art-gen/source/*.log

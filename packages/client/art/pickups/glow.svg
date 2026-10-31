@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" data-pivot="32 32">
+  <g transform="translate(32 32)" fill="#ffffff">
+    <circle r="30" fill-opacity="0.16"/><circle r="23" fill-opacity="0.22"/><circle r="16" fill-opacity="0.3"/><circle r="9" fill-opacity="0.38"/>
+  </g>
+</svg>
