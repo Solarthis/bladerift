@@ -175,7 +175,21 @@ def measure(frame, pad, cw, chh):
     foot_band = near[max(0, feet - max(4, int(h * 0.06))): feet + 1]
     fx = np.nonzero(foot_band.any(axis=0))[0]
     feet_cx = int((fx.min() + fx.max()) / 2) if len(fx) else mid
-    return {'top': int(top), 'bot': int(bot), 'h': int(h), 'x0': int(xs.min()), 'x1': int(xs.max()), 'mid': mid, 'feet': feet, 'feetCx': feet_cx}
+    # the body's centre: the figure with its thin parts (blades, trails, hair strands) opened away, median of the torso
+    # rows. Steady through a run cycle (the feet alternate, the torso does not), unlike the feet's centre.
+    k = max(3, int(h * 0.09))
+    op = cv2.morphologyEx(a.astype(np.uint8), cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
+    y2, x2 = np.nonzero(op)
+    body = mid
+    if len(y2):
+        b2 = (y2 > top + h * 0.15) & (y2 < top + h * 0.55)
+        if b2.any():
+            body = int(np.median(x2[b2]))
+    # the hands of a hanging frame: the top rows of the figure
+    hb = ys < top + max(6, h * 0.08)
+    hands_x = int(np.median(xs[hb])) if hb.any() else mid
+    return {'top': int(top), 'bot': int(bot), 'h': int(h), 'x0': int(xs.min()), 'x1': int(xs.max()), 'mid': mid, 'feet': feet,
+            'feetCx': feet_cx, 'body': body, 'handsX': hands_x}
 
 
 # ------------------------------------------------------------------ load every sheet the animations need
@@ -228,6 +242,9 @@ print(f'stance height {stand_h:.0f} px -> native {NATIVE} px (scale {scale:.3f})
 
 air_frames = set()
 sheet_ground = {}
+# frames anchored on the hands (ledge hang); the drop is fighter.ts's hang (feet below the edge), in world units
+HANG_DROP = 56
+hang_frames = {f for a in ANIMS.values() if a.get('anchor') == 'hands' for f in a['frames']}
 for a in ANIMS.values():
     for j, f in enumerate(a['frames']):
         if a.get('air') or j in a.get('airFrames', []):
@@ -254,13 +271,18 @@ for key in used:
     sheet, idx = key.split(':')
     spec = (CH.get('sheets') or {}).get(sheet) or STD['sheets'][sheet]
     row = (sheet, int(idx) // spec.get('grid', STD['grid'])[0])
-    if key in air_frames:
+    s = sheet_scale(sheet)
+    if key in hang_frames:
+        # hanging from a ledge: the hands are on the edge, the fighter's position is HANG_DROP world units below it
+        # (the fighter hangs half a body width back from the edge: fighter.ts grabLedge, FIGHTER.w / 2 = 11)
+        ppw = STD['nativeHeight'] / STD['worldStand'] / s
+        ax, ay = m['handsX'] - 11 * ppw, m['top'] + HANG_DROP * ppw
+    elif key in air_frames:
         # the row's own ground line (or the nearest row's when every frame in it is airborne)
         g = sheet_ground.get(row) or next((v for (s2, _), v in sheet_ground.items() if s2 == sheet), ground)
-        ax, ay = m['mid'], g
+        ax, ay = m['body'], g
     else:
-        ax, ay = m['feetCx'], m['feet'] + 1
-    s = sheet_scale(sheet)
+        ax, ay = m['body'], m['feet'] + 1
     h, w = c.shape[:2]
     nw, nh = max(1, int(round(w * s))), max(1, int(round(h * s)))
     # premultiplied area downscale (no dark fringes), then a hard alpha edge
@@ -310,7 +332,8 @@ for key, im, ax, ay in items:
     x += w + 1
     rowh = max(rowh, h)
 H = y + rowh
-H2 = 1 << (int(H - 1).bit_length())
+# height rounded to 4 px, not a power of two (WebGL samples non-power-of-two textures fine without mipmaps; saves VRAM)
+H2 = (H + 3) // 4 * 4
 atlas = np.zeros((H2, W, 4), np.uint8)
 meta_frames = {}
 for key, im, ax, ay in items:

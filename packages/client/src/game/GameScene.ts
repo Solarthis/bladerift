@@ -8,7 +8,7 @@ import type { InputSource } from '../input/Controls';
 import { bakeFrames, FighterCanvas, fighterLut, FxModule, FxSprite, paintLive, PIX, Pose, prewarmEffects } from '../render/pixel';
 import { poseFor } from '../render/poses';
 import { warmFighter } from '../render/warm';
-import { heroSpritesReady, loadHeroSprites, SpriteFighterView } from '../render/spriteFighter';
+import { heroSpritesReady, loadHeroSprites, spritesPending, SpriteFighterView } from '../render/spriteFighter';
 import { FX, PAL, swingFx } from '../render/fxmap';
 import { sfx } from '../audio/Sfx';
 import { prefs } from '../ui/prefs';
@@ -202,6 +202,8 @@ interface FighterView {
   rigImg: Phaser.GameObjects.Image;
   /** The hero drawn from its generated animation atlas (render/spriteFighter.ts), when it has one. */
   sprite: SpriteFighterView | null;
+  /** Scene clock when the view was made (a loading atlas hides the rig for a moment). */
+  createdAt?: number;
   tag: Phaser.GameObjects.Text;
   ghosts: { img: Phaser.GameObjects.Image; tex: Phaser.Textures.CanvasTexture; life: number }[];
   ghostI: number;
@@ -650,10 +652,14 @@ export class GameScene extends Phaser.Scene {
       if (meta) {
         fv.sprite = new SpriteFighterView(this, v.hero, meta, 10);
         // a mirror match: the second seat's fighter wears the alternate (cool) colours
-        if (v.seat === 1 && list.some((o) => o.id !== v.id && o.hero === v.hero)) fv.sprite.altTint = 0xa8b8ff;
+        if (v.seat === 1 && list.some((o) => o.id !== v.id && o.hero === v.hero)) fv.sprite.altTint = 0xc8d4ff;
         fv.rigImg.setVisible(false);
         fv.img = fv.sprite.img;
       }
+    }
+    if (!fv.sprite) {
+      const waiting = spritesPending(v.hero) && this.clock - (fv.createdAt ??= this.clock) < 2.5;
+      fv.rigImg.setVisible(!waiting);
     }
     if (fv.sprite) {
       // the round intro: each fighter plays its entrance while the round is being announced
@@ -676,7 +682,7 @@ export class GameScene extends Phaser.Scene {
       fv.koT = 0;
       fv.img.setAngle(0);
     }
-    fv.tag.setPosition(v.x, v.y - 62);
+    fv.tag.setPosition(v.x, v.y - (fv.sprite ? fv.sprite.meta.native * fv.sprite.worldScale + 6 : 62));
     // after-images
     if (pose.ghost && now - fv.ghostAt > 45) {
       fv.ghostAt = now;
@@ -745,6 +751,7 @@ export class GameScene extends Phaser.Scene {
         if (this.roomFor()) this.addFx(FX.poof, v.x, v.y, false, 1.2, { palette: PAL.smoke }, 14, 16, 0.9);
       }
     }
+    if (fv.sprite && flash > 0 && flash <= 0.5) alpha *= 0.5;
     fv.img.setAlpha(alpha);
     fv.tag.setAlpha(v.veil && !v.self ? 0.2 : 1);
     fv.lastX = v.x;
@@ -1396,13 +1403,17 @@ export class GameScene extends Phaser.Scene {
       minY = Math.min(...alive.map((f) => f.y));
       maxY = Math.max(...alive.map((f) => f.y));
     }
+    // on touch screens the fight is framed in the room the controls leave: between the stick (left) and the button
+    // cluster (right), with the floor raised above the cluster's lower rows
+    const pad = this.touchInsets(vw);
+    const useW = vw - pad.left - pad.right;
     // how much world fits: about 340-520 units of height, zoomed out to keep both fighters in view
     const wantH = Phaser.Math.Clamp(vh * 0.62, 330, 520);
     let zoom = vh / wantH;
-    zoom = Math.min(zoom, vw / (maxX - minX + 300), vh / (maxY - minY + 260));
+    zoom = Math.min(zoom, useW / (maxX - minX + 300), vh / (maxY - minY + 260));
     zoom = Math.max(zoom, vw / (this.arenaW + 240));
-    const cx = (minX + maxX) / 2;
-    const cy = Math.min(this.floor - (vh / zoom) * 0.36, (minY + maxY) / 2 - 40);
+    const cx = (minX + maxX) / 2 + (pad.right - pad.left) / 2 / zoom;
+    const cy = Math.min(this.floor - (vh / zoom) * (pad.right ? 0.24 : 0.36), (minY + maxY) / 2 - 40);
     const k = 1 - Math.exp(-dt * 6);
     this.camZoom += (zoom - this.camZoom) * k;
     this.camX += (cx - this.camX) * k;
@@ -1425,6 +1436,21 @@ export class GameScene extends Phaser.Scene {
     cam.centerOn(halfW * 2 > this.arenaW + 240 ? this.arenaW / 2 : x + sx, y + sy);
     const me = list.find((f) => f.self);
     if (me) sfx.setListener(me.x, me.y);
+  }
+
+  /** Screen space (px) the touch controls take on each side; re-measured once a second (they reflow on resize). */
+  private insets = { left: 0, right: 0, at: -1 };
+  private touchInsets(vw: number) {
+    if (this.clock - this.insets.at > 1) {
+      this.insets.at = this.clock;
+      const cluster = document.querySelector('.touch .tbuttons')?.getBoundingClientRect();
+      const stick = document.querySelector('.touch .stick-base')?.getBoundingClientRect();
+      const css = window.innerWidth || vw;
+      const k = vw / css; // game pixels per CSS pixel
+      this.insets.right = cluster && cluster.width > 0 ? Math.max(0, css - cluster.left) * k * 0.85 : 0;
+      this.insets.left = stick && stick.width > 0 && this.insets.right ? Math.max(0, stick.right) * k * 0.6 : 0;
+    }
+    return this.insets;
   }
 
   private teardown() {

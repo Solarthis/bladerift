@@ -35,6 +35,18 @@ play, tests and tools for everything that matters. Bladerift must feel at least 
    king who rains treasures? is Gorvax a chimera berserker? Sable a blade assassin with Flash Step?) and flag
    anything that copies a real franchise character's name, exact likeness or signature ability name.
 8. No UI bugs. Polished, work autonomously, don't limit yourself.
+9. Hero models and movement must be good and fluid; daggers not oversized.
+10. MASTER DIRECTIVE (latest): overhaul every fighter into premium, MUGEN-style 2D fighting-game SPRITE animation at the
+    quality of the approved Lionheart reference sheet (art/characters/h00-leon/references/approved-sheet.png): consistent
+    anatomy, costume and weapon across frames, strong silhouettes, a complete animation library (locomotion, attacks,
+    defence, damage, specials, intro/victory), correct alpha, stable anchors (no foot sliding or jitter), playback timing that
+    matches the moves, working gameplay integration, mobile performance, no regressions. Do not accept placeholder art as done.
+    Pipeline: tools/sprites (gen.mjs, batch.mjs, process.py), art/ (standard, animation map, character bibles, approved
+    designs), client render/spriteAnim.ts + spriteFighter.ts, the ?sprites&hero=N lab. Heroes now use FIXED KITS (one signature
+    weapon: A light combo, B heavy / plunge). Judge sprite heroes in real matches, not only on sheets. Heroes still on the old
+    rig are waiting for art (Codex usage cap), say which.
+11. Aurelion (the golden-king archer) should read closer to the arrogant golden-king archetype the owner referenced (short
+    swept-up golden hair, neat refined face) while staying an original design.
 
 ## How to review
 1. Turn the requests into a checklist of concrete, testable requirements, including implied ones (a hero's Art

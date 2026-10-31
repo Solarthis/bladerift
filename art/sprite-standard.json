@@ -167,5 +167,7 @@
     "intro 4: settling into the fighting stance, ready"
    ]
   }
- }
+ },
+ "worldStand": 58.24,
+ "comment2": "worldStand: world units of a nativeHeight-tall standing sprite (FIGHTER.h * 1.12, see client render/spriteFighter.ts)"
 }

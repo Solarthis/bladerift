@@ -24,7 +24,12 @@ export async function startSpriteLab() {
   const id = SPRITE_IDS[hero];
   document.body.innerHTML = '';
   document.body.style.cssText = 'margin:0;background:#1d1828;color:#ddd;font:12px sans-serif;overflow:auto';
-  const meta = (await (await fetch(`assets/characters/${id}/atlas.json`)).json()) as SpriteAtlasMeta;
+  const res = await fetch(`assets/characters/${id}/atlas.json`);
+  if (!res.ok || !res.headers.get('content-type')?.includes('json')) {
+    document.body.textContent = `${id ?? 'hero ' + hero}: no sprite atlas yet (generate its sheets, then run tools/sprites/process.py).`;
+    return;
+  }
+  const meta = (await res.json()) as SpriteAtlasMeta;
   const img = new Image();
   img.src = `assets/characters/${id}/atlas.png`;
   await img.decode();

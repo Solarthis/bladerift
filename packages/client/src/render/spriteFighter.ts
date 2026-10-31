@@ -22,6 +22,8 @@ const metas = new Map<number, SpriteAtlasMeta | null>();
 const pending = new Map<number, Promise<SpriteAtlasMeta | null>>();
 
 const texKey = (hero: number) => `hero-sprites-${hero}`;
+/** The release stamp versions the atlas URLs, so a cached atlas.json is never paired with another release's atlas.png. */
+const V = `?v=${encodeURIComponent(String(import.meta.env.VITE_RELEASE ?? 'dev'))}`;
 
 /** The hero's atlas, loading it into the scene's texture manager the first time (null: the hero has no sprites yet). */
 export function loadHeroSprites(scene: Phaser.Scene, hero: number): Promise<SpriteAtlasMeta | null> {
@@ -32,15 +34,24 @@ export function loadHeroSprites(scene: Phaser.Scene, hero: number): Promise<Spri
   const p = (async () => {
     if (!id) return null;
     try {
-      const r = await fetch(`assets/characters/${id}/atlas.json`, { cache: 'no-cache' });
+      const r = await fetch(`assets/characters/${id}/atlas.json${V}`);
       if (!r.ok || !r.headers.get('content-type')?.includes('json')) return null;
       const meta = (await r.json()) as SpriteAtlasMeta;
       await new Promise<void>((resolve, reject) => {
         const key = texKey(hero);
         if (scene.textures.exists(key)) return resolve();
-        scene.load.image(key, `assets/characters/${id}/atlas.png`);
-        scene.load.once(`filecomplete-image-${key}`, () => resolve());
-        scene.load.once('loaderror', (f: { key: string }) => f.key === key && reject(new Error('atlas')));
+        scene.load.image(key, `assets/characters/${id}/atlas.png${V}`);
+        // listen for THIS file's error only (an unrelated loader error must not use the listener up)
+        const onError = (f: { key: string }) => {
+          if (f.key !== key) return;
+          scene.load.off('loaderror', onError);
+          reject(new Error('atlas'));
+        };
+        scene.load.on('loaderror', onError);
+        scene.load.once(`filecomplete-image-${key}`, () => {
+          scene.load.off('loaderror', onError);
+          resolve();
+        });
         scene.load.start();
       });
       const tex = scene.textures.get(texKey(hero));
@@ -66,8 +77,11 @@ export function prefetchHeroSprites(hero: number) {
   const id = SPRITE_IDS[hero];
   if (!id || prefetched.has(hero)) return;
   prefetched.add(hero);
-  for (const f of ['atlas.json', 'atlas.png']) fetch(`assets/characters/${id}/${f}`).catch(() => prefetched.delete(hero));
+  for (const f of ['atlas.json', 'atlas.png']) fetch(`assets/characters/${id}/${f}${V}`).catch(() => prefetched.delete(hero));
 }
+
+/** The hero's atlas is still on its way (the scene hides the rig meanwhile). */
+export const spritesPending = (hero: number) => pending.has(hero);
 
 /** Already loaded (sync), for the render loop. */
 export const heroSpritesReady = (hero: number) => metas.get(hero) ?? null;
@@ -111,10 +125,10 @@ export class SpriteFighterView {
     const wallFrame = this.meta.anims.wallSlide?.frames.includes(name);
     this.apply(name, wallFrame ? -v.face : v.face);
     this.img.setPosition(x, y);
-    if (flash > 0) {
-      // a hit: the figure flashes white (fill), half strength for the weaker flicker
+    if (flash > 0.5) {
+      // a hit: the figure flashes white (fill); the weaker invulnerability flicker is an alpha blink (GameScene)
       this.img.tintMode = Phaser.TintModes.FILL;
-      this.img.setTint(flash > 0.5 ? 0xffffff : 0xffd8d8);
+      this.img.setTint(0xffffff);
     } else {
       this.img.tintMode = Phaser.TintModes.MULTIPLY;
       const t = tint || this.altTint;

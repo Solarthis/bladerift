@@ -181,6 +181,7 @@ export class App {
     switch (s) {
       case 'title':
         return `<div class="title-wrap">
+          ${/\/bladerift\//.test(location.pathname) ? '<a class="arcade-back" href="../" aria-label="Back to all games">‹ All games</a>' : ''}
           <div class="logo"><span>BLADE</span><span>RIFT</span></div>
           <div class="tag">One rift. Two fighters. Pick your blades.</div>
           <div class="menu">

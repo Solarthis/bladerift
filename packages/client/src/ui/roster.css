@@ -483,3 +483,11 @@
 
 /* results: the round count stays big (styles.css .res-side div would shrink it) */
 .res-side .big-num { font-size: 48px; color: var(--ink); line-height: 1.1; margin: 2px 0; }
+
+/* the way back to the MAT Arcade home screen (shown when the game runs in the arcade's /bladerift/ folder) */
+.arcade-back {
+  position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left));
+  padding: 7px 14px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); color: #e8e2f4;
+  font: 800 13px Nunito, sans-serif; text-decoration: none; backdrop-filter: blur(6px);
+}
+.arcade-back:hover { background: rgba(255, 255, 255, 0.16); }

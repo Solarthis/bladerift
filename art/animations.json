@@ -84,7 +84,8 @@
    "frames": [
     "air:6"
    ],
-   "air": true
+   "air": true,
+   "anchor": "hands"
   },
   "climb": {
    "frames": [

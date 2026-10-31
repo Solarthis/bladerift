@@ -14,11 +14,12 @@ function atlas(hero: number) {
     const id = SPRITE_IDS[hero];
     p = (async () => {
       try {
-        const r = await fetch(`assets/characters/${id}/atlas.json`);
+        const v = `?v=${encodeURIComponent(String(import.meta.env.VITE_RELEASE ?? 'dev'))}`;
+        const r = await fetch(`assets/characters/${id}/atlas.json${v}`);
         if (!r.ok || !r.headers.get('content-type')?.includes('json')) return null;
         const meta = (await r.json()) as SpriteAtlasMeta;
         const img = new Image();
-        img.src = `assets/characters/${id}/atlas.png`;
+        img.src = `assets/characters/${id}/atlas.png${v}`;
         await img.decode();
         return { meta, img };
       } catch {

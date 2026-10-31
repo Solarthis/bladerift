@@ -52,9 +52,26 @@ Every figure faces RIGHT (three-quarter side view like the house style), the sam
 the same ground line within each row.`;
 }
 
+/** A new hero-select portrait card (references/portrait-v2.png) drawn from the approved design, in the frame and painting
+ * style of the roster's existing portrait cards. */
+function portraitPrompt() {
+  return `Create ONE character PORTRAIT CARD of ${ch.name} (${ch.epithet}), an ORIGINAL character of an original indie fighting game
+(it must NOT resemble any existing anime, manga, game or film character).
+The FIRST attached image is ${ch.name}'s approved character design: match the face, hair, costume, colours and weapon EXACTLY.
+The SECOND attached image is a portrait card of this game's roster: copy its card frame (a thin bevelled dark-iron border with small
+gold corner studs), its painterly hand-painted style with crisp pixel-art-inspired edges, its dramatic rim light and composition.
+Content: a head-and-shoulders (bust) portrait, three-quarter view, a strong readable expression that fits the character, a moody
+themed background colour, the weapon or its energy glimpsed at the edge. Portrait orientation, image size 1024x1536, the card fills
+the whole image. NO text, NO names, NO letters anywhere.
+
+THE CHARACTER:
+${ch.bible}`;
+}
+
 /** The prompt for one sheet: the shared rules, the character's bible, then the frame list in reading order. */
 function promptFor(sheetName) {
   if (sheetName === 'design') return designPrompt();
+  if (sheetName === 'portrait') return portraitPrompt();
   const sh = ch.sheets?.[sheetName] ?? std.sheets[sheetName];
   if (!sh) throw new Error(`no sheet ${sheetName}`);
   const [cols, rows] = sh.grid ?? std.grid;
@@ -91,8 +108,9 @@ ${frames}${extra}`;
 function run(sheetName) {
   return new Promise((resolve) => {
     const design = sheetName === 'design';
-    const file = design ? join(dir, 'references', 'design.png') : join(out, `${sheetName}.png`);
-    const refs = ((design ? ch.designRefs : ch.refs) ?? []).map((r) => join(dir, r));
+    const portrait = sheetName === 'portrait';
+    const file = design ? join(dir, 'references', 'design.png') : portrait ? join(dir, 'references', 'portrait-v2.png') : join(out, `${sheetName}.png`);
+    const refs = (portrait ? ['references/design.png', '../h00-leon/references/portrait.jpg'] : (design ? ch.designRefs : ch.refs) ?? []).map((r) => join(dir, r));
     const prompt = promptFor(sheetName);
     const instr = `Use your built-in image_gen tool (not any CLI or script) to generate exactly ONE image as described below, with a transparent
 background, then copy the generated PNG to
@@ -109,7 +127,7 @@ ${prompt}`;
     p.stdout.on('data', (d) => (buf += d));
     p.stderr.on('data', (d) => (buf += d));
     p.on('close', (code) => {
-      writeFileSync(design ? join(dir, 'references', 'design.log') : join(out, `${sheetName}.log`), buf);
+      writeFileSync(design || portrait ? join(dir, 'references', `${sheetName}.log`) : join(out, `${sheetName}.log`), buf);
       const ok = code === 0 && existsSync(file);
       const seconds = Math.round((Date.now() - t0) / 1000);
       console.log(`${id}/${sheetName}: ${ok ? 'OK' : 'FAILED'} (${seconds} s)`);
@@ -118,10 +136,10 @@ ${prompt}`;
   });
 }
 
-const all = ['design', ...Object.keys({ ...std.sheets, ...(ch.sheets ?? {}) })].filter((n) => !(ch.skip ?? []).includes(n));
+const all = ['design', 'portrait', ...Object.keys({ ...std.sheets, ...(ch.sheets ?? {}) })].filter((n) => !(ch.skip ?? []).includes(n));
 const have = (n) => existsSync(n === 'design' ? join(dir, 'references', 'design.png') : join(out, `${n}.png`));
 // the design sheet is only made when asked by name (or when the character has none and no approved reference)
-const wanted = names.length ? names : all.filter((n) => n !== 'design' && (flags.all || !have(n)));
+const wanted = names.length ? names : all.filter((n) => n !== 'design' && n !== 'portrait' && (flags.all || !have(n)));
 const bad = wanted.filter((n) => !all.includes(n));
 if (bad.length) {
   console.error(`Unknown sheets: ${bad.join(' ')}. Known: ${all.join(' ')}`);

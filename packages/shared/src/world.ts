@@ -797,7 +797,7 @@ export class World {
           break;
         case ArtId.PhantomHand:
           if (t === 12) {
-            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 1050, vy: 0, dmg: 260, kb: 0, stun: 100, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true });
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 1050, vy: 0, dmg: 260, kb: 0, stun: 72, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true });
             this.events.push({ t: 'shoot', p: f.id, kind: 8 });
           }
           break;
