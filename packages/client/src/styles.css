@@ -43,7 +43,9 @@ html, body {
 #game canvas { display: block; }
 #backdrop { display: none; }
 #ui { position: absolute; inset: 0; pointer-events: none; }
+/* menus take taps; the full-screen in-match layers (.hud, .touch) pass them through to their own controls */
 #ui > * { pointer-events: auto; }
+#ui > .hud, #ui > .touch { pointer-events: none; }
 body[data-screen='game'] #ui > .screen { display: none; }
 body:not([data-screen='game']) #game { filter: brightness(0.32) blur(2px); }
 

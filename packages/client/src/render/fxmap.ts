@@ -86,12 +86,34 @@ import * as spellCharge from '../vendor/pixelfx/fx/arcane/spell-charge.js';
 import * as circleCast from '../vendor/pixelfx/fx/arcane/magic-circle-cast.js';
 // @ts-expect-error -
 import * as smite from '../vendor/pixelfx/fx/holy/smite.js';
+// @ts-expect-error -
+import * as portal from '../vendor/pixelfx/fx/arcane/portal.js';
+// @ts-expect-error -
+import * as starFall from '../vendor/pixelfx/fx/arcane/star-fall.js';
+// @ts-expect-error -
+import * as graspingHands from '../vendor/pixelfx/fx/shadow/grasping-hands.js';
+// @ts-expect-error -
+import * as shadowTendrils from '../vendor/pixelfx/fx/shadow/shadow-tendrils.js';
+// @ts-expect-error -
+import * as darkExplosion from '../vendor/pixelfx/fx/shadow/dark-explosion.js';
+// @ts-expect-error -
+import * as flamethrower from '../vendor/pixelfx/fx/fire/flamethrower.js';
+// @ts-expect-error -
+import * as fireRing from '../vendor/pixelfx/fx/fire/fire-ring.js';
+// @ts-expect-error -
+import * as blessing from '../vendor/pixelfx/fx/holy/blessing.js';
+// @ts-expect-error -
+import * as sunburst from '../vendor/pixelfx/fx/holy/sunburst.js';
+// @ts-expect-error -
+import * as earthSpike from '../vendor/pixelfx/fx/nature/earth-spike.js';
+// @ts-expect-error -
+import * as forceField from '../vendor/pixelfx/fx/scifi/force-field.js';
 
 export const FX = {
   swordSlash, doubleSlash, spinSlash, scytheReap, thrust, spearSweep, claw, daggerFlurry, hammerSmash, heavyCleave, hitSpark, critHit, bluntHit,
   parry, shieldBlock, groundSlam, heavyLanding, smallExplosion, iceShatter, iceLance, blinkIn, blinkOut, heal, poof, arrow, fireball, burning,
   slowed, stunned, damageNumber, critNumber, pow, lightningStrike, chargeUp, arcaneOrb, divineShield, rage, energyDisc, spellCharge, circleCast,
-  smite,
+  smite, portal, starFall, graspingHands, shadowTendrils, darkExplosion, flamethrower, fireRing, blessing, sunburst, earthSpike, forceField,
 } as Record<string, FxModule>;
 
 /** Palettes that recolour PixelFX effects for the Arts (dark to bright). */
@@ -100,6 +122,16 @@ export const PAL = {
   violet: ['#140a26', '#2e1660', '#5a2aa8', '#8a5ae0', '#c09cff', '#ece0ff', '#ffffff'],
   crimson: ['#1a0408', '#4a0a12', '#8c1420', '#d42a2e', '#ff6a4a', '#ffc0a0', '#ffffff'],
   cyan: ['#04141a', '#0a3a4a', '#147a90', '#2ac0d8', '#7ae8f5', '#d0fbff', '#ffffff'],
+  /** Shadow hound, phantom hand, the Abyss: black-violet with a bright violet rim. */
+  abyss: ['#07040e', '#130a22', '#241242', '#3d1e6e', '#5e32a8', '#8a5ae0', '#c09cff', '#ece0ff'],
+  /** Serpent Rain: venom green. */
+  serpent: ['#0d1a0c', '#173a14', '#265e18', '#3f8a1e', '#6cb82a', '#a8e04a', '#e0ff8a'],
+  /** Rewritten Fate: ink and old gold. */
+  ink: ['#080604', '#15110c', '#2a2016', '#4a3a26', '#7a6038', '#b8924a', '#e8c878', '#fff6d8'],
+  goldGlow: ['#4a2a08', '#8a5414', '#c8902a', '#f0c050', '#fff0a0'],
+  smoke: ['#0e0c12', '#1d1a22', '#2e2a35', '#433e4b', '#5c5664', '#7b7484', '#a39cab'],
+  dust: ['#1c1610', '#33281c', '#4f3f2c', '#6e5a40', '#927a58', '#b89f78', '#dcc8a2'],
+  fire: ['#1f0b10', '#4a1118', '#8c1d1c', '#cc3a1a', '#f2701f', '#ffae35', '#ffe27a', '#fff8d6'],
 };
 
 export interface SwingFx {

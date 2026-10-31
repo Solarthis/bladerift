@@ -1,1 +1,367 @@
-/* In-match HUD and touch-control styles that build on styles.css. */
+/* In-match HUD and touch controls. Loads after styles.css and overrides it. Everything stays in the top band
+   (the HUD) or on the right thumb cluster (touch), away from the fighters. */
+
+/* styles.css makes every direct child of #ui take pointer events, which would let the full-screen HUD and touch
+   roots swallow every tap; only their controls should take them */
+#ui > .hud,
+#ui > .touch { pointer-events: none; }
+
+/* ------------------------------------------------------------------ fighter panels */
+.hp-side { width: min(37%, 420px); padding: 4px 6px 0; }
+.hp-top { justify-content: flex-start; gap: 7px; margin-bottom: 5px; font-size: 16px; }
+.hp-side.right .hp-top { flex-direction: row-reverse; justify-content: flex-start; }
+/* the hero portrait, framed in the hero's accent colour; object-position keeps the face in the frame */
+.hp-portrait {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #120c1c;
+  border: 2px solid var(--ac, var(--gold));
+  box-shadow: 0 0 0 1px #000, 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 12px color-mix(in srgb, var(--ac, #e9b64a) 45%, transparent);
+}
+.hp-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; }
+.hp-id { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.hp-side.right .hp-id { align-items: flex-end; }
+.hp-name { display: block; max-width: 100%; font-size: 16px; line-height: 1.05; }
+.hp-hero {
+  display: flex;
+  gap: 5px;
+  max-width: 100%;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  color: var(--dim);
+  text-shadow: 0 1px 2px #000;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.hp-hero span, .hp-hero i { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.hp-hero span { color: var(--ink); opacity: 0.85; }
+.hp-hero i { font-style: italic; font-weight: 600; opacity: 0.75; }
+.hp-side.right .hp-hero { justify-content: flex-end; }
+.hp-pips { flex: none; }
+.hp-bar { height: 20px; }
+.hp-num { font-size: 11px; }
+
+/* Rift row: the Art icon (lights up when ready), the segmented gauge, the loadout icons */
+.rift-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.hp-side.right .rift-row { flex-direction: row-reverse; }
+.rift-art {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #120c1c;
+  border: 1px solid rgba(255, 230, 190, 0.25);
+  filter: grayscale(0.9) brightness(0.55);
+  transition: filter 0.25s, border-color 0.25s;
+}
+.rift-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.rift-art.ready {
+  filter: none;
+  border-color: var(--gold-hi);
+  animation: art-light 0.9s ease-in-out infinite alternate;
+}
+@keyframes art-light {
+  from { box-shadow: 0 0 4px rgba(255, 217, 138, 0.45); }
+  to { box-shadow: 0 0 14px rgba(255, 217, 138, 0.95); }
+}
+/* ten segments: a divider every 10% over the fill */
+.rift {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 13px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #05040a, #1a1428);
+  border: 1px solid rgba(255, 230, 190, 0.28);
+  box-shadow: inset 0 1px 3px #000;
+  overflow: hidden;
+}
+.rift::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(5, 4, 10, 0.85) calc(10% - 1px) 10%);
+}
+.rift-fill {
+  background: linear-gradient(180deg, #e6d2ff, #9a6ae6 55%, #5a2fb0);
+  box-shadow: 0 0 8px rgba(176, 122, 255, 0.7);
+  transition: width 0.15s;
+}
+.rift-pct {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.6px;
+  color: #fff;
+  text-shadow: 0 1px 1px #000;
+  pointer-events: none;
+}
+.rift.ready {
+  border-color: #ffe6a6;
+  animation: rift-pulse 0.8s ease-in-out infinite alternate;
+}
+.rift.ready .rift-fill {
+  background: linear-gradient(180deg, #fff6c8, #ffd25a 55%, #d88a1e);
+  box-shadow: 0 0 12px #ffd98a;
+}
+.rift.ready .rift-pct { color: #2a1a00; text-shadow: 0 1px 0 rgba(255, 240, 200, 0.6); }
+@keyframes rift-pulse {
+  from { box-shadow: 0 0 4px rgba(255, 217, 138, 0.5), inset 0 1px 3px #000; }
+  to { box-shadow: 0 0 16px rgba(255, 217, 138, 0.95), inset 0 1px 3px #000; }
+}
+.hp-gear { display: flex; gap: 3px; flex: none; }
+.hp-side.right .hp-gear { justify-content: flex-end; }
+.hp-gear img { height: 15px; max-width: 26px; padding: 1px 2px; }
+
+/* status chips and the combo counter, under the gauge */
+.hp-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  margin-top: 4px;
+}
+.hp-side.right .hp-status { justify-content: flex-end; }
+.chip {
+  display: none;
+  font-style: normal;
+  font-family: var(--display);
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.8px;
+  padding: 3px 5px 2px;
+  border-radius: 4px;
+  color: #fff;
+  background: rgba(10, 8, 16, 0.85);
+  border: 1px solid #666;
+  text-shadow: 0 1px 0 #000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.chip.on { display: inline-block; animation: chip-in 0.22s ease-out; }
+@keyframes chip-in {
+  from { transform: scale(1.35); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.chip-burning { color: #ffc08a; border-color: #ff7a2a; }
+.chip-slowed { color: #bfeaff; border-color: #5ab8e8; }
+.chip-rooted { color: #e8d6b0; border-color: #a88a5a; }
+.chip-buff { color: #fff3b0; border-color: #ffd24a; box-shadow: 0 0 7px rgba(255, 210, 74, 0.55); }
+.chip-frenzy { color: #ffc4c4; border-color: #ff3a3a; }
+.hp-combo {
+  display: none;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: var(--ac, var(--gold-hi));
+  text-shadow: 0 2px 0 #000, 0 0 8px color-mix(in srgb, var(--ac, #ffd98a) 60%, transparent);
+  white-space: nowrap;
+}
+.hp-combo.on { display: inline-block; }
+.hp-combo.pop { animation: combo-pop 0.35s cubic-bezier(0.2, 1.8, 0.4, 1); }
+@keyframes combo-pop {
+  from { transform: scale(1.7); }
+  to { transform: scale(1); }
+}
+
+/* ------------------------------------------------------------------ round intro: VS card */
+/* In the top band, in the clock's place while it shows (the clock fades out). The fighters stay uncovered. */
+.hud-mid { transition: opacity 0.2s; }
+.hud-mid.away { opacity: 0; }
+.hud-vs {
+  position: absolute;
+  left: 50%;
+  top: max(4px, env(safe-area-inset-top));
+  width: min(230px, 34%);
+  transform: translate(-50%, -6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px 7px;
+  border-radius: 0 0 12px 12px;
+  border: 1px solid rgba(255, 230, 190, 0.14);
+  border-top: 0;
+  background: linear-gradient(180deg, rgba(13, 10, 20, 0.88), rgba(13, 10, 20, 0.5));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.3s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.hud-vs.on { opacity: 1; transform: translate(-50%, 0); }
+.hud-vs-side { max-width: 100%; min-width: 0; }
+/* each hero's name in its accent colour (--ac is set on the side) */
+.hud-vs-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(13px, 3.4vh, 19px);
+  line-height: 1.05;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ac, var(--ink));
+  text-shadow: 0 2px 0 #000, 0 0 10px rgba(0, 0, 0, 0.8);
+}
+.hud-vs-x {
+  display: block;
+  font-family: var(--display);
+  font-size: clamp(18px, 5vh, 28px);
+  line-height: 1;
+  color: var(--gold-hi);
+  text-shadow: 0 3px 0 #2a1430, 0 0 12px rgba(0, 0, 0, 0.8);
+}
+
+/* ------------------------------------------------------------------ banners */
+/* the Rift Art name takes the hero's accent colour (set on the banner as --ac) */
+.hud-banner.art {
+  color: var(--ac, #c09cff);
+  text-shadow: 0 5px 0 #000, 0 0 4px #000, 0 0 28px color-mix(in srgb, var(--ac, #c09cff) 60%, transparent);
+}
+
+/* ------------------------------------------------------------------ touch: joystick */
+.stick-base { overflow: visible; }
+.stick-arrow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+/* a triangle on the rim, turned by the script to the stick's direction; it fades in as the stick leaves the centre */
+.stick-arrow::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -11px;
+  margin-left: -10px;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 14px solid var(--gold-hi);
+  filter: drop-shadow(0 1px 2px #000);
+}
+.stick-base.on .stick-arrow { opacity: calc((var(--mag, 0) - 0.12) * 2.2); }
+.sd {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -5px 0 0 -5px;
+  border: 0 solid rgba(255, 230, 190, 0.4);
+  transition: border-color 0.1s;
+}
+.sd-u { left: 50%; top: 12px; border-top-width: 2px; border-left-width: 2px; transform: rotate(45deg); }
+.sd-d { left: 50%; top: calc(100% - 12px); border-bottom-width: 2px; border-right-width: 2px; transform: rotate(45deg); }
+.sd-l { left: 12px; top: 50%; border-bottom-width: 2px; border-left-width: 2px; transform: rotate(45deg); }
+.sd-r { left: calc(100% - 12px); top: 50%; border-top-width: 2px; border-right-width: 2px; transform: rotate(45deg); }
+.stick-base.lit-l .sd-l, .stick-base.lit-r .sd-r, .stick-base.lit-d .sd-d { border-color: var(--gold-hi); }
+.stick-base.lit-l .sd-l, .stick-base.lit-r .sd-r, .stick-base.lit-d .sd-d { box-shadow: 0 0 6px rgba(255, 217, 138, 0.7); }
+.stick-knob { z-index: 1; }
+
+/* ------------------------------------------------------------------ touch: thumb cluster */
+/* A 3-column block anchored to the bottom right, 8px gutters. A (the weapon) is the thumb rest; B sits above it;
+   skill, jump and roll form the left arc; the Art and heal sit above the cluster. Fits 667x375 and 844x390. */
+.tbuttons {
+  right: max(6px, env(safe-area-inset-right));
+  bottom: max(6px, env(safe-area-inset-bottom));
+  width: 232px;
+  height: 226px;
+}
+.tb { width: 64px; height: 64px; border-radius: 12px; isolation: isolate; }
+.tb i { border-radius: 10px; }
+.tb-a { right: 6px; bottom: 6px; width: 76px; height: 76px; opacity: 0.94; }
+.tb-b { right: 6px; bottom: 90px; width: 64px; height: 64px; }
+.tb-skill { right: 90px; bottom: 6px; width: 64px; height: 64px; }
+.tb-jump { right: 90px; bottom: 90px; width: 64px; height: 64px; }
+.tb-roll { right: 162px; bottom: 6px; width: 60px; height: 60px; }
+.tb-art { right: 90px; bottom: 162px; width: 64px; height: 64px; }
+.tb-heal { right: 6px; bottom: 162px; width: 56px; height: 56px; }
+.tb-art.ready { border-width: 2px; }
+.tb-art i { filter: grayscale(0.85) brightness(0.5); }
+.tb-art.ready i { filter: none; }
+.tb-ripple {
+  position: absolute;
+  z-index: 4;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 244, 210, 0.6) 0%, rgba(255, 217, 138, 0.28) 42%, transparent 70%);
+  transform: scale(0);
+  animation: tb-ripple 0.55s ease-out forwards;
+}
+@keyframes tb-ripple {
+  to { transform: scale(1.5); opacity: 0; }
+}
+
+/* first glow of the Rift Art, once per device: a bubble over the Art tile */
+.touch-hint {
+  position: absolute;
+  right: 96px;
+  bottom: 240px;
+  max-width: 230px;
+  padding: 7px 11px;
+  border-radius: 10px;
+  background: rgba(13, 10, 20, 0.92);
+  border: 1px solid var(--gold);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.25;
+  text-shadow: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+}
+.touch-hint.on { opacity: 1; transform: none; }
+.touch-hint::after {
+  content: '';
+  position: absolute;
+  right: 22px;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: rgba(13, 10, 20, 0.92);
+  border-right: 1px solid var(--gold);
+  border-bottom: 1px solid var(--gold);
+  transform: rotate(45deg);
+}
+
+/* narrow screens: the epithet goes, the chips and portrait get smaller so the status stays on one line */
+@media (max-width: 760px) {
+  .hp-hero i { display: none; }
+  .hp-portrait { width: 30px; height: 30px; }
+  .hp-top { gap: 6px; }
+  .chip { font-size: 9px; padding: 2px 4px 1px; letter-spacing: 0.5px; }
+  .hp-status { gap: 3px; }
+}
+
+/* small landscape phones: the HUD keeps its height, the cluster scales down from its bottom-right corner */
+@media (max-height: 360px) {
+  .tbuttons { transform: scale(0.9); transform-origin: 100% 100%; }
+}

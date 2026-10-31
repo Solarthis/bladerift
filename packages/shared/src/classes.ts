@@ -97,37 +97,37 @@ export const CLASSES: ClassDef[] = [
   {
     id: ClassId.Saber, name: 'Saber', title: 'The knight of the blade', signature: WeaponId.Sword, art: ArtId.RadiantCleave,
     blurb: 'The balanced swordmaster. Sturdy, steady, dangerous at every range with Radiant Cleave.',
-    hp: 1050, dmg: 1.05, speed: 1, airJumps: 1, dashes: 1, rollCd: 1, recovery: 0.95, backstab: 1.5, chip: 0.8, skillCd: 1, arrowSpeed: 1,
+    hp: 1050, dmg: 1.0, speed: 1, airJumps: 1, dashes: 1, rollCd: 1, recovery: 0.95, backstab: 1.5, chip: 0.8, skillCd: 1, arrowSpeed: 1,
     bars: { power: 4, speed: 3, health: 4, reach: 3 },
   },
   {
     id: ClassId.Archer, name: 'Archer', title: 'Death from afar', signature: WeaponId.Bow, art: ArtId.HailOfArrows,
     blurb: 'Light on its feet, arrows fly faster and further. Keep your distance and make them come to you.',
-    hp: 900, dmg: 1, speed: 1.12, airJumps: 1, dashes: 1, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 0.9, arrowSpeed: 1.3,
+    hp: 1020, dmg: 1.12, speed: 1.12, airJumps: 1, dashes: 1, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 0.9, arrowSpeed: 1.3,
     bars: { power: 3, speed: 4, health: 2, reach: 5 },
   },
   {
     id: ClassId.Lancer, name: 'Lancer', title: 'The hound of the spear', signature: WeaponId.Lance, art: ArtId.PiercingFang,
     blurb: 'Fast and long-reaching. Pokes from outside your range and closes the gap in a heartbeat.',
-    hp: 950, dmg: 1, speed: 1.15, airJumps: 1, dashes: 1, rollCd: 0.85, recovery: 0.9, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
+    hp: 880, dmg: 1, speed: 1.1, airJumps: 1, dashes: 1, rollCd: 0.85, recovery: 0.9, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
     bars: { power: 3, speed: 4, health: 3, reach: 5 },
   },
   {
     id: ClassId.Caster, name: 'Caster', title: 'Weaver of the rift', signature: WeaponId.Staff, art: ArtId.ThunderCall,
     blurb: 'A mage: arcane bolts from the staff, skills recharge twice as fast. Frail if caught.',
-    hp: 860, dmg: 1, speed: 1, airJumps: 1, dashes: 1, rollCd: 1, recovery: 1, backstab: 1.5, chip: 1.1, skillCd: 0.5, arrowSpeed: 1,
+    hp: 1000, dmg: 1, speed: 1, airJumps: 1, dashes: 1, rollCd: 1, recovery: 1, backstab: 1.5, chip: 1.1, skillCd: 0.5, arrowSpeed: 1,
     bars: { power: 4, speed: 3, health: 2, reach: 4 },
   },
   {
     id: ClassId.Assassin, name: 'Assassin', title: 'Gone before the blade lands', signature: WeaponId.Daggers, art: ArtId.FlashStep,
     blurb: 'Blindingly swift: triple jump, two air dashes, quick rolls and recoveries, brutal backstabs. Hits lighter and breaks easily.',
-    hp: 820, dmg: 0.82, speed: 1.3, airJumps: 2, dashes: 2, rollCd: 0.5, recovery: 0.75, backstab: 1.9, chip: 1.2, skillCd: 0.9, arrowSpeed: 1,
+    hp: 880, dmg: 0.88, speed: 1.3, airJumps: 2, dashes: 2, rollCd: 0.5, recovery: 0.75, backstab: 1.9, chip: 1.2, skillCd: 0.9, arrowSpeed: 1,
     bars: { power: 2, speed: 5, health: 1, reach: 1 },
   },
   {
     id: ClassId.Berserker, name: 'Berserker', title: 'Every wound a reason', signature: WeaponId.Hammer, art: ArtId.BloodFrenzy,
     blurb: 'Slow and brutal: hits 20% harder, 40% harder below a third of health. Heavy rolls.',
-    hp: 1150, dmg: 1.2, speed: 0.88, airJumps: 1, dashes: 1, rollCd: 1.35, recovery: 1.1, backstab: 1.5, chip: 1, skillCd: 1.1, arrowSpeed: 1,
+    hp: 1050, dmg: 1.15, speed: 0.88, airJumps: 1, dashes: 1, rollCd: 1.35, recovery: 1.1, backstab: 1.5, chip: 1, skillCd: 1.1, arrowSpeed: 1,
     bars: { power: 5, speed: 2, health: 5, reach: 2 },
   },
   {

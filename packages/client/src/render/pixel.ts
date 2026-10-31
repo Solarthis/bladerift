@@ -10,6 +10,14 @@ import { posed, createFx, createFrame, clearFrame, composite, hex } from '../ven
 import { WEAPONS as RIG_WEAPONS } from '../vendor/pixelfx/core/rig.js';
 // @ts-expect-error - plain JS vendor module
 import { DUMMY_PAL } from '../vendor/pixelfx/core/actor.js';
+import { heroOf } from '@bladerift/shared';
+import { buildCostume, Costume, CostumeStyle, CW, CH, CX, CY, INK, newCostume } from './costumes';
+// @ts-expect-error - plain JS module (the Bladerift fork of the PixelFX rig)
+import { registerWeapon, renderHero, SCALE } from './heroRig.js';
+import { modelOf } from './models/index';
+
+export { CW, CH, INK, newCostume };
+export type { Costume, CostumeStyle };
 
 /** World units per art pixel (the 38 px figure stands ~52 units tall, the gameplay body height). */
 export const PIX = 1.38;
@@ -32,7 +40,7 @@ if (!RIG_WEAPONS.shield) {
             const edge = Math.abs(w) > half - 1 || k < -12.2 || k > 10.2;
             const boss = Math.hypot(w, k + 2) < 1.8;
             const c = edge ? (w < 0 ? SH.rim : SH.rimD) : boss ? (w < 0 ? SH.boss : SH.bossD) : w < -half * 0.4 ? SH.faceL : w > half * 0.5 ? SH.faceD : SH.face;
-            T(i + 2, k, c, w);
+            T(w * 0.6 + 4, k, c, i * 0.35); // the face toward the camera (3/4 view), not edge-on
           }
         }
       }
@@ -56,6 +64,27 @@ if (!RIG_WEAPONS.staff) {
     },
   };
 }
+
+// the twin daggers, slimmer than the rig's: a short blade (about 6 px) on a small guard and grip, so they read as quick knives
+const DG = { grip: pack('#7a3a2a'), gripD: pack('#4a2018'), gold: pack('#ffd84a'), goldD: pack('#b8862a'), hi: pack('#ffffff'), a: pack('#e8edf6'), d: pack('#68748f') };
+RIG_WEAPONS.dagger = {
+  draw(T: (i: number, k: number, c: number, lift?: number) => void) {
+    for (let i = -2.4; i <= 1.8; i += 0.4) for (let k = -0.6; k <= 0.61; k += 0.4) T(i, k, k > 0.1 ? DG.gripD : DG.grip);
+    for (let k = -1.8; k <= 1.81; k += 0.4) T(2.2, k, k > 1 || k < -1 ? DG.goldD : DG.gold);
+    for (let i = 2.6; i <= 8.6; i += 0.4) {
+      const w = i > 7.2 ? 0.7 : 1.1;
+      for (let k = -w; k <= w + 0.01; k += 0.4) T(i, k, k < -w * 0.4 ? DG.hi : k > w * 0.4 ? DG.d : DG.a);
+    }
+  },
+};
+
+// the hero rig (render/heroRig.js) has its own weapon table: it gets the same custom weapons
+registerWeapon('shield', RIG_WEAPONS.shield);
+registerWeapon('staff', RIG_WEAPONS.staff);
+registerWeapon('dagger', RIG_WEAPONS.dagger);
+
+/** Sub-pixels per rig pixel for heroes drawn through their models. */
+export const HERO_SCALE = SCALE as number;
 
 // ------------------------------------------------------------------ fighter colours
 
@@ -93,6 +122,79 @@ const FH = 180;
 const FOX = 120;
 const FOY = 140;
 
+/** The colours of a hero: its armour on the body, its accent on the chest mark. */
+export function heroLut(hero: number): Map<number, number> {
+  const h = heroOf(hero);
+  return fighterLut(h.armor, h.accent);
+}
+
+/**
+ * Paints one fighter into a w x h pixel buffer with its feet at (ox, oy): the costume's back layer, the body, then the
+ * costume's front layer (flipped about ox when `flip`). Flash and tint wash the non-ink pixels.
+ */
+export function paintFighter(
+  dst: Uint32Array,
+  w: number,
+  h: number,
+  ox: number,
+  oy: number,
+  flip: boolean,
+  pose: Pose,
+  lut: Map<number, number>,
+  costume: Costume | null,
+  flash = 0,
+  tint = 0,
+) {
+  dst.fill(0);
+  const sx = flip ? -1 : 1;
+  const shade = (c: number) => {
+    if (flash > 0) c = mixAbgr(c, 0xffffffff, flash);
+    if (tint) c = mixAbgr(c, tint, 0.22);
+    return c;
+  };
+  const plot = (x: number, y: number, c: number) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    dst[y * w + x] = c;
+  };
+  const layer = (cells: Uint32Array) => {
+    for (let gy = 0; gy < CH; gy++)
+      for (let gx = 0; gx < CW; gx++) {
+        const c = cells[gy * CW + gx];
+        if (!c) continue;
+        plot(ox + sx * (gx - CX), oy + gy - CY, c === INK ? c : shade(c));
+      }
+  };
+  if (costume) layer(costume.back);
+  const r = posed(pose) as { n: number; xs: Int16Array; ys: Int16Array; color: Uint32Array; ink: Uint8Array };
+  for (let i = 0; i < r.n; i++) {
+    let c = r.color[i];
+    c = lut.get(c) ?? c;
+    plot(ox + sx * r.xs[i], oy + r.ys[i], r.ink[i] ? c : shade(c));
+  }
+  if (costume) layer(costume.front);
+}
+
+/**
+ * Paints a hero through its model (render/models) into a w x h buffer with the feet at (ox, oy), in SUB-PIXELS
+ * (HERO_SCALE per rig pixel): proportions, materials and 3D pieces come from the model.
+ */
+export function paintHero(dst: Uint32Array, w: number, h: number, ox: number, oy: number, flip: boolean, pose: Pose, hero: number, flash = 0, tint = 0) {
+  dst.fill(0);
+  const sx = flip ? -1 : 1;
+  const r = renderHero(pose, modelOf(hero)) as { n: number; xs: Int16Array; ys: Int16Array; color: Uint32Array; ink: Uint8Array };
+  for (let i = 0; i < r.n; i++) {
+    const x = ox + sx * r.xs[i];
+    const y = oy + r.ys[i];
+    if (x < 0 || y < 0 || x >= w || y >= h) continue;
+    let c = r.color[i];
+    if (!r.ink[i]) {
+      if (flash > 0) c = mixAbgr(c, 0xffffffff, flash);
+      if (tint) c = mixAbgr(c, tint, 0.22);
+    }
+    dst[y * w + x] = c;
+  }
+}
+
 /** One fighter's canvas texture, re-drawn when its pose changes. */
 export class FighterCanvas {
   readonly key: string;
@@ -100,13 +202,42 @@ export class FighterCanvas {
   private img: ImageData;
   private buf: Uint32Array;
   private lastKey = '';
-  constructor(scene: Phaser.Scene, key: string, public lut: Map<number, number>) {
+  /** The body's colours: the given ones, or the hero's when a hero is set. */
+  readonly lut: Map<number, number>;
+  private style: CostumeStyle | null;
+  private costume: Costume | null;
+  /** The hero drawn through its model (sub-pixel detail), or -1 for the plain recoloured figure. */
+  private readonly hero: number;
+  /** World units per canvas pixel: set the image's scale to this. */
+  readonly worldScale: number;
+  readonly originX: number;
+  readonly originY: number;
+  /**
+   * `hero` (an index into HEROES) puts that hero's costume on the body and its armour and accent colours in place of
+   * `lut`. Without it the fighter is the plain PixelFX figure in `lut`.
+   */
+  constructor(scene: Phaser.Scene, key: string, lut: Map<number, number>, hero?: number) {
     this.key = key;
+    this.hero = hero ?? -1;
+    const k = this.hero >= 0 ? HERO_SCALE : 1;
+    this.worldScale = PIX / k;
+    this.originX = FOX / FW;
+    this.originY = FOY / FH;
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    this.tex = scene.textures.createCanvas(key, FW, FH)!;
+    this.tex = scene.textures.createCanvas(key, FW * k, FH * k)!;
     this.tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
-    this.img = this.tex.context.createImageData(FW, FH);
+    this.img = this.tex.context.createImageData(FW * k, FH * k);
     this.buf = new Uint32Array(this.img.data.buffer);
+    if (hero !== undefined) {
+      const h = heroOf(hero);
+      this.lut = heroLut(hero);
+      this.style = { costume: h.costume, armor: h.armor, accent: h.accent };
+      this.costume = newCostume();
+    } else {
+      this.lut = lut;
+      this.style = null;
+      this.costume = null;
+    }
   }
   static readonly originX = FOX / FW;
   static readonly originY = FOY / FH;
@@ -116,19 +247,12 @@ export class FighterCanvas {
     const key = JSON.stringify(pose) + '|' + Math.round(flash * 4) + '|' + tint;
     if (key === this.lastKey) return;
     this.lastKey = key;
-    const r = posed(pose) as { n: number; xs: Int16Array; ys: Int16Array; color: Uint32Array; ink: Uint8Array };
-    const b = this.buf;
-    b.fill(0);
-    const lut = this.lut;
-    for (let i = 0; i < r.n; i++) {
-      const x = r.xs[i] + FOX;
-      const y = r.ys[i] + FOY;
-      if (x < 0 || y < 0 || x >= FW || y >= FH) continue;
-      let c = r.color[i];
-      c = lut.get(c) ?? c;
-      if (flash > 0 && !r.ink[i]) c = mixAbgr(c, 0xffffffff, flash);
-      if (tint && !r.ink[i]) c = mixAbgr(c, tint, 0.22);
-      b[y * FW + x] = c;
+    if (this.hero >= 0) {
+      // heroes: the model carries the costume as real 3D pieces
+      paintHero(this.buf, FW * HERO_SCALE, FH * HERO_SCALE, FOX * HERO_SCALE, FOY * HERO_SCALE, false, pose, this.hero, flash, tint);
+    } else {
+      const costume = this.style && this.costume ? buildCostume(pose, this.style, this.costume) : null;
+      paintFighter(this.buf, FW, FH, FOX, FOY, false, pose, this.lut, costume, flash, tint);
     }
     this.tex.context.putImageData(this.img, 0, 0);
     this.tex.refresh();

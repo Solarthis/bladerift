@@ -3,9 +3,31 @@
  * The attack tracks are PixelFX's own acted moves (wind-up, a snap to the strike, follow-through, recovery), re-timed
  * onto Bladerift's startup / active / recovery ticks so what you see is exactly when the hit can land.
  */
-import { Act, ArtId, classOf, FIGHTER, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, TICK_RATE, WEAPONS, WeaponId } from '@bladerift/shared';
+import { Act, ArtId, classOf, FIGHTER, heroOf, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, TICK_RATE, WEAPONS, WeaponId } from '@bladerift/shared';
 // @ts-expect-error - plain JS vendor module
-import { poseAt } from '../vendor/pixelfx/core/act.js';
+import { lerpPose } from '../vendor/pixelfx/core/act.js';
+
+/**
+ * Pose on a track of keys [t, pose, how], like PixelFX's poseAt, but limbs step at STEP_FPS instead of 12: smoother
+ * motion at the hero rig's double detail, still in held steps (each step is one cached frame). "snap" keys stay instant.
+ */
+const STEP_FPS = 20;
+const EASES: Record<string, (u: number) => number> = { out: (u) => 1 - (1 - u) * (1 - u), in: (u) => u * u, line: (u) => u };
+function poseAt(track: Key[], t: number): Pose {
+  if (t <= track[0][0]) return track[0][1];
+  for (let i = 0; i < track.length - 1; i++) {
+    const [t0, a] = track[i];
+    const [t1, b, how] = track[i + 1];
+    if (t >= t1) continue;
+    if (how === 'snap') return a;
+    const e = EASES[how ?? ''] ?? ((u: number) => u * u * (3 - 2 * u));
+    const stepped = t0 + Math.floor((t - t0) * STEP_FPS + 1e-6) / STEP_FPS;
+    return lerpPose(a, b, e((stepped - t0) / (t1 - t0))) as Pose;
+  }
+  return track[track.length - 1][1];
+}
+/** Quantise a continuous wobble to n held steps (fewer distinct frames to render and cache). */
+const q = (v: number, step: number) => Math.round(v / step) * step;
 import type { ViewFighter } from '../net/NetGame';
 import type { Pose } from './pixel';
 
@@ -52,10 +74,19 @@ function spinSlash(w: number, weapon = 'sword'): Key[] {
 }
 
 function scytheReap(): Key[] {
+  // the blade swings round the front at waist height: back and up, through the box, low and forward (the body barely turns)
   const REST_ = { ...READY, weapon: 'scythe', sa: -1.5, fx: 11, fy: -22, bx: 7, by: -16 };
-  const OUT_ = { ...REST_, two: true, crouch: 4, lean: 4, fx: 17, fy: -27, sa: -0.45, ffx: 11, fbx: -8 };
-  const END = { ...REST_, two: true, yaw: 3.14, crouch: 6, lean: 4, fx: 15, fy: -24, sa: 0.3, ffx: 11, fbx: -10, toeB: true };
-  return [[-0.26, OUT_], [0, { ...OUT_, crouch: 5 }], [0.06, { ...OUT_, yaw: 0.8, crouch: 5, lean: 3, fx: 16, fy: -23, sa: 0.1, ghost: 1 }], [0.16, { ...OUT_, yaw: 1.9, crouch: 6, lean: 3, fx: 15, fy: -23, sa: 0.2, ghost: 1 }], [0.28, END], [0.78, { ...END, crouch: 5 }], [1.16, { ...REST_, yaw: 1.4, crouch: 4 }], [1.56, REST_]];
+  const BACK = { ...REST_, two: true, crouch: 4, lean: -3, fx: -4, fy: -30, sa: -2.5, ffx: 9, fbx: -8 };
+  const CUT = { ...REST_, two: true, crouch: 3, lean: 2, fx: 15, fy: -26, sa: -0.5, ffx: 10, fbx: -9, ghost: 1 };
+  const LOW = { ...REST_, two: true, crouch: 6, lean: 5, fx: 18, fy: -18, sa: 0.5, ffx: 12, fbx: -10, toeB: true, ghost: 1 };
+  return [[-0.26, BACK], [-0.06, { ...BACK, fx: -6, fy: -34, sa: -2.2 }], [0, { ...REST_, two: true, crouch: 3, lean: -3, fx: 4, fy: -40, sa: -1.6, ffx: 9, fbx: -8 }, 'snap'], [0.12, CUT, 'snap'], [0.22, { ...CUT, fx: 18, fy: -24, sa: -0.2, lean: 3 }], [0.34, LOW, 'snap'], [0.5, { ...LOW, crouch: 6, fx: 16, fy: -18, sa: 0.7, ghost: 0 }], [0.9, { ...REST_, two: true, crouch: 5, lean: 4, fx: 14, fy: -16, sa: 0.9, ffx: 11, fbx: -9 }], [1.25, { ...REST_, two: true, crouch: 4, lean: 2 }], [1.56, REST_]];
+}
+
+function scytheRise(): Key[] {
+  // the second reap comes back up from low, sweeping the blade across the front
+  const REST_ = { ...READY, weapon: 'scythe', sa: -1.5, fx: 11, fy: -22, bx: 7, by: -16 };
+  const LOW = { ...REST_, two: true, crouch: 6, lean: 4, fx: 18, fy: -14, sa: 0.9, ffx: 12, fbx: -10, toeB: true };
+  return [[-0.26, LOW], [-0.06, { ...LOW, fx: 16, sa: 0.7 }], [0, { ...LOW, crouch: 5, fx: 14, fy: -18, sa: 0.3 }, 'snap'], [0.12, { ...LOW, crouch: 4, lean: 2, fx: 16, fy: -24, sa: -0.2, ghost: 1 }, 'snap'], [0.24, { ...LOW, crouch: 3, lean: -1, fx: 14, fy: -30, sa: -0.8, ghost: 1 }], [0.4, { ...LOW, crouch: 2, lean: -3, fx: 10, fy: -36, sa: -1.4 }], [0.8, { ...REST_, two: true, crouch: 4, lean: 0, fx: 12, fy: -28, sa: -1.1 }], [1.56, REST_]];
 }
 
 function scytheHook(): Key[] {
@@ -158,7 +189,7 @@ function trackFor(w: number, move: number): Key[] {
   if (t) return t;
   switch (w) {
     case WeaponId.Sword: t = move === MOVE_AIR ? airSlash(w) : move === MOVE_PLUNGE ? plunge(w) : move === 1 ? swordRising(w) : move === 2 ? spinSlash(w) : swordSlash(w); break;
-    case WeaponId.Scythe: t = move === MOVE_AIR ? spinSlash(w, 'scythe') : move === MOVE_PLUNGE ? plunge(w) : move === 2 ? scytheHook() : scytheReap(); break;
+    case WeaponId.Scythe: t = move === MOVE_AIR ? spinSlash(w, 'scythe') : move === MOVE_PLUNGE ? plunge(w) : move === 2 ? scytheHook() : move === 1 ? scytheRise() : scytheReap(); break;
     case WeaponId.Staff: t = staffCast(move === MOVE_CHARGED); break;
     case WeaponId.Lance: t = move === MOVE_CHARGED || move === MOVE_ART ? lanceLunge() : move === 2 ? spearSweep() : move === MOVE_AIR ? thrust('spear', true) : thrust('spear', true); break;
     case WeaponId.Daggers: t = move === 3 ? daggerFinish() : move === MOVE_PLUNGE ? plunge(w) : move === MOVE_AIR ? daggerStab(2) : daggerStab(move); break;
@@ -185,26 +216,164 @@ function trackTime(track: Key[], startup: number, rest: number, actT: number) {
 
 // ---------------------------------------------------------------- locomotion
 
+/** The run cycle: the weight dips at each footfall, the legs stride and the lifted foot clears the ground, the arms swing against the legs. */
 function runPose(base: Pose, phase: number, speed: number): Pose {
-  const s = Math.sin(phase);
-  const c = Math.cos(phase);
-  const k = Math.min(1, speed / 200);
+  // 16 held frames per stride (a classic sprite cycle: every frame renders once, then comes from the cache)
+  const ph = q(phase, (Math.PI * 2) / 16);
+  const s = Math.sin(ph);
+  const c = Math.cos(ph);
+  const k = q(Math.min(1, speed / 200), 0.25);
+  const bx = base.bx as number;
+  const fx = base.fx as number;
   return {
     ...base,
-    crouch: 3 + Math.abs(c) * 2 * k,
-    lean: 4 * k,
-    ffx: 2 + s * 9 * k,
-    ffy: -4 - Math.max(0, -c) * 5 * k,
-    fbx: 2 - s * 9 * k,
-    fby: -4 - Math.max(0, c) * 5 * k,
-    bx: (base.bx as number ?? 9) - s * 3 * k,
+    crouch: (base.crouch as number) + 2.5 * k * s * s,
+    lean: 5 * k,
+    ffx: 2 + s * 10 * k,
+    ffy: -4 - Math.max(0, c) * 6 * k,
+    fbx: 2 - s * 10 * k,
+    fby: -4 - Math.max(0, -c) * 6 * k,
+    fx: fx - s * 3 * k,
+    bx: bx + s * 3 * k,
   };
 }
 
+// ---------------------------------------------------------------- Rift Arts (the hero's art, on the class's weapon)
+
+const ART_TRACKS = new Map<number, Key[]>();
+
+/** One art's timeline in art ticks: the snap is the tick the art's effect spawns (world.ts stepArts). */
+function artKeys(art: number, sig: number): Key[] {
+  const H = hold(sig);
+  switch (art) {
+    case ArtId.RadiantCleave: {
+      // the blade raised two-handed over him, gathering the sun; the cleave comes down at tick 18, the wave's spawn
+      const UP = { ...H, two: true, crouch: 2, lean: -4, fx: 4, fy: -46, sa: -1.6, bx: 2, by: -44, ffx: 9, fbx: -8 };
+      const GATHER = { ...UP, crouch: 1, lean: -6, fy: -48 };
+      const DOWN = { ...H, two: true, crouch: 7, lean: 7, fx: 22, fy: -17, sa: 0.5, ffx: 14, fbx: -11, toeB: true, ghost: 1 };
+      return [[0, H], [6, UP], [12, GATHER], [17, { ...GATHER, fy: -50 }], [18, DOWN, 'snap'], [24, { ...DOWN, crouch: 8, lean: 8, fx: 24, fy: -14, sa: 0.9, ghost: 0 }], [32, { ...H, two: true, crouch: 5, lean: 4, fx: 20, fy: -22, sa: 0.3, ffx: 12, fbx: -9 }], [40, H]];
+    }
+    case ArtId.HailOfArrows: {
+      // the bow raised at the sky, drawn back, loosed straight up at tick 12 (the volley's spawn)
+      const AIM = { ...H, crouch: 3, lean: -3, fx: 10, fy: -36, sa: 0, bx: 8, by: -34, nocked: true, ffx: 9, fbx: -8 };
+      const DRAW = { ...AIM, crouch: 2, lean: -5, bx: -2, by: -36, pull: true };
+      const LOOSE = { ...AIM, crouch: 1, lean: -6, fx: 12, fy: -40, bx: -6, by: -38, nocked: false, pull: false };
+      return [[0, H], [5, AIM], [10, DRAW], [12, LOOSE, 'snap'], [18, { ...LOOSE, fx: 10, fy: -36, bx: -4, by: -34, lean: -4 }], [30, H]];
+    }
+    case ArtId.ThunderCall: {
+      // the staff raised high, the far hand up to the sky, then the arm flung at the foe at tick 10; the stars fall for the rest of the art
+      const UP = { ...H, crouch: 2, lean: -3, fx: 6, fy: -40, sa: -2.0, bx: -6, by: -46 };
+      const POINT = { ...H, crouch: 3, lean: 5, fx: 24, fy: -30, sa: -0.2, bx: -2, by: -46, ffx: 12, fbx: -9 };
+      return [[0, H], [7, UP], [10, POINT, 'snap'], [16, { ...POINT, fy: -32, lean: 6 }], [26, { ...POINT, crouch: 4 }], [32, { ...H, crouch: 2, fx: 14, fy: -30, sa: -0.9, bx: 4, by: -30 }], [36, H]];
+    }
+    case ArtId.ChainsOfGenesis: {
+      // the lance planted upright, the far hand raised over the field, then driven down at the foe at tick 8; the grip tightens as the chains bind
+      const PLANT = { ...H, weapon: 'spear', two: false, sa: -1.5, fx: 9, fy: -22, crouch: 2, bx: -2, by: -46 };
+      const DRIVE = { ...PLANT, crouch: 4, lean: 4, bx: 24, by: -16, ffx: 11, fbx: -9 };
+      return [[0, H], [6, PLANT], [8, DRIVE, 'snap'], [18, { ...DRIVE, bx: 18, by: -18 }], [26, { ...DRIVE, crouch: 3, bx: 10, by: -20 }], [30, { ...DRIVE, bx: 14, by: -18 }], [36, H]];
+    }
+    case ArtId.VaultOfAges: {
+      // arms spread: the near hand forward and up, the far hand flung back towards the portals; the relics leave in turn as the hands flick
+      const A = { ...H, crouch: 2, lean: -3, fx: 20, fy: -34, sa: 0.1, bx: -14, by: -34, hy: -1, ffx: 9, fbx: -8 };
+      const B = { ...A, fx: 23, fy: -30, bx: -18, by: -30 };
+      const keys: Key[] = [[0, H], [7, A]];
+      for (let k = 0; k < 11; k++) keys.push([10 + 3 * k, k % 2 ? B : A, 'snap']);
+      keys.push([42, A], [50, H]);
+      return keys;
+    }
+    case ArtId.PhantomHand: {
+      // the claw drawn back low by the hip, then thrust out along the ground at tick 12 (the hand's spawn)
+      const CLAW = { ...READY, weapon: 'claw', sa: 0.05, fx: -6, fy: -10, bx: 6, by: -22, crouch: 5, lean: -2, ffx: 4, fbx: -6 };
+      const COIL = { ...CLAW, fx: -10, fy: -8, crouch: 6 };
+      const THRUST = { ...CLAW, crouch: 7, lean: 7, fx: 30, fy: -6, sa: 0, bx: -8, by: -26, ffx: 15, fbx: -11, toeB: true, ghost: 1 };
+      return [[0, { ...READY, weapon: 'claw', sa: 0.05 }], [8, CLAW], [11, COIL], [12, THRUST, 'snap'], [16, { ...THRUST, fx: 26, ghost: 0 }], [26, { ...THRUST, fx: 28 }], [36, { ...CLAW, crouch: 4 }], [40, { ...READY, weapon: 'claw', sa: 0.05 }]];
+    }
+    case ArtId.Stampede: {
+      // rearing with the scythe over the head, then the rider drives forward with it levelled like a lance at tick 14 (the steed's spawn)
+      const RAISE = { ...H, two: true, crouch: 3, lean: -6, fx: 4, fy: -40, sa: -2.3, bx: -2, by: -40 };
+      const CHARGE = { ...H, two: true, crouch: 6, lean: 8, fx: 27, fy: -26, sa: 0, bx: 20, by: -26, ffx: 14, fbx: -10, toeB: true };
+      return [[0, H], [8, RAISE], [14, CHARGE, 'snap'], [20, { ...CHARGE, crouch: 5, lean: 7, ffx: 12 }], [26, { ...CHARGE, crouch: 7, lean: 8, fx: 28 }], [32, { ...CHARGE, crouch: 5 }], [36, H]];
+    }
+    case ArtId.BloodFrenzy: {
+      // the hammer overhead, then the roar at tick 12 (the knockback): arms flung wide, head back, the hammer let go
+      const RAISE = { ...H, two: true, crouch: 3, lean: -4, fx: 4, fy: -44, sa: -2.2 };
+      const ROAR = { crouch: 4, lean: -7, hy: -4, fx: -12, fy: -40, bx: 22, by: -40, ffx: 10, fbx: -10, weapon: undefined, offWeapon: undefined, two: false };
+      return [[0, H], [6, RAISE], [11, { ...RAISE, lean: -6 }], [12, ROAR, 'snap'], [16, { ...ROAR, fx: -14, fy: -44 }], [20, { ...ROAR, fx: -8, fy: -36, bx: 16 }], [24, H]];
+    }
+    case ArtId.Bulwark: {
+      // the tower shield braced out in front for the whole barrier
+      const SH = hold(WeaponId.Shield);
+      const WALL = { ...SH, crouch: 7, lean: 5, fx: 20, fy: -26, bx: 22, by: -22, sb: 0, ffx: 13, fbx: -10 };
+      return [[0, SH], [8, WALL], [16, { ...WALL, crouch: 6, lean: 6, fx: 21, fy: -27 }], [110, WALL], [120, SH]];
+    }
+    case ArtId.FlashStep: {
+      // crouched and vanishing (ghosted), the blink at tick 8, then six cuts from 14 to 44, the last one a finisher
+      const keys: Key[] = [[0, { ...dBase, crouch: 6, lean: -2, ghost: 1 }], [7, { ...dBase, crouch: 8, lean: -4, fx: -2, fy: -18, sa: -1.4, bx: -4, by: -18, ghost: 1 }], [8, { ...dBase, crouch: 4, fx: 2, fy: -26, ghost: 1 }, 'snap'], [12, { ...dBase, crouch: 4, ghost: 0 }]];
+      for (let k = 0; k < 6; k++) {
+        const t = 14 + k * 6;
+        const cut = k === 5 ? { ...dBase, lean: 6, crouch: 6, fx: 22, fy: -23, sa: 0.15, bx: -9, by: -24, sb: -2.6, ffx: 13, fbx: -10, toeB: true } : k % 2 === 0 ? near(20, -30, -0.5, { ghost: 1 }) : far(21, -23, 0.5, { ghost: 1 });
+        keys.push([t, cut, 'snap'], [t + 3, { ...cut, ghost: 0 }]);
+      }
+      keys.push([48, { ...dBase, lean: 4, crouch: 4, ghost: 1 }], [54, dBase]);
+      return keys;
+    }
+    case ArtId.RewrittenFate: {
+      // the book held flat in the far hand, the staff's tip writing the chapter in the air; the strokes quicken as the rewrite takes hold
+      const Q = { ...H, fx: 12, fy: -30, bx: 14, by: -22, bz: 6, crouch: 3, lean: 2, ffx: 7, fbx: -6 };
+      const WA = { ...Q, fx: 18, fy: -36, sa: -0.9 };
+      const WB = { ...Q, fx: 23, fy: -30, sa: -0.3 };
+      return [[0, H], [6, Q], [9, WA, 'snap'], [12, WB, 'snap'], [15, WA, 'snap'], [18, WB, 'snap'], [21, WA, 'snap'], [24, WB, 'snap'], [27, Q], [30, H]];
+    }
+    case ArtId.GrimFog: {
+      // the hat tipped, the gentleman turns away, the coat swept out, and the fog takes him (ghosted, then gone)
+      const POISE = { ...READY, weapon: undefined, offWeapon: undefined, two: false, crouch: 3, lean: -1 };
+      const TIP = { ...POISE, fx: 2, fy: -38, bx: 8, by: -22, hy: 1 };
+      const TURN = { ...POISE, yaw: 1.1, fx: 6, fy: -28, bx: 8, by: -24, lean: 0 };
+      const SWEEP = { ...TURN, fx: -10, fy: -26, bx: -14, by: -24, lean: -4 };
+      const SWEEP2 = { ...SWEEP, bx: -18, by: -20, lean: -6 };
+      return [[0, POISE], [4, TIP], [8, TURN], [11, SWEEP, 'snap'], [15, SWEEP2], [18, { ...SWEEP2, ghost: 1 }], [20, { ...POISE, ghost: 1 }]];
+    }
+    case ArtId.NightHunt: {
+      // the crouch (ticks 0-5); the leap and the fall are chosen by the fighter's state (artPose); the slam follows the landing
+      const S = hold(sig);
+      const CROUCH = { ...S, two: true, crouch: 9, lean: 3, fx: 0, fy: -18, sa: -0.8, bx: -6, by: -16, ffx: 12, fbx: -10 };
+      return [[0, S], [4, CROUCH], [6, CROUCH]];
+    }
+    default:
+      return [[0, H]];
+  }
+}
+
+/** The Art pose at its tick. NightHunt leaves the ground: rising on the leap, falling, then the slam on landing. */
+function artPose(v: ViewFighter, t: number): Pose {
+  const h = heroOf(v.hero);
+  const sig = classOf(h.cls).signature;
+  if (h.art === ArtId.NightHunt) {
+    const S = hold(sig);
+    if (!v.ground && t >= 6) {
+      // rising on the leap, or falling onto the target with the scythe overhead
+      return v.vy < 0
+        ? { ...S, two: true, crouch: -2, lean: 9, fx: 20, fy: -48, sa: -1.0, ffx: -6, ffy: -10, fbx: -10, fby: -12 }
+        : { ...S, two: true, crouch: -1, lean: -3, fx: 6, fy: -52, sa: -1.9, ffx: 10, ffy: -18, fbx: 4, fby: -12, toeB: true };
+    }
+    if (t >= 36) {
+      // the slam: the scythe comes down and the body follows it, then rises out of the ground
+      const SLAM = { ...S, two: true, crouch: 8, lean: 8, fx: 24, fy: -12, sa: 1.0, ffx: 14, fbx: -12, toeB: true };
+      return poseAt([[36, SLAM], [40, { ...SLAM, crouch: 6, lean: 6 }], [46, { ...S, two: true, crouch: 4, lean: 2, fx: 14, fy: -24, sa: 0.4 }], [50, S]], t) as Pose;
+    }
+  }
+  let track = ART_TRACKS.get(h.art * 16 + sig);
+  if (!track) ART_TRACKS.set(h.art * 16 + sig, (track = artKeys(h.art, sig)));
+  return poseAt(track, t) as Pose;
+}
+
 export interface PoseCtx {
-  /** Seconds since the fighter started moving (run cycle), and the clock for idle breathing. */
+  /** Seconds since the start, the clock for breathing, stun wobble and flicker. */
   time: number;
+  /** The run cycle's phase (radians). */
   runPhase: number;
+  /** Seconds since the fighter last landed (a short squash on touchdown), if known. */
+  land?: number;
 }
 
 /** The PixelFX pose for a fighter this frame. */
@@ -217,7 +386,7 @@ export function poseFor(v: ViewFighter, ctx: PoseCtx): Pose {
       const m = moveOf(w, v.move);
       if (!m) return base;
       const track = trackFor(w, v.move);
-      const rest = m.plunge ? m.active + m.recovery : m.active + m.recovery;
+      const rest = m.active + m.recovery;
       return poseAt(track, trackTime(track, m.startup, rest, t)) as Pose;
     }
     case Act.Charge: {
@@ -225,32 +394,43 @@ export function poseFor(v: ViewFighter, ctx: PoseCtx): Pose {
         const AIM = { ...base, crouch: 4, lean: -2, fx: 18, fy: -28, sa: 0, bx: -3, by: -29, nocked: true, pull: true, ffx: 11, fbx: -9 };
         return t < 6 ? { ...AIM, bx: 10, by: -27, pull: false } : AIM;
       }
+      if (w === WeaponId.Staff) {
+        // the staff hauled up over the shoulder, the orb gathering at its head and flickering as it charges
+        const qv = v.charge > 30 ? q(Math.sin(ctx.time * 40) * 0.8, 0.4) : 0;
+        return { ...base, crouch: 4, lean: -2, fx: 6, fy: -36 + qv, sa: -2.0, bx: -4, by: -34, ffx: 10, fbx: -9 };
+      }
       // the lance pulled back, quivering as it charges
-      const q = v.charge > 30 ? Math.sin(ctx.time * 60) * 0.6 : 0;
-      return { ...base, weapon: 'spear', two: true, crouch: 6, lean: -3, fx: 2 + q, fy: -22, sa: 0, ffx: 10, fbx: -9 };
+      const qv = v.charge > 30 ? q(Math.sin(ctx.time * 60) * 0.6, 0.3) : 0;
+      return { ...base, weapon: 'spear', two: true, crouch: 6, lean: -3, fx: 2 + qv, fy: -22, sa: 0, ffx: 10, fbx: -9 };
     }
     case Act.Block:
       return { ...hold(WeaponId.Shield), weapon: w === WeaponId.Shield ? undefined : HOLD[v.weapons[v.slot ^ 1]]?.weapon, crouch: 5, lean: 2, bx: 13, by: -26, sb: 0, ffx: 10, fbx: -8 };
     case Act.Ledge:
       // hanging by both hands from the edge above, legs dangling, a slight sway
-      return { ...base, weapon: undefined, offWeapon: undefined, two: false, crouch: -2, lean: 2, hy: -2, fx: 6, fy: -41, bx: 2, by: -41, ffx: 2 + Math.sin(ctx.time * 3), ffy: -1, fbx: -3, fby: -2, toeF: true, toeB: true };
+      return { ...base, weapon: undefined, offWeapon: undefined, two: false, crouch: -2, lean: 2, hy: -2, fx: 6, fy: -44, bx: 4, by: -44, ffx: 2 + q(Math.sin(ctx.time * 3), 0.5), ffy: -1, fbx: -3, fby: -2, toeF: true, toeB: true };
     case Act.Climb: {
-      const u = Math.min(1, t / 14);
-      return u < 0.5
-        ? { ...base, weapon: undefined, offWeapon: undefined, two: false, crouch: 4, lean: 6, fx: 9, fy: -46, bx: 5, by: -46, ffx: 6, ffy: -14, fbx: -2, fby: -6 }
-        : { ...base, crouch: 8, lean: 7, fx: 12, fy: -12, bx: 6, by: -12, ffx: 8, fby: -2, fbx: -6 };
+      // pull up on the edge (the arms bend, the knee comes up), push up onto it, then stand
+      return poseAt([
+        [0, { ...base, weapon: undefined, offWeapon: undefined, two: false, crouch: -1, lean: 2, fx: 6, fy: -44, bx: 4, by: -44, ffx: 2, ffy: -4, fbx: -3, fby: -4 }],
+        [5, { ...base, weapon: undefined, offWeapon: undefined, two: false, crouch: 6, lean: 8, fx: 12, fy: -32, bx: 8, by: -36, ffx: 8, ffy: -12, fbx: -2, fby: -4 }],
+        [9, { ...base, weapon: undefined, offWeapon: undefined, two: false, crouch: 8, lean: 8, fx: 20, fy: -18, bx: 14, by: -18, ffx: 12, ffy: -4, fbx: -4, fby: -3 }],
+        [14, base],
+      ], t) as Pose;
     }
     case Act.Roll: {
       if (v.rollAir) {
-        // air dash: stretched flat into the dash, legs trailing
-        return { ...base, crouch: 2, lean: 9, fx: 17, fy: -27, bx: -10, by: -27, ffx: -6, ffy: -9, fbx: -12, fby: -11, toeF: true, toeB: true, ghost: 1 };
+        // air dash: the body flat and streamlined, the arms swept forward, the legs trailing
+        return { ...base, crouch: -2, lean: 12, fx: 22, fy: -28, bx: 18, by: -26, ffx: -12, ffy: -6, fbx: -14, fby: -10, toeF: true, toeB: true, ghost: 1 };
       }
       const u = Math.min(1, t / FIGHTER.rollTicks);
-      // tucked and tumbling: the whole sprite is spun by the renderer, the body stays a ball
-      return { ...base, crouch: 10, lean: 8, fx: 6, fy: -14, bx: 3, by: -14, ffx: 5, fbx: -3, ffy: -6, fby: -6, ghost: u < 0.7 ? 1 : 0 };
+      // a real tuck: the knees drawn up, the arms wrapped round them, the whole body a ball (the sprite turns over it)
+      return { ...base, crouch: 12, lean: 10, fx: 4, fy: -10, bx: 2, by: -10, ffx: 4, ffy: -6, fbx: -2, fby: -6, ghost: u < 0.7 ? 1 : 0 };
     }
-    case Act.Stun:
-      return { ...base, crouch: 4, lean: -6, hx: -2, hy: -2, fx: 4, fy: -20, bx: -4, by: -19, ffx: 5, fbx: -8, toeF: true };
+    case Act.Stun: {
+      // knocked back, the head snapping, the arms flailing
+      const wob = q(Math.sin(ctx.time * 22), 0.5);
+      return { ...base, crouch: 4, lean: -7, hx: -2, hy: -2, fx: 4 + wob * 4, fy: -24 + wob * 4, bx: -4 - wob * 3, by: -22 - wob * 3, ffx: 5, fbx: -8, toeF: true };
+    }
     case Act.Heal: {
       const sip = Math.min(1, t / 14);
       return { ...base, crouch: 2, lean: -2, hy: -2 * sip, bx: 4 + sip * 2, by: -24 - sip * 9, ffx: 5, fbx: -6 };
@@ -262,58 +442,33 @@ export function poseFor(v: ViewFighter, ctx: PoseCtx): Pose {
         ? { ...base, crouch: 5, lean: -4, bx: -9, by: -36, ffx: 9, fbx: -8 }
         : { ...base, crouch: 4, lean: 6, bx: 18, by: -28, ffx: 12, fbx: -10, ghost: 1 };
     }
-    case Act.Art: {
-      const art = classOf(v.cls).art;
-      const sig = hold(classOf(v.cls).signature);
-      switch (art) {
-        case ArtId.RadiantCleave: {
-          // the blade raised high gathering light, then brought down in one stroke
-          const up = { ...sig, crouch: 2, lean: -4, fx: 4, fy: -46, sa: -1.6, bx: 2, by: -44, two: true, ffx: 9, fbx: -8 };
-          const down = { ...sig, crouch: 7, lean: 7, fx: 22, fy: -18, sa: 0.5, bx: 18, by: -20, two: true, ffx: 14, fbx: -11, toeB: true, ghost: 1 };
-          return t < 18 ? up : down;
-        }
-        case ArtId.HailOfArrows:
-          return { ...sig, crouch: 3, lean: -6, fx: 14, fy: -40, sa: -1.1, bx: 2, by: -38, nocked: t < 12, pull: t < 12, ffx: 9, fbx: -8 };
-        case ArtId.ThunderCall:
-          return { ...sig, crouch: 1, lean: -4, hy: -2, fx: 6, fy: -48, sa: -1.55, bx: -6, by: -40, ffx: 8, fbx: -8 };
-        case ArtId.FlashStep: {
-          // the flurry: alternating stabs every few frames
-          const k = Math.floor(Math.max(0, t - 12) / 3) % 4;
-          const stabs = [
-            { ...sig, crouch: 5, lean: 6, fx: 22, fy: -32, sa: -0.4, bx: 2, by: -24, sb: -1 },
-            { ...sig, crouch: 5, lean: 5, fx: 2, fy: -24, sa: -1, bx: 21, by: -24, sb: 0.4 },
-            { ...sig, crouch: 6, lean: 7, fx: 20, fy: -20, sa: 0.3, bx: 2, by: -26, sb: -1.2 },
-            { ...sig, crouch: 4, lean: 4, fx: 4, fy: -36, sa: -2, bx: 20, by: -30, sb: -0.6 },
-          ];
-          return { ...stabs[k], ghost: 1 };
-        }
-        case ArtId.BloodFrenzy:
-          // the roar: arms flung wide, head back
-          return { ...sig, crouch: 4, lean: -6, hy: -3, fx: 2, fy: -40, bx: 16, by: -40, ffx: 11, fbx: -10 };
-        case ArtId.Bulwark:
-          return { ...sig, crouch: 7, lean: 4, bx: 15, by: -28, sb: 0, fx: 8, fy: -24, ffx: 12, fbx: -10 };
-        default:
-          return sig;
-      }
-    }
+    case Act.Art:
+      return artPose(v, t);
     case Act.KO:
       return { ...base, crouch: 8, lean: -8, hx: -3, hy: -3, fx: 2, fy: -10, bx: -6, by: -12, ffx: 9, fbx: -4 };
     case Act.Win:
       return { ...base, crouch: 0, lean: -2, hy: -2, fx: 9, fy: -42, sa: -1.7, two: false, ffx: 6, fbx: -6 };
     default: {
       if (v.slide) {
-        // back to the wall, one hand and one foot dragging on it
-        return { ...base, crouch: 3, lean: -3, fx: 10, fy: -26, bx: -10, by: -32, ffx: -7, ffy: -8, fbx: 2, fby: -3 };
+        // against the wall: hands pressed on it in front, one foot braced on it, sliding down
+        return { ...base, crouch: 2, lean: 8, fx: 24, fy: -30, bx: 18, by: -26, ffx: 12, ffy: -8, fbx: 4, fby: -4 };
       }
-      if (v.crouch) return { ...base, crouch: 10, lean: 3, fy: (base.fy as number) + 8, by: (base.by as number) + 8, ffx: 8, fbx: -8 };
-      if (!v.ground && v.fast) return { ...base, crouch: -2, lean: 0, fy: -40, by: -40, ffx: 2, ffy: -1, fbx: -2, fby: -1, ghost: 1 };
+      if (v.crouch) return { ...base, crouch: 9, lean: 6, fx: 18, fy: -16, bx: 10, by: -14, ffx: 10, fbx: -9 };
+      if (!v.ground && v.fast) {
+        // the fast fall: head down, the arms reaching for the ground, the legs tucked up behind
+        return { ...base, crouch: -4, lean: 12, fx: 22, fy: -8, bx: 14, by: -12, ffx: -8, ffy: -14, fbx: -12, fby: -18, ghost: 1 };
+      }
       if (!v.ground) {
-        const rising = v.vy < -60;
-        return rising
-          ? { ...base, crouch: -1, lean: 2, ffx: 6, ffy: -9, fbx: -4, fby: -4, toeB: true }
-          : { ...base, crouch: 0, lean: -1, ffx: 4, ffy: -5, fbx: -3, fby: -8 };
+        // rising, the float at the apex, then falling: three held phases
+        if (v.vy < -160) return { ...base, crouch: -1, lean: 3, fx: 8, fy: -34, bx: 10, by: -34, ffx: 6, ffy: -10, fbx: -4, fby: -6, toeB: true };
+        if (v.vy < 120) return { ...base, crouch: 2, lean: 1, fx: 12, fy: -28, bx: 6, by: -28, ffx: 7, ffy: -9, fbx: -3, fby: -8, toeF: true, toeB: true };
+        return { ...base, crouch: 1, lean: -2, ffx: 9, ffy: -3, fbx: -5, fby: -2 };
       }
+      // touchdown: a short squash that springs back
+      if (ctx.land !== undefined && ctx.land < 0.12) return { ...base, crouch: (base.crouch as number) + (ctx.land < 0.06 ? 5 : 3), lean: 3, ffx: 9, fbx: -9 };
       const speed = Math.abs(v.vx);
+      // turning round at speed: a skid, leaning back against the slide
+      if (speed > 90 && Math.sign(v.vx) !== Math.sign(v.face)) return { ...base, crouch: 5, lean: -6, ffx: 12, ffy: -3, fbx: -2, fx: (base.fx as number) - 4, bx: (base.bx as number) + 4 };
       if (speed > 25) return runPose(base, ctx.runPhase, speed);
       const breathe = Math.round(Math.sin(ctx.time * 2.4) * 0.6 + 0.4);
       return { ...base, crouch: (base.crouch as number) + breathe };

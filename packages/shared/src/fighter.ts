@@ -38,7 +38,7 @@ export const MOVE_ART = 13;
 
 /** Piercing Fang: an unstoppable, guard-breaking lunge across the arena. */
 export const ART_FANG: Move = {
-  startup: 10, active: 24, recovery: 14, dmg: 240, box: { x: 2, y: -50, w: 72, h: 30 }, kbX: 460, kbY: 220, stun: 46, dash: 900, breaksGuard: true, shake: 0.9,
+  startup: 10, active: 24, recovery: 14, dmg: 205, box: { x: 2, y: -50, w: 72, h: 30 }, kbX: 460, kbY: 220, stun: 46, dash: 900, breaksGuard: true, shake: 0.9,
 };
 
 const enum Buf {
@@ -283,6 +283,16 @@ function startArt(s: FighterState, C: ClassDef, artId: ArtId): boolean {
   const art = ARTS[artId];
   if (artId === ArtId.FlashStep || artId === ArtId.Bulwark) s.invuln = Math.max(s.invuln, art.ticks);
   if (artId === ArtId.BloodFrenzy) s.invuln = Math.max(s.invuln, art.ticks);
+  // these pay off the moment they are cast (a hit mid-cast must not cancel them)
+  if (artId === ArtId.RewrittenFate) {
+    s.hp = Math.min(C.hp, s.hp + C.hp * 0.28);
+    s.buff = 480;
+    s.invuln = Math.max(s.invuln, 30); // the page turns: untouchable while it is written
+  }
+  if (artId === ArtId.GrimFog) {
+    s.veil = 300 + art.ticks;
+    s.invuln = Math.max(s.invuln, art.ticks);
+  }
   return true;
 }
 
@@ -355,7 +365,8 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   // the Rift gauge fills on its own while the round is live (hits fill it faster: the World adds those)
   if (!locked && s.act !== Act.Art && s.rift < RIFT.max) s.rift = Math.min(RIFT.max, s.rift + RIFT.passive);
 
-  const speedK = (s.slowT > 0 ? PHYS.slowFactor : 1) * C.speed * (s.frenzy > 0 ? 1.15 : 1);
+  // (in the Grim Fog he moves like the fog: a little faster, unseen)
+  const speedK = (s.slowT > 0 ? PHYS.slowFactor : 1) * C.speed * (s.frenzy > 0 ? 1.15 : 1) * (s.veil > 0 ? 1.2 : 1);
   let ax = s.rootT > 0 ? 0 : cmd.moveX;
   // just after a wall jump, steering back into that wall is ignored (so the kick carries you away)
   if (s.wlock > 0 && Math.sign(ax) === s.wallSide) ax = 0;
@@ -563,11 +574,6 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         s.act = Act.Free;
         s.actT = 0;
         if (ART === ArtId.BloodFrenzy) s.frenzy = 360;
-        if (ART === ArtId.RewrittenFate) {
-          s.hp = Math.min(C.hp, s.hp + C.hp * 0.2);
-          s.buff = 420;
-        }
-        if (ART === ArtId.GrimFog) s.veil = 300;
         s.charge = 0;
       }
       break;

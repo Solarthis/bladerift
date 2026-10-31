@@ -85,6 +85,16 @@ Row 2: (5) THORNMAW, the Black Hound: a quiet girl with short brown hair and a s
        shield; cool teal background.
        (7) an empty dark card with only a faint golden rift crack (spare). (8) an empty dark card with only a faint golden rift crack (spare).`,
   },
+  'icons-arts2': {
+    ref: 'icons-abilities.png',
+    prompt: `${ICON_RULES.replace('exact 4 x 4 grid', 'exact 4 x 2 grid').replace('1024x1024, so every icon is 256x256', '1024x512, so every icon is 256x256')}
+Match the attached sheet's frame and style exactly.
+Row 1: (1) VAULT OF AGES: a golden rift portal with many legendary weapons (swords, spears) bursting out point-first; (2) CHAINS OF GENESIS: living
+       golden chains erupting from cracked earth and coiling upward; (3) REWRITTEN FATE: an open glowing book with a quill pen writing in golden
+       light; (4) PHANTOM HAND: a pale spectral skeletal claw reaching out of teal mist.
+Row 2: (5) GRIM FOG: a gentleman's silhouette in a peaked cap dissolving into grey fog; (6) STAMPEDE: a burning warhorse charging, mane of fire;
+       (7) NIGHT HUNT: a colossal shadow wolf-hound leaping with glowing purple eyes; (8) a plain golden rift crack on violet (spare).`,
+  },
   'icons-abilities': {
     ref: 'skills.png',
     prompt: `${ICON_RULES}

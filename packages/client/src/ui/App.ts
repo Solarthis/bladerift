@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
-  ARENAS, artOf, CLASSES, classOf, DEFAULT_LOADOUT, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout, SKILLS, SKILL_COUNT, WEAPONS,
-  WEAPON_COUNT,
+  ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout, SKILLS,
+  SKILL_COUNT, WEAPONS, WEAPON_COUNT,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
 import { GameScene, LocalPlayer } from '../game/GameScene';
@@ -16,14 +16,17 @@ import { sfx } from '../audio/Sfx';
 import { prefs, setPref } from './prefs';
 import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
-import { artIcon, crestIcon, skillIcon, weaponIcon } from './icons';
+import { crestIcon, heroArtIcon, skillIcon, weaponIcon } from './icons';
 import { measureViewport, setViewport, viewH, viewW } from './viewport';
-import { drawPreview } from './preview';
 
 type Screen = 'title' | 'fighter' | 'online' | 'lobby' | 'game' | 'results' | 'settings' | 'howto' | 'connecting';
 
 const PROFILE_KEYS = ['bladerift.profile', 'bladerift.profile2'];
 const NAMES = ['Ronin', 'Vesper', 'Kael', 'Isolde', 'Marrow', 'Tamsin', 'Corvin', 'Wren'];
+
+/** Hero portrait card (240x320, framed): assets/art/h-00.jpg .. h-13.jpg. */
+const heroPortrait = (h: HeroDef) => `assets/art/h-${String(h.portrait).padStart(2, '0')}.jpg`;
+/** Square Rift Art icon by ArtId: the seven original arts have their own icon, the new seven share i-art. */
 
 function loadProfile(i: number): Profile {
   let p: Partial<Profile> = {};
@@ -117,8 +120,15 @@ export class App {
       this.ui.innerHTML = '';
       return;
     }
+    // panels marked data-keep keep their scroll position across a re-render (hero picks redraw the screen)
+    const keep = new Map<string, [number, number]>();
+    this.ui.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => keep.set(el.dataset.keep!, [el.scrollLeft, el.scrollTop]));
     this.ui.innerHTML = `<div class="screen screen-${s}">${this.render(s)}</div>`;
     this.bind(this.ui.firstElementChild as HTMLElement);
+    this.ui.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => {
+      const v = keep.get(el.dataset.keep!);
+      if (v) [el.scrollLeft, el.scrollTop] = v;
+    });
   }
 
   private render(s: Screen): string {
@@ -173,45 +183,74 @@ export class App {
 
   private renderFighter() {
     const p = this.profiles[this.editing];
-    const tile = (kind: string, i: number, icon: string, name: string, on: boolean) =>
-      `<button class="tile ${on ? 'on' : ''}" data-pick="${kind}" data-i="${i}" title="${esc(name)}"><img src="${icon}" alt=""><span>${esc(name)}</span></button>`;
-    const C = classOf(p.load.cls);
-    const weapons = (slot: number) =>
-      Array.from({ length: WEAPON_COUNT }, (_, i) => i)
-        .filter((i) => i !== C.signature)
-        .map((i) => tile(`w${slot}`, i, weaponIcon(i), WEAPONS[i].short, p.load.weapons[slot] === i))
-        .join('');
-    const bar = (label: string, v: number) => `<div class="stat"><span>${label}</span><i>${'<b></b>'.repeat(v)}${'<em></em>'.repeat(5 - v)}</i></div>`;
-    const classes = CLASSES.map(
-      (k) => `<button class="cls ${k.id === C.id ? 'on' : ''}" data-pick="cls" data-i="${k.id}" title="${esc(k.name)}"><img src="${crestIcon(k.id)}" alt=""><span>${esc(k.name)}</span></button>`,
-    ).join('');
-    const art = artOf(C.id);
-    const skills = Array.from({ length: SKILL_COUNT }, (_, i) => tile('skill', i, skillIcon(i), SKILLS[i].name, p.load.skill === i)).join('');
-    const sw = (kind: string, list: { name: string; rgb: number }[], cur: number) =>
-      list.map((c, i) => `<button class="sw ${cur === i ? 'on' : ''}" data-pick="${kind}" data-i="${i}" style="--c:${css(c.rgb)}" title="${c.name}"></button>`).join('');
-    const wa = WEAPONS[p.load.weapons[0]];
+    const h = heroOf(p.load.hero);
+    const C = classOf(h.cls);
+    const A = ARTS[h.art] ?? ARTS[0];
+    const wa = WEAPONS[C.signature];
     const wb = WEAPONS[p.load.weapons[1]];
     const sk = SKILLS[p.load.skill];
-    return `${this.header(this.editing ? 'Player 2 fighter' : 'Your fighter')}
-      <div class="fighter-grid">
-        <div class="card preview-card">
-          <canvas id="preview" width="200" height="200"></canvas>
-          <input id="fname" maxlength="16" value="${esc(p.name)}" placeholder="Name">
-          <div class="sws">${sw('color', COLORS, p.color)}</div>
-          <div class="sws small">${sw('accent', ACCENTS, p.look?.accent ?? 0)}</div>
-        </div>
-        <div class="card gear-card">
-          <h3>Class</h3><div class="tiles classes">${classes}</div>
-          <div class="class-info">
-            <img class="crest" src="${crestIcon(C.id)}" alt="">
-            <div><b>${esc(C.name)}</b> <small>${esc(C.title)}</small><p>${esc(C.blurb)}</p>
-              <div class="stats">${bar('Power', C.bars.power)}${bar('Speed', C.bars.speed)}${bar('Health', C.bars.health)}${bar('Reach', C.bars.reach)}</div></div>
-            <div class="art-box"><img src="${artIcon(C.id)}" alt=""><div><small>Rift Art</small><b>${esc(art.name)}</b><p>${esc(art.blurb)}</p></div></div>
+    const slot = (x: HeroDef) => (x.slot === 'True' ? 'True' : x.slot === 'False' ? 'False' : 'Extra');
+    const pick = (kind: string, i: number, icon: string, name: string, on: boolean) =>
+      `<button class="hs-tile ${on ? 'on' : ''}" data-pick="${kind}" data-i="${i}" title="${esc(name)}" aria-label="${esc(name)}"><img src="${icon}" alt=""><span>${esc(name)}</span></button>`;
+    const card = (x: HeroDef) =>
+      `<button class="hs-hero ${x.id === h.id ? 'on' : ''}" data-pick="hero" data-i="${x.id}" title="${esc(x.name)}, ${esc(x.epithet)}" aria-label="${esc(x.name)}" aria-pressed="${x.id === h.id}">
+        <img src="${heroPortrait(x)}" alt=""><span class="hs-tag">${slot(x)}</span><span class="hs-nm">${esc(x.name)}</span></button>`;
+    // one column per class: the True champion above the False one (Aegis, the Extra, sits in the lower slot)
+    const columns = CLASSES.map((k) => {
+      const members = HEROES.filter((x) => x.cls === k.id);
+      const top = members.find((x) => x.slot === 'True');
+      const low = members.find((x) => x.slot !== 'True');
+      return `<div class="hs-col ${k.id === C.id ? 'current' : ''}">
+        <div class="hs-col-h"><img src="${crestIcon(k.id)}" alt=""><span>${esc(k.name)}</span></div>
+        <div class="hs-slots">${top ? card(top) : '<span class="hs-gap"></span>'}${low ? card(low) : '<span class="hs-gap"></span>'}</div>
+      </div>`;
+    }).join('');
+    const bar = (label: string, v: number) => `<div class="hs-bar"><span>${label}</span><i>${'<b></b>'.repeat(v)}${'<em></em>'.repeat(5 - v)}</i></div>`;
+    const skills = Array.from({ length: SKILL_COUNT }, (_, i) => pick('skill', i, skillIcon(i), SKILLS[i].name, p.load.skill === i)).join('');
+    const weapons = Array.from({ length: WEAPON_COUNT }, (_, i) => i)
+      .filter((i) => i !== C.signature)
+      .map((i) => pick('w1', i, weaponIcon(i), WEAPONS[i].name, p.load.weapons[1] === i))
+      .join('');
+    const sw = (kind: string, list: { name: string; rgb: number }[], cur: number) =>
+      list.map((c, i) => `<button class="sw ${cur === i ? 'on' : ''}" data-pick="${kind}" data-i="${i}" style="--c:${css(c.rgb)}" title="${c.name}" aria-label="${c.name}"></button>`).join('');
+    const title = this.editing ? 'Player 2 hero' : 'Your hero';
+    return `<div class="hdr hs-hdr"><button class="back" data-act="back" aria-label="Back">‹</button><h2>${esc(title)}</h2>
+        <span class="hs-grow"></span><button class="primary hs-done" data-act="back">Done</button></div>
+      <div class="hs">
+        <div class="card hs-roster" data-keep="roster" aria-label="Roster">${columns}</div>
+        <div class="hs-detail">
+          <div class="card hs-portrait">
+            <div class="hs-frame"><img src="${heroPortrait(h)}" alt="${esc(h.name)}"></div>
+            <div class="hs-id">
+              <small>${slot(h)} champion</small>
+              <h2>${esc(h.name)}</h2>
+              <p>${esc(h.epithet)}</p>
+            </div>
+            <div class="hs-class"><img src="${crestIcon(C.id)}" alt=""><div><b>${esc(C.name)}</b><small>${esc(C.title)}</small></div></div>
           </div>
-          <h3>Signature weapon <small>${esc(wa.name)}: ${esc(wa.blurb)}</small></h3><div class="tiles"><div class="tile on locked"><img src="${weaponIcon(C.signature)}" alt=""><span>${esc(wa.short)}</span></div></div>
-          <h3>Second weapon <small>${esc(wb.blurb)}</small></h3><div class="tiles">${weapons(1)}</div>
-          <h3>Skill <small>${esc(sk.blurb)}</small></h3><div class="tiles">${skills}</div>
-          <button class="primary done" data-act="back">Done</button>
+          <div class="card hs-info" data-keep="info">
+            <p class="hs-lore">${esc(h.lore)}</p>
+            <div class="hs-bars">${bar('Power', C.bars.power)}${bar('Speed', C.bars.speed)}${bar('Health', C.bars.health)}${bar('Reach', C.bars.reach)}</div>
+            <p class="hs-blurb">${esc(C.blurb)}</p>
+            <div class="hs-item hs-art"><img src="${heroArtIcon(h.id)}" alt=""><div><small>Rift Art</small><b>${esc(A.name)}</b><p>${esc(A.blurb)}</p></div></div>
+            <div class="hs-item hs-sig"><img src="${weaponIcon(C.signature)}" alt=""><div><small>Signature weapon, locked to the hero</small><b>${esc(wa.name)}</b><p>${esc(wa.blurb)}</p></div></div>
+          </div>
+          <div class="card hs-gear" data-keep="gear">
+            <div class="hs-gear-a">
+              <input id="fname" maxlength="16" value="${esc(p.name)}" placeholder="Name" aria-label="Name">
+              <div class="hs-lbl">Armour</div>
+              <div class="sws">${sw('color', COLORS, p.color)}</div>
+              <div class="hs-inline"><div class="hs-lbl">Accent</div><div class="sws small">${sw('accent', ACCENTS, p.look?.accent ?? 0)}</div></div>
+            </div>
+            <div class="hs-gear-b">
+              <div class="hs-lbl">Second weapon <small>${esc(wb.name)}</small></div>
+              <div class="hs-tiles">${weapons}</div>
+              <p class="hs-note">${esc(wb.blurb)}</p>
+              <div class="hs-lbl">Skill <small>${esc(sk.name)}</small></div>
+              <div class="hs-tiles">${skills}</div>
+              <p class="hs-note">${esc(sk.blurb)}</p>
+            </div>
+          </div>
         </div>
       </div>`;
   }
@@ -220,7 +259,8 @@ export class App {
     const s = this.sessions[0];
     const l = s?.lobby;
     if (!s || !l) return `<div class="center-msg"><div class="spinner"></div>Waiting for the host…</div>`;
-    const host = s.isHost;
+    // (two players on one device: either local session may hold host)
+    const host = this.sessions.some((x) => x.isHost);
     const seatCard = (seat: number) => {
       const r = [...s.roster.values()].find((x) => x.seat === seat);
       const isMe = this.sessions.some((x) => x.selfId === r?.id);
@@ -230,8 +270,12 @@ export class App {
       }
       const gear = r.load.weapons.map((w) => `<img src="${weaponIcon(w)}" title="${WEAPONS[w].name}">`).join('') + `<img src="${skillIcon(r.load.skill)}" title="${SKILLS[r.load.skill].name}">`;
       const which = this.sessions.findIndex((x) => x.selfId === r.id);
-      return `<div class="seat" style="--c:${css(colorOf(r.color))}"><canvas class="seat-pv" data-color="${r.color}" data-accent="${r.look?.accent ?? 0}" data-w="${r.load.weapons[0]}" data-flip="${seat}" width="120" height="120"></canvas>
-        <b>${esc(r.name)}${r.host ? ' <i class="crown" title="Host">★</i>' : ''}</b><div class="seat-class"><img src="${crestIcon(r.load.cls)}" alt="">${esc(classOf(r.load.cls).name)}</div><div class="gear">${gear}</div>
+      const hero = heroOf(r.load.hero);
+      return `<div class="seat" style="--c:${css(colorOf(r.color))}">
+        <img class="seat-port" src="${heroPortrait(hero)}" alt="${esc(hero.name)}">
+        <b>${esc(r.name)}${r.host ? ' <i class="crown" title="Host">★</i>' : ''}</b>
+        <div class="seat-hero"><span class="seat-hname">${esc(hero.name)}</span><small>${esc(hero.epithet)}</small></div>
+        <div class="seat-class"><img src="${crestIcon(classOf(r.load.cls).id)}" alt="">${esc(classOf(r.load.cls).name)}</div><div class="gear">${gear}</div>
         ${isMe ? `<button class="small" data-act="gear" data-who="${which}">Change gear</button>` : r.ping ? `<span class="ping">${r.ping} ms</span>` : ''}</div>`;
     };
     const watchers = [...s.roster.values()].filter((r) => r.seat < 0);
@@ -321,8 +365,6 @@ export class App {
 
   private bindFighter(root: HTMLElement) {
     const p = this.profiles[this.editing];
-    const cv = root.querySelector<HTMLCanvasElement>('#preview')!;
-    drawPreview(cv, p.color, p.look?.accent ?? 0, p.load.weapons[0], false);
     root.querySelector<HTMLInputElement>('#fname')!.addEventListener('input', (e) => {
       p.name = (e.target as HTMLInputElement).value.slice(0, 16) || p.name;
       saveProfile(this.editing, p);
@@ -332,15 +374,13 @@ export class App {
         const i = Number(el.dataset.i);
         const k = el.dataset.pick!;
         if (k === 'color') p.color = i;
-        else if (k === 'cls') p.load = sanitizeLoadout({ ...p.load, cls: i });
+        else if (k === 'hero') p.load = sanitizeLoadout({ ...p.load, hero: i }); // the hero fixes class, signature and Rift Art
         else if (k === 'accent') p.look = { ...p.look!, accent: i };
         else if (k === 'skill') p.load = { ...p.load, skill: i };
         else {
-          const slot = k === 'w0' ? 0 : 1;
-          const w = [...p.load.weapons] as Loadout['weapons'];
-          if (w[slot ^ 1] === i) w[slot ^ 1] = w[slot];
-          w[slot] = i;
-          p.load = sanitizeLoadout({ weapons: w, skill: p.load.skill });
+          // second weapon: the signature (slot A) is the hero's, so only slot B is a choice
+          const w: Loadout['weapons'] = [p.load.weapons[0], i];
+          p.load = sanitizeLoadout({ weapons: w, skill: p.load.skill, hero: p.load.hero, cls: p.load.cls });
         }
         sfx.play('uiClick');
         saveProfile(this.editing, p);
@@ -350,12 +390,12 @@ export class App {
   }
 
   private bindLobby(root: HTMLElement) {
-    const s = this.sessions[0];
+    // host settings go through the host session (either local player may hold it on one device)
+    const s = this.hostSession();
     root.querySelectorAll<HTMLElement>('[data-arena]').forEach((el) => el.addEventListener('click', () => s.lobbyCmd({ op: 'settings', settings: { arenaId: el.dataset.arena } })));
     root.querySelectorAll<HTMLElement>('[data-set]').forEach((el) => el.addEventListener('click', () => s.lobbyCmd({ op: 'settings', settings: { [el.dataset.set!]: Number(el.dataset.v) } })));
     root.querySelectorAll<HTMLElement>('[data-level]').forEach((el) => el.addEventListener('click', () => s.lobbyCmd({ op: 'botLevel', level: el.dataset.level as 'easy' })));
     root.querySelectorAll<HTMLElement>('[data-seat]').forEach((el) => el.addEventListener('click', () => s.lobbyCmd({ op: 'seat', seat: Number(el.dataset.seat) })));
-    root.querySelectorAll<HTMLCanvasElement>('.seat-pv').forEach((cv) => drawPreview(cv, Number(cv.dataset.color), Number(cv.dataset.accent), Number(cv.dataset.w), cv.dataset.flip === '1'));
     const qr = root.querySelector<HTMLImageElement>('#qr');
     if (qr && this.code) void QRCode.toDataURL(inviteLink(this.code), { margin: 1, width: 160, color: { dark: '#0d0a14', light: '#f4ead8' } }).then((u) => (qr.src = u));
   }
@@ -408,13 +448,13 @@ export class App {
         this.startLocal('local');
         break;
       case 'bot':
-        this.sessions[0]?.lobbyCmd({ op: 'bot', on: !this.sessions[0].lobby?.bot });
+        this.hostSession()?.lobbyCmd({ op: 'bot', on: !this.sessions[0].lobby?.bot });
         break;
       case 'start':
-        this.sessions[0]?.lobbyCmd({ op: 'start' });
+        this.hostSession()?.lobbyCmd({ op: 'start' });
         break;
       case 'rematch':
-        this.sessions[0]?.lobbyCmd({ op: 'rematch' });
+        this.hostSession()?.lobbyCmd({ op: 'rematch' });
         break;
       case 'toLobby':
         if (this.sessions[0]?.isHost) this.sessions[0].lobbyCmd({ op: 'toLobby' });
@@ -565,7 +605,7 @@ export class App {
             const f = g.fighters(now).find((x) => x.self);
             if (f) {
               this.touch.show({
-                aIcon: weaponIcon(f.weapons[0]), bIcon: weaponIcon(f.weapons[1]), skillIcon: skillIcon(f.skill), artIcon: artIcon(f.cls),
+                aIcon: weaponIcon(f.weapons[0]), bIcon: weaponIcon(f.weapons[1]), skillIcon: skillIcon(f.skill), artIcon: heroArtIcon(f.hero),
                 skillCd: f.skillCd / ((SKILLS[f.skill]?.cooldown ?? 1) * classOf(f.cls).skillCd), rollCd: f.rollCd / 40, flask: f.flask, rift: f.rift / RIFT.max,
               });
             }
@@ -575,9 +615,41 @@ export class App {
         requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
+      this.vsSplash();
     };
     if (this.booted) go();
     else this.game.events.once('booted', go);
+  }
+
+  /** A short VS card as the match starts: both heroes slide in from the sides, then it clears. Never takes input. */
+  private vsSplash(tries = 0) {
+    const s = this.sessions[0];
+    const g = s?.game;
+    if (!s || !g || this.screen !== 'game') return;
+    const fs = g.fighters(performance.now());
+    const mine = fs.find((f) => f.self) ?? fs[0];
+    const theirs = fs.find((f) => f !== mine) ?? fs[1];
+    // both fighters appear with the first world snapshot: wait a little for them
+    if (!mine || !theirs) {
+      if (tries < 40) window.setTimeout(() => this.vsSplash(tries + 1), 50);
+      return;
+    }
+    const seat = s.roster.get(s.selfId)?.seat ?? -1;
+    const foe = [...s.roster.values()].find((r) => r.seat >= 0 && r.seat !== seat);
+    const who = (f: typeof mine, name: string) => {
+      const h = heroOf(f.hero);
+      return `<div class="vs-side"><div class="vs-frame"><img src="${heroPortrait(h)}" alt=""></div>
+        <b>${esc(h.name)}</b><small>${esc(h.epithet)}</small><span>${esc(name)}</span></div>`;
+    };
+    const el = document.createElement('div');
+    el.className = 'vs-splash';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = `<div class="vs-l">${who(mine, s.roster.get(s.selfId)?.name ?? this.profiles[0].name)}</div>
+      <div class="vs-mark">VS</div>
+      <div class="vs-r">${who(theirs, foe?.name ?? (this.mode === 'practice' ? 'Bot' : 'Opponent'))}</div>`;
+    this.ui.appendChild(el);
+    window.setTimeout(() => el.classList.add('out'), 1650);
+    window.setTimeout(() => el.remove(), 2000);
   }
 
   private endGameView() {
@@ -609,6 +681,11 @@ export class App {
     this.room = null;
     if (this.mode === 'online' && !silent) history.replaceState(null, '', location.pathname);
     if (!silent) this.show('title');
+  }
+
+  /** The local session that is host (two players on one device may have either). */
+  private hostSession() {
+    return this.sessions.find((x) => x.isHost) ?? this.sessions[0];
   }
 
   private toast(text: string) {

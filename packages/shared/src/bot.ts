@@ -6,7 +6,7 @@
  * Everything comes from its seeded Rng, so a seed always plays the same match.
  */
 import { DT, FIGHTER } from './constants';
-import { ArtId, RIFT } from './classes';
+import { ArtId, classOf, RIFT } from './classes';
 import { solidAt, surfaceBelow } from './arena';
 import { Act, currentMove } from './fighter';
 import { Btn, InputCmd } from './input';
@@ -51,6 +51,9 @@ interface Tune {
   drop: number;
   /** Per-tick chance to hop in from just outside reach and swing from the air. */
   hop: number;
+  /** Per-tick chance to air-dash in toward a grounded opponent just out of reach, and to jump off a wall we are pinned to. */
+  dash: number;
+  wall: number;
   /** Ticks a movement choice is kept before it may change (plus a random extra of up to as much again). */
   commit: number;
 }
@@ -58,15 +61,15 @@ interface Tune {
 const TUNE: Record<BotDifficulty, Tune> = {
   easy: {
     react: 24, dodge: 0.2, parry: 0, through: 0.2, attack: 0.3, punish: 0.45, chain: 0.3, ranged: 0.12, skill: 0.01,
-    heal: 0.25, healBelow: 0.4, windup: 14, spaceMul: 0.5, spaceAdd: 0, retreat: 0.3, climb: 0.02, drop: 0.02, hop: 0.01, commit: 26,
+    heal: 0.25, healBelow: 0.4, windup: 14, spaceMul: 0.5, spaceAdd: 0, retreat: 0.3, climb: 0.02, drop: 0.02, hop: 0.01, dash: 0.05, wall: 0.2, commit: 26,
   },
   normal: {
     react: 12, dodge: 0.55, parry: 0.35, through: 0.5, attack: 0.45, punish: 0.85, chain: 0.7, ranged: 0.35, skill: 0.04,
-    heal: 0.5, healBelow: 0.45, windup: 3, spaceMul: 0.85, spaceAdd: 0, retreat: 0.5, climb: 0.05, drop: 0.05, hop: 0.03, commit: 16,
+    heal: 0.5, healBelow: 0.45, windup: 3, spaceMul: 0.85, spaceAdd: 0, retreat: 0.5, climb: 0.05, drop: 0.05, hop: 0.03, dash: 0.25, wall: 0.6, commit: 16,
   },
   hard: {
     react: 5, dodge: 0.92, parry: 0.8, through: 0.85, attack: 0.7, punish: 1, chain: 0.95, ranged: 0.7, skill: 0.12,
-    heal: 0.9, healBelow: 0.55, windup: 0, spaceMul: 1, spaceAdd: 4, retreat: 0.7, climb: 0.12, drop: 0.12, hop: 0.06, commit: 12,
+    heal: 0.9, healBelow: 0.55, windup: 0, spaceMul: 1, spaceAdd: 4, retreat: 0.7, climb: 0.12, drop: 0.12, hop: 0.06, dash: 0.6, wall: 0.95, commit: 12,
   },
 };
 
@@ -219,6 +222,8 @@ export class BotBrain {
   private stuckT = 0;
   private lastX = -1e9;
   private unstuckT = 0;
+  /** Ticks in a row the Rift gauge has been full without its Art being used. */
+  private fullT = 0;
 
   constructor(readonly id: number, seed: number, readonly level: BotDifficulty = 'normal') {
     this.rng = new Rng(seed);
@@ -228,36 +233,67 @@ export class BotBrain {
     const cmd: InputCmd = { seq: ++this.seq, moveX: 0, moveY: 0, buttons: 0, viewTick: 0 };
     const me = w.fighters.get(this.id);
     const foe = me ? w.opponent(me) : undefined;
+    this.fullT = me && me.s.rift >= RIFT.max ? this.fullT + 1 : 0;
     if (me && foe && w.phase === 'fight' && me.s.lock === 0) {
       this.act(w, me, foe, cmd);
-      if (me.s.rift >= RIFT.max && !(this.prev & Btn.Special) && this.wantArt(me, foe)) cmd.buttons |= Btn.Special;
+      if (me.s.rift >= RIFT.max && !(this.prev & Btn.Special) && this.wantArt(w, me, foe)) cmd.buttons |= Btn.Special;
     } else this.reset();
     this.idleT = cmd.moveX === 0 && cmd.buttons === 0 ? this.idleT + 1 : 0;
     this.prev = cmd.buttons;
     return cmd;
   }
 
-  /** When to spend a full Rift gauge, per class (easy bots hold it longer). */
-  private wantArt(me: Fighter, foe: Fighter) {
+  /**
+   * When to spend a full Rift gauge, per hero's Art. Projectile and ground Arts wait for the right geometry (aligned,
+   * facing, grounded opponent); defensive Arts go off on a swing or shot that is about to land. A gauge that has been
+   * full for a while (urgent) is spent on looser conditions, so it is never hoarded.
+   */
+  private wantArt(w: World, me: Fighter, foe: Fighter): boolean {
     const s = me.s;
     const o = foe.s;
     if (o.act === Act.KO || o.invuln > 0) return false;
     if (this.level === 'easy' && this.rng.next() > 0.02) return false;
+    const C = classOf(me.load.cls);
     const dx = o.x - s.x;
     const dist = Math.abs(dx);
     const aligned = Math.abs(o.y - s.y) < 40;
     const facing = s.face === (dx >= 0 ? 1 : -1);
+    const free = s.act === Act.Free;
+    // defensive Arts also cut in during our own swing (an attack can be cancelled into the Art)
+    const can = free || s.act === Act.Attack;
+    const grounded = o.ground > 0;
+    const still = Math.abs(o.vx) < 20 && o.act === Act.Free;
+    const urgent = this.fullT > 240;
+    const vuln = this.vulnerable(foe);
+    const sw = swingAt(me, foe);
+    const incoming = sw !== null && sw.at <= 14;
+    const shot = incomingShot(w, me, foe);
+    const threatened = incoming || (shot !== null && shot.ticks <= 20);
     switch (HEROES[me.load.hero]?.art) {
-      case ArtId.FlashStep: return s.act === Act.Stun || (o.act === Act.Attack && dist < 140) || this.rng.next() < 0.004;
-      case ArtId.PiercingFang: return aligned && facing && dist > 90 && dist < 520 && s.act === Act.Free;
-      case ArtId.RadiantCleave: return aligned && facing && dist > 110 && s.act === Act.Free;
-      case ArtId.BloodFrenzy: return dist < 220 && s.act === Act.Free;
-      case ArtId.Bulwark: return (o.act === Act.Attack && dist < 120) || this.rng.next() < 0.003;
-      case ArtId.PhantomHand: case ArtId.Stampede: return aligned && facing && dist > 80 && s.act === Act.Free;
-      case ArtId.NightHunt: return dist > 120 && dist < 520 && s.act === Act.Free;
-      case ArtId.GrimFog: case ArtId.RewrittenFate: return s.act === Act.Free && dist > 160;
-      default: return s.act === Act.Free;
+      case ArtId.FlashStep:
+        // a counter: vanish under a swing about to land, break out of a stun, or punish a recovering opponent up close
+        return s.act === Act.Stun || (can && sw !== null && sw.at <= 10) || (free && vuln && dist < 200) || (urgent && free && dist < 260);
+      case ArtId.Bulwark:
+        return (can && threatened) || (free && s.hp < C.hp * 0.4 && o.act === Act.Attack && dist < 200) || (urgent && free && dist < 160);
+      case ArtId.PiercingFang: return free && aligned && facing && dist > 90 && dist < 520;
+      case ArtId.RadiantCleave: return free && aligned && facing && dist > 110 && dist < 900;
+      case ArtId.HailOfArrows: return free && grounded && (vuln || still || urgent);
+      case ArtId.ThunderCall: case ArtId.ChainsOfGenesis: return free && grounded;
+      case ArtId.VaultOfAges: return free && aligned && facing && dist > 120 && dist < 900;
+      case ArtId.PhantomHand: return free && aligned && facing && grounded && dist > 80 && dist < 600;
+      case ArtId.Stampede: return free && aligned && facing && dist > 80 && (grounded || urgent);
+      case ArtId.NightHunt: return free && grounded && dist > 120 && dist < 520;
+      case ArtId.BloodFrenzy: return can && dist < 120;
+      case ArtId.GrimFog: return free && dist > 140 && s.veil === 0 && o.act !== Act.Attack;
+      // a heal and a damage buff: only when hurt, and not in the middle of an exchange unless badly hurt
+      case ArtId.RewrittenFate: return free && s.hp < C.hp * 0.75 && ((dist > 120 && o.act !== Act.Attack) || s.hp < C.hp * 0.4 || (urgent && dist > 120));
+      default: return free;
     }
+  }
+
+  /** Can the fighter roll now: a ground roll off cooldown, or another air dash this airtime. */
+  private canRoll(me: Fighter): boolean {
+    return me.s.ground ? me.s.rollCd === 0 : me.s.dash < classOf(me.load.cls).dashes;
   }
 
   private reset() {
@@ -301,6 +337,7 @@ export class BotBrain {
     // rolling, stunned, healing, casting, or a charge we did not start: nothing to decide
     if (s.act !== Act.Free) return;
     if (this.react(w, me, foe, g, cmd, T)) return;
+    if (!s.ground && this.air(w, me, foe, g, cmd, T)) return;
     if (this.heal(w, me, foe, g, cmd, T)) return;
     if (this.skill(w, me, foe, g, cmd, T)) return;
     // while a swing of theirs can reach us, our own swing would only trade: answer it instead
@@ -405,7 +442,7 @@ export class BotBrain {
       if (!sw || sw.seq !== P.seq) this.plan = null;
       else if (w.tick < P.at) return true; // reacting: stand still
       else {
-        if (!P.block && s.rollCd > 0 && shieldSlot >= 0 && !sw.move.breaksGuard) P.block = true;
+        if (!P.block && !this.canRoll(me) && shieldSlot >= 0 && !sw.move.breaksGuard) P.block = true;
         if (P.block) {
           if (!s.ground) this.plan = null;
           else if (sw.at <= 3) {
@@ -413,7 +450,7 @@ export class BotBrain {
             this.plan = null;
             return true;
           } else return true; // hold ground until the frame is right
-        } else if (s.rollCd > 0 || sw.end <= 1) this.plan = null;
+        } else if (!this.canRoll(me) || sw.end <= 1) this.plan = null;
         else if (sw.at <= 2) {
           this.roll(g, cmd, T);
           this.plan = null;
@@ -443,8 +480,37 @@ export class BotBrain {
       }
       return false; // keep moving; guard only when it is about to land
     }
-    if (s.rollCd === 0 && shot.ticks <= 10) {
+    if (this.canRoll(me) && shot.ticks <= 10) {
       cmd.moveX = m.through ? g.dir : -g.dir;
+      cmd.buttons |= Btn.Roll;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * In the air: wall-jump off a wall that has us pinned, or that the opponent is above us along, and air-dash in toward
+   * a grounded opponent who is just out of reach. (Dodges of swings and shots are in react.)
+   */
+  private air(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
+    const s = me.s;
+    if (cmd.buttons !== 0 || this.prev & (Btn.Jump | Btn.Roll)) return false;
+    if (s.wallSide !== 0 && (s.wall !== 0 || s.wallT > 0) && s.vy > -200) {
+      const cornered = s.wallSide < 0 ? s.x < 160 : w.arena.w - s.x < 160;
+      const pinned = cornered && g.dir === -s.wallSide;
+      if ((pinned || g.dy < -40) && this.rng.next() < T.wall) {
+        // kick off the wall, back out over the opponent (the wall jump is the only jump that climbs past a wall)
+        cmd.moveX = -s.wallSide;
+        cmd.buttons |= Btn.Jump;
+        return true;
+      }
+    }
+    const reach = reachOf(me.load.weapons[this.slot]) + HALF;
+    if (
+      this.canRoll(me) && g.facing && s.vy > 0 && Math.abs(g.dy) < 80 && foe.s.ground > 0 &&
+      g.dist > reach + 60 && g.dist < reach + 240 && this.rng.next() < T.dash
+    ) {
+      cmd.moveX = g.dir;
       cmd.buttons |= Btn.Roll;
       return true;
     }
@@ -621,6 +687,7 @@ export class BotBrain {
       if (me.load.skill === SkillId.Frost) return 240;
       if (me.load.skill === SkillId.Trap) return 120;
     }
+    if (me.s.veil > 0 && this.mode === 'melee') return reachOf(me.load.weapons[this.slot]) * 0.7 + HALF;
     return reachOf(me.load.weapons[this.slot]) * T.spaceMul + HALF + T.spaceAdd;
   }
 
@@ -672,7 +739,16 @@ export class BotBrain {
     }
     this.moveT--;
     const backDir = -g.dir;
-    if (mode === 'back' && (backDir > 0 ? s.x > w.arena.w - 130 : s.x < 130)) mode = 'hold';
+    if (mode === 'back' && (backDir > 0 ? s.x > w.arena.w - 130 : s.x < 130)) {
+      // cornered: jump toward the wall, touch it, then wall-jump back out past the opponent
+      if (s.ground && !(this.prev & Btn.Jump) && cmd.buttons === 0 && this.rng.next() < T.wall) {
+        this.moveMode = mode;
+        cmd.moveX = backDir;
+        cmd.buttons |= Btn.Jump;
+        return;
+      }
+      mode = 'hold';
+    }
     this.moveMode = mode;
     if (mode === 'in') cmd.moveX = g.dir;
     else if (mode === 'back') cmd.moveX = backDir;

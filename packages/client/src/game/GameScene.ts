@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, ArtId, classOf, FIGHTER, GameEvent, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, ArtId, FIGHTER, GameEvent, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
 import type { InputSource } from '../input/Controls';
 import { FighterCanvas, fighterLut, FxModule, FxSprite, PIX, Pose } from '../render/pixel';
 import { poseFor } from '../render/poses';
+import { warmFighter } from '../render/warm';
 import { FX, PAL, swingFx } from '../render/fxmap';
 import { sfx } from '../audio/Sfx';
 import { prefs } from '../ui/prefs';
@@ -25,8 +26,175 @@ export interface GameSceneData {
   primary: Session;
 }
 
+/** A small pixel-art canvas texture painted per pixel from a shape function (0 = transparent). */
+class PixelTex {
+  readonly tex: Phaser.Textures.CanvasTexture;
+  private readonly img: ImageData;
+  private readonly buf: Uint32Array;
+  constructor(private readonly scene: Phaser.Scene, readonly key: string, readonly w: number, readonly h: number) {
+    if (scene.textures.exists(key)) scene.textures.remove(key);
+    this.tex = scene.textures.createCanvas(key, w, h)!;
+    this.tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.img = this.tex.context.createImageData(w, h);
+    this.buf = new Uint32Array(this.img.data.buffer);
+  }
+  paint(px: (x: number, y: number) => number) {
+    const { w, h, buf } = this;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) buf[y * w + x] = px(x + 0.5, y + 0.5);
+    this.tex.context.putImageData(this.img, 0, 0);
+    this.tex.refresh();
+  }
+  destroy() {
+    if (this.scene.textures.exists(this.key)) this.scene.textures.remove(this.key);
+  }
+}
+
+const abgr = (r: number, g: number, b: number, a = 255) => (((a & 255) << 24) | ((b & 255) << 16) | ((g & 255) << 8) | (r & 255)) >>> 0;
+const rgbOf = (hex: string, a = 255) => {
+  const n = parseInt(hex.slice(1), 16);
+  return abgr(n >> 16, (n >> 8) & 255, n & 255, a);
+};
+
+type Cap = [number, number, number, number, number]; // capsule: ax, ay, bx, by, radius
+type Ell = [number, number, number, number]; // ellipse: cx, cy, rx, ry
+
+function segD(x: number, y: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
+  return Math.hypot(x - ax - dx * t, y - ay - dy * t);
+}
+
+function inside(x: number, y: number, caps: Cap[], els: Ell[], grow: number): boolean {
+  for (const [ax, ay, bx, by, r] of caps) if (segD(x, y, ax, ay, bx, by) <= r + grow) return true;
+  for (const [cx, cy, rx, ry] of els) if (Math.hypot((x - cx) / (rx + grow), (y - cy) / (ry + grow)) <= 1) return true;
+  return false;
+}
+
+/** 0 outside the silhouette, 1 on its rim band, 2 inside it. */
+function silhouette(x: number, y: number, caps: Cap[], els: Ell[], rim = 1.1): number {
+  if (!inside(x, y, caps, els, 0)) return 0;
+  return inside(x, y, caps, els, -rim) ? 2 : 1;
+}
+
+/** A burning warhorse at full gallop, facing right: black body, fire along the tail, the mane and the rim. */
+function paintHorse(tex: PixelTex, t: number) {
+  const p = t * 15;
+  const leg = (hx: number, hy: number, ph: number): Cap[] => {
+    const a = 0.75 * Math.sin(ph);
+    const kx = hx + Math.sin(a) * 6.5;
+    const ky = hy + Math.cos(a) * 6.5;
+    const b = a - 0.55 * Math.max(0, Math.cos(ph));
+    return [[hx, hy, kx, ky, 1.5], [kx, ky, kx + Math.sin(b) * 6, ky + Math.cos(b) * 6, 1.1]];
+  };
+  const caps: Cap[] = [
+    ...leg(27, 19, p), ...leg(29, 18, p + 2.2), ...leg(13, 19, p + 3.4), ...leg(11, 18, p + 1.1),
+    [29, 13, 34, 6, 3.6], [34, 6, 38, 6, 2.6], [38, 7, 44, 9, 1.9], [34, 2, 33, -0.5, 0.9],
+  ];
+  const els: Ell[] = [[19, 14, 12, 6.2], [38.5, 6.2, 4.4, 2.8]];
+  const flick = (x: number) => Math.sin(t * 40 + x * 2.3) * 0.5 + 0.5;
+  tex.paint((x, y) => {
+    if (x < 10) {
+      const cy = 14 + Math.sin(x * 0.7 - t * 22) * 1.8;
+      const w = 0.9 + (10 - x) * 0.42 * (0.75 + 0.25 * flick(x));
+      const d = Math.abs(y - cy);
+      if (d < w) {
+        const h = 1 - d / w;
+        return h > 0.7 ? rgbOf('#ffe27a') : h > 0.35 ? rgbOf('#ff8a2a') : rgbOf('#c8301a');
+      }
+    }
+    if (x > 27 && x < 36) {
+      const top = 10.5 - (x - 27) * 0.85 - flick(x) * 2.2;
+      if (y < top && y > top - 2.8) return rgbOf(flick(x + 1) > 0.5 ? '#ffae35' : '#ff6a20');
+    }
+    const s = silhouette(x, y, caps, els);
+    if (s === 0) return 0;
+    if (s === 1) return flick(x) > 0.3 ? rgbOf('#ff7a2a') : rgbOf('#9a2a12');
+    if (x > 39 && x < 40.5 && Math.abs(y - 4.8) < 0.8) return rgbOf('#ffe27a');
+    return rgbOf('#120a0c');
+  });
+}
+
+/** A giant shadow hound, facing right. pose 0 leaps with legs out, 1 is tucked in the air, 2 lands and splays. */
+function paintHound(tex: PixelTex, pose: number, t: number) {
+  const ang = pose === 0 ? [1.0, 0.85, -1.0, -0.8] : pose === 1 ? [0.35, 0.2, -0.4, -0.2] : [0.55, 0.75, -0.55, -0.7];
+  const hips: [number, number][] = [[36, 25], [40, 24], [15, 25], [11, 24]];
+  const caps: Cap[] = [];
+  hips.forEach(([hx, hy], i) => {
+    const a = ang[i];
+    const kx = hx + Math.sin(a) * 9;
+    const ky = hy + Math.cos(a) * 9;
+    const b = pose === 1 ? a - 1.1 : a * 0.5 - 0.1;
+    caps.push([hx, hy, kx, ky, 2.2], [kx, ky, kx + Math.sin(b) * 8, ky + Math.cos(b) * 8, 1.7]);
+  });
+  caps.push([14, 21, 35, 20, 6.4], [42, 14, 42, 14, 4.8], [44, 16, 51, 18, 2.5], [39, 9, 38, 2, 1.2], [42, 9, 44, 3, 1.2], [14, 20, 5, 15, 1.8], [5, 15, 1, 9, 1.2]);
+  const els: Ell[] = [[35, 19, 6.8, 6.4]];
+  tex.paint((x, y) => {
+    if (Math.hypot(x - 44.5, y - 13.5) < 0.9 || Math.hypot(x - 47.5, y - 13.5) < 0.9) return rgbOf('#f0c8ff');
+    const s = silhouette(x, y, caps, els, 1.2);
+    if (s === 0) return inside(x, y, caps, els, 2.2) && Math.sin(x * 0.9 + t * 9 + y * 0.6) > 0.6 ? rgbOf('#5a2aa8', 70) : 0;
+    return s === 1 ? rgbOf('#7a3ad0') : rgbOf('#07050d');
+  });
+}
+
+/** A spectral claw reaching right; s is how far the fingers splay (0 closed, 1 open). */
+function paintHand(tex: PixelTex, s: number) {
+  const tips: [number, number][] = [[22, 2 - s * 2], [23.5, 6 - s], [22.5, 10.5], [19.5, 14.5 + s * 1.5]];
+  const caps: Cap[] = [[3, 10, 0, 10.5, 2.4], [8, 14, 3, 18, 1.4]];
+  tips.forEach(([tx, ty], i) => {
+    const bx = 13;
+    const by = 6 + i * 2.7;
+    const mx = (bx + tx) / 2;
+    const my = (by + ty) / 2 + 1.2;
+    caps.push([bx, by, mx, my, 1.5], [mx, my, tx, ty, 1.1]);
+  });
+  const els: Ell[] = [[10.5, 10, 6.2, 5.2]];
+  tex.paint((x, y) => {
+    for (const [tx, ty] of tips) if (Math.hypot(x - tx, y - ty) < 1.6) return rgbOf('#f2e8ff');
+    const sl = silhouette(x, y, caps, els, 1);
+    if (sl === 0) return 0;
+    return sl === 1 ? rgbOf('#9a7aff') : rgbOf('#1c1236', 235);
+  });
+}
+
+/** Rectangle corners, rotated by ang, centred on (cx, cy). */
+function rectPts(cx: number, cy: number, w: number, h: number, ang: number) {
+  const c = Math.cos(ang);
+  const s = Math.sin(ang);
+  return [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(([x, y]) => new Phaser.Math.Vector2(cx + x * c - y * s, cy + x * s + y * c));
+}
+
+/** An Art's camera-flash colour. */
+const ART_FLASH: Record<number, number> = {
+  [ArtId.RadiantCleave]: 0xffe08a,
+  [ArtId.HailOfArrows]: 0xb8ff90,
+  [ArtId.PiercingFang]: 0x9af0ff,
+  [ArtId.ThunderCall]: 0xd8b8ff,
+  [ArtId.FlashStep]: 0x9af0ff,
+  [ArtId.BloodFrenzy]: 0xff4a4a,
+  [ArtId.Bulwark]: 0xffe08a,
+  [ArtId.VaultOfAges]: 0xffe08a,
+  [ArtId.ChainsOfGenesis]: 0xffd060,
+  [ArtId.RewrittenFate]: 0xfff0c0,
+  [ArtId.PhantomHand]: 0xa080ff,
+  [ArtId.GrimFog]: 0xa8b4d0,
+  [ArtId.Stampede]: 0xff9a4a,
+  [ArtId.NightHunt]: 0xb080ff,
+};
+
+/** Relic weapons of Vault of Ages: the BootScene's art, plus the ones this scene loads. */
+const WEAPON_SPRITES = ['w-sword', 'w-scythe', 'w-lance', 'w-hammer', 'w-dagger'];
+
+const STEP_MS = 1000 / TICK_RATE;
+/** Live effect sprites above which optional ambient effects are skipped (phones). */
+const MAX_FX = 70;
+/** Live square particles. */
+const MAX_PARTS = 150;
+
 interface FighterView {
   id: number;
+  /** The hero the view was built with (a changed hero rebuilds it). */
+  hero: number;
   canvas: FighterCanvas;
   img: Phaser.GameObjects.Image;
   tag: Phaser.GameObjects.Text;
@@ -41,21 +209,71 @@ interface FighterView {
   runPhase: number;
   lastX: number;
   wasGround: boolean;
+  /** Clock time of the last touchdown (the landing squash). */
+  landAt: number;
   status: Partial<Record<StatusKind, FxSprite>>;
   stunnedUntil: number;
   koT: number;
   color: number;
   shown: ViewFighter | null;
+  /** Vector drawings behind the fighter (tendrils) and in front (chains). */
+  gfxB: Phaser.GameObjects.Graphics;
+  gfx: Phaser.GameObjects.Graphics;
+  /** Abyss Fang's trail: where the fighter was, recently. */
+  hist: { x: number; y: number; t: number }[];
+  /** Night Hunt's shadow hound, while the Art plays. */
+  hound: { tex: PixelTex; img: Phaser.GameObjects.Image; step: number } | null;
+  veilOn: boolean;
 }
 
-type StatusKind = 'burning' | 'slowed' | 'stunned' | 'rage' | 'divineShield' | 'spellCharge';
+type StatusKind = 'burning' | 'slowed' | 'stunned' | 'rage' | 'divineShield' | 'spellCharge' | 'portal' | 'blessing';
 
 interface Scheduled {
   at: number;
   fn: () => void;
 }
 
-const STEP_MS = 1000 / TICK_RATE;
+/** A vector drawing that lives for `life` seconds (rings, chains, pages, fog). */
+interface Vec {
+  age: number;
+  life: number;
+  back: boolean;
+  draw: (g: Phaser.GameObjects.Graphics, p: number) => void;
+}
+
+/** A square particle: ember, spark, mote. `g` is gravity in units/s^2. */
+interface Part {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  g: number;
+  life: number;
+  max: number;
+  c: number;
+  s: number;
+}
+
+interface ProjView {
+  kind: string;
+  x: number;
+  y: number;
+  face: number;
+  age: number;
+  /** The fighter nearest the projectile when it appeared (its owner, in a duel). */
+  spawnNear: number;
+  img?: Phaser.GameObjects.Image;
+  fx?: FxSprite;
+  gfx?: Phaser.GameObjects.Graphics;
+  tex?: PixelTex;
+  paintedAt?: number;
+}
+
+/** Scale both layers of a PixelFX effect. */
+function scaleFx(f: FxSprite, s: number) {
+  f.back.setScale(PIX * s);
+  f.front.setScale(PIX * s);
+}
 
 export class GameScene extends Phaser.Scene {
   private players: LocalPlayer[] = [];
@@ -63,12 +281,20 @@ export class GameScene extends Phaser.Scene {
   private acc = 0;
   private views = new Map<number, FighterView>();
   private fx: FxSprite[] = [];
-  private projViews = new Map<number, { img?: Phaser.GameObjects.Image; fx?: FxSprite; kind: string }>();
+  private projViews = new Map<number, ProjView>();
   private trapViews = new Map<number, Phaser.GameObjects.Image>();
   private strikeViews = new Map<number, Phaser.GameObjects.Graphics>();
   private scheduled: Scheduled[] = [];
+  private vecs: Vec[] = [];
+  private parts: Part[] = [];
+  private vecB!: Phaser.GameObjects.Graphics;
+  private vecF!: Phaser.GameObjects.Graphics;
+  private partG!: Phaser.GameObjects.Graphics;
+  private lastList: ViewFighter[] = [];
   private shakeT = 0;
   private shakeAmp = 0;
+  /** Zoom punch of the last Art (decays in a fraction of a second). */
+  private punch = 0;
   private clock = 0;
   private arenaW = 1280;
   private floor = 600;
@@ -90,7 +316,17 @@ export class GameScene extends Phaser.Scene {
     this.fx = [];
     this.projViews.clear();
     this.trapViews.clear();
+    this.strikeViews.clear();
     this.scheduled = [];
+    this.vecs = [];
+    this.parts = [];
+    this.lastList = [];
+    this.punch = 0;
+  }
+
+  preload() {
+    // the relic weapons of Vault of Ages (BootScene loads the rest)
+    for (const k of WEAPON_SPRITES) if (!this.textures.exists(k)) this.load.image(k, `assets/art/${k}.png`);
   }
 
   private get game0(): NetGame | null {
@@ -106,10 +342,11 @@ export class GameScene extends Phaser.Scene {
     buildArena(this, this.game0!.arena);
     this.camX = arena.w / 2;
     this.camY = arena.floor - 200;
+    this.vecB = this.add.graphics().setDepth(9);
+    this.vecF = this.add.graphics().setDepth(16);
+    this.partG = this.add.graphics().setDepth(17).setBlendMode(Phaser.BlendModes.ADD);
     this.events.once('shutdown', () => this.teardown());
   }
-
-  // ------------------------------------------------------------------ arena
 
   // ------------------------------------------------------------------ loop
 
@@ -154,10 +391,11 @@ export class GameScene extends Phaser.Scene {
       const m = mine.get(list[i].id);
       if (m) list[i] = m;
     }
+    this.lastList = list;
     const seen = new Set<number>();
     for (const v of list) {
       seen.add(v.id);
-      this.drawFighter(v, now, dt);
+      this.drawFighter(v, now, dt, list);
     }
     for (const [id, fv] of this.views) if (!seen.has(id)) this.removeView(id, fv);
 
@@ -166,7 +404,7 @@ export class GameScene extends Phaser.Scene {
     // other local sessions: drain so their queues stay short
     for (const p of this.players) if (p.session.game && p.session.game !== g) p.session.game.drainEvents(now);
 
-    this.drawProjectiles(g.projectiles(now));
+    this.drawProjectiles(g.projectiles(now), list, dt);
     this.drawTraps(g.traps());
     this.drawStrikes(g.latest?.strikes ?? []);
     // scheduled visuals (effects lined up with strikes)
@@ -181,33 +419,143 @@ export class GameScene extends Phaser.Scene {
       this.fx[i].update(dt);
       if (this.fx[i].dead) this.fx.splice(i, 1);
     }
+    this.drawVecs(dt);
+    this.drawParts(dt);
     this.updateCamera(list, dt);
+  }
+
+  // ------------------------------------------------------------------ helpers
+
+  /** Run `fn` once, `ms` from now (on the same clock as the scheduled visuals). */
+  private after(ms: number, fn: () => void) {
+    this.scheduled.push({ at: performance.now() + ms, fn });
+  }
+
+  /** Room for another optional effect (the live sprite count is capped on phones). */
+  private roomFor(): boolean {
+    return this.fx.length < MAX_FX;
+  }
+
+  private addVec(life: number, draw: Vec['draw'], back = false) {
+    this.vecs.push({ age: 0, life, back, draw });
+  }
+
+  /** An expanding ring on the floor (a perspective ellipse). */
+  private ring(x: number, y: number, r0: number, r1: number, life: number, color: number, width = 3, back = false) {
+    this.addVec(life, (g, p) => {
+      const rr = r0 + (r1 - r0) * Phaser.Math.Easing.Cubic.Out(p);
+      g.lineStyle(width * (1 - p * 0.6) + 0.5, color, 0.9 * (1 - p));
+      g.strokeEllipse(x, y, rr * 2, rr * 0.6);
+    }, back);
+  }
+
+  private spark(x: number, y: number, vx: number, vy: number, life: number, c: number, s = 2, g = 0) {
+    if (this.parts.length < MAX_PARTS) this.parts.push({ x, y, vx, vy, g, life, max: life, c, s });
+  }
+
+  private drawVecs(dt: number) {
+    this.vecB.clear();
+    this.vecF.clear();
+    for (let i = this.vecs.length - 1; i >= 0; i--) {
+      const v = this.vecs[i];
+      v.age += dt;
+      if (v.age >= v.life) {
+        this.vecs.splice(i, 1);
+        continue;
+      }
+      v.draw(v.back ? this.vecB : this.vecF, v.age / v.life);
+    }
+  }
+
+  private drawParts(dt: number) {
+    const g = this.partG;
+    g.clear();
+    for (let i = this.parts.length - 1; i >= 0; i--) {
+      const p = this.parts[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        this.parts.splice(i, 1);
+        continue;
+      }
+      p.vy += p.g * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      g.fillStyle(p.c, Math.min(1, (p.life / p.max) * 1.6));
+      g.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+    }
+  }
+
+  /** A full-screen colour wash that fades in a fraction of a second (the Art's flash). */
+  private flash(color: number, alpha: number, ms: number) {
+    const r = this.add.rectangle(0, 0, this.scale.width, this.scale.height, color, alpha).setOrigin(0).setScrollFactor(0).setDepth(300);
+    this.tweens.add({ targets: r, alpha: 0, duration: ms, onComplete: () => r.destroy() });
+  }
+
+  /** Chain links from (x0, y0) to (x1, y1): rings that alternate their turn, dark rim under gold. */
+  private chainLine(g: Phaser.GameObjects.Graphics, x0: number, y0: number, x1: number, y1: number, n: number, color: number, a: number) {
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n;
+      const cx = x0 + (x1 - x0) * t;
+      const cy = y0 + (y1 - y0) * t;
+      const flat = i % 2 === 1;
+      const w = flat ? 8 : 4.5;
+      const h = flat ? 4.5 : 8;
+      g.lineStyle(3, 0x1a1006, a * 0.8);
+      g.strokeEllipse(cx, cy, w + 2, h + 2);
+      g.lineStyle(1.8, color, a);
+      g.strokeEllipse(cx, cy, w, h);
+    }
+  }
+
+  /** A looping PixelFX effect that follows the fighter while `on` (one per kind). */
+  private loopFx(fv: FighterView, kind: StatusKind, on: boolean, mod: FxModule, x: number, y: number, flip: boolean, opts: Record<string, unknown>, scale = 1) {
+    const cur = fv.status[kind];
+    if (on && (!cur || cur.dead)) {
+      if (!this.roomFor()) return;
+      const s = new FxSprite(this, mod, x, y, flip, opts, 8, 12, 30);
+      scaleFx(s, scale);
+      fv.status[kind] = s;
+      this.fx.push(s);
+    } else if (!on && cur && !cur.dead) {
+      cur.stop();
+    }
+    const s = fv.status[kind];
+    if (s && !s.dead) {
+      s.setPosition(x, y);
+      s.back.setFlipX(flip);
+      s.front.setFlipX(flip);
+    }
   }
 
   // ------------------------------------------------------------------ fighters
 
   private viewFor(v: ViewFighter): FighterView {
     let fv = this.views.get(v.id);
-    if (fv) return fv;
+    // a fighter that changed hero (a rematch) gets a fresh view
+    if (fv && fv.hero === v.hero) return fv;
+    if (fv) this.removeView(v.id, fv);
     const r = this.primary.roster.get(v.id) ?? [...this.players].map((p) => p.session.roster.get(v.id)).find(Boolean);
     const color = colorOf(r?.color ?? v.seat * 5);
     const lut = fighterLut(color, accentOf(r?.look?.accent ?? 0));
-    const canvas = new FighterCanvas(this, `fighter${v.id}`, lut);
-    const img = this.add.image(v.x, v.y, canvas.key).setOrigin(FighterCanvas.originX, FighterCanvas.originY).setScale(PIX).setDepth(10);
+    const canvas = new FighterCanvas(this, `fighter${v.id}`, lut, v.hero);
+    // render this fighter's whole move set into the frame cache in the background (smooth animation on phones)
+    warmFighter(v.hero, v.weapons, v.skill);
+    const img = this.add.image(v.x, v.y, canvas.key).setOrigin(canvas.originX, canvas.originY).setScale(canvas.worldScale).setDepth(10);
     const tag = this.add
       .text(v.x, v.y - 70, r?.name ?? '', { fontFamily: 'Lilita One, sans-serif', fontSize: '12px', color: '#' + color.toString(16).padStart(6, '0'), stroke: '#0b0814', strokeThickness: 3 })
       .setOrigin(0.5, 1)
       .setDepth(30);
     fv = {
-      id: v.id, canvas, img, tag, ghosts: [], ghostI: 0, ghostAt: 0, frozenT: 0, freezeUntil: 0, flashUntil: 0, lastSeq: -1, runPhase: 0,
-      lastX: v.x, wasGround: true, status: {}, stunnedUntil: 0, koT: 0, color, shown: null,
+      id: v.id, hero: v.hero, canvas, img, tag, ghosts: [], ghostI: 0, ghostAt: 0, frozenT: 0, freezeUntil: 0, flashUntil: 0, lastSeq: -1, runPhase: 0,
+      lastX: v.x, wasGround: true, landAt: -10, status: {}, stunnedUntil: 0, koT: 0, color, shown: null,
+      gfxB: this.add.graphics().setDepth(9), gfx: this.add.graphics().setDepth(11), hist: [], hound: null, veilOn: false,
     };
     for (let i = 0; i < 4; i++) {
       const key = `ghost${v.id}_${i}`;
       if (this.textures.exists(key)) this.textures.remove(key);
       const tex = this.textures.createCanvas(key, canvas.tex.width, canvas.tex.height)!;
       tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
-      const gimg = this.add.image(0, 0, key).setOrigin(FighterCanvas.originX, FighterCanvas.originY).setScale(PIX).setDepth(9).setVisible(false).setTint(color);
+      const gimg = this.add.image(0, 0, key).setOrigin(canvas.originX, canvas.originY).setScale(canvas.worldScale).setDepth(9).setVisible(false).setTint(color);
       gimg.tintMode = Phaser.TintModes.FILL;
       fv.ghosts.push({ img: gimg, tex, life: 0 });
     }
@@ -220,10 +568,16 @@ export class GameScene extends Phaser.Scene {
     fv.tag.destroy();
     for (const gh of fv.ghosts) gh.img.destroy();
     for (const s of Object.values(fv.status)) s?.destroy();
+    fv.gfx.destroy();
+    fv.gfxB.destroy();
+    if (fv.hound) {
+      fv.hound.img.destroy();
+      fv.hound.tex.destroy();
+    }
     this.views.delete(id);
   }
 
-  private drawFighter(v: ViewFighter, now: number, dt: number) {
+  private drawFighter(v: ViewFighter, now: number, dt: number, list: ViewFighter[]) {
     const fv = this.viewFor(v);
     fv.shown = v;
     // swing effects for moves this device predicted (yours) start now; others come with their 'swing' events
@@ -235,7 +589,8 @@ export class GameScene extends Phaser.Scene {
     else fv.frozenT = v.actTf;
     const speed = Math.abs(v.vx);
     if (v.ground && speed > 25) fv.runPhase += dt * (6 + speed / 28);
-    const pose = poseFor({ ...v, actTf: t }, { time: this.clock, runPhase: fv.runPhase });
+    if (v.ground && !fv.wasGround) fv.landAt = this.clock;
+    const pose = poseFor({ ...v, actTf: t }, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt });
     const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : 0;
     const tint = v.slowed ? 0xffffd2a8 : 0;
     fv.canvas.draw(stripXY(pose), flash, tint);
@@ -276,13 +631,42 @@ export class GameScene extends Phaser.Scene {
     this.statusLoop(fv, 'burning', v.burning, v);
     this.statusLoop(fv, 'slowed', v.slowed || v.rooted, v);
     this.statusLoop(fv, 'stunned', now < fv.stunnedUntil, v);
-    // Rift Art auras: Blood Frenzy's rage, Bulwark's barrier, the wind-up glow of Radiant Cleave / Thunder Call
-    const art = v.act === Act.Art ? classOf(v.cls).art : -1;
+    // Rift Art auras, by the hero's Art (not the class: heroes share classes)
+    const art = v.act === Act.Art ? heroOf(v.hero).art : -1;
     this.statusLoop(fv, 'rage', v.frenzy || art === ArtId.BloodFrenzy, v);
     this.statusLoop(fv, 'divineShield', art === ArtId.Bulwark, v);
     this.statusLoop(fv, 'spellCharge', (art === ArtId.RadiantCleave || art === ArtId.ThunderCall) && v.actTf < 20, v, art === ArtId.ThunderCall ? PAL.violet : PAL.gold);
-    // Flash Step: gone from sight while it slips behind the opponent
-    fv.img.setAlpha(art === ArtId.FlashStep && v.actTf < 9 ? 0.15 : 1);
+    // Vault of Ages: the rift portal opens behind the caster while the relics fly
+    this.loopFx(fv, 'portal', art === ArtId.VaultOfAges && v.actTf < 52, FX.portal, v.x - v.face * 34, v.y, v.face < 0, { palette: PAL.gold }, 0.6);
+    // Rewritten Fate: a gold aura for the seven seconds of the buff
+    this.loopFx(fv, 'blessing', v.buff, FX.blessing, v.x, v.y, false, { palette: PAL.gold }, 0.8);
+    // Night Hunt: the shadow hound leaps with the caster
+    this.houndFor(fv, v, art === ArtId.NightHunt && v.actTf < 44);
+    // Abyss Fang: cyan tendrils trail the lunge
+    if (art === ArtId.PiercingFang && v.actTf < 46) fv.hist.push({ x: v.x, y: v.y, t: now });
+    while (fv.hist.length && now - fv.hist[0].t > 350) fv.hist.shift();
+    this.drawTendrils(fv, v, now);
+    // Chains of Genesis: the rooted fighter is bound in chains
+    this.drawBinds(fv, v);
+    // Grim Fog: unseen by the opponent. The veiled fighter is a faint shimmer on their screen; you still see yourself.
+    let alpha = art === ArtId.FlashStep && v.actTf < 9 ? 0.15 : 1;
+    if (v.veil) {
+      alpha = v.self ? 0.45 : 0.1 + 0.04 * Math.sin(this.clock * 38 + v.id * 3);
+      fv.img.setTint(0xa8bcd8);
+      if (!v.self && Math.random() < 0.4 && this.parts.length < MAX_PARTS) {
+        this.spark(v.x + (Math.random() * 2 - 1) * 24, v.y - 16 - Math.random() * 30, (Math.random() - 0.5) * 12, -4 - Math.random() * 6, 0.8, 0xb8c4dc, 2, 0);
+      }
+      fv.veilOn = true;
+    } else {
+      fv.img.clearTint();
+      if (fv.veilOn) {
+        // the veil lifts: the fog clears off the figure
+        fv.veilOn = false;
+        if (this.roomFor()) this.addFx(FX.poof, v.x, v.y, false, 1.2, { palette: PAL.smoke }, 14, 16, 0.9);
+      }
+    }
+    fv.img.setAlpha(alpha);
+    fv.tag.setAlpha(v.veil && !v.self ? 0.2 : 1);
     fv.lastX = v.x;
   }
 
@@ -299,6 +683,66 @@ export class GameScene extends Phaser.Scene {
       s.update(0);
       if (!this.fx.includes(s)) this.fx.push(s);
     }
+  }
+
+  /** Abyss Fang: four wavy cyan strands trailing the fighter's recent path. */
+  private drawTendrils(fv: FighterView, v: ViewFighter, now: number) {
+    const g = fv.gfxB;
+    g.clear();
+    const h = fv.hist;
+    if (h.length < 2) return;
+    const pts = [...h, { x: v.x, y: v.y, t: now }];
+    for (let s = 0; s < 4; s++) {
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        const age = Math.min(1, (now - a.t) / 350);
+        const amp = 6 + 12 * age;
+        const off = (q: { x: number; y: number }, k: number) => ({ x: q.x - v.face * 4 * k, y: q.y - 18 + (s - 1.5) * 6 + Math.sin(now * 0.02 + s * 1.7 + k * 0.9) * amp });
+        const p0 = off(a, i);
+        const p1 = off(b, i + 1);
+        g.lineStyle(2.2 - s * 0.3, 0x7ae8f5, (1 - age) * 0.75);
+        g.lineBetween(p0.x, p0.y, p1.x, p1.y);
+      }
+    }
+  }
+
+  /** Chains of Genesis: the bind holds the fighter in place. */
+  private drawBinds(fv: FighterView, v: ViewFighter) {
+    const g = fv.gfx;
+    g.clear();
+    if (!v.rooted) return;
+    const sway = Math.sin(this.clock * 9) * 1.5;
+    for (const ax of [-16, -4, 8, 15]) {
+      this.chainLine(g, v.x + ax, v.y + 1, v.x + ax * 0.4 + sway, v.y - 26, 6, 0xffd84a, 0.95);
+    }
+  }
+
+  /** Night Hunt: the shadow hound, leaping behind the caster and landing in a slam. */
+  private houndFor(fv: FighterView, v: ViewFighter, on: boolean) {
+    if (!on) {
+      if (fv.hound) {
+        fv.hound.img.destroy();
+        fv.hound.tex.destroy();
+        fv.hound = null;
+      }
+      return;
+    }
+    if (!fv.hound) {
+      if (!this.roomFor()) return;
+      const tex = new PixelTex(this, `hound${v.id}`, 56, 44);
+      const img = this.add.image(v.x, v.y, tex.key).setScale(2.1).setDepth(8).setAlpha(0.92);
+      fv.hound = { tex, img, step: -1 };
+    }
+    const h = fv.hound;
+    const t = v.actTf;
+    const pose = t < 12 ? 0 : t < 30 ? 1 : 2;
+    const step = Math.floor(this.clock * 15) * 3 + pose;
+    if (step !== h.step) {
+      h.step = step;
+      paintHound(h.tex, pose, this.clock);
+    }
+    h.img.setPosition(v.x - v.face * 12, v.y - 46 + (pose === 2 ? 6 : 0)).setFlipX(v.face < 0);
   }
 
   /** Swing effect lined up with the move's first hitting tick (`actT` ticks already elapsed). */
@@ -324,11 +768,130 @@ export class GameScene extends Phaser.Scene {
     else this.scheduled.push({ at: performance.now() + delay, fn: fire });
   }
 
-  private addFx(mod: FxModule, x: number, y: number, flip: boolean, rate = 1, opts: Record<string, unknown> = {}, depthBack = 5, depthFront = 15) {
+  private addFx(mod: FxModule, x: number, y: number, flip: boolean, rate = 1, opts: Record<string, unknown> = {}, depthBack = 5, depthFront = 15, scale = 1) {
     const f = new FxSprite(this, mod, x, y, flip, opts, depthBack, depthFront);
     f.rate = rate;
+    if (scale !== 1) scaleFx(f, scale);
     this.fx.push(f);
     return f;
+  }
+
+  // ------------------------------------------------------------------ Rift Art beats
+
+  /** The one-off visuals of each Art, at the moment it starts. */
+  private artStart(art: number, v: ViewFighter, list: ViewFighter[]) {
+    const x = v.x;
+    const y = v.y;
+    const f = v.face;
+    switch (art) {
+      case ArtId.RadiantCleave:
+        this.ring(x + f * 30, y - 30, 6, 46, 0.3, 0xffe08a, 3);
+        if (this.roomFor()) {
+          const sun = this.addFx(FX.sunburst, x + f * 26, y - 30, false, 1, { palette: PAL.gold }, 16, 26, 0.45);
+          this.after(500, () => sun.stop());
+        }
+        break;
+      case ArtId.HailOfArrows: {
+        // the volley's mark on the opponent's floor
+        const o = list.find((q) => q.id !== v.id);
+        const tx = o ? o.x : x + f * 200;
+        const ty = o ? o.y : y;
+        this.addVec(0.6, (g, p) => {
+          const r = 46 * (1 - p) + 10;
+          const a = Math.min(1, p * 5) * (1 - p * 0.5);
+          g.lineStyle(2, 0xb8ff90, 0.9 * a);
+          g.strokeEllipse(tx, ty - 2, r * 2, r * 0.6);
+          g.lineBetween(tx - 10, ty - 2, tx + 10, ty - 2);
+          g.lineBetween(tx, ty - 8, tx, ty + 4);
+        });
+        if (this.roomFor()) this.addFx(FX.circleCast, x, y, f < 0, 1.8, { palette: PAL.gold });
+        break;
+      }
+      case ArtId.PiercingFang:
+        if (this.roomFor()) this.addFx(FX.shadowTendrils, x, y, f < 0, 1.3, { palette: PAL.cyan }, 8, 12, 0.7);
+        if (this.roomFor()) this.addFx(FX.chargeUp, x, y, f < 0, 2.4, { palette: PAL.cyan });
+        break;
+      case ArtId.ThunderCall:
+        this.addFx(FX.circleCast, x, y, f < 0, 1.6, { palette: PAL.violet });
+        this.ring(x, y, 6, 40, 0.4, 0xd8b8ff, 2);
+        break;
+      case ArtId.ChainsOfGenesis:
+        this.ring(x, y, 4, 36, 0.4, 0xffd84a, 2);
+        break;
+      case ArtId.FlashStep:
+        this.ring(x, y - 26, 4, 40, 0.3, 0x9af0ff, 2);
+        if (this.roomFor()) this.addFx(FX.claw, x, y - 24, f > 0, 2.2, { palette: PAL.cyan }, 16, 26, 1.2);
+        break;
+      case ArtId.BloodFrenzy:
+        this.addFx(FX.pow, x, y - 34, false, 1.2, { palette: PAL.crimson }, 31, 32);
+        // the roar, as its knock-back lands
+        this.after(12 * STEP_MS, () => {
+          this.ring(x, y, 12, 130, 0.5, 0xff4a4a, 5);
+          this.ring(x, y, 6, 90, 0.35, 0xffb0a0, 2);
+          if (this.roomFor()) this.addFx(FX.fireRing, x, y, false, 1.2, { palette: PAL.crimson }, 6, 8, 0.55);
+        });
+        break;
+      case ArtId.Bulwark:
+        this.ring(x, y - 20, 20, 74, 0.45, 0xffe08a, 4);
+        this.ring(x, y - 20, 10, 48, 0.3, 0xffffff, 2, true);
+        break;
+      case ArtId.VaultOfAges:
+        this.ring(x - f * 36, y - 28, 4, 50, 0.5, 0xffe08a, 3);
+        for (let i = 0; i < 14; i++) {
+          this.spark(x - f * 40, y - 26, -f * (60 + Math.random() * 120), (Math.random() - 0.5) * 120, 0.6, 0xffe08a, 2.5, 80);
+        }
+        break;
+      case ArtId.RewrittenFate:
+        this.pages(v.id, 0.9);
+        if (this.roomFor()) this.addFx(FX.circleCast, x, y, false, 1, { palette: PAL.gold }, 6, 8, 0.6);
+        if (this.roomFor()) this.addFx(FX.heal, x, y, false, 1, {}, 9, 16, 1);
+        break;
+      case ArtId.PhantomHand:
+        if (this.roomFor()) this.addFx(FX.poof, x + f * 24, y - 14, f < 0, 1.3, { palette: PAL.abyss }, 14, 16, 0.6);
+        break;
+      case ArtId.GrimFog: {
+        if (this.roomFor()) this.addFx(FX.poof, x, y, false, 1, { palette: PAL.smoke }, 14, 16, 1.4);
+        const puffs = Array.from({ length: 7 }, () => ({ dx: (Math.random() * 2 - 1) * 36, dy: -Math.random() * 40, r: 12 + Math.random() * 12 }));
+        this.addVec(0.9, (g, p) => {
+          for (const q of puffs) {
+            g.fillStyle(0x9aa8c0, 0.22 * (1 - p));
+            g.fillCircle(x + q.dx * (0.6 + p), y + q.dy * (0.6 + p) * 0.5, q.r * (0.6 + p));
+          }
+        });
+        break;
+      }
+      case ArtId.Stampede:
+        if (this.roomFor()) this.addFx(FX.poof, x, y, f < 0, 1, { palette: PAL.dust }, 9, 12, 1.1);
+        this.ring(x, y, 6, 60, 0.35, 0xff9a4a, 3, true);
+        break;
+      case ArtId.NightHunt:
+        if (this.roomFor()) this.addFx(FX.darkExplosion, x, y, false, 1.1, { palette: PAL.abyss }, 16, 26, 0.3);
+        break;
+    }
+  }
+
+  /** Radiant-style papers of Rewritten Fate: ink and gold pages whirling round the caster as they fade. */
+  private pages(id: number, life: number) {
+    const seeds = Array.from({ length: 7 }, (_, i) => ({ a0: (i / 7) * Math.PI * 2, r: 18 + (i % 3) * 8, s: 0.8 + ((i * 37) % 5) / 10 }));
+    this.addVec(life, (g, p) => {
+      const sh = this.views.get(id)?.shown;
+      if (!sh) return;
+      for (const s of seeds) {
+        const a = s.a0 + p * Math.PI * 5;
+        const r = s.r * (1 - p * 0.4) + 6 * Math.sin(p * 3);
+        const cx = sh.x + Math.cos(a) * r;
+        const cy = sh.y - 26 + Math.sin(a) * r * 0.4 - p * 30;
+        const ang = a * 2;
+        const w = 6 * s.s;
+        const h = 8 * s.s * (0.6 + 0.4 * Math.abs(Math.cos(ang)));
+        const pts = rectPts(cx, cy, w, h, ang);
+        g.fillStyle(p < 0.5 ? 0xfff6dc : 0xf0c860, 0.92 * (1 - p * 0.5));
+        g.fillPoints(pts, true);
+        g.lineStyle(1, 0x15110c, 0.9 * (1 - p));
+        g.strokePoints(pts, true);
+        g.lineBetween(cx - w * 0.3, cy - 1, cx + w * 0.3, cy - 1);
+      }
+    });
   }
 
   // ------------------------------------------------------------------ events
@@ -351,7 +914,15 @@ export class GameScene extends Phaser.Scene {
           const flip = a ? a.x > e.x : false;
           this.addFx(e.crit ? FX.critHit : heavy ? FX.bluntHit : FX.hitSpark, e.x, e.y + 14, flip, 1.3, {}, 16, 26);
           // Flash Step's cuts: a cyan slash on every strike of the flurry
-          if (e.w === 104) this.addFx(FX.claw, e.x, e.y + 26, flip, 2.4, { palette: PAL.cyan }, 16, 26);
+          if (e.w === 104) {
+            this.addFx(FX.claw, e.x, e.y + 26, flip, 2.4, { palette: PAL.cyan }, 16, 26);
+            const sx = e.x;
+            const sy = e.y;
+            this.addVec(0.16, (g, p) => {
+              g.lineStyle(3 * (1 - p) + 1, 0xd0fbff, 0.9 * (1 - p));
+              g.lineBetween(sx - 16, sy - 14 + p * 6, sx + 16, sy - 22 + p * 6);
+            });
+          }
           const stop = Math.min(0.16, 0.05 + e.amt / 1600);
           for (const id of [e.a, e.v]) {
             const fv = this.views.get(id);
@@ -397,11 +968,20 @@ export class GameScene extends Phaser.Scene {
         sfx.play(names[e.kind] ?? 'swing', { volume: 0.8, pitch: e.kind === 0 ? 1.5 : 1 });
         break;
       }
-      case 'boom':
-        this.addFx(FX.smallExplosion, e.x, e.y, false, 1.6, {}, 16, 26);
+      case 'boom': {
+        // Night Hunt lands: a heavy slam, a shadow shockwave and dark shards
+        this.addFx(FX.groundSlam, e.x, e.y, false, 1.4, {}, 16, 26, 0.8);
+        this.addFx(FX.darkExplosion, e.x, e.y, false, 1.2, { palette: PAL.abyss }, 16, 26, 0.4);
+        this.ring(e.x, e.y, 14, 150, 0.45, 0xb080ff, 4);
+        this.ring(e.x, e.y, 6, 90, 0.3, 0xe0d0ff, 2, true);
+        for (let i = 0; i < 16; i++) {
+          this.spark(e.x + (Math.random() - 0.5) * 30, e.y - 2, (Math.random() - 0.5) * 260, -Math.random() * 140, 0.6, 0x5a2aa8, 3, 300);
+        }
         sfx.play('explosion', { x: e.x, y: e.y });
-        this.shake(0.6);
+        this.shake(0.9);
+        this.punch = Math.max(this.punch, 0.03);
         break;
+      }
       case 'trap': {
         const img = this.add.image(e.x, e.y, 's-trap-shut').setOrigin(0.5, 1).setScale(0.16).setDepth(11);
         this.tweens.add({ targets: img, alpha: 0, delay: 900, duration: 400, onComplete: () => img.destroy() });
@@ -420,31 +1000,53 @@ export class GameScene extends Phaser.Scene {
         sfx.play('pickupHealth');
         break;
       }
-      case 'blink':
+      case 'blink': {
         this.addFx(FX.blinkOut, e.x0, e.y, false, 1.6);
         this.addFx(FX.blinkIn, e.x1, e.y, false, 1.6);
         sfx.play('railgun', { pitch: 1.6, volume: 0.6 });
+        const x0 = e.x0;
+        const x1 = e.x1;
+        const y = e.y - 26;
+        this.addVec(0.32, (g, p) => {
+          g.lineStyle(6 * (1 - p) + 1, 0x9af0ff, 0.7 * (1 - p));
+          g.lineBetween(x0, y, x1, y);
+        });
         break;
+      }
       case 'art': {
         const v = find(e.p);
         sfx.play('railgun', { pitch: 0.7, volume: 0.9 });
         this.shake(0.35);
+        // the beat: a colour wash and a short zoom punch, well under a third of a second
+        this.flash(ART_FLASH[e.art] ?? 0xffffff, 0.2, 150);
+        this.punch = Math.max(this.punch, 0.035);
         if (v) {
-          if (e.art === ArtId.ThunderCall) this.addFx(FX.circleCast, v.x, v.y, v.face < 0, 1.6, { palette: PAL.violet });
-          else if (e.art === ArtId.PiercingFang) this.addFx(FX.chargeUp, v.x, v.y, v.face < 0, 2.4, { palette: PAL.crimson });
-          else if (e.art === ArtId.HailOfArrows) this.addFx(FX.circleCast, v.x, v.y, v.face < 0, 1.8, { palette: PAL.gold });
-          else if (e.art === ArtId.BloodFrenzy) this.addFx(FX.pow, v.x, v.y - 34, false, 1.2, { palette: PAL.crimson }, 31, 32);
+          this.artStart(e.art, v, list);
           // every Art freezes the moment for a beat
           const fv = this.views.get(e.p);
-          if (fv) fv.freezeUntil = performance.now() + 120;
+          if (fv) fv.freezeUntil = performance.now() + 110;
         }
         break;
       }
-      case 'strike':
-        this.addFx(FX.lightningStrike, e.x, e.y, false, 1.6, {}, 16, 26);
-        sfx.play('explosion', { x: e.x, y: e.y, pitch: 1.6, volume: 0.8 });
+      case 'strike': {
+        if (e.kind === 1) {
+          // Chains of Genesis: gold chains and a spike burst up out of the ground
+          this.addFx(FX.earthSpike, e.x, e.y, false, 1.3, { palette: PAL.gold, glow: PAL.goldGlow }, 16, 26, 1.2);
+          this.ring(e.x, e.y, 6, 60, 0.35, 0xffd84a, 3);
+          this.addVec(0.7, (g, p) => {
+            const rise = 72 * Phaser.Math.Easing.Cubic.Out(Math.min(1, p * 2.2)) * (1 - p * 0.5);
+            this.chainLine(g, e.x, e.y, e.x + 4 * Math.sin(p * 9), e.y - rise, 7, 0xffd84a, 1 - p);
+          });
+          sfx.play('impact', { x: e.x, y: e.y, pitch: 0.8 });
+        } else {
+          // Starfall (Lumi): a star comes down onto the mark
+          this.addFx(FX.starFall, e.x, e.y, false, 1.25, { palette: PAL.violet }, 16, 26, 0.7);
+          this.ring(e.x, e.y, 8, 70, 0.4, 0xd8b8ff, 3);
+          sfx.play('explosion', { x: e.x, y: e.y, pitch: 1.6, volume: 0.8 });
+        }
         this.shake(0.55);
         break;
+      }
       case 'ko': {
         const v = find(e.v);
         if (v) this.addFx(FX.pow, v.x, v.y - 30, false, 1, {}, 31, 32);
@@ -467,47 +1069,173 @@ export class GameScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ projectiles and traps
 
-  private drawProjectiles(list: NetProjectile[]) {
-    const seen = new Set<number>();
-    for (const p of list) {
-      seen.add(p.id);
-      let pv = this.projViews.get(p.id);
-      if (!pv) {
-        pv = { kind: p.kind };
-        if (p.kind === 'arrow') pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, p.heavy ? { palette: ['#3a1a70', '#7f5ad8', '#e8e2ff', '#ffffff'] } : {}, 14, 14, 10);
-        else if (p.kind === 'frost') pv.fx = new FxSprite(this, FX.iceLance, p.x, p.y, p.vx < 0, {}, 14, 14, 10);
-        else if (p.kind === 'arcane') pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.violet }, 14, 14, 10);
-        else if (p.kind === 'orb') pv.fx = new FxSprite(this, FX.arcaneOrb, p.x, p.y + 30, false, {}, 14, 14, 10);
-        else if (p.kind === 'wave') {
-          pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.gold }, 14, 14, 10);
-          pv.fx.front.setScale(2.6, 3.4);
-          pv.fx.back.setScale(2.6, 3.4);
-        }
-        else {
-          pv.img = this.add.image(p.x, p.y, 's-bomb').setScale(0.075).setDepth(14);
-          pv.fx = new FxSprite(this, FX.fireball, p.x, p.y, p.vx > 0, { radius: 2 }, 13, 13, 10);
-        }
-        if (pv.fx) this.fx.push(pv.fx);
-        this.projViews.set(p.id, pv);
+  private nearestFighter(x: number, y: number): number {
+    let best = -1;
+    let bd = Infinity;
+    for (const f of this.lastList) {
+      const d = Math.hypot(f.x - x, f.y - y);
+      if (d < bd) {
+        bd = d;
+        best = f.id;
       }
+    }
+    return best;
+  }
+
+  private spawnProj(p: NetProjectile): ProjView {
+    const face = p.vx < 0 ? -1 : 1;
+    const pv: ProjView = { kind: p.kind, x: p.x, y: p.y, face, age: 0, spawnNear: this.nearestFighter(p.x, p.y) };
+    if (p.kind === 'arrow') {
+      // Serpent Rain's falling shafts are venom green; the bow's are as before
+      const rain = Math.abs(p.vy) > 300;
+      pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, p.heavy ? { palette: ['#3a1a70', '#7f5ad8', '#e8e2ff', '#ffffff'] } : rain ? { palette: PAL.serpent } : {}, 14, 14, 10);
+    } else if (p.kind === 'frost') {
+      pv.fx = new FxSprite(this, FX.iceLance, p.x, p.y, p.vx < 0, {}, 14, 14, 10);
+    } else if (p.kind === 'arcane') {
+      pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.violet }, 14, 14, 10);
+    } else if (p.kind === 'orb') {
+      pv.fx = new FxSprite(this, FX.arcaneOrb, p.x, p.y + 30, false, {}, 14, 14, 10);
+    } else if (p.kind === 'wave') {
+      // Radiant Cleave: the gold disc, with a bright crescent edge drawn over it
+      pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.gold }, 14, 14, 10);
+      pv.fx.front.setScale(2.6, 3.4);
+      pv.fx.back.setScale(2.6, 3.4);
+      pv.gfx = this.add.graphics().setDepth(15);
+    } else if (p.kind === 'relic') {
+      // Vault of Ages: a real weapon, point-first, out of a golden portal
+      pv.img = this.add.image(p.x, p.y, WEAPON_SPRITES[p.id % WEAPON_SPRITES.length]).setScale(0.28).setTint(0xffd870).setDepth(14);
+      this.ring(p.x, p.y, 4, 26, 0.3, 0xffe08a, 2.5);
+    } else if (p.kind === 'hand') {
+      // Phantom Hand: a spectral claw racing along the floor
+      pv.tex = new PixelTex(this, `hand${p.id}`, 26, 20);
+      pv.img = this.add.image(p.x, p.y, pv.tex.key).setScale(1.5).setDepth(14).setAlpha(0.92);
+      if (this.roomFor()) this.addFx(FX.poof, p.x, p.y, face < 0, 1.5, { palette: PAL.abyss }, 14, 16, 0.5);
+    } else if (p.kind === 'steed') {
+      // Stampede: a burning warhorse, the fire streaming back behind it
+      pv.tex = new PixelTex(this, `steed${p.id}`, 46, 34);
+      pv.img = this.add.image(p.x, p.y, pv.tex.key).setScale(1.5).setDepth(13);
+      pv.fx = new FxSprite(this, FX.flamethrower, p.x - face * 20, p.y - 6, face > 0, { palette: PAL.fire }, 12, 13, 30);
+      scaleFx(pv.fx, 0.45);
+    } else {
+      pv.img = this.add.image(p.x, p.y, 's-bomb').setScale(0.075).setDepth(14);
+      pv.fx = new FxSprite(this, FX.fireball, p.x, p.y, p.vx > 0, { radius: 2 }, 13, 13, 10);
+    }
+    if (pv.fx) this.fx.push(pv.fx);
+    return pv;
+  }
+
+  private updateProj(pv: ProjView, p: NetProjectile, dt: number, list: ViewFighter[]) {
+    void list;
+    pv.x = p.x;
+    pv.y = p.y;
+    pv.age += dt;
+    pv.face = p.vx < 0 ? -1 : 1;
+    const face = pv.face;
+    if (p.kind === 'arrow' || p.kind === 'frost' || p.kind === 'arcane' || p.kind === 'orb' || p.kind === 'wave') {
       pv.fx?.setPosition(p.x, p.kind === 'orb' ? p.y + 30 : p.y);
       if (pv.fx && p.kind === 'arrow') {
         const ang = Math.atan2(p.vy, Math.abs(p.vx)) * (p.vx < 0 ? -1 : 1);
         pv.fx.front.setRotation(ang);
         pv.fx.back.setRotation(ang);
       }
+      if (pv.gfx) {
+        // the crescent: a bright gold edge that leads the disc
+        const g = pv.gfx;
+        g.clear();
+        const R = 34;
+        const pts: Phaser.Math.Vector2[] = [];
+        for (let i = -10; i <= 10; i++) {
+          const a = (i / 10) * 1.1;
+          pts.push(new Phaser.Math.Vector2(p.x + Math.cos(a) * R * face, p.y + Math.sin(a) * R));
+        }
+        for (let i = 10; i >= -10; i--) {
+          const a = (i / 10) * 1.0;
+          pts.push(new Phaser.Math.Vector2(p.x + Math.cos(a) * (R - 9) * face - 6 * face, p.y + Math.sin(a) * (R - 8)));
+        }
+        g.fillStyle(0xffe08a, 0.85);
+        g.fillPoints(pts, true);
+        g.lineStyle(1.5, 0xfff6c8, 0.95);
+        g.strokePoints(pts, true);
+        for (let i = 0; i < 2; i++) this.spark(p.x - face * 10, p.y + (Math.random() - 0.5) * 24, -face * 40, (Math.random() - 0.5) * 60, 0.35, 0xfff0a8, 2, 0);
+      }
       if (pv.img) pv.img.setPosition(p.x, p.y).setRotation(pv.img.rotation + 0.25 * Math.sign(p.vx));
+      return;
+    }
+    if (p.kind === 'relic') {
+      pv.img?.setPosition(p.x, p.y).setFlipX(face < 0).setRotation(Math.sin(pv.age * 22) * 0.06);
+      if (Math.random() < 0.6) this.spark(p.x - face * 20 + (Math.random() - 0.5) * 8, p.y + (Math.random() - 0.5) * 8, -face * 10, 10 + Math.random() * 20, 0.35, 0xffe08a, 2, 0);
+      return;
+    }
+    if (p.kind === 'hand') {
+      if (pv.tex && pv.paintedAt !== Math.floor(pv.age * 30)) {
+        pv.paintedAt = Math.floor(pv.age * 30);
+        paintHand(pv.tex, 0.5 + 0.5 * Math.sin(pv.age * 16));
+      }
+      pv.img?.setPosition(p.x, p.y).setFlipX(face < 0);
+      this.spark(p.x - face * 12 + (Math.random() - 0.5) * 6, p.y + (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 30, -Math.random() * 30, 0.4, 0xa080ff, 2, 0);
+      return;
+    }
+    if (p.kind === 'steed') {
+      if (pv.tex && pv.paintedAt !== Math.floor(pv.age * 30)) {
+        pv.paintedAt = Math.floor(pv.age * 30);
+        paintHorse(pv.tex, pv.age);
+      }
+      pv.img?.setPosition(p.x, p.y - 4).setFlipX(face < 0);
+      if (pv.fx) {
+        pv.fx.setPosition(p.x - face * 20, p.y - 6);
+        pv.fx.back.setFlipX(face > 0);
+        pv.fx.front.setFlipX(face > 0);
+      }
+      if (Math.random() < 0.9) this.spark(p.x - face * 22 + (Math.random() - 0.5) * 8, p.y - 14 + (Math.random() - 0.5) * 10, -face * (20 + Math.random() * 30), -40 - Math.random() * 50, 0.6, 0xffae35, 2, 60);
+      return;
+    }
+    // bomb
+    pv.img?.setPosition(p.x, p.y).setRotation((pv.img?.rotation ?? 0) + 0.25 * Math.sign(p.vx));
+    pv.fx?.setPosition(p.x, p.y);
+  }
+
+  private drawProjectiles(list: NetProjectile[], fighters: ViewFighter[], dt: number) {
+    const seen = new Set<number>();
+    for (const p of list) {
+      seen.add(p.id);
+      let pv = this.projViews.get(p.id);
+      if (!pv) {
+        pv = this.spawnProj(p);
+        this.projViews.set(p.id, pv);
+      }
+      this.updateProj(pv, p, dt, fighters);
     }
     for (const [id, pv] of this.projViews) {
       if (seen.has(id)) continue;
-      pv.img?.destroy();
-      pv.fx?.destroy();
-      if (pv.kind === 'frost') {
-        const f = this.projViews.get(id);
-        void f;
-      }
       this.projViews.delete(id);
+      this.endProj(id, pv);
     }
+  }
+
+  /** A projectile is gone: a hand that reached its target clamps on, the rest fade out. */
+  private endProj(id: number, pv: ProjView) {
+    if (pv.kind === 'hand') {
+      const opp = this.lastList.find((f) => f.id !== pv.spawnNear);
+      if (opp && Math.abs(opp.x - pv.x) < 64 && Math.abs(opp.y - pv.y) < 60 && this.roomFor()) {
+        // the grab: black arms burst up out of the floor and drag the victim under
+        const fx = this.addFx(FX.graspingHands, opp.x, opp.y, false, 1.1, { palette: PAL.abyss }, 16, 26, 0.95);
+        this.after(1000, () => fx.stop());
+        const x = opp.x;
+        const y = opp.y;
+        this.ring(x, y, 8, 50, 0.4, 0x8a5ae0, 3);
+        this.shake(0.5);
+      } else {
+        this.addFx(FX.poof, pv.x, pv.y, false, 1.4, { palette: PAL.abyss }, 14, 16, 0.5);
+      }
+    } else if (pv.kind === 'relic') {
+      for (let i = 0; i < 6; i++) this.spark(pv.x, pv.y, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 120, 0.4, 0xffe08a, 2.5, 60);
+    }
+    if (pv.kind === 'steed' || pv.kind === 'hand') pv.fx?.stop();
+    else pv.fx?.destroy();
+    pv.img?.destroy();
+    pv.gfx?.destroy();
+    pv.tex?.destroy();
+    void id;
   }
 
   private drawTraps(list: NetTrap[]) {
@@ -524,7 +1252,7 @@ export class GameScene extends Phaser.Scene {
     for (const [id, img] of this.trapViews) if (!seen.has(id)) (img.destroy(), this.trapViews.delete(id));
   }
 
-  /** Thunder Call targets: a crackling ring on the floor that tightens until the bolt lands. */
+  /** Strike markers: Starfall's ring with a star falling onto it, Chains of Genesis' ring with chains coiling up. */
   private drawStrikes(list: NetStrike[]) {
     const seen = new Set<number>();
     for (const s of list) {
@@ -535,11 +1263,25 @@ export class GameScene extends Phaser.Scene {
         this.strikeViews.set(s.id, g);
       }
       const k = Math.max(0, Math.min(1, s.left / 20));
+      const gold = s.kind === 1;
       g.clear();
-      g.lineStyle(2, 0xc09cff, 0.5 + (1 - k) * 0.5);
+      g.lineStyle(2, gold ? 0xffd84a : 0xc09cff, 0.5 + (1 - k) * 0.5);
       g.strokeEllipse(s.x, s.y - 2, 30 + 50 * k, 8 + 12 * k);
-      g.fillStyle(0x8a5ae0, 0.18 + (1 - k) * 0.3);
+      g.fillStyle(gold ? 0xb8862a : 0x8a5ae0, 0.18 + (1 - k) * 0.3);
       g.fillEllipse(s.x, s.y - 2, 30, 8);
+      if (gold) {
+        this.chainLine(g, s.x, s.y, s.x, s.y - (6 + (1 - k) * 22), 4, 0xffd84a, 0.9);
+      } else {
+        // a star coming down: a bright head with a trail up the sky
+        const hy = s.y - 4 - 230 * k;
+        g.lineStyle(3, 0xe8d8ff, 0.5);
+        g.lineBetween(s.x - 10 * k, hy - 46 * k - 6, s.x, hy);
+        g.lineStyle(1, 0xffffff, 0.8);
+        g.lineBetween(s.x - 6, hy, s.x + 6, hy);
+        g.lineBetween(s.x, hy - 6, s.x, hy + 6);
+        g.fillStyle(0xffffff, 0.95);
+        g.fillCircle(s.x, hy, 2.5);
+      }
     }
     for (const [id, g] of this.strikeViews) if (!seen.has(id)) (g.destroy(), this.strikeViews.delete(id));
   }
@@ -590,7 +1332,9 @@ export class GameScene extends Phaser.Scene {
       sy = (Math.random() * 2 - 1) * this.shakeAmp;
       this.shakeAmp *= 0.86;
     }
-    cam.setZoom(this.camZoom);
+    // an Art's zoom punch: a quick push in that eases back
+    this.punch *= Math.exp(-dt * 16);
+    cam.setZoom(this.camZoom * (1 + this.punch));
     cam.centerOn(halfW * 2 > this.arenaW + 240 ? this.arenaW / 2 : x + sx, y + sy);
     const me = list.find((f) => f.self);
     if (me) sfx.setListener(me.x, me.y);
@@ -600,8 +1344,26 @@ export class GameScene extends Phaser.Scene {
     for (const [id, fv] of this.views) this.removeView(id, fv);
     for (const f of this.fx) f.destroy();
     this.fx = [];
-    for (const pv of this.projViews.values()) (pv.img?.destroy(), pv.fx?.destroy());
+    for (const [id, pv] of this.projViews) this.endProjQuiet(id, pv);
     this.projViews.clear();
+    for (const t of this.trapViews.values()) t.destroy();
+    this.trapViews.clear();
+    for (const g of this.strikeViews.values()) g.destroy();
+    this.strikeViews.clear();
+    this.vecs = [];
+    this.parts = [];
+    this.scheduled = [];
+    this.vecB?.destroy();
+    this.vecF?.destroy();
+    this.partG?.destroy();
+  }
+
+  private endProjQuiet(id: number, pv: ProjView) {
+    void id;
+    pv.fx?.destroy();
+    pv.img?.destroy();
+    pv.gfx?.destroy();
+    pv.tex?.destroy();
   }
 }
 

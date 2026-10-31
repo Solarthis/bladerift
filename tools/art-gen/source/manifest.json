@@ -88,6 +88,14 @@
       "ref": "icons-gear.png",
       "seconds": 133,
       "at": "2026-10-31T15:39:02.319Z"
+    },
+    {
+      "name": "icons-arts2",
+      "ok": true,
+      "prompt": "Rules for the whole sheet:\n- A uniform set of SQUARE game ability icons for a dark-fantasy duelling game, laid out as an exact 4 x 2 grid of equal square cells\n  (image size 1024x512, so every icon is 256x256 and fills its cell edge to edge).\n- EVERY icon shares the same frame: a thin bevelled dark-iron square border with small gold corner studs, and a deep, richly\n  shaded background inside it (each icon may tint its background to its theme). The subject is painted large, centred and\n  readable at 48 px: bold silhouette, strong rim light, painterly hand-painted style matching the attached reference.\n- NO text, NO letters, NO numbers, NO labels anywhere. Icons never bleed into each other; keep the grid perfectly aligned.\nMatch the attached sheet's frame and style exactly.\nRow 1: (1) VAULT OF AGES: a golden rift portal with many legendary weapons (swords, spears) bursting out point-first; (2) CHAINS OF GENESIS: living\n       golden chains erupting from cracked earth and coiling upward; (3) REWRITTEN FATE: an open glowing book with a quill pen writing in golden\n       light; (4) PHANTOM HAND: a pale spectral skeletal claw reaching out of teal mist.\nRow 2: (5) GRIM FOG: a gentleman's silhouette in a peaked cap dissolving into grey fog; (6) STAMPEDE: a burning warhorse charging, mane of fire;\n       (7) NIGHT HUNT: a colossal shadow wolf-hound leaping with glowing purple eyes; (8) a plain golden rift crack on violet (spare).",
+      "ref": "icons-abilities.png",
+      "seconds": 95,
+      "at": "2026-10-31T16:14:25.755Z"
     }
   ]
 }

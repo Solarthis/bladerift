@@ -438,16 +438,17 @@ export class World {
       if (Math.abs(seen.x - a.s.x) > reach * 0.68) crit = tip = true;
     }
     if (crit) dmg = Math.round(dmg * (backstab ? C.backstab : 1.4));
-    // out of the Grim Fog: the first blow crits and reveals
-    if (a.s.veil > 0) {
-      if (!crit) dmg = Math.round(dmg * 1.5);
+    // out of the Grim Fog: the first blow that lands crits and reveals (a blocked swing keeps the fog)
+    const veiled = a.s.veil > 0;
+    if (veiled) {
+      dmg = Math.round(dmg * 1.9);
       crit = true;
-      a.s.veil = 0;
     }
     void tip;
     const ix = (Math.max(box.x, seen.x - FIGHTER.w / 2) + Math.min(box.x + box.w, seen.x + FIGHTER.w / 2)) / 2;
     const iy = Math.max(box.y, seen.y - FIGHTER.h) + Math.min(box.h, FIGHTER.h) / 2;
-    this.applyHit(a, d, { dmg, kbX: m.kbX, kbY: m.kbY, stun: m.stun, pull: !!m.pull, breaksGuard: !!m.breaksGuard, crit, w: a.load.weapons[a.s.slot], x: ix, y: iy, front, guard: seen });
+    const landed = this.applyHit(a, d, { dmg, kbX: m.kbX, kbY: m.kbY, stun: m.stun, pull: !!m.pull, breaksGuard: !!m.breaksGuard, crit, w: a.load.weapons[a.s.slot], x: ix, y: iy, front, guard: seen });
+    if (veiled && landed) a.s.veil = 0;
     // a lunge stops on impact; a landed hit can be cancelled into a jump (air combos)
     if (a.s.move === MOVE_CHARGED && m.dash) a.s.vx *= 0.2;
     a.s.confirm = PHYS.confirmTicks;
@@ -467,7 +468,7 @@ export class World {
     let k = C.dmg;
     if (C.id === ClassId.Berserker && a.s.hp < C.hp / 3) k *= 1.4 / 1.2;
     if (a.s.frenzy > 0) k *= 1.25;
-    if (a.s.buff > 0) k *= 1.3;
+    if (a.s.buff > 0) k *= 1.35;
     return k;
   }
 
@@ -481,9 +482,9 @@ export class World {
     a: Fighter | undefined,
     d: Fighter,
     h: { dmg: number; kbX: number; kbY: number; stun: number; pull?: boolean; breaksGuard?: boolean; crit: boolean; w: number; x: number; y: number; front: boolean; guard?: { blocking: boolean; blockT: number }; melee?: boolean },
-  ) {
+  ): boolean {
     const ds = d.s;
-    if (d.s.act === Act.KO) return;
+    if (d.s.act === Act.KO) return false;
     const DC = classOf(d.load.cls);
     const dirX = a ? (a.s.x <= ds.x ? 1 : -1) : h.x <= ds.x ? 1 : -1;
     // Bulwark: nothing gets through; a swing into it staggers the attacker
@@ -495,7 +496,7 @@ export class World {
         a.s.vx = -dirX * 260;
         this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y });
       }
-      return;
+      return false;
     }
     h = { ...h, dmg: a ? Math.round(h.dmg * this.dmgScale(a)) : h.dmg };
     const guard = h.guard ?? { blocking: isBlocking(ds), blockT: ds.blockT };
@@ -508,7 +509,7 @@ export class World {
         a.s.vx = -dirX * 120;
         a.s.charge = 0;
         this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y });
-        return;
+        return false;
       }
       const chip = Math.max(1, Math.round(h.dmg * FIGHTER.chip * DC.chip));
       this.gainRift(a, d, chip);
@@ -521,7 +522,7 @@ export class World {
         if (Math.abs(a.s.x - ds.x) < 60) a.s.vx = -dirX * 90;
       }
       if (ds.hp <= 0) this.knockOut(d, a);
-      return;
+      return false;
     }
     ds.hp -= h.dmg;
     this.gainRift(a, d, h.dmg);
@@ -555,7 +556,7 @@ export class World {
     // (Rift Art hits never trip the combo break: the flurry is meant to land in full)
     if (h.w >= 104 && h.w < 200) {
       if (ds.hp <= 0) this.knockOut(d, a);
-      return;
+      return true;
     }
     if (this.tick - d.comboAt < FIGHTER.comboWindow) d.comboHits++;
     else d.comboHits = 1;
@@ -565,6 +566,7 @@ export class World {
       d.comboHits = 0;
     }
     if (ds.hp <= 0) this.knockOut(d, a);
+    return true;
   }
 
   private knockOut(d: Fighter, a: Fighter | undefined) {
@@ -780,7 +782,7 @@ export class World {
           break;
         case ArtId.PhantomHand:
           if (t === 12) {
-            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 780, vy: 0, dmg: 150, kb: 0, stun: 64, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true });
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 780, vy: 0, dmg: 180, kb: 0, stun: 84, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true });
             this.events.push({ t: 'shoot', p: f.id, kind: 8 });
           }
           break;
@@ -793,8 +795,9 @@ export class World {
         case ArtId.NightHunt:
           if (t === 6) {
             const dx = (o ? o.s.x : s.x + s.face * 200) - s.x;
-            s.vx = Math.max(-950, Math.min(950, dx / 0.45));
-            s.vy = -620;
+            // the horizontal speed covers the gap in 0.45 s, so the lift must give a 0.45 s airtime (vy = g * t / 2) to land on the spot
+            s.vx = Math.max(-1250, Math.min(1250, dx / 0.45));
+            s.vy = -PHYS.gravity * 0.225;
             s.ground = 0;
             s.face = dx >= 0 ? 1 : -1;
           }
@@ -833,7 +836,7 @@ export class World {
             const last = k === 5;
             if (Math.abs(o.s.x - s.x) < 90 && Math.abs(o.s.y - s.y) < 90) behind();
             if (Math.abs(o.s.x - s.x) < 60 && Math.abs(o.s.y - s.y) < 60 && o.s.invuln <= 0) {
-              const dmg = Math.round((last ? 60 : 32) * C.backstab);
+              const dmg = Math.round((last ? 50 : 25) * C.backstab);
               this.applyHit(f, o, { dmg, kbX: last ? 340 : 20, kbY: last ? 280 : 0, stun: last ? 36 : 14, crit: true, w: 104, x: o.s.x, y: o.s.y - 28, front: false, breaksGuard: true });
               s.confirm = PHYS.confirmTicks;
             }
@@ -843,8 +846,8 @@ export class World {
       }
     }
     // Thunder Call: each strike locks on 20 ticks before it lands, then hits whoever stands under it
-    for (let i = this.strikes.length - 1; i >= 0; i--) {
-      const st = this.strikes[i];
+    for (const st of [...this.strikes]) {
+      if (!this.strikes.includes(st)) continue; // (a KO ended the round and cleared them)
       const owner = this.fighters.get(st.owner);
       const o = owner ? this.opponent(owner) : undefined;
       if (!st.aimed && this.tick >= st.at - 20) {
@@ -855,7 +858,7 @@ export class World {
         }
       }
       if (this.tick < st.at) continue;
-      this.strikes.splice(i, 1);
+      this.strikes.splice(this.strikes.indexOf(st), 1);
       this.events.push({ t: 'strike', x: st.x, y: st.y, kind: st.kind });
       if (o && o.s.act !== Act.KO && o.s.invuln <= 0 && Math.abs(o.s.x - st.x) < 36 && o.s.y > st.y - 130 && o.s.y <= st.y + 4) {
         if (st.kind === 1) {
@@ -963,6 +966,7 @@ export class World {
       }
     }
     this.projectiles = [];
+    this.strikes = [];
     this.events.push({ t: 'round', winner: winner === 0 || winner === 1 ? winner : 255, why });
   }
 

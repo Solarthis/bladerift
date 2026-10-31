@@ -1,6 +1,6 @@
 /**
  * Fighter input: keyboard (one player, or two sharing a keyboard), gamepads and touch (floating joystick + a thumb
- * cluster of six buttons, like the reference: two weapons, skill, jump, roll, heal). Each local fighter reads one
+ * cluster of seven tiles: two weapons, skill, jump, roll, heal and the Rift Art). Each local fighter reads one
  * InputSource per tick.
  */
 import { Btn } from '@bladerift/shared';
@@ -50,17 +50,29 @@ export const KEY_LABEL: Record<KeyScheme, Record<keyof KeyMap, string>> = {
   p2: { left: '←', right: '→', down: '↓', jump: '↑', a: ', or Num 1', b: '. or Num 2', skill: '/ or Num 3', roll: 'Right Shift / Num 0', heal: "' or Num +", special: '\\ / Num 4 / Enter' },
 };
 
+/** Every key a fighter uses: none of them may scroll the page or press a focused button during a duel. */
+const GAME_KEYS = new Set<string>(Object.values(KEYMAPS).flatMap((m) => Object.values(m).flat()));
+
 const held = new Set<string>();
 let keysBound = false;
 function bindKeys() {
   if (keysBound) return;
   keysBound = true;
   addEventListener('keydown', (e) => {
-    if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return;
+    const tag = (e.target as HTMLElement | null)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     held.add(e.code);
-    if (document.body.dataset.screen === 'game' && (e.code.startsWith('Arrow') || e.code === 'Space')) e.preventDefault();
+    if (document.body.dataset.screen === 'game' && GAME_KEYS.has(e.code)) {
+      e.preventDefault();
+      // a focused button would take Enter or Space as a click (the pause button, say)
+      const a = document.activeElement;
+      if (a instanceof HTMLButtonElement) a.blur();
+    }
   });
-  addEventListener('keyup', (e) => held.delete(e.code));
+  addEventListener('keyup', (e) => {
+    held.delete(e.code);
+    if (document.body.dataset.screen === 'game' && GAME_KEYS.has(e.code)) e.preventDefault();
+  });
   addEventListener('blur', () => held.clear());
 }
 
@@ -162,23 +174,56 @@ const BUTTONS: { id: string; bit: number; label: string; cls: string }[] = [
   { id: 'art', bit: Btn.Special, label: '', cls: 'tb-art' },
 ];
 
-/** On-screen controls: a floating joystick on the left half, six buttons on the right. */
+/** The first time a device's Art glows, one hint says how to use it. Kept in localStorage, guarded. */
+const HINT_KEY = 'bladerift.hint.artHold.v1';
+let hintShownThisPage = false;
+function hintSeen(): boolean {
+  if (hintShownThisPage) return true;
+  try {
+    return localStorage.getItem(HINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function markHintSeen() {
+  hintShownThisPage = true;
+  try {
+    localStorage.setItem(HINT_KEY, '1');
+  } catch {
+    // storage blocked: the page-level flag still keeps it to once
+  }
+}
+
+const STICK_R = 46;
+const STICK_DEAD = 0.22;
+
+/** On-screen controls: a floating joystick on the left half, the thumb cluster on the right. */
 export class TouchSource implements InputSource {
   readonly root: HTMLElement;
   private stick = { id: -1, ox: 0, oy: 0, x: 0, y: 0 };
   private pressed = new Map<number, number>();
   private knob: HTMLElement;
   private base: HTMLElement;
+  private arrow: HTMLElement;
+  private hint: HTMLElement;
+  private hintTimer = 0;
+  private artWasReady = false;
   private btnEls = new Map<string, HTMLElement>();
 
   constructor(parent: HTMLElement) {
     this.root = document.createElement('div');
     this.root.className = 'touch';
-    this.root.innerHTML = `<div class="stick-zone"><div class="stick-base"><div class="stick-knob"></div></div></div>
-      <div class="tbuttons">${BUTTONS.map((b) => `<div class="tb ${b.cls}" data-b="${b.id}"><i></i><span>${b.label}</span><em></em></div>`).join('')}</div>`;
+    this.root.innerHTML = `<div class="stick-zone"><div class="stick-base">
+        <i class="sd sd-u"></i><i class="sd sd-d"></i><i class="sd sd-l"></i><i class="sd sd-r"></i>
+        <b class="stick-arrow"></b><div class="stick-knob"></div>
+      </div></div>
+      <div class="tbuttons">${BUTTONS.map((b) => `<div class="tb ${b.cls}" data-b="${b.id}"><i></i><span>${b.label}</span><em></em></div>`).join('')}</div>
+      <div class="touch-hint" role="note">Hold the art tile when it glows</div>`;
     parent.appendChild(this.root);
     this.knob = this.root.querySelector('.stick-knob')!;
     this.base = this.root.querySelector('.stick-base')!;
+    this.arrow = this.root.querySelector('.stick-arrow')!;
+    this.hint = this.root.querySelector('.touch-hint')!;
     for (const el of this.root.querySelectorAll<HTMLElement>('.tb')) this.btnEls.set(el.dataset.b!, el);
     const zone = this.root.querySelector<HTMLElement>('.stick-zone')!;
     zone.addEventListener('pointerdown', (e) => {
@@ -192,28 +237,28 @@ export class TouchSource implements InputSource {
     });
     zone.addEventListener('pointermove', (e) => {
       if (e.pointerId !== this.stick.id) return;
-      const R = 46;
       let dx = e.clientX - this.stick.ox;
       let dy = e.clientY - this.stick.oy;
       const d = Math.hypot(dx, dy);
-      if (d > R) {
+      if (d > STICK_R) {
         // the base follows a thumb that slides past its edge
-        this.stick.ox += (dx / d) * (d - R);
-        this.stick.oy += (dy / d) * (d - R);
+        this.stick.ox += (dx / d) * (d - STICK_R);
+        this.stick.oy += (dy / d) * (d - STICK_R);
         this.base.style.left = this.stick.ox + 'px';
         this.base.style.top = this.stick.oy + 'px';
-        dx = (dx / d) * R;
-        dy = (dy / d) * R;
+        dx = (dx / d) * STICK_R;
+        dy = (dy / d) * STICK_R;
       }
-      this.stick.x = dx / R;
-      this.stick.y = dy / R;
+      this.stick.x = dx / STICK_R;
+      this.stick.y = dy / STICK_R;
       this.knob.style.transform = `translate(${dx}px, ${dy}px)`;
+      this.aim(dx, dy);
     });
     const end = (e: PointerEvent) => {
       if (e.pointerId !== this.stick.id) return;
       this.stick = { id: -1, ox: 0, oy: 0, x: 0, y: 0 };
       this.knob.style.transform = '';
-      this.base.classList.remove('on');
+      this.base.classList.remove('on', 'lit-l', 'lit-r', 'lit-d');
     };
     zone.addEventListener('pointerup', end);
     zone.addEventListener('pointercancel', end);
@@ -223,6 +268,7 @@ export class TouchSource implements InputSource {
         el.setPointerCapture(e.pointerId);
         this.pressed.set(e.pointerId, b.bit);
         el.classList.add('down');
+        this.ripple(el, e);
         navigator.vibrate?.(8);
         e.preventDefault();
       });
@@ -236,10 +282,41 @@ export class TouchSource implements InputSource {
     }
   }
 
+  /** The joystick shows where it reads: an arrow out to the knob, and the cardinal chevrons it lights. */
+  private aim(dx: number, dy: number) {
+    const mag = Math.min(1, Math.hypot(dx, dy) / STICK_R);
+    const deg = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+    this.arrow.style.transform = `rotate(${deg}deg)`;
+    this.base.style.setProperty('--mag', mag.toFixed(2));
+    const { x, y } = this.stick;
+    this.base.classList.toggle('lit-l', x < -STICK_DEAD);
+    this.base.classList.toggle('lit-r', x > STICK_DEAD);
+    this.base.classList.toggle('lit-d', y > 0.6);
+  }
+
+  /** A soft ring from the press point, cleared when its animation ends. */
+  private ripple(el: HTMLElement, e: PointerEvent) {
+    const r = el.getBoundingClientRect();
+    const ring = document.createElement('span');
+    ring.className = 'tb-ripple';
+    ring.style.left = `${e.clientX - r.left}px`;
+    ring.style.top = `${e.clientY - r.top}px`;
+    el.appendChild(ring);
+    setTimeout(() => ring.remove(), 650);
+  }
+
+  private maybeHint() {
+    if (hintSeen()) return;
+    markHintSeen();
+    this.hint.classList.add('on');
+    window.clearTimeout(this.hintTimer);
+    this.hintTimer = window.setTimeout(() => this.hint.classList.remove('on'), 5000);
+  }
+
   read(): Intent {
     let b = 0;
     for (const bit of this.pressed.values()) b |= bit;
-    const x = Math.abs(this.stick.x) < 0.22 ? 0 : this.stick.x;
+    const x = Math.abs(this.stick.x) < STICK_DEAD ? 0 : this.stick.x;
     return { moveX: x, moveY: this.stick.y > 0.6 ? 1 : 0, buttons: b };
   }
 
@@ -265,13 +342,17 @@ export class TouchSource implements InputSource {
     // the Art tile fills from the bottom with the gauge and glows when ready
     const art = this.btnEls.get('art')!;
     art.style.setProperty('--fill', String(Math.max(0, Math.min(1, s.rift))));
-    art.classList.toggle('ready', s.rift >= 1);
+    const ready = s.rift >= 1;
+    art.classList.toggle('ready', ready);
+    if (ready && !this.artWasReady) this.maybeHint();
+    this.artWasReady = ready;
     const heal = this.btnEls.get('heal')!;
     heal.querySelector('em')!.textContent = String(s.flask);
     heal.classList.toggle('empty', s.flask <= 0);
   }
 
   destroy() {
+    window.clearTimeout(this.hintTimer);
     this.root.remove();
   }
 }

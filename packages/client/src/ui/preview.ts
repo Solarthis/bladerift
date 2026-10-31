@@ -1,10 +1,44 @@
 // A fighter drawn into a menu canvas: the same PixelFX rig, colours and weapon hold as in the game.
 // @ts-expect-error - plain JS vendor module
 import { posed } from '../vendor/pixelfx/core/index.js';
-import { fighterLut } from '../render/pixel';
+import { classOf, heroOf } from '@bladerift/shared';
+import { fighterLut, HERO_SCALE, paintHero } from '../render/pixel';
 import { poseFor } from '../render/poses';
 import { accentOf, colorOf } from './colors';
 import type { ViewFighter } from '../net/NetGame';
+
+const PW = 80 * HERO_SCALE;
+const PH = 80 * HERO_SCALE;
+
+/**
+ * A hero with its costume, in the idle pose holding his class's signature weapon, as PW x PH pixels with the feet at
+ * (PW / 2, PH - 14). `flip` mirrors him.
+ */
+export function heroPreviewPixels(hero: number, flip: boolean): Uint32Array {
+  const h = heroOf(hero);
+  const weapon = classOf(h.cls).signature;
+  const v = { act: 0, actTf: 0, ground: true, vx: 0, vy: 0, weapons: [weapon, weapon], slot: 0, move: 0, charge: 0, skill: 0, face: 1 } as unknown as ViewFighter;
+  const pose = poseFor(v, { time: 0, runPhase: 0 });
+  const px = new Uint32Array(PW * PH);
+  paintHero(px, PW, PH, PW / 2, PH - 14 * HERO_SCALE, flip, pose, hero);
+  return px;
+}
+
+/** Draws a hero (see heroPreviewPixels) into a menu canvas, scaled up crisp. */
+export function drawHeroPreview(cv: HTMLCanvasElement, hero: number, flip: boolean) {
+  const ctx = cv.getContext('2d');
+  if (!ctx) return;
+  const img = new ImageData(PW, PH);
+  new Uint32Array(img.data.buffer).set(heroPreviewPixels(hero, flip));
+  const tmp = document.createElement('canvas');
+  tmp.width = PW;
+  tmp.height = PH;
+  tmp.getContext('2d')!.putImageData(img, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.imageSmoothingEnabled = false;
+  const s = Math.floor(Math.min(cv.width / PW, cv.height / PH) * 100) / 100;
+  ctx.drawImage(tmp, (cv.width - PW * s) / 2, (cv.height - PH * s) / 2, PW * s, PH * s);
+}
 
 export function drawPreview(cv: HTMLCanvasElement, color: number, accent: number, weapon: number, flip: boolean) {
   const ctx = cv.getContext('2d');
