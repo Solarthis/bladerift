@@ -274,6 +274,8 @@ interface ProjView {
   gfx?: Phaser.GameObjects.Graphics;
   tex?: PixelTex;
   paintedAt?: number;
+  /** The Phantom Hand's reach toward an airborne fighter (world units). */
+  lift?: number;
 }
 
 /** Scale both layers of a PixelFX effect. */
@@ -1252,8 +1254,12 @@ export class GameScene extends Phaser.Scene {
         pv.paintedAt = Math.floor(pv.age * 30);
         paintHand(pv.tex, 0.5 + 0.5 * Math.sin(pv.age * 16));
       }
-      pv.img?.setPosition(p.x, p.y).setFlipX(face < 0);
-      this.spark(p.x - face * 12 + (Math.random() - 0.5) * 6, p.y + (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 30, -Math.random() * 30, 0.4, 0xa080ff, 2, 0);
+      // the claw rises toward a fighter jumping over it (the hand reaches up to 90 units, see World)
+      const prey = list.find((f) => f.id !== pv.spawnNear && !f.ground && Math.abs(f.x - p.x) < 70 && f.y < p.y);
+      const lift = prey ? Math.min(90, p.y - (prey.y - 24)) : 0;
+      pv.lift = (pv.lift ?? 0) + (lift - (pv.lift ?? 0)) * Math.min(1, dt * 18);
+      pv.img?.setPosition(p.x, p.y - pv.lift).setFlipX(face < 0).setRotation(-face * Math.min(0.9, pv.lift / 100));
+      this.spark(p.x - face * 12 + (Math.random() - 0.5) * 6, p.y - pv.lift + (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 30, -Math.random() * 30, 0.4, 0xa080ff, 2, 0);
       return;
     }
     if (p.kind === 'steed') {
@@ -1297,7 +1303,7 @@ export class GameScene extends Phaser.Scene {
   private endProj(id: number, pv: ProjView) {
     if (pv.kind === 'hand') {
       const opp = this.lastList.find((f) => f.id !== pv.spawnNear);
-      if (opp && Math.abs(opp.x - pv.x) < 64 && Math.abs(opp.y - pv.y) < 60 && this.roomFor()) {
+      if (opp && Math.abs(opp.x - pv.x) < 64 && Math.abs(opp.y - pv.y) < 120 && this.roomFor()) {
         // the grab: black arms burst up out of the floor and drag the victim under
         const fx = this.addFx(FX.graspingHands, opp.x, opp.y, false, 1.1, { palette: PAL.abyss }, 16, 26, 0.95);
         this.after(1000, () => fx.stop());
