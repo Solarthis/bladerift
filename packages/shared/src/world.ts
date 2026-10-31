@@ -670,6 +670,29 @@ export class World {
       if (!m || !m.arrow || !w.arrowSpeed) return;
       const heavy = s.move === MOVE_CHARGED;
       const C = classOf(f.load.cls);
+      if (m.gate) {
+        // the Gate of Treasures: portals open behind and above the hero and fire blades at the opponent, staggered;
+        // held, more gates open (2 blades at the threshold, up to 9 at a full hold)
+        const c = w.charged;
+        const k = heavy && c ? Math.max(0, Math.min(1, (s.charge - c.min) / Math.max(1, c.max - c.min))) : 0;
+        const n = heavy ? 2 + Math.round(7 * k) : m.blades ?? 1;
+        const o = this.opponent(f);
+        for (let i = 0; i < n; i++) {
+          // portals fan out behind the shoulders: alternating heights, further back for later blades
+          const px = s.x - s.face * (18 + (i % 3) * 22 + Math.floor(i / 3) * 10);
+          const py = s.y - 54 - ((i * 37) % 5) * 13;
+          const tx = o ? o.s.x : s.x + s.face * 400;
+          const ty = o ? o.s.y - 26 : s.y - 26;
+          const d = Math.hypot(tx - px, ty - py) || 1;
+          const sp = w.arrowSpeed * (heavy ? 1.15 : 1);
+          this.projectiles.push({
+            id: this.nextId++ % 65536, kind: 'relic', owner: f.id, x: px, y: py, vx: ((tx - px) / d) * sp, vy: ((ty - py) / d) * sp,
+            dmg: heavy && c ? c.dmg : m.dmg, kb: m.kbX, kbY: m.kbY, stun: m.stun, life: Math.round(0.9 * TICK_RATE), heavy, gravity: 0, wait: i * 3,
+          });
+        }
+        this.events.push({ t: 'shoot', p: f.id, kind: 6 });
+        return;
+      }
       if (m.arcane) {
         // the staff: a quick bolt, or held, a slow orb that bursts
         this.projectiles.push({

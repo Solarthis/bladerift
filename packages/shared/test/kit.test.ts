@@ -1,6 +1,7 @@
 // The kit: every hero fights with one signature weapon. A is the light combo, B the heavy attack on the ground and the
 // plunge in the air (the sprite roster draws each hero with its own weapon only).
 import { describe, expect, it } from 'vitest';
+import { ROUND, World } from '../src/index';
 import { Act, Btn, getArena, heavyOf, InputCmd, Loadout, MOVE_CHARGED, MOVE_PLUNGE, moveOf, newFighterState, sanitizeLoadout, SkillId, stepFighter, WEAPONS, WeaponId } from '../src/index';
 
 const c = (buttons = 0, moveX = 0): InputCmd => ({ seq: 0, moveX, moveY: 0, buttons, viewTick: 0 });
@@ -57,5 +58,54 @@ describe('kit: A light, B heavy', () => {
     for (let i = 0; i < 3 && s.act !== Act.Attack; i++) step(c());
     expect(s.act).toBe(Act.Attack);
     expect(s.move).toBe(MOVE_CHARGED);
+  });
+});
+
+describe('Gilgamesh: the Gate of Treasures', () => {
+  const cmd = (moveX = 0, buttons = 0): InputCmd => ({ seq: 0, moveX, moveY: 0, buttons, viewTick: 0 });
+  function duel() {
+    const w = new World({ arenaId: 'bridge', wins: 2, roundTime: 90 });
+    const g = w.addFighter(1, 0, 'G', sanitizeLoadout({ hero: 2 }));
+    const o = w.addFighter(2, 1, 'O', sanitizeLoadout({ hero: 0 }));
+    w.start();
+    for (let i = 0; i < ROUND.introTicks + 1; i++) w.step();
+    g.s.x = 400;
+    o.s.x = 900;
+    g.s.face = 1;
+    o.s.face = -1;
+    const run = (n: number, a: (i: number) => InputCmd) => {
+      for (let i = 0; i < n; i++) {
+        g.inputs.push({ ...a(i), seq: g.lastSeq + 1 });
+        o.inputs.push({ ...cmd(), seq: o.lastSeq + 1 });
+        w.step();
+      }
+    };
+    const blades = () => w.projectiles.filter((p) => p.owner === 1 && p.kind === 'relic');
+    return { w, g, run, blades };
+  }
+
+  it('fights with the Gate, not a bow', () => {
+    expect(sanitizeLoadout({ hero: 2 }).weapons).toEqual([WeaponId.Gate, WeaponId.Gate]);
+    expect(WEAPONS[WeaponId.Gate].combo.every((m) => m.gate)).toBe(true);
+  });
+
+  it('a light attack opens one portal behind him and fires a blade at the opponent', () => {
+    const { run, blades } = duel();
+    run(30, (i) => cmd(0, i === 0 ? Btn.A : 0));
+    const b = blades();
+    expect(b.length).toBe(1);
+    expect(b[0].vx).toBeGreaterThan(0);
+  });
+
+  it('holding B opens more gates: a full hold fires nine blades', () => {
+    const { run, blades, g } = duel();
+    const max = WEAPONS[WeaponId.Gate].charged!.max!;
+    let most = 0;
+    run(max + 50, (i) => {
+      most = Math.max(most, blades().length);
+      return cmd(0, i < max + 4 ? Btn.B : 0);
+    });
+    expect(most).toBe(9);
+    expect(g.s.act).not.toBe(Act.Attack);
   });
 });

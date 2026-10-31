@@ -1783,7 +1783,8 @@ export class GameScene extends Phaser.Scene {
       pv.gfx = this.add.graphics().setDepth(15);
     } else if (p.kind === 'relic') {
       // Vault of Ages: a real weapon, point-first, out of a golden portal
-      pv.img = this.add.image(p.x, p.y, WEAPON_SPRITES[p.id % WEAPON_SPRITES.length]).setScale(0.28).setTint(0xffd870).setDepth(14);
+      // (gold and silver treasures: every third blade is silver)
+      pv.img = this.add.image(p.x, p.y, WEAPON_SPRITES[p.id % WEAPON_SPRITES.length]).setScale(0.28).setTint(p.id % 3 === 0 ? 0xe4ecf6 : 0xffd870).setDepth(14);
       this.ring(p.x, p.y, 4, 26, 0.3, 0xffe08a, 2.5);
     } else if (p.kind === 'hand') {
       // Phantom Hand: a spectral claw racing along the floor
@@ -1846,7 +1847,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (p.kind === 'relic') {
-      pv.img?.setPosition(p.x, p.y).setFlipX(face < 0).setRotation(Math.sin(pv.age * 22) * 0.06);
+      // point-first along its flight (the Gate's blades are aimed at the opponent), with a faint quiver
+      const aim = Math.atan2(p.vy, Math.abs(p.vx) || 1) * (p.vx < 0 ? -1 : 1);
+      pv.img?.setPosition(p.x, p.y).setFlipX(p.vx < 0).setRotation(aim + Math.sin(pv.age * 22) * 0.04);
       if (Math.random() < 0.6) this.spark(p.x - face * 20 + (Math.random() - 0.5) * 8, p.y + (Math.random() - 0.5) * 8, -face * 10, 10 + Math.random() * 20, 0.35, 0xffe08a, 2, 0);
       return;
     }

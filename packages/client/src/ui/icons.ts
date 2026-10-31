@@ -10,6 +10,7 @@ const W: Record<number, string> = {
   [WeaponId.Bow]: 'g-bow',
   [WeaponId.Shield]: 'g-shield',
   [WeaponId.Staff]: 'g-staff',
+  [WeaponId.Gate]: 'g-gate',
 };
 /** Each hero's special has its own painted icon (k-00.jpg .. k-13.jpg, by skill id = hero id); i-art until it exists. */
 const S: Record<number, string> = Object.fromEntries(Array.from({ length: 14 }, (_, i) => [i, `k-${String(i).padStart(2, '0')}`]));

@@ -3,6 +3,7 @@ import {
   Act, ARENAS, ARTS, ArtId, artIdOf, BotBrain, Btn, CLASSES, ClassId, decodeSnapshot, DT, encodeSnapshot, encodeSnapshotBody, Fighter, GameEvent,
   HERO_COUNT, HEROES, InputCmd, MOVE_ART, PROJ_KINDS, Projectile, RIFT, ROUND, sanitizeLoadout, SkillId, solidAt, World, WeaponId, FIGHTER,
 } from '../src/index';
+import { heroWeapon } from '../src/heroes';
 
 /** Every Rift Art starts with the superpause: its timeline runs after it. */
 const SP = FIGHTER.superpause;
@@ -98,7 +99,7 @@ describe('roster', () => {
         const l = sanitizeLoadout({ hero: h.id, weapons, skill: SkillId.ShadowDirk });
         expect(l.hero).toBe(h.id);
         expect(l.cls).toBe(h.cls);
-        expect(l.weapons[0]).toBe(CLASSES[h.cls].signature);
+        expect(l.weapons[0]).toBe(heroWeapon(h.id));
         expect(l.weapons[1]).toBe(l.weapons[0]);
         // the special is the hero's own (skill N belongs to hero N), whatever was sent
         expect(l.skill).toBe(h.id);

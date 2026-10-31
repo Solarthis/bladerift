@@ -12,8 +12,10 @@ export const enum WeaponId {
   Shield = 6,
   /** Caster's arcane staff: bolts at range, a charged orb. */
   Staff = 7,
+  /** Gilgamesh's Gate of Treasures: no weapon in hand - golden portals open behind him and fire treasured blades. */
+  Gate = 8,
 }
-export const WEAPON_COUNT = 8;
+export const WEAPON_COUNT = 9;
 
 /** Every hero's own signature special (the Skill button): skill N belongs to hero N (heroes.ts). */
 export const enum SkillId {
@@ -70,6 +72,9 @@ export interface Move {
   arrow?: boolean;
   /** The projectile is an arcane bolt (staff) or, charged, an exploding orb, instead of an arrow. */
   arcane?: boolean;
+  /** Treasured blades fired from portals behind the hero (the Gate): `blades` of them (the charged move: 2 up to 9). */
+  gate?: boolean;
+  blades?: number;
   /** Screen shake strength for the client (0..1). */
   shake?: number;
 }
@@ -196,6 +201,20 @@ export const WEAPONS: WeaponDef[] = [
     air: { startup: 6, active: 1, recovery: 12, dmg: 44, box: b(0, 0, 0, 0), kbX: 120, kbY: 60, stun: 14, arrow: true, arcane: true },
     charged: { startup: 3, active: 1, recovery: 20, dmg: 90, dmgMax: 170, box: b(0, 0, 0, 0), kbX: 280, kbY: 220, stun: 32, arrow: true, arcane: true, min: 14, max: 60 },
     arrowSpeed: 640,
+  },
+  {
+    id: WeaponId.Gate,
+    name: 'Gate of Treasures',
+    short: 'Gate',
+    blurb: 'Golden portals open behind him and fire treasured blades. Hold to open more gates: up to nine blades at once.',
+    combo: [
+      { startup: 7, active: 1, recovery: 12, dmg: 46, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 15, arrow: true, gate: true, blades: 1 },
+      { startup: 8, active: 1, recovery: 16, dmg: 32, box: b(0, 0, 0, 0), kbX: 150, kbY: 60, stun: 15, arrow: true, gate: true, blades: 2 },
+    ],
+    air: { startup: 6, active: 1, recovery: 12, dmg: 40, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 14, arrow: true, gate: true, blades: 1 },
+    // per blade: the count grows with the hold (2 at the threshold, 9 at full)
+    charged: { startup: 3, active: 1, recovery: 20, dmg: 24, dmgMax: 26, box: b(0, 0, 0, 0), kbX: 200, kbY: 90, stun: 18, arrow: true, gate: true, min: 10, max: 60 },
+    arrowSpeed: 1050,
   },
 ];
 

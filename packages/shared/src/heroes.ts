@@ -60,7 +60,11 @@ export const heroOf = (h: number): HeroDef => HEROES[h] ?? HEROES[0];
 export const artIdOf = (load: { hero?: number; cls: number }) => heroOf(load.hero ?? 0).art;
 
 /** Signature weapon per class (ClassId order). */
+/** Heroes whose weapon is their own rather than their class's (Gilgamesh fights with the Gate, not a bow). */
+const HERO_WEAPON: Partial<Record<number, WeaponId>> = { 2: WeaponId.Gate };
 const SIGNATURE: WeaponId[] = [WeaponId.Sword, WeaponId.Bow, WeaponId.Lance, WeaponId.Staff, WeaponId.Daggers, WeaponId.Hammer, WeaponId.Shield, WeaponId.Scythe];
+/** The weapon a hero fights with: its own (Gilgamesh's Gate) or its class's signature weapon. */
+export const heroWeapon = (hero: number) => HERO_WEAPON[hero] ?? SIGNATURE[HEROES[hero]?.cls ?? 0];
 
 export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Sword], skill: 0, cls: ClassId.Saber, hero: 0 };
 
@@ -74,7 +78,7 @@ export function sanitizeLoadout(v: unknown): Loadout {
     hero = Math.max(0, HEROES.findIndex((h) => h.cls === cls));
   }
   const cls = HEROES[hero].cls;
-  const w0 = SIGNATURE[cls];
+  const w0 = HERO_WEAPON[hero] ?? SIGNATURE[cls];
   // the kit: the hero's own weapon and its own signature special (skill N belongs to hero N)
   return { weapons: [w0, w0], skill: hero as SkillId, cls, hero };
 }
