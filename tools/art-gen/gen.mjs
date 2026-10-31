@@ -169,6 +169,46 @@ Row 3 (class crests: an heraldic emblem on a small shield shape inside the frame
 Row 4: (13) ASSASSIN crest: a dagger and a crescent moon on black; (14) BERSERKER crest: a hammer and a roaring skull on dark red;
        (15) SHIELDER crest: a tower shield and laurel on teal; (16) a plain gold-rimmed empty crest (spare).`,
   },
+  // lore pass (docs/lore/kit-changes.md): hero weapon looks and the icons whose subject changed
+  'icons-lore': {
+    ref: 'icons-gear.png',
+    prompt: `${ICON_RULES}
+Match the attached sheet's frame and painting style exactly. All subjects are ORIGINAL designs.
+Row 1 (hero weapons, each shown large and diagonally from bottom-left to top-right like the attached weapon icons):
+       (1) THE GATE: a round golden rift portal ring hanging in the air on deep crimson-black, the points of a GOLD sword and a SILVER sword
+       bursting out of it toward the top-right, gold sparks; (2) LIVING CHAINS: a coiling chain of gold links that ends in a leaf-shaped gold
+       spear blade with a jade-green vein, on soft moss green; (3) BEAST CLAWS: a huge lion's paw with long curved black-iron talons raking
+       toward the viewer, four glowing crimson claw marks across the dark red background; (4) SURGEON'S KNIVES: two long, thin, straight
+       surgical knives with ebony handles crossed, bright polished steel, grey fog curling behind on charcoal.
+Row 2: (5) KOPIS: one forward-curved single-edged ancient Greek sword with a gold horse-head hilt, steel blade, on deep crimson with a
+       bronze sheen; (6) BUCEPHALUS CHARGE: a great BLACK warhorse with a small white star on its brow, rearing and charging, a rider's
+       raised curved sword above its neck (no lance), dust and gold light; (7) SEVEN TERRORS: a roaring horned lion-like beast head with
+       ivory fangs, ringed by seven concentric crimson halos of light; (8) GRIM FOG: a tall gentleman in a black TOP HAT and caped coat
+       dissolving into thick grey fog, a thin surgical knife glinting in one gloved hand.
+Row 3: (9) PALE HORSE: a gaunt, pale ghostly horse rearing out of violet-black shadow, a slim scythe silhouette behind it;
+       (10) GAE BULG: a pale bone-white spear head covered in backward-pointing barbs thrusting toward the top-right through teal sea light,
+       a spectral hound's head shape in its wake; (11) SERPENT RAIN: black arrows with acid-green venom trails raining down in one
+       serpentine coil, a many-headed serpent silhouette in black smoke behind; (12) NINE LIVES: three black arrows with dripping acid-green
+       venom heads loosed in a fan on black.
+Row 4: (13) SALMON LEAP: a spear-wielder leaping high in an arc over the ground, a leaping salmon shape of teal light tracing the arc;
+       (14) BEAST BOUND: a hulking horned lion-beast with huge clawed paws pouncing forward low, dust and embers (no machinery);
+       (15) RING OF FIRE: a teal tower shield with a gold spread-wings emblem standing inside a ring of pale-gold flame;
+       (16) a plain empty dark card with a gold rim (spare).`,
+  },
+  relics: {
+    ref: 'weapons.png',
+    prompt: `The attached image is a STYLE reference only (linework and shading). Generate a game-ready sheet of EIGHT ornate TREASURE WEAPONS
+from a legendary king's vault, for a 2D duelling game, laid out as a grid of exactly 2 rows x 4 columns. Every weapon is perfectly
+HORIZONTAL with its grip on the LEFT and its point or blade pointing RIGHT. They alternate polished GOLD and polished SILVER:
+Row 1: (1) a GOLD longsword with a sun-disc crossguard and a ruby in the pommel; (2) a SILVER straight sword with a winged crossguard and
+       a sapphire; (3) a GOLD spear with a long leaf blade and a ruby collar; (4) a SILVER long-hafted battle axe, crescent blade at the right.
+Row 2: (5) a GOLD halberd, axe blade and spike at the right; (6) a SILVER greatsword, broad blade, long two-handed grip; (7) a GOLD
+       ornate short sword with a curved guard; (8) a SILVER glaive with a long curved single-edged blade at the right.
+Metal: bright cel-shaded gold (warm yellow, amber shadows, white highlights) and bright silver (cool white, blue-grey shadows); small red
+and blue gems only. Readable against dark backgrounds.
+
+${ITEM_RULES}`,
+  },
   weapons: {
     ref: 'weapons-style-v2.png',
     prompt: `The attached image is a STYLE reference only (linework and shading). Generate a game-ready sheet of EIGHT original medieval-fantasy
