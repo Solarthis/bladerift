@@ -1,7 +1,7 @@
-// Skyfire Squad online server: many rooms in one process, each joined with a short code. Players open the game at
-// https://games.matsolutions.gy, create a match (POST /api/rooms -> code + host key) or join one by code, and play
-// over a WebSocket at /ws?room=CODE. Runs on any Node 20+ host that gives it a port (PORT env), e.g. Hostinger's
-// Node.js apps, behind their HTTPS proxy. No static files: the game itself is served by the website.
+// Bladerift online server: many rooms in one process, each joined with a short code. Players open the game at
+// https://games.matsolutions.gy/bladerift/, create a match (POST /api/rooms -> code + host key) or join one by code,
+// and play over a WebSocket at /ws?room=CODE. Runs on any Node 20+ host that gives it a port (PORT env), e.g.
+// Hostinger's Node.js apps, behind their HTTPS proxy. No static files: the game itself is served by the website.
 //   node online.mjs [--port=8080]
 // This is a public internet server: nothing a client sends may crash the process, and every per-client resource
 // (rooms, sockets, requests) is capped per address.
@@ -24,10 +24,11 @@ process.on('uncaughtException', (e) => console.error('uncaught', e));
 process.on('unhandledRejection', (e) => console.error('unhandled rejection', e));
 
 /**
- * Pages allowed to use this server: the website, plus local development. (Origin only stops other websites from
- * using the server through their visitors' browsers; scripts can send any Origin, so abuse limits are per address.)
+ * Pages allowed to use this server: the website (Bladerift lives under /bladerift/, same origin), plus local
+ * development and BLADERIFT_ORIGINS (comma-separated). (Origin only stops other websites from using the server
+ * through their visitors' browsers; scripts can send any Origin, so abuse limits are per address.)
  */
-const ALLOWED_ORIGINS = new Set(['https://games.matsolutions.gy', ...(process.env.SKYFIRE_ORIGINS ?? '').split(',').filter(Boolean)]);
+const ALLOWED_ORIGINS = new Set(['https://games.matsolutions.gy', ...(process.env.BLADERIFT_ORIGINS ?? '').split(',').filter(Boolean)]);
 const originOk = (origin: string | undefined) => {
   if (!origin) return true; // non-browser clients (load tests)
   if (ALLOWED_ORIGINS.has(origin)) return true;
@@ -52,9 +53,9 @@ const EMPTY_CLOSE_MS = 3 * 60_000;
 const UNUSED_CLOSE_MS = 90_000;
 /** Even a busy room ends after this long, so rooms cannot be held forever. */
 const MAX_ROOM_MS = 4 * 3600_000;
-/** Internet players need a longer lag-compensation window than LAN: ping (~0.3 s from Guyana) + render delay (up to
- * 0.27 s on a jittery connection) + input jitter cushion (up to 50 ms). */
-const ONLINE_REWIND_SEC = 0.8;
+/** Internet players need a longer lag-compensation window than LAN (0.3 s): ping (~0.3 s from Guyana) + render delay
+ * and input jitter cushion (~0.25 s). Longer windows let a lagging attacker's hit land on a dodge already made. */
+const ONLINE_REWIND_SEC = 0.55;
 
 interface OnlineRoom {
   code: string;
@@ -141,7 +142,7 @@ function serve(req: IncomingMessage, res: ServerResponse) {
   }
   if (url.pathname === '/' || url.pathname === '/api/health') {
     const players = [...rooms.values()].reduce((n, r) => n + r.room.info().players, 0);
-    json(res, 200, { ok: true, game: 'skyfire-squad', v: PROTOCOL_VERSION, rooms: rooms.size, players, uptime: Math.round((Date.now() - STARTED) / 1000) });
+    json(res, 200, { ok: true, game: 'bladerift', v: PROTOCOL_VERSION, rooms: rooms.size, players, uptime: Math.round((Date.now() - STARTED) / 1000) });
     return;
   }
   if (url.pathname === '/api/rooms' && req.method === 'POST') {
@@ -261,7 +262,7 @@ setInterval(() => {
   }
 }, 15_000);
 
-server.listen(PORT, () => console.log(`Skyfire Squad online server on :${PORT} (protocol v${PROTOCOL_VERSION})`));
+server.listen(PORT, () => console.log(`Bladerift online server on :${PORT} (protocol v${PROTOCOL_VERSION})`));
 for (const sig of ['SIGINT', 'SIGTERM'] as const)
   process.on(sig, () => {
     // players see "the server restarted" instead of a silent drop and 15 s of retries

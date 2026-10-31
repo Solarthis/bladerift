@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
-  ARENAS, DEFAULT_LOADOUT, Loadout, LobbyStateMsg, MatchEndMsg, Room, sanitizeLoadout, SKILLS, SKILL_COUNT, WEAPONS, WEAPON_COUNT,
+  ARENAS, artOf, CLASSES, classOf, DEFAULT_LOADOUT, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout, SKILLS, SKILL_COUNT, WEAPONS,
+  WEAPON_COUNT,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
 import { GameScene, LocalPlayer } from '../game/GameScene';
@@ -15,7 +16,7 @@ import { sfx } from '../audio/Sfx';
 import { prefs, setPref } from './prefs';
 import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
-import { skillIcon, weaponIcon } from './icons';
+import { artIcon, crestIcon, skillIcon, weaponIcon } from './icons';
 import { measureViewport, setViewport, viewH, viewW } from './viewport';
 import { drawPreview } from './preview';
 
@@ -36,7 +37,7 @@ function loadProfile(i: number): Profile {
     name: typeof p.name === 'string' && p.name ? p.name.slice(0, 16) : i ? 'Player 2' : NAMES[rnd],
     color: typeof p.color === 'number' ? p.color : i ? 1 : 0,
     look: { ...{ accent: i ? 1 : 0, skin: 0, head: 0, face: 0, back: 0, outfit: 0, hair: 0, thrust: 0, flame: 0, hairCol: 0 }, ...(p.look ?? {}) },
-    load: sanitizeLoadout(p.load ?? (i ? { weapons: [2, 6], skill: 1 } : DEFAULT_LOADOUT)),
+    load: sanitizeLoadout(p.load ?? (i ? { weapons: [2, 6], skill: 1, cls: 4 } : DEFAULT_LOADOUT)),
   };
 }
 
@@ -174,8 +175,17 @@ export class App {
     const p = this.profiles[this.editing];
     const tile = (kind: string, i: number, icon: string, name: string, on: boolean) =>
       `<button class="tile ${on ? 'on' : ''}" data-pick="${kind}" data-i="${i}" title="${esc(name)}"><img src="${icon}" alt=""><span>${esc(name)}</span></button>`;
+    const C = classOf(p.load.cls);
     const weapons = (slot: number) =>
-      Array.from({ length: WEAPON_COUNT }, (_, i) => tile(`w${slot}`, i, weaponIcon(i), WEAPONS[i].short, p.load.weapons[slot] === i)).join('');
+      Array.from({ length: WEAPON_COUNT }, (_, i) => i)
+        .filter((i) => i !== C.signature)
+        .map((i) => tile(`w${slot}`, i, weaponIcon(i), WEAPONS[i].short, p.load.weapons[slot] === i))
+        .join('');
+    const bar = (label: string, v: number) => `<div class="stat"><span>${label}</span><i>${'<b></b>'.repeat(v)}${'<em></em>'.repeat(5 - v)}</i></div>`;
+    const classes = CLASSES.map(
+      (k) => `<button class="cls ${k.id === C.id ? 'on' : ''}" data-pick="cls" data-i="${k.id}" title="${esc(k.name)}"><img src="${crestIcon(k.id)}" alt=""><span>${esc(k.name)}</span></button>`,
+    ).join('');
+    const art = artOf(C.id);
     const skills = Array.from({ length: SKILL_COUNT }, (_, i) => tile('skill', i, skillIcon(i), SKILLS[i].name, p.load.skill === i)).join('');
     const sw = (kind: string, list: { name: string; rgb: number }[], cur: number) =>
       list.map((c, i) => `<button class="sw ${cur === i ? 'on' : ''}" data-pick="${kind}" data-i="${i}" style="--c:${css(c.rgb)}" title="${c.name}"></button>`).join('');
@@ -191,8 +201,15 @@ export class App {
           <div class="sws small">${sw('accent', ACCENTS, p.look?.accent ?? 0)}</div>
         </div>
         <div class="card gear-card">
-          <h3>Weapon A <small>${esc(wa.blurb)}</small></h3><div class="tiles">${weapons(0)}</div>
-          <h3>Weapon B <small>${esc(wb.blurb)}</small></h3><div class="tiles">${weapons(1)}</div>
+          <h3>Class</h3><div class="tiles classes">${classes}</div>
+          <div class="class-info">
+            <img class="crest" src="${crestIcon(C.id)}" alt="">
+            <div><b>${esc(C.name)}</b> <small>${esc(C.title)}</small><p>${esc(C.blurb)}</p>
+              <div class="stats">${bar('Power', C.bars.power)}${bar('Speed', C.bars.speed)}${bar('Health', C.bars.health)}${bar('Reach', C.bars.reach)}</div></div>
+            <div class="art-box"><img src="${artIcon(C.id)}" alt=""><div><small>Rift Art</small><b>${esc(art.name)}</b><p>${esc(art.blurb)}</p></div></div>
+          </div>
+          <h3>Signature weapon <small>${esc(wa.name)}: ${esc(wa.blurb)}</small></h3><div class="tiles"><div class="tile on locked"><img src="${weaponIcon(C.signature)}" alt=""><span>${esc(wa.short)}</span></div></div>
+          <h3>Second weapon <small>${esc(wb.blurb)}</small></h3><div class="tiles">${weapons(1)}</div>
           <h3>Skill <small>${esc(sk.blurb)}</small></h3><div class="tiles">${skills}</div>
           <button class="primary done" data-act="back">Done</button>
         </div>
@@ -214,7 +231,7 @@ export class App {
       const gear = r.load.weapons.map((w) => `<img src="${weaponIcon(w)}" title="${WEAPONS[w].name}">`).join('') + `<img src="${skillIcon(r.load.skill)}" title="${SKILLS[r.load.skill].name}">`;
       const which = this.sessions.findIndex((x) => x.selfId === r.id);
       return `<div class="seat" style="--c:${css(colorOf(r.color))}"><canvas class="seat-pv" data-color="${r.color}" data-accent="${r.look?.accent ?? 0}" data-w="${r.load.weapons[0]}" data-flip="${seat}" width="120" height="120"></canvas>
-        <b>${esc(r.name)}${r.host ? ' <i class="crown" title="Host">★</i>' : ''}</b><div class="gear">${gear}</div>
+        <b>${esc(r.name)}${r.host ? ' <i class="crown" title="Host">★</i>' : ''}</b><div class="seat-class"><img src="${crestIcon(r.load.cls)}" alt="">${esc(classOf(r.load.cls).name)}</div><div class="gear">${gear}</div>
         ${isMe ? `<button class="small" data-act="gear" data-who="${which}">Change gear</button>` : r.ping ? `<span class="ping">${r.ping} ms</span>` : ''}</div>`;
     };
     const watchers = [...s.roster.values()].filter((r) => r.seat < 0);
@@ -261,13 +278,15 @@ export class App {
       <div class="card howto">
         <p>Knock your opponent out to win the round. Win ${'2'} rounds to take the match. If time runs out, more health wins.</p>
         <table><tr><th></th><th>Keyboard</th><th>Player 1</th><th>Player 2</th></tr>
-          ${row('Move', 'left')}${row('Jump (twice in the air)', 'jump')}${row('Weapon A', 'a')}${row('Weapon B', 'b')}${row('Skill', 'skill')}${row('Roll (dodges hits)', 'roll')}${row('Heal flask', 'heal')}
+          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Signature weapon', 'a')}${row('Second weapon', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
         </table>
-        <p>Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal).</p>
+        <p>Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
+        <p><b>Classes and Rift Arts:</b> every class has a signature weapon and a Rift Art. The Rift gauge under your health fills slowly on its own and fast when you hit or get hit; when it glows, unleash the Art. The Assassin's <b>Flash Step</b> even works while you are being comboed.</p>
         <ul>
           <li><b>Combos:</b> keep pressing a weapon button to chain its strikes.</li>
           <li><b>Hold</b> the Lance to charge a lunge, the Bow for a heavy shot, the Shield to block. Block just before a hit to <b>parry</b>.</li>
-          <li><b>Down + attack</b> in the air: a plunging strike. <b>Down + jump</b>: drop through a ledge.</li>
+          <li><b>Down + attack</b> in the air: a plunging strike that bounces you off a hit. <b>Down + jump</b>: drop through a ledge. <b>Down</b> in the air falls fast; on the ground it crouches under high swings.</li>
+          <li><b>Walls and ledges:</b> slide down a wall and jump off it; grab a ledge and jump to climb. <b>Roll in the air</b> to dash. A hit that lands can be cancelled into a jump.</li>
           <li>Rolling makes you untouchable for a moment. One heal flask per round, and a hit while drinking spills it.</li>
         </ul>
       </div>`;
@@ -313,6 +332,7 @@ export class App {
         const i = Number(el.dataset.i);
         const k = el.dataset.pick!;
         if (k === 'color') p.color = i;
+        else if (k === 'cls') p.load = sanitizeLoadout({ ...p.load, cls: i });
         else if (k === 'accent') p.look = { ...p.look!, accent: i };
         else if (k === 'skill') p.load = { ...p.load, skill: i };
         else {
@@ -545,8 +565,8 @@ export class App {
             const f = g.fighters(now).find((x) => x.self);
             if (f) {
               this.touch.show({
-                aIcon: weaponIcon(f.weapons[0]), bIcon: weaponIcon(f.weapons[1]), skillIcon: skillIcon(f.skill),
-                skillCd: f.skillCd / (SKILLS[f.skill]?.cooldown ?? 1), rollCd: f.rollCd / 40, flask: f.flask,
+                aIcon: weaponIcon(f.weapons[0]), bIcon: weaponIcon(f.weapons[1]), skillIcon: skillIcon(f.skill), artIcon: artIcon(f.cls),
+                skillCd: f.skillCd / ((SKILLS[f.skill]?.cooldown ?? 1) * classOf(f.cls).skillCd), rollCd: f.rollCd / 40, flask: f.flask, rift: f.rift / RIFT.max,
               });
             }
           }

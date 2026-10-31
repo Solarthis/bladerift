@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, FIGHTER, GameEvent, MOVE_PLUNGE, moveOf, NetProjectile, NetTrap, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, ArtId, classOf, FIGHTER, GameEvent, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
 import type { InputSource } from '../input/Controls';
 import { FighterCanvas, fighterLut, FxModule, FxSprite, PIX, Pose } from '../render/pixel';
 import { poseFor } from '../render/poses';
-import { FX, swingFx } from '../render/fxmap';
+import { FX, PAL, swingFx } from '../render/fxmap';
 import { sfx } from '../audio/Sfx';
 import { prefs } from '../ui/prefs';
+import { buildArena } from '../render/arena';
 import { colorOf, accentOf } from '../ui/colors';
 
 /** A fighter controlled on this device: its connection and its input. */
@@ -40,12 +41,14 @@ interface FighterView {
   runPhase: number;
   lastX: number;
   wasGround: boolean;
-  status: Partial<Record<'burning' | 'slowed' | 'stunned', FxSprite>>;
+  status: Partial<Record<StatusKind, FxSprite>>;
   stunnedUntil: number;
   koT: number;
   color: number;
   shown: ViewFighter | null;
 }
+
+type StatusKind = 'burning' | 'slowed' | 'stunned' | 'rage' | 'divineShield' | 'spellCharge';
 
 interface Scheduled {
   at: number;
@@ -62,6 +65,7 @@ export class GameScene extends Phaser.Scene {
   private fx: FxSprite[] = [];
   private projViews = new Map<number, { img?: Phaser.GameObjects.Image; fx?: FxSprite; kind: string }>();
   private trapViews = new Map<number, Phaser.GameObjects.Image>();
+  private strikeViews = new Map<number, Phaser.GameObjects.Graphics>();
   private scheduled: Scheduled[] = [];
   private shakeT = 0;
   private shakeAmp = 0;
@@ -99,45 +103,13 @@ export class GameScene extends Phaser.Scene {
     this.arenaW = arena.w;
     this.floor = arena.floor;
     this.cameras.main.setBackgroundColor('#0d0a14');
-    this.buildArena();
+    buildArena(this, this.game0!.arena);
     this.camX = arena.w / 2;
     this.camY = arena.floor - 200;
     this.events.once('shutdown', () => this.teardown());
   }
 
   // ------------------------------------------------------------------ arena
-
-  private buildArena() {
-    const a = this.game0!.arena;
-    const theme = a.theme;
-    const W = a.w;
-    // painted backdrop: its dark bottom band sits on the floor line; parallax at half speed
-    const bg = this.add.image(W / 2, a.floor + 40, `bg-${theme}`).setOrigin(0.5, 0.8).setDepth(-20).setScrollFactor(0.55, 0.7);
-    const s = Math.max((W + 700) / bg.width, 900 / (bg.height * 0.8));
-    bg.setScale(s);
-    // a second, darker copy further out fills the edges on very wide screens
-    // floor
-    const ptex = this.textures.get(`p-${theme}`).getSourceImage() as HTMLImageElement;
-    const ph = ptex.height;
-    const k = 0.5;
-    this.add.tileSprite(W / 2, a.floor, W + 1600, ph, `p-${theme}`).setOrigin(0.5, 0).setTileScale(1, 1).setScale(k, k).setDepth(-2);
-    this.add.tileSprite(W / 2, a.floor, (W + 1600) / k, ph, `p-${theme}`).setOrigin(0.5, 0).setScale(k).setDepth(-2);
-    this.add.rectangle(W / 2, a.floor + ph * k - 2, W + 3200, 800, 0x07050b).setOrigin(0.5, 0).setDepth(-3);
-    // the walls: dark stone pillars beyond the edges
-    for (const x of [0, W]) {
-      const r = this.add.rectangle(x, a.floor - 1000, 400, 1600, 0x0a0710, 0.92).setOrigin(x === 0 ? 1 : 0, 0).setDepth(-1);
-      void r;
-      this.add.rectangle(x, a.floor - 1000, 6, 1000, 0x3a2f4a, 0.8).setOrigin(0.5, 0).setDepth(-1);
-    }
-    // platforms
-    for (const p of a.platforms) {
-      this.add.tileSprite(p.x + p.w / 2, p.y - 2, p.w / k, ph, `p-${theme}`).setOrigin(0.5, 0).setScale(k).setDepth(-2);
-    }
-    // ambient: soft vignette
-    const vg = this.add.graphics().setScrollFactor(0).setDepth(40);
-    vg.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.0, 0.0, 0.35, 0.35);
-    vg.fillRect(0, this.scale.height * 0.75, this.scale.width, this.scale.height * 0.25);
-  }
 
   // ------------------------------------------------------------------ loop
 
@@ -196,6 +168,7 @@ export class GameScene extends Phaser.Scene {
 
     this.drawProjectiles(g.projectiles(now));
     this.drawTraps(g.traps());
+    this.drawStrikes(g.latest?.strikes ?? []);
     // scheduled visuals (effects lined up with strikes)
     for (let i = this.scheduled.length - 1; i >= 0; i--) {
       if (now >= this.scheduled[i].at) {
@@ -264,7 +237,7 @@ export class GameScene extends Phaser.Scene {
     if (v.ground && speed > 25) fv.runPhase += dt * (6 + speed / 28);
     const pose = poseFor({ ...v, actTf: t }, { time: this.clock, runPhase: fv.runPhase });
     const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : 0;
-    const tint = v.slowed ? 0xffffd2a8 : v.burning ? 0xff3a7aff : 0;
+    const tint = v.slowed ? 0xffffd2a8 : 0;
     fv.canvas.draw(stripXY(pose), flash, tint);
     fv.img.setPosition(v.x, v.y).setFlipX(v.face < 0);
     // KO: topple over backwards
@@ -303,13 +276,20 @@ export class GameScene extends Phaser.Scene {
     this.statusLoop(fv, 'burning', v.burning, v);
     this.statusLoop(fv, 'slowed', v.slowed || v.rooted, v);
     this.statusLoop(fv, 'stunned', now < fv.stunnedUntil, v);
+    // Rift Art auras: Blood Frenzy's rage, Bulwark's barrier, the wind-up glow of Radiant Cleave / Thunder Call
+    const art = v.act === Act.Art ? classOf(v.cls).art : -1;
+    this.statusLoop(fv, 'rage', v.frenzy || art === ArtId.BloodFrenzy, v);
+    this.statusLoop(fv, 'divineShield', art === ArtId.Bulwark, v);
+    this.statusLoop(fv, 'spellCharge', (art === ArtId.RadiantCleave || art === ArtId.ThunderCall) && v.actTf < 20, v, art === ArtId.ThunderCall ? PAL.violet : PAL.gold);
+    // Flash Step: gone from sight while it slips behind the opponent
+    fv.img.setAlpha(art === ArtId.FlashStep && v.actTf < 9 ? 0.15 : 1);
     fv.lastX = v.x;
   }
 
-  private statusLoop(fv: FighterView, kind: 'burning' | 'slowed' | 'stunned', on: boolean, v: ViewFighter) {
+  private statusLoop(fv: FighterView, kind: StatusKind, on: boolean, v: ViewFighter, palette?: string[]) {
     const cur = fv.status[kind];
     if (on && (!cur || cur.dead)) {
-      fv.status[kind] = new FxSprite(this, FX[kind], v.x, v.y, v.face < 0, {}, 9, 12, 30);
+      fv.status[kind] = new FxSprite(this, FX[kind], v.x, v.y, v.face < 0, palette ? { palette } : {}, 9, 12, 30);
     } else if (!on && cur && !cur.dead) {
       cur.stop();
     }
@@ -370,6 +350,8 @@ export class GameScene extends Phaser.Scene {
         if (!burn) {
           const flip = a ? a.x > e.x : false;
           this.addFx(e.crit ? FX.critHit : heavy ? FX.bluntHit : FX.hitSpark, e.x, e.y + 14, flip, 1.3, {}, 16, 26);
+          // Flash Step's cuts: a cyan slash on every strike of the flurry
+          if (e.w === 104) this.addFx(FX.claw, e.x, e.y + 26, flip, 2.4, { palette: PAL.cyan }, 16, 26);
           const stop = Math.min(0.16, 0.05 + e.amt / 1600);
           for (const id of [e.a, e.v]) {
             const fv = this.views.get(id);
@@ -443,6 +425,26 @@ export class GameScene extends Phaser.Scene {
         this.addFx(FX.blinkIn, e.x1, e.y, false, 1.6);
         sfx.play('railgun', { pitch: 1.6, volume: 0.6 });
         break;
+      case 'art': {
+        const v = find(e.p);
+        sfx.play('railgun', { pitch: 0.7, volume: 0.9 });
+        this.shake(0.35);
+        if (v) {
+          if (e.art === ArtId.ThunderCall) this.addFx(FX.circleCast, v.x, v.y, v.face < 0, 1.6, { palette: PAL.violet });
+          else if (e.art === ArtId.PiercingFang) this.addFx(FX.chargeUp, v.x, v.y, v.face < 0, 2.4, { palette: PAL.crimson });
+          else if (e.art === ArtId.HailOfArrows) this.addFx(FX.circleCast, v.x, v.y, v.face < 0, 1.8, { palette: PAL.gold });
+          else if (e.art === ArtId.BloodFrenzy) this.addFx(FX.pow, v.x, v.y - 34, false, 1.2, { palette: PAL.crimson }, 31, 32);
+          // every Art freezes the moment for a beat
+          const fv = this.views.get(e.p);
+          if (fv) fv.freezeUntil = performance.now() + 120;
+        }
+        break;
+      }
+      case 'strike':
+        this.addFx(FX.lightningStrike, e.x, e.y, false, 1.6, {}, 16, 26);
+        sfx.play('explosion', { x: e.x, y: e.y, pitch: 1.6, volume: 0.8 });
+        this.shake(0.55);
+        break;
       case 'ko': {
         const v = find(e.v);
         if (v) this.addFx(FX.pow, v.x, v.y - 30, false, 1, {}, 31, 32);
@@ -474,6 +476,13 @@ export class GameScene extends Phaser.Scene {
         pv = { kind: p.kind };
         if (p.kind === 'arrow') pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, p.heavy ? { palette: ['#3a1a70', '#7f5ad8', '#e8e2ff', '#ffffff'] } : {}, 14, 14, 10);
         else if (p.kind === 'frost') pv.fx = new FxSprite(this, FX.iceLance, p.x, p.y, p.vx < 0, {}, 14, 14, 10);
+        else if (p.kind === 'arcane') pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.violet }, 14, 14, 10);
+        else if (p.kind === 'orb') pv.fx = new FxSprite(this, FX.arcaneOrb, p.x, p.y + 30, false, {}, 14, 14, 10);
+        else if (p.kind === 'wave') {
+          pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.gold }, 14, 14, 10);
+          pv.fx.front.setScale(2.6, 3.4);
+          pv.fx.back.setScale(2.6, 3.4);
+        }
         else {
           pv.img = this.add.image(p.x, p.y, 's-bomb').setScale(0.075).setDepth(14);
           pv.fx = new FxSprite(this, FX.fireball, p.x, p.y, p.vx > 0, { radius: 2 }, 13, 13, 10);
@@ -481,7 +490,7 @@ export class GameScene extends Phaser.Scene {
         if (pv.fx) this.fx.push(pv.fx);
         this.projViews.set(p.id, pv);
       }
-      pv.fx?.setPosition(p.x, p.y);
+      pv.fx?.setPosition(p.x, p.kind === 'orb' ? p.y + 30 : p.y);
       if (pv.fx && p.kind === 'arrow') {
         const ang = Math.atan2(p.vy, Math.abs(p.vx)) * (p.vx < 0 ? -1 : 1);
         pv.fx.front.setRotation(ang);
@@ -513,6 +522,26 @@ export class GameScene extends Phaser.Scene {
       img.setAlpha(t.armed ? 1 : 0.5);
     }
     for (const [id, img] of this.trapViews) if (!seen.has(id)) (img.destroy(), this.trapViews.delete(id));
+  }
+
+  /** Thunder Call targets: a crackling ring on the floor that tightens until the bolt lands. */
+  private drawStrikes(list: NetStrike[]) {
+    const seen = new Set<number>();
+    for (const s of list) {
+      seen.add(s.id);
+      let g = this.strikeViews.get(s.id);
+      if (!g) {
+        g = this.add.graphics().setDepth(7);
+        this.strikeViews.set(s.id, g);
+      }
+      const k = Math.max(0, Math.min(1, s.left / 20));
+      g.clear();
+      g.lineStyle(2, 0xc09cff, 0.5 + (1 - k) * 0.5);
+      g.strokeEllipse(s.x, s.y - 2, 30 + 50 * k, 8 + 12 * k);
+      g.fillStyle(0x8a5ae0, 0.18 + (1 - k) * 0.3);
+      g.fillEllipse(s.x, s.y - 2, 30, 8);
+    }
+    for (const [id, g] of this.strikeViews) if (!seen.has(id)) (g.destroy(), this.strikeViews.delete(id));
   }
 
   // ------------------------------------------------------------------ camera

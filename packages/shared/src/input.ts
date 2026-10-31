@@ -5,6 +5,8 @@ export const Btn = {
   Skill: 8,
   Roll: 16,
   Heal: 32,
+  /** Rift Art (class special, needs a full Rift gauge). */
+  Special: 64,
 } as const;
 
 /** One tick of fighter intent. Analog axes are quantized to int8 on the wire. */

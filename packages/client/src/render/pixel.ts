@@ -40,6 +40,23 @@ if (!RIG_WEAPONS.shield) {
   };
 }
 
+// the Caster's staff: a long dark haft with a violet crystal at the head
+const ST = { wood: pack('#5a3a24'), woodD: pack('#3a2416'), band: pack('#c9a24a'), gem: pack('#9a6ae8'), gemL: pack('#e0ccff'), gemD: pack('#5a2aa8') };
+if (!RIG_WEAPONS.staff) {
+  RIG_WEAPONS.staff = {
+    two: -10,
+    draw(T: (i: number, k: number, c: number, lift?: number) => void) {
+      for (let i = -14; i <= 30; i += 0.4) for (let k = -0.7; k <= 0.71; k += 0.4) T(i, k, k > 0.1 ? ST.woodD : ST.wood);
+      for (let k = -1.6; k <= 1.61; k += 0.4) (T(29, k, ST.band), T(29.4, k, ST.band));
+      // a diamond crystal held in a small claw
+      for (let i = 30; i <= 38; i += 0.4) {
+        const w = 2.6 * (1 - Math.abs(i - 33) / (i < 33 ? 3 : 5));
+        for (let k = -w; k <= w + 0.01; k += 0.4) T(i, k, k < -w * 0.3 ? ST.gemL : k > w * 0.4 ? ST.gemD : ST.gem);
+      }
+    },
+  };
+}
+
 // ------------------------------------------------------------------ fighter colours
 
 /** The dummy's tones, remapped to a player's colour (steel and wood stay as they are). */
@@ -110,7 +127,7 @@ export class FighterCanvas {
       let c = r.color[i];
       c = lut.get(c) ?? c;
       if (flash > 0 && !r.ink[i]) c = mixAbgr(c, 0xffffffff, flash);
-      if (tint && !r.ink[i]) c = mixAbgr(c, tint, 0.45);
+      if (tint && !r.ink[i]) c = mixAbgr(c, tint, 0.22);
       b[y * FW + x] = c;
     }
     this.tex.context.putImageData(this.img, 0, 0);

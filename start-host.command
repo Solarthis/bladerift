@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Skyfire Squad - LAN host launcher for macOS (double-click in Finder, or run ./start-host.command).
+# Bladerift - LAN host launcher for macOS (double-click in Finder, or run ./start-host.command). Serves on port 7360.
 # Rebuilds whenever the sources changed, starts the authoritative game server, opens the host console.
-# Extra arguments go to the server, e.g. ./start-host.command --port=7351
+# Extra arguments go to the server, e.g. ./start-host.command --port=7361
 set -u
 cd "$(dirname "$0")"
 pause() { read -r -p "Press Return to close this window..." _ || true; }

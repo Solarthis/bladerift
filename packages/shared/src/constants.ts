@@ -29,12 +29,39 @@ export const PHYS = {
   stunFriction: 1400,
   /** Status effects. */
   slowFactor: 0.55,
+  /** A jump still counts this many ticks after running off an edge. */
+  coyote: 6,
+  /** Wall slide: fall speed cap; wall jump: kick away and up; ticks steering back toward the wall is ignored. */
+  wallSlide: 150,
+  wallJumpX: 340,
+  wallJumpY: 600,
+  wallLock: 10,
+  /** A wall jump is still allowed this long after letting go of the wall. */
+  wallCoyote: 7,
+  /** Air dash (roll in the air, once per airtime): speed, ticks without gravity, invulnerable ticks, total. */
+  dashSpeed: 470,
+  dashFloat: 12,
+  dashInvuln: 9,
+  dashTicks: 15,
+  /** Fast fall (down in the air): gravity multiplier and the faster terminal speed. */
+  fastFallGravity: 1.8,
+  fastFallMax: 1150,
+  /** A plunge that hits bounces the attacker back up (pogo). */
+  pogo: 560,
+  /** Ledge: grab window around a top edge, climb time, and a re-grab cooldown after letting go. */
+  ledgeReach: 12,
+  climbTicks: 14,
+  ledgeCooldown: 16,
+  /** A hit that lands can be cancelled into a jump for this many ticks (air combos). */
+  confirmTicks: 16,
 } as const;
 
 export const FIGHTER = {
   w: 22,
   /** Body box height (feet to top of head); matches the hero rig. */
   h: 52,
+  /** Body height while crouching (ducks under high swings). */
+  crouchH: 34,
   /** Shoulder height above the feet (the rig root). */
   shoulder: 38,
   maxHp: 1000,

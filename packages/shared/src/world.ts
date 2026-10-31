@@ -2,12 +2,13 @@
  * The authoritative duel: two fighter seats, rounds, hits (with bounded lag compensation), projectiles, traps and
  * status effects. Runs on the server and, for practice / same-device play, inside the browser.
  */
-import { ArenaDef, getArena } from './arena';
-import { DT, FIGHTER, ROUND, TICK_RATE } from './constants';
+import { ArenaDef, getArena, solidAt, surfaceBelow } from './arena';
+import { DT, FIGHTER, PHYS, ROUND, TICK_RATE } from './constants';
 import {
-  Act, copyState, currentMove, FighterState, isActive, isBlocking, moveDamage, MOVE_CHARGED, newFighterState, stepFighter, surfaceBelow,
+  Act, copyState, currentMove, FighterState, isActive, isBlocking, moveDamage, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, newFighterState, stepFighter,
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
+import { ArtId, ClassId, classOf, RIFT } from './classes';
 import { Box, Loadout, Move, SKILL_FX, SkillId, WEAPONS, WeaponId } from './weapons';
 
 export interface MatchSettings {
@@ -23,8 +24,18 @@ export const DEFAULT_SETTINGS: MatchSettings = { arenaId: 'bridge', wins: ROUND.
 export type Phase = 'intro' | 'fight' | 'ko' | 'over';
 export const PHASES: Phase[] = ['intro', 'fight', 'ko', 'over'];
 
-export type ProjKind = 'arrow' | 'bomb' | 'frost';
-export const PROJ_KINDS: ProjKind[] = ['arrow', 'bomb', 'frost'];
+export type ProjKind = 'arrow' | 'bomb' | 'frost' | 'arcane' | 'orb' | 'wave';
+export const PROJ_KINDS: ProjKind[] = ['arrow', 'bomb', 'frost', 'arcane', 'orb', 'wave'];
+
+/** Caster's Thunder Call: a strike aimed at the opponent shortly before it lands (the marker is shown meanwhile). */
+export interface Strike {
+  id: number;
+  owner: number;
+  x: number;
+  y: number;
+  at: number;
+  aimed: boolean;
+}
 
 export interface Projectile {
   id: number;
@@ -40,6 +51,8 @@ export interface Projectile {
   life: number;
   /** Heavy (charged) arrow. */
   heavy: boolean;
+  /** Ticks before it appears (a volley's staggered arrows). */
+  wait?: number;
 }
 
 export interface Trap {
@@ -67,7 +80,11 @@ export type GameEvent =
   /** Round over: winner seat (255 = draw); why 0 KO / 1 time. */
   | { t: 'round'; winner: number; why: number }
   | { t: 'fight'; round: number }
-  | { t: 'match'; winner: number };
+  | { t: 'match'; winner: number }
+  /** p started its Rift Art (classes.ts ArtId). */
+  | { t: 'art'; p: number; art: number }
+  /** A Thunder Call bolt landed. */
+  | { t: 'strike'; x: number; y: number };
 
 export interface Fighter {
   id: number;
@@ -102,6 +119,7 @@ export interface Fighter {
   comboAt: number;
   // stats
   dealt: number;
+  roundDealt: number;
   hits: number;
   roundsWon: number;
 }
@@ -120,10 +138,18 @@ const STALE_TICKS = 30;
 /** Default lag-compensation limit (LAN); online rooms raise it (World.maxRewind). */
 export const MAX_REWIND = Math.round(0.3 * TICK_RATE);
 
+/** The floor or a block top below (one-way platforms ignored). */
+function solidBelow(arena: ArenaDef, x: number, y: number) {
+  let best = arena.floor;
+  for (const b of arena.blocks) if (x >= b.x && x <= b.x + b.w && b.y >= y - 0.5 && b.y < best) best = b.y;
+  return best;
+}
+
 const overlap = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
-export function bodyBox(x: number, y: number): Box {
-  return { x: x - FIGHTER.w / 2, y: y - FIGHTER.h, w: FIGHTER.w, h: FIGHTER.h };
+export function bodyBox(x: number, y: number, crouch = false): Box {
+  const h = crouch ? FIGHTER.crouchH : FIGHTER.h;
+  return { x: x - FIGHTER.w / 2, y: y - h, w: FIGHTER.w, h };
 }
 
 /** The world-space hit box of a move for a fighter at (x, y) facing `face`. */
@@ -144,6 +170,7 @@ export class World {
   wins: [number, number] = [0, 0];
   timeLeft: number;
   projectiles: Projectile[] = [];
+  strikes: Strike[] = [];
   traps: Trap[] = [];
   events: GameEvent[] = [];
   winner = -1;
@@ -160,12 +187,12 @@ export class World {
     const sx = this.arena.spawns[seat] ?? this.arena.w / 2;
     const f: Fighter = {
       id, seat, name, bot, load,
-      s: newFighterState(sx, this.arena.floor, seat === 0 ? 1 : -1),
+      s: newFighterState(sx, this.arena.floor, seat === 0 ? 1 : -1, load.cls),
       inputs: [], lastSeq: 0, lastCmd: emptyInput(), starved: STALE_TICKS + 1, deepTicks: 0, cushion: CUSHION_START, lateAt: 0, credit: 0,
       owed: 0, carry: 0, lagTicks: -1, prevViewTick: 0,
       histTick: new Int32Array(HIST).fill(-1), histX: new Float32Array(HIST), histY: new Float32Array(HIST), histFlags: new Uint8Array(HIST),
       histBlockT: new Uint16Array(HIST), histFace: new Int8Array(HIST),
-      lastHitSeq: -1, comboHits: 0, comboAt: -999, dealt: 0, hits: 0, roundsWon: 0,
+      lastHitSeq: -1, comboHits: 0, comboAt: -999, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0,
     };
     f.s.lock = Math.max(0, this.phaseEnd - this.tick);
     this.fighters.set(id, f);
@@ -196,15 +223,20 @@ export class World {
     this.timeLeft = this.settings.roundTime;
     this.projectiles = [];
     this.traps = [];
+    this.strikes = [];
     for (const f of this.fighters.values()) {
       const seq = f.s.moveSeq;
       const prevBtn = f.s.prevBtn;
-      f.s = newFighterState(this.arena.spawns[f.seat], this.arena.floor, f.seat === 0 ? 1 : -1);
+      // the Rift gauge carries over between rounds
+      const rift = f.s.rift;
+      f.s = newFighterState(this.arena.spawns[f.seat], this.arena.floor, f.seat === 0 ? 1 : -1, f.load.cls);
       f.s.moveSeq = seq;
       f.s.prevBtn = prevBtn;
+      f.s.rift = rift;
       f.s.lock = ROUND.introTicks;
       f.lastHitSeq = -1;
       f.comboHits = 0;
+      f.roundDealt = 0;
     }
   }
 
@@ -218,6 +250,7 @@ export class World {
     if (this.phase === 'over') return;
     for (const f of this.fighters.values()) this.spawnFrom(f);
     for (const f of this.fighters.values()) this.checkMelee(f);
+    this.stepArts();
     this.stepProjectiles();
     this.stepTraps();
     this.stepStatus();
@@ -326,7 +359,11 @@ export class World {
     stepFighter(s, cmd, this.arena, f.load);
     if (s.act === Act.Roll && before !== Act.Roll) this.events.push({ t: 'roll', p: f.id });
     if (s.act === Act.Heal && before !== Act.Heal) this.events.push({ t: 'heal', p: f.id });
-    if (s.act === Act.Attack && s.actT === 0) this.events.push({ t: 'swing', p: f.id, w: f.load.weapons[s.slot], m: s.move });
+    if (s.act === Act.Attack && s.actT === 0) {
+      if (s.move === MOVE_ART) this.events.push({ t: 'art', p: f.id, art: classOf(f.load.cls).art });
+      else this.events.push({ t: 'swing', p: f.id, w: f.load.weapons[s.slot], m: s.move });
+    }
+    if (s.act === Act.Art && s.actT === 0 && before !== Act.Art) this.events.push({ t: 'art', p: f.id, art: classOf(f.load.cls).art });
     void hpBefore;
     this.recordHistory(f);
   }
@@ -336,7 +373,7 @@ export class World {
     f.histTick[h] = this.tick;
     f.histX[h] = f.s.x;
     f.histY[h] = f.s.y;
-    f.histFlags[h] = (f.s.invuln > 0 ? 1 : 0) | (isBlocking(f.s) ? 2 : 0);
+    f.histFlags[h] = (f.s.invuln > 0 ? 1 : 0) | (isBlocking(f.s) ? 2 : 0) | (f.s.crouch ? 4 : 0);
     f.histBlockT[h] = Math.min(65535, f.s.blockT);
     f.histFace[h] = f.s.face;
   }
@@ -363,10 +400,10 @@ export class World {
       const i = ((tick % HIST) + HIST) % HIST;
       if (d.histTick[i] === tick) {
         const fl = d.histFlags[i];
-        return { x: d.histX[i], y: d.histY[i], invuln: !!(fl & 1), blocking: !!(fl & 2), blockT: d.histBlockT[i], face: d.histFace[i] };
+        return { x: d.histX[i], y: d.histY[i], invuln: !!(fl & 1), blocking: !!(fl & 2), crouch: !!(fl & 4), blockT: d.histBlockT[i], face: d.histFace[i] };
       }
     }
-    return { x: d.s.x, y: d.s.y, invuln: d.s.invuln > 0, blocking: isBlocking(d.s), blockT: d.s.blockT, face: d.s.face };
+    return { x: d.s.x, y: d.s.y, invuln: d.s.invuln > 0, blocking: isBlocking(d.s), crouch: !!d.s.crouch, blockT: d.s.blockT, face: d.s.face };
   }
 
   // ------------------------------------------------------------ combat
@@ -378,35 +415,78 @@ export class World {
     if (!d || d.s.act === Act.KO || d.lastHitSeq === a.s.moveSeq) return;
     const seen = this.seenAt(d, this.validViewTick(a, a.lastCmd.viewTick));
     const box = moveBox(m, a.s.x, a.s.y, a.s.face);
-    if (!overlap(box, bodyBox(seen.x, seen.y)) || seen.invuln) return;
+    if (!overlap(box, bodyBox(seen.x, seen.y, seen.crouch)) || seen.invuln) return;
     d.lastHitSeq = a.s.moveSeq;
     let crit = false;
     const front = (a.s.x - seen.x) * seen.face > 0;
     let dmg = moveDamage(a.s, a.load, m);
-    if (m.backCrit && !front) crit = true;
+    const C = classOf(a.load.cls);
+    // from behind: backstab weapons crit, and the assassin crits with anything
+    const backstab = !front && (m.backCrit || C.id === ClassId.Assassin);
+    if (backstab) crit = true;
+    let tip = false;
     if (m.tipCrit) {
       const reach = m.box.x + m.box.w;
-      if (Math.abs(seen.x - a.s.x) > reach * 0.68) crit = true;
+      if (Math.abs(seen.x - a.s.x) > reach * 0.68) crit = tip = true;
     }
-    if (crit) dmg = Math.round(dmg * (m.backCrit ? 1.5 : 1.4));
+    if (crit) dmg = Math.round(dmg * (backstab ? C.backstab : 1.4));
+    void tip;
     const ix = (Math.max(box.x, seen.x - FIGHTER.w / 2) + Math.min(box.x + box.w, seen.x + FIGHTER.w / 2)) / 2;
     const iy = Math.max(box.y, seen.y - FIGHTER.h) + Math.min(box.h, FIGHTER.h) / 2;
     this.applyHit(a, d, { dmg, kbX: m.kbX, kbY: m.kbY, stun: m.stun, pull: !!m.pull, breaksGuard: !!m.breaksGuard, crit, w: a.load.weapons[a.s.slot], x: ix, y: iy, front, guard: seen });
-    // a lunge stops on impact
+    // a lunge stops on impact; a landed hit can be cancelled into a jump (air combos)
     if (a.s.move === MOVE_CHARGED && m.dash) a.s.vx *= 0.2;
+    a.s.confirm = PHYS.confirmTicks;
+    // a plunge that connects bounces the attacker back up (pogo) instead of slamming into the floor
+    if (a.s.move === MOVE_PLUNGE && !a.s.ground) {
+      a.s.act = Act.Free;
+      a.s.actT = 0;
+      a.s.vy = -PHYS.pogo;
+      a.s.dash = 0;
+      a.s.jumps = classOf(a.load.cls).airJumps;
+    }
+  }
+
+  /** The attacker's damage scale: class, the berserker's low-health rage, Blood Frenzy. */
+  private dmgScale(a: Fighter) {
+    const C = classOf(a.load.cls);
+    let k = C.dmg;
+    if (C.id === ClassId.Berserker && a.s.hp < C.hp / 3) k *= 1.4 / 1.2;
+    if (a.s.frenzy > 0) k *= 1.25;
+    return k;
+  }
+
+  /** Damage dealt and taken fill both fighters' Rift gauges. */
+  private gainRift(a: Fighter | undefined, d: Fighter, amt: number) {
+    if (a && a.s.act !== Act.Art) a.s.rift = Math.min(RIFT.max, a.s.rift + amt * RIFT.perDealt);
+    if (d.s.act !== Act.Art) d.s.rift = Math.min(RIFT.max, d.s.rift + amt * RIFT.perTaken);
   }
 
   private applyHit(
     a: Fighter | undefined,
     d: Fighter,
-    h: { dmg: number; kbX: number; kbY: number; stun: number; pull?: boolean; breaksGuard?: boolean; crit: boolean; w: number; x: number; y: number; front: boolean; guard?: { blocking: boolean; blockT: number } },
+    h: { dmg: number; kbX: number; kbY: number; stun: number; pull?: boolean; breaksGuard?: boolean; crit: boolean; w: number; x: number; y: number; front: boolean; guard?: { blocking: boolean; blockT: number }; melee?: boolean },
   ) {
     const ds = d.s;
     if (d.s.act === Act.KO) return;
-    const guard = h.guard ?? { blocking: isBlocking(ds), blockT: ds.blockT };
+    const DC = classOf(d.load.cls);
     const dirX = a ? (a.s.x <= ds.x ? 1 : -1) : h.x <= ds.x ? 1 : -1;
+    // Bulwark: nothing gets through; a swing into it staggers the attacker
+    if (ds.act === Act.Art && DC.art === ArtId.Bulwark) {
+      if (a && h.melee !== false) {
+        a.s.act = Act.Stun;
+        a.s.actT = 0;
+        a.s.stun = 30;
+        a.s.vx = -dirX * 260;
+        this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y });
+      }
+      return;
+    }
+    h = { ...h, dmg: a ? Math.round(h.dmg * this.dmgScale(a)) : h.dmg };
+    const guard = h.guard ?? { blocking: isBlocking(ds), blockT: ds.blockT };
     if (guard.blocking && h.front && !h.breaksGuard) {
-      if (guard.blockT <= FIGHTER.parryWindow && a) {
+      const parryWin = FIGHTER.parryWindow * (DC.id === ClassId.Shielder ? 1.6 : 1);
+      if (guard.blockT <= parryWin && a) {
         a.s.act = Act.Stun;
         a.s.actT = 0;
         a.s.stun = FIGHTER.parryStun;
@@ -415,24 +495,30 @@ export class World {
         this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y });
         return;
       }
-      const chip = Math.max(1, Math.round(h.dmg * FIGHTER.chip));
+      const chip = Math.max(1, Math.round(h.dmg * FIGHTER.chip * DC.chip));
+      this.gainRift(a, d, chip);
       ds.hp -= chip;
       ds.vx = dirX * FIGHTER.blockPush;
       this.events.push({ t: 'block', a: a?.id ?? 255, v: d.id, amt: chip, x: h.x, y: h.y });
       if (a) {
         a.dealt += chip;
+        a.roundDealt += chip;
         if (Math.abs(a.s.x - ds.x) < 60) a.s.vx = -dirX * 90;
       }
       if (ds.hp <= 0) this.knockOut(d, a);
       return;
     }
     ds.hp -= h.dmg;
+    this.gainRift(a, d, h.dmg);
     if (a) {
       a.dealt += h.dmg;
+      a.roundDealt += h.dmg;
       a.hits++;
     }
     this.events.push({ t: 'hit', a: a?.id ?? 255, v: d.id, amt: h.dmg, w: h.w, crit: h.crit, x: h.x, y: h.y });
-    if (h.stun > 0) {
+    // super armour: Blood Frenzy and Piercing Fang take the damage but never flinch
+    const armour = ds.frenzy > 0 || (ds.act === Act.Attack && ds.move === MOVE_ART);
+    if (h.stun > 0 && !armour) {
       ds.act = Act.Stun;
       ds.actT = 0;
       ds.stun = h.stun;
@@ -450,6 +536,11 @@ export class World {
         if (h.kbY > 150) ds.ground = 0;
       }
       ds.face = a ? (a.s.x < ds.x ? -1 : 1) : ds.face;
+    }
+    // (Rift Art hits never trip the combo break: the flurry is meant to land in full)
+    if (h.w >= 104 && h.w < 200) {
+      if (ds.hp <= 0) this.knockOut(d, a);
+      return;
     }
     if (this.tick - d.comboAt < FIGHTER.comboWindow) d.comboHits++;
     else d.comboHits = 1;
@@ -486,10 +577,20 @@ export class World {
       const w = WEAPONS[f.load.weapons[s.slot]];
       if (!m || !m.arrow || !w.arrowSpeed) return;
       const heavy = s.move === MOVE_CHARGED;
-      const speed = w.arrowSpeed * (heavy ? 1.3 : 1);
+      const C = classOf(f.load.cls);
+      if (m.arcane) {
+        // the staff: a quick bolt, or held, a slow orb that bursts
+        this.projectiles.push({
+          id: this.nextId++ % 65536, kind: heavy ? 'orb' : 'arcane', owner: f.id, x: s.x + s.face * 20, y: s.y - 38, vx: s.face * (heavy ? 380 : w.arrowSpeed), vy: 0,
+          dmg: moveDamage(s, f.load, m), kb: m.kbX, stun: m.stun, life: Math.round((heavy ? 2 : 0.85) * TICK_RATE), heavy,
+        });
+        this.events.push({ t: 'shoot', p: f.id, kind: heavy ? 5 : 4 });
+        return;
+      }
+      const speed = w.arrowSpeed * (heavy ? 1.3 : 1) * C.arrowSpeed;
       this.projectiles.push({
         id: this.nextId++ % 65536, kind: 'arrow', owner: f.id, x: s.x + s.face * 18, y: s.y - 40, vx: s.face * speed, vy: heavy ? -20 : -60,
-        dmg: moveDamage(s, f.load, m), kb: m.kbX, stun: m.stun, life: Math.round(1.6 * TICK_RATE), heavy,
+        dmg: moveDamage(s, f.load, m), kb: m.kbX, stun: m.stun, life: Math.round(1.6 * C.arrowSpeed * TICK_RATE), heavy,
       });
       this.events.push({ t: 'shoot', p: f.id, kind: 0 });
       return;
@@ -528,6 +629,11 @@ export class World {
     const A = this.arena;
     const out: Projectile[] = [];
     for (const p of this.projectiles) {
+      if (p.wait && p.wait > 0) {
+        p.wait--;
+        out.push(p);
+        continue;
+      }
       const g = p.kind === 'bomb' ? SKILL_FX.bomb.gravity : p.kind === 'arrow' ? (p.heavy ? 120 : 330) : 0;
       p.vy += g * DT;
       const px = p.x;
@@ -538,28 +644,49 @@ export class World {
       let dead = p.life <= 0;
       // hit a fighter (not its owner)
       for (const f of this.fighters.values()) {
-        if (dead || f.id === p.owner || f.s.act === Act.KO || f.s.invuln > 0) continue;
-        const bb = bodyBox(f.s.x, f.s.y);
-        const pb = { x: Math.min(px, p.x) - 4, y: Math.min(py, p.y) - 4, w: Math.abs(p.x - px) + 8, h: Math.abs(p.y - py) + 8 };
+        const bulwark = f.s.act === Act.Art && classOf(f.load.cls).art === ArtId.Bulwark;
+        if (dead || f.id === p.owner || f.s.act === Act.KO || (f.s.invuln > 0 && !bulwark)) continue;
+        const bb = bodyBox(f.s.x, f.s.y, !!f.s.crouch);
+        const r = p.kind === 'wave' ? 30 : p.kind === 'orb' ? 9 : 4;
+        const pb = { x: Math.min(px, p.x) - 4, y: Math.min(py, p.y) - r, w: Math.abs(p.x - px) + 8, h: Math.abs(p.y - py) + r * 2 };
         if (!overlap(bb, pb)) continue;
         const owner = this.fighters.get(p.owner);
-        if (p.kind === 'bomb') {
+        // Bulwark sends projectiles back at whoever threw them
+        if (bulwark) {
+          p.owner = f.id;
+          p.vx = -p.vx * 1.1;
+          p.vy = -Math.abs(p.vy); // back along its own arc
+          p.life = Math.max(p.life, 60);
+          this.events.push({ t: 'block', a: owner?.id ?? 255, v: f.id, amt: 0, x: p.x, y: p.y });
+          continue;
+        }
+        if (p.kind === 'bomb' || p.kind === 'orb') {
           this.explode(p, owner);
         } else {
           const front = (p.vx < 0) === (f.s.face > 0);
           const guardOk = isBlocking(f.s) && front;
-          this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY: p.heavy ? 160 : 40, stun: p.stun, crit: p.heavy, w: p.kind === 'arrow' ? WeaponId.Bow : 101, x: p.x, y: p.y, front });
+          const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' ? 106 : 101;
+          this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY: p.kind === 'wave' ? 260 : p.heavy ? 160 : 40, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false });
           if (p.kind === 'frost' && !guardOk) f.s.slowT = SKILL_FX.frost.slowTicks;
         }
         dead = true;
       }
       if (!dead) {
-        const floorHit = p.y >= surfaceBelow(A, p.x, py) && p.vy >= 0;
-        const wallHit = p.x < 0 || p.x > A.w;
+        // bombs and orbs land on ledges; arrows, bolts and waves fly through one-way platforms
+        const lands = p.kind === 'bomb' || p.kind === 'orb';
+        const floorHit = p.y >= (lands ? surfaceBelow(A, p.x, py) : solidBelow(A, p.x, py)) && p.vy >= 0;
+        const wallHit = solidAt(A, p.x, p.y) && p.y < A.floor;
         if (floorHit || wallHit || p.y > A.floor) {
-          if (p.kind === 'bomb') {
+          if (p.kind === 'bomb' || p.kind === 'orb') {
             p.y = Math.min(p.y, surfaceBelow(A, p.x, py));
             this.explode(p, this.fighters.get(p.owner));
+          }
+          // the light wave rolls along the floor; only walls stop it
+          if (p.kind === 'wave' && !wallHit) {
+            p.y = Math.min(p.y, surfaceBelow(A, p.x, py) - 30);
+            p.vy = 0;
+            out.push(p);
+            continue;
           }
           dead = true;
         }
@@ -571,14 +698,96 @@ export class World {
 
   private explode(p: Projectile, owner: Fighter | undefined) {
     const B = SKILL_FX.bomb;
+    const orb = p.kind === 'orb';
     this.events.push({ t: 'boom', x: p.x, y: p.y });
     for (const f of this.fighters.values()) {
       if (f.id === p.owner || f.s.act === Act.KO || f.s.invuln > 0) continue;
       const dx = f.s.x - p.x;
       const dy = f.s.y - FIGHTER.h / 2 - p.y;
-      if (dx * dx + dy * dy > (B.radius + 14) ** 2) continue;
-      this.applyHit(owner, f, { dmg: B.dmg, kbX: 240, kbY: 260, stun: 26, crit: false, w: 100, x: f.s.x, y: f.s.y - FIGHTER.h / 2, front: false });
-      f.s.burnT = Math.max(f.s.burnT, B.burnTicks);
+      const R = orb ? 62 : B.radius;
+      if (dx * dx + dy * dy > (R + 14) ** 2) continue;
+      this.applyHit(owner, f, { dmg: orb ? p.dmg : B.dmg, kbX: 240, kbY: 260, stun: orb ? p.stun : 26, crit: false, w: orb ? WeaponId.Staff : 100, x: f.s.x, y: f.s.y - FIGHTER.h / 2, front: false, melee: false });
+      if (!orb) f.s.burnT = Math.max(f.s.burnT, B.burnTicks);
+    }
+  }
+
+  // ------------------------------------------------------------ Rift Arts
+
+  private stepArts() {
+    for (const f of this.fighters.values()) {
+      const s = f.s;
+      if (s.act !== Act.Art) continue;
+      const C = classOf(f.load.cls);
+      const o = this.opponent(f);
+      const t = s.actT;
+      switch (C.art) {
+        case ArtId.RadiantCleave:
+          if (t === 18) {
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'wave', owner: f.id, x: s.x + s.face * 30, y: s.y - 30, vx: s.face * 720, vy: 0, dmg: 200, kb: 380, stun: 42, life: Math.round(1.4 * TICK_RATE), heavy: true });
+            this.events.push({ t: 'shoot', p: f.id, kind: 6 });
+          }
+          break;
+        case ArtId.HailOfArrows:
+          if (t === 12) {
+            const cx = o ? o.s.x : s.x + s.face * 200;
+            const top = (o ? o.s.y : s.y) - 440;
+            for (let i = 0; i < 9; i++) {
+              const x = cx + (i - 4) * 9 + (((i * 37) % 7) - 3);
+              this.projectiles.push({ id: this.nextId++ % 65536, kind: 'arrow', owner: f.id, x, y: top - (i % 3) * 30, vx: ((i % 2) * 2 - 1) * 16, vy: 980, dmg: 38, kb: 30, stun: 10, life: 90, heavy: false, wait: i * 3 });
+            }
+            this.events.push({ t: 'shoot', p: f.id, kind: 0 });
+          }
+          break;
+        case ArtId.ThunderCall:
+          if (t === 10) for (let k = 0; k < 3; k++) this.strikes.push({ id: this.nextId++ % 65536, owner: f.id, x: o ? o.s.x : s.x, y: o ? o.s.y : s.y, at: this.tick + 26 + k * 24, aimed: false });
+          break;
+        case ArtId.FlashStep: {
+          if (!o || o.s.act === Act.KO) break;
+          const behind = () => {
+            const half = FIGHTER.w / 2;
+            let x = o.s.x - o.s.face * 26;
+            if (x < half || x > this.arena.w - half) x = o.s.x + o.s.face * 26; // against a wall: the other side
+            s.x = Math.max(half, Math.min(this.arena.w - half, x));
+            s.y = o.s.y;
+            s.face = o.s.x >= s.x ? 1 : -1;
+          };
+          if (t === 8) {
+            const x0 = s.x;
+            behind();
+            this.events.push({ t: 'blink', p: f.id, x0, x1: s.x, y: s.y });
+          }
+          if (t >= 14 && t <= 44 && (t - 14) % 6 === 0) {
+            const k = (t - 14) / 6;
+            const last = k === 5;
+            if (Math.abs(o.s.x - s.x) < 90 && Math.abs(o.s.y - s.y) < 90) behind();
+            if (Math.abs(o.s.x - s.x) < 60 && Math.abs(o.s.y - s.y) < 60 && o.s.invuln <= 0) {
+              const dmg = Math.round((last ? 60 : 32) * C.backstab);
+              this.applyHit(f, o, { dmg, kbX: last ? 340 : 20, kbY: last ? 280 : 0, stun: last ? 36 : 14, crit: true, w: 104, x: o.s.x, y: o.s.y - 28, front: false, breaksGuard: true });
+              s.confirm = PHYS.confirmTicks;
+            }
+          }
+          break;
+        }
+      }
+    }
+    // Thunder Call: each strike locks on 20 ticks before it lands, then hits whoever stands under it
+    for (let i = this.strikes.length - 1; i >= 0; i--) {
+      const st = this.strikes[i];
+      const owner = this.fighters.get(st.owner);
+      const o = owner ? this.opponent(owner) : undefined;
+      if (!st.aimed && this.tick >= st.at - 20) {
+        st.aimed = true;
+        if (o) {
+          st.x = o.s.x;
+          st.y = surfaceBelow(this.arena, o.s.x, o.s.y - 2);
+        }
+      }
+      if (this.tick < st.at) continue;
+      this.strikes.splice(i, 1);
+      this.events.push({ t: 'strike', x: st.x, y: st.y });
+      if (o && o.s.act !== Act.KO && o.s.invuln <= 0 && Math.abs(o.s.x - st.x) < 36 && o.s.y > st.y - 130 && o.s.y <= st.y + 4) {
+        this.applyHit(owner, o, { dmg: 105, kbX: 80, kbY: 320, stun: 30, crit: false, w: 105, x: st.x, y: o.s.y - 30, front: false, melee: false, breaksGuard: true });
+      }
     }
   }
 
@@ -610,7 +819,7 @@ export class World {
         const amt = Math.round(B.burnDps / 4);
         f.s.hp -= amt;
         const owner = this.opponent(f);
-        if (owner) owner.dealt += amt;
+        if (owner) (owner.dealt += amt), (owner.roundDealt += amt);
         this.events.push({ t: 'hit', a: owner?.id ?? 255, v: f.id, amt, w: 200, crit: false, x: f.s.x, y: f.s.y - FIGHTER.h * 0.6 });
         if (f.s.hp <= 0) this.knockOut(f, owner);
       }
@@ -628,13 +837,19 @@ export class World {
         const b = this.fighters.get(this.seats[1]);
         const ha = a ? a.s.hp : 0;
         const hb = b ? b.s.hp : 0;
-        this.endRound(ha === hb ? 255 : ha > hb ? 0 : 1, 1);
+        // time-out: more health wins; equal health goes to whoever dealt more this round; a true tie is a draw
+        let win = ha === hb ? 255 : ha > hb ? 0 : 1;
+        if (win === 255 && a && b && a.roundDealt !== b.roundDealt) win = a.roundDealt > b.roundDealt ? 0 : 1;
+        this.endRound(win, 1);
       }
     } else if (this.phase === 'ko' && this.tick >= this.phaseEnd) {
       const best = Math.max(this.wins[0], this.wins[1]);
       if (best >= this.settings.wins) {
         this.phase = 'over';
-        this.winner = this.wins[0] > this.wins[1] ? 0 : 1;
+        // (both reaching it on a drawn round: total damage decides)
+        const da = this.fighters.get(this.seats[0])?.dealt ?? 0;
+        const db = this.fighters.get(this.seats[1])?.dealt ?? 0;
+        this.winner = this.wins[0] !== this.wins[1] ? (this.wins[0] > this.wins[1] ? 0 : 1) : da >= db ? 0 : 1;
         this.events.push({ t: 'match', winner: this.winner });
         const w = this.fighters.get(this.seats[this.winner]);
         if (w && w.s.act !== Act.KO) {
@@ -652,7 +867,11 @@ export class World {
     if (this.phase !== 'fight') return;
     this.phase = 'ko';
     this.phaseEnd = this.tick + ROUND.koTicks;
-    if (winner === 0 || winner === 1) {
+    if (winner !== 0 && winner !== 1) {
+      // a draw scores for both (a match can never stall on endless draws)
+      this.wins[0]++;
+      this.wins[1]++;
+    } else {
       this.wins[winner]++;
       const w = this.fighters.get(this.seats[winner]);
       if (w) w.roundsWon++;

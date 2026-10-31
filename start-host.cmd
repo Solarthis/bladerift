@@ -1,5 +1,5 @@
 @echo off
-rem Skyfire Squad - LAN host launcher for Windows (Lenovo Legion Go).
+rem Bladerift - LAN host launcher for Windows (Lenovo Legion Go). Serves the game on port 7360.
 rem Rebuilds whenever the sources changed, starts the authoritative game server, opens the host console.
 setlocal
 cd /d "%~dp0"

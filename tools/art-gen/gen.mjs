@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..');
 const SRC = join(here, 'source');
-const CP_REF = join(root, 'tools', 'character-pipeline', 'references');
+const CP_REF = SRC; // style references are earlier outputs (the Skyfire references are gone)
 const CODEX = process.env.CODEX_BIN ?? 'C:/Users/vascu/RobloxPvP/tools/codex/bin/codex.exe';
 mkdirSync(SRC, { recursive: true });
 
@@ -30,7 +30,43 @@ const ARENA_RULES = `Rules:
 - The centre must stay open and uncluttered so two small fighters remain readable in front of it.
 - NO characters, NO creatures, NO people, NO text, NO user interface, NO frames or borders.`;
 
+const ICON_RULES = `Rules for the whole sheet:
+- A uniform set of SQUARE game ability icons for a dark-fantasy duelling game, laid out as an exact 4 x 4 grid of equal square cells
+  (image size 1024x1024, so every icon is 256x256 and fills its cell edge to edge).
+- EVERY icon shares the same frame: a thin bevelled dark-iron square border with small gold corner studs, and a deep, richly
+  shaded background inside it (each icon may tint its background to its theme). The subject is painted large, centred and
+  readable at 48 px: bold silhouette, strong rim light, painterly hand-painted style matching the attached reference.
+- NO text, NO letters, NO numbers, NO labels anywhere. Icons never bleed into each other; keep the grid perfectly aligned.`;
+
 const JOBS = {
+  'icons-abilities': {
+    ref: 'skills.png',
+    prompt: `${ICON_RULES}
+Row 1: (1) JUMP: a figure's boots springing upward off stone with a white upward motion arc; (2) ROLL / DASH: a cloaked figure tucked in a
+       fast forward roll with speed streaks; (3) HEAL: a corked glass flask of glowing red potion; (4) RIFT ART (generic special): a jagged
+       golden crack of light tearing open a dark violet sky.
+Row 2: (5) RADIANT CLEAVE: a longsword unleashing a huge crescent wave of golden light; (6) HAIL OF ARROWS: a dense volley of glowing arrows
+       raining down from a stormy sky; (7) PIERCING FANG: a lance tip bursting forward through a red spiral of force; (8) THUNDER CALL: a forked
+       violet-white lightning bolt striking down from dark clouds.
+Row 3: (9) FLASH STEP: a shadowy assassin silhouette splitting into fading after-images with a cyan slash behind them; (10) BLOOD FRENZY:
+       a roaring crimson aura with a cracked war hammer; (11) BULWARK: a glowing teal tower shield radiating a hexagonal barrier;
+       (12) FIRE BOMB: a black iron bomb with a lit fuse and flames.
+Row 4: (13) FROST SHARD: a sharp ice crystal bolt with frost mist; (14) SNARE TRAP: an iron bear trap snapping shut; (15) BLINK: a violet
+       arcane rune circle with a figure vanishing into sparks; (16) CROSSED SWORDS (generic attack) with a spark at the crossing.`,
+  },
+  'icons-gear': {
+    ref: 'skills.png',
+    prompt: `${ICON_RULES}
+Row 1 (weapons, each shown diagonally from bottom-left to top-right): (1) a LONGSWORD; (2) a curved REAPER SCYTHE; (3) a knight's LANCE;
+       (4) TWIN DAGGERS crossed.
+Row 2: (5) a heavy WAR HAMMER; (6) a recurve HUNTER BOW with a nocked arrow; (7) a teal kite TOWER SHIELD; (8) an ARCANE STAFF of dark wood
+       topped with a glowing violet crystal.
+Row 3 (class crests: an heraldic emblem on a small shield shape inside the frame): (9) SABER crest: a sword and crown in gold on royal blue;
+       (10) ARCHER crest: a bow and arrow in silver on forest green; (11) LANCER crest: a spear and wolf head on crimson; (12) CASTER crest: an open
+       grimoire and a star on deep violet.
+Row 4: (13) ASSASSIN crest: a dagger and a crescent moon on black; (14) BERSERKER crest: a hammer and a roaring skull on dark red;
+       (15) SHIELDER crest: a tower shield and laurel on teal; (16) a plain gold-rimmed empty crest (spare).`,
+  },
   weapons: {
     ref: 'weapons-style-v2.png',
     prompt: `The attached image is a STYLE reference only (linework and shading). Generate a game-ready sheet of EIGHT original medieval-fantasy

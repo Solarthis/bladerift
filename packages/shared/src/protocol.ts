@@ -116,7 +116,7 @@ export function decodeInputs(data: Uint8Array): InputCmd[] {
   const n = r.u8();
   if (n > 8) throw new RangeError('too many inputs');
   const out: InputCmd[] = [];
-  for (let i = 0; i < n; i++) out.push({ seq: r.u32(), moveX: r.i8() / 127, moveY: r.i8() / 127, buttons: r.u8() & 0x3f, viewTick: r.u32() });
+  for (let i = 0; i < n; i++) out.push({ seq: r.u32(), moveX: r.i8() / 127, moveY: r.i8() / 127, buttons: r.u8() & 0x7f, viewTick: r.u32() });
   return out;
 }
 
@@ -157,7 +157,19 @@ export interface NetFighter {
   blockT: number;
   weapons: [number, number];
   skill: number;
+  crouch: boolean;
+  slide: boolean;
+  /** The current roll is an air dash. */
+  rollAir: boolean;
+  fast: boolean;
+  frenzy: boolean;
+  /** Rift gauge 0..RIFT.max, and the fighter's class. */
+  rift: number;
+  cls: number;
 }
+
+/** A Thunder Call strike that has locked on (the marker), ticks until it lands. */
+export interface NetStrike { id: number; x: number; y: number; left: number }
 
 export interface NetProjectile { id: number; kind: ProjKind; x: number; y: number; vx: number; vy: number; heavy: boolean }
 export interface NetTrap { id: number; owner: number; x: number; y: number; armed: boolean }
@@ -177,10 +189,11 @@ export interface Snapshot {
   fighters: NetFighter[];
   projectiles: NetProjectile[];
   traps: NetTrap[];
+  strikes: NetStrike[];
   events: GameEvent[];
 }
 
-const EV = { hit: 1, block: 2, parry: 3, swing: 4, shoot: 5, boom: 6, trap: 7, roll: 8, heal: 9, blink: 10, ko: 11, round: 12, fight: 13, match: 14 } as const;
+const EV = { hit: 1, block: 2, parry: 3, swing: 4, shoot: 5, boom: 6, trap: 7, roll: 8, heal: 9, blink: 10, ko: 11, round: 12, fight: 13, match: 14, art: 15, strike: 16 } as const;
 
 /** Body shared by every recipient of a given tick. */
 export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Array {
@@ -194,13 +207,19 @@ export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Arra
     w.u8(f.id).u8(f.seat).u16(encX(s.x)).u16(encY(s.y)).i16(i16c(s.vx)).i16(i16c(s.vy)).u8(fl).u8(s.act).u8(Math.min(255, s.actT)).u8(s.move);
     w.u16(Math.max(0, Math.ceil(s.hp))).u8(Math.min(255, s.charge)).u8(s.flask).u16(Math.min(65535, s.skillCd)).u8(Math.min(255, s.rollCd)).u8(Math.min(255, s.blockT));
     w.u8((f.load.weapons[0] << 4) | f.load.weapons[1]).u8(f.load.skill);
+    w.u8((s.crouch ? 1 : 0) | (s.slide ? 2 : 0) | (s.rollAir ? 4 : 0) | (s.fast ? 8 : 0) | (s.frenzy > 0 ? 16 : 0));
+    w.u16(Math.max(0, Math.min(65535, Math.floor(s.rift)))).u8(f.load.cls);
   }
-  w.u8(Math.min(255, world.projectiles.length));
-  for (const p of world.projectiles.slice(0, 255)) {
+  const shown = world.projectiles.filter((p) => !p.wait).slice(0, 255);
+  w.u8(shown.length);
+  for (const p of shown) {
     w.u16(p.id).u8(PROJ_KINDS.indexOf(p.kind) | (p.heavy ? 128 : 0)).u16(encX(p.x)).u16(encY(p.y)).i16(i16c(p.vx)).i16(i16c(p.vy));
   }
   w.u8(Math.min(255, world.traps.length));
   for (const t of world.traps.slice(0, 255)) w.u16(t.id).u8(t.owner).u16(encX(t.x)).u16(encY(t.y)).u8(world.tick >= t.armAt ? 1 : 0);
+  const aimed = world.strikes.filter((s) => s.aimed).slice(0, 255);
+  w.u8(aimed.length);
+  for (const s of aimed) w.u16(s.id).u16(encX(s.x)).u16(encY(s.y)).u8(Math.max(0, Math.min(255, s.at - world.tick)));
   const evs = events.slice(0, 255);
   w.u8(evs.length);
   for (const e of evs) {
@@ -219,6 +238,8 @@ export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Arra
       case 'round': w.u8(e.winner).u8(e.why); break;
       case 'fight': w.u8(e.round); break;
       case 'match': w.u8(e.winner); break;
+      case 'art': w.u8(e.p).u8(e.art); break;
+      case 'strike': w.u16(encX(e.x)).u16(encY(e.y)); break;
     }
   }
   return w.finish();
@@ -258,10 +279,11 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
   const fighters: NetFighter[] = [];
   for (let i = 0; i < nf; i++) {
     const id = r.u8(), seat = r.u8(), x = decX(r.u16()), y = decY(r.u16()), vx = r.i16(), vy = r.i16(), fl = r.u8(), act = r.u8(), actT = r.u8(), move = r.u8();
-    const hp = r.u16(), charge = r.u8(), flask = r.u8(), skillCd = r.u16(), rollCd = r.u8(), blockT = r.u8(), wp = r.u8(), skill = r.u8();
+    const hp = r.u16(), charge = r.u8(), flask = r.u8(), skillCd = r.u16(), rollCd = r.u8(), blockT = r.u8(), wp = r.u8(), skill = r.u8(), mv = r.u8(), rift = r.u16(), cls = r.u8();
     fighters.push({
       id, seat, x, y, vx, vy, face: fl & 1 ? 1 : -1, ground: !!(fl & 2), invuln: !!(fl & 4), burning: !!(fl & 8), slowed: !!(fl & 16), rooted: !!(fl & 32),
       slot: fl & 64 ? 1 : 0, act, actT, move, hp, charge, flask, skillCd, rollCd, blockT, weapons: [wp >> 4, wp & 15], skill,
+      crouch: !!(mv & 1), slide: !!(mv & 2), rollAir: !!(mv & 4), fast: !!(mv & 8), frenzy: !!(mv & 16), rift, cls,
     });
   }
   const np = r.u8();
@@ -273,6 +295,9 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
   const nt = r.u8();
   const traps: NetTrap[] = [];
   for (let i = 0; i < nt; i++) traps.push({ id: r.u16(), owner: r.u8(), x: decX(r.u16()), y: decY(r.u16()), armed: r.u8() === 1 });
+  const ns = r.u8();
+  const strikes: NetStrike[] = [];
+  for (let i = 0; i < ns; i++) strikes.push({ id: r.u16(), x: decX(r.u16()), y: decY(r.u16()), left: r.u8() });
   const ne = r.u8();
   const events: GameEvent[] = [];
   for (let i = 0; i < ne; i++) {
@@ -292,10 +317,12 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
       case EV.round: events.push({ t: 'round', winner: r.u8(), why: r.u8() }); break;
       case EV.fight: events.push({ t: 'fight', round: r.u8() }); break;
       case EV.match: events.push({ t: 'match', winner: r.u8() }); break;
+      case EV.art: events.push({ t: 'art', p: r.u8(), art: r.u8() }); break;
+      case EV.strike: events.push({ t: 'strike', x: decX(r.u16()), y: decY(r.u16()) }); break;
       default: throw new RangeError('bad event ' + t);
     }
   }
-  return { tick, ack, selfId, self, phase, phaseLeft, round, wins, timeLeft, fighters, projectiles, traps, events };
+  return { tick, ack, selfId, self, phase, phaseLeft, round, wins, timeLeft, fighters, projectiles, traps, strikes, events };
 }
 
 // ---------------------------------------------------------------- JSON payload shapes

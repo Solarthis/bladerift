@@ -1,181 +1,682 @@
 /**
- * Duel bot: keeps its weapon's range, attacks when in reach, rolls or blocks the opponent's swings (with a
- * difficulty-dependent reaction time and success rate), heals when safe, and uses its skill. Deterministic per seed.
+ * Duel bot. Each tick it reads the World and returns one InputCmd. It keeps its weapon's spacing (on hard, just outside
+ * reach), swings when it can connect, punishes the opponent's recovery, stun and drinking, answers swings and shots (a
+ * roll, or the shield raised in time to parry), drinks its flask when safe, aims its skill, and climbs or drops through
+ * ledges to follow. Difficulty changes reaction time, how often it commits and how exact its timing is (see TUNE).
+ * Everything comes from its seeded Rng, so a seed always plays the same match.
  */
-import { FIGHTER } from './constants';
-import { Act, currentMove, isActive } from './fighter';
+import { DT, FIGHTER } from './constants';
+import { ArtId, CLASSES, CLASS_COUNT, RIFT } from './classes';
+import { solidAt, surfaceBelow } from './arena';
+import { Act, currentMove } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
-import { Loadout, SkillId, WEAPONS, WeaponId } from './weapons';
-import { Fighter, World } from './world';
+import { Box, Loadout, Move, SKILL_FX, SKILLS, SkillId, WEAPONS, WeaponId } from './weapons';
+import { sanitizeLoadout } from './weapons';
+import { bodyBox, Fighter, moveBox, Projectile, ProjKind, World } from './world';
 
 export type BotDifficulty = 'easy' | 'normal' | 'hard';
 
-const LEVEL = {
-  easy: { react: 24, dodge: 0.18, aggro: 0.45, combo: 0.5, skill: 0.004 },
-  normal: { react: 13, dodge: 0.45, aggro: 0.7, combo: 0.8, skill: 0.012 },
-  hard: { react: 7, dodge: 0.75, aggro: 0.9, combo: 1, skill: 0.025 },
-} as const;
+interface Tune {
+  /** Ticks from noticing a swing or shot to answering it. */
+  react: number;
+  /** Chance to answer a given swing or shot at all. */
+  dodge: number;
+  /** Of the answers to a swing, chance to raise the shield instead of rolling (when it can parry). */
+  parry: number;
+  /** Chance a roll goes through the opponent rather than away from them. */
+  through: number;
+  /** Per-tick chance to swing when in reach. */
+  attack: number;
+  /** Per-tick chance to take a punish: a swing into recovery, a stun, a drink. */
+  punish: number;
+  /** Chance to continue a combo into its next hit. */
+  chain: number;
+  /** Per-tick chance to start a lunge or bow draw while its window is open. */
+  ranged: number;
+  /** Per-tick chance to fire a skill whose conditions hold. */
+  skill: number;
+  /** Per-tick chance to drink when safe, and the health fraction under which it considers it. */
+  heal: number;
+  healBelow: number;
+  /** Ticks standing still in reach before each swing (a visible wind-up). */
+  windup: number;
+  /** Spacing: wanted gap = reach * spaceMul + HALF + spaceAdd. */
+  spaceMul: number;
+  spaceAdd: number;
+  /** Chance to back off when too close. */
+  retreat: number;
+  /** Per-tick chance to jump toward an opponent on a higher ledge, or to drop toward one below. */
+  climb: number;
+  drop: number;
+  /** Per-tick chance to hop in from just outside reach and swing from the air. */
+  hop: number;
+  /** Ticks a movement choice is kept before it may change (plus a random extra of up to as much again). */
+  commit: number;
+}
 
-/** Reach of a weapon's first combo move (how close the bot wants to be). */
-function reach(w: WeaponId) {
+const TUNE: Record<BotDifficulty, Tune> = {
+  easy: {
+    react: 24, dodge: 0.2, parry: 0, through: 0.2, attack: 0.3, punish: 0.45, chain: 0.3, ranged: 0.12, skill: 0.01,
+    heal: 0.25, healBelow: 0.4, windup: 14, spaceMul: 0.5, spaceAdd: 0, retreat: 0.3, climb: 0.02, drop: 0.02, hop: 0.01, commit: 26,
+  },
+  normal: {
+    react: 12, dodge: 0.55, parry: 0.35, through: 0.5, attack: 0.45, punish: 0.85, chain: 0.7, ranged: 0.35, skill: 0.04,
+    heal: 0.5, healBelow: 0.45, windup: 3, spaceMul: 0.85, spaceAdd: 0, retreat: 0.5, climb: 0.05, drop: 0.05, hop: 0.03, commit: 16,
+  },
+  hard: {
+    react: 5, dodge: 0.92, parry: 0.8, through: 0.85, attack: 0.7, punish: 1, chain: 0.95, ranged: 0.7, skill: 0.12,
+    heal: 0.9, healBelow: 0.55, windup: 0, spaceMul: 1, spaceAdd: 4, retreat: 0.7, climb: 0.12, drop: 0.12, hop: 0.06, commit: 12,
+  },
+};
+
+type MoveMode = 'in' | 'back' | 'hold' | 'strafe';
+/** Melee: spaced for the chosen melee weapon. Range: keeps its distance and draws the bow. */
+type Mode = 'melee' | 'range';
+
+/** A melee swing of the opponent that can still reach us. `at` ticks until its hit window opens, `end` until it closes. */
+interface Swing {
+  seq: number;
+  at: number;
+  end: number;
+  move: Move;
+}
+/** A projectile of the opponent heading for us: `ticks` until it arrives, `away` the way to step to get clear of a bomb. */
+interface Shot {
+  id: number;
+  kind: ProjKind;
+  ticks: number;
+  away: number;
+}
+interface ShotMemory {
+  t: number;
+  answer: boolean;
+  block: boolean;
+  through: boolean;
+}
+interface Plan {
+  seq: number;
+  at: number;
+  block: boolean;
+}
+interface Geo {
+  dist: number;
+  dir: number;
+  dy: number;
+  facing: boolean;
+}
+
+const HALF = FIGHTER.w / 2;
+const CHEST = FIGHTER.h / 2;
+
+const isBow = (w: WeaponId) => WEAPONS[w].arrowSpeed !== undefined;
+const isShield = (w: WeaponId) => WEAPONS[w].block === true;
+/** Forward reach of a weapon's opening hit, from the feet to the far edge of its box. */
+const reachOf = (w: WeaponId) => {
   const m = WEAPONS[w].combo[0];
   return m.box.x + m.box.w;
-}
+};
+const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+/** Slot (0 or 1) holding a weapon matching pred, -1 if neither does. */
+const slotOf = (load: Loadout, pred: (w: WeaponId) => boolean) => (pred(load.weapons[0]) ? 0 : pred(load.weapons[1]) ? 1 : -1);
 
 export function botLoadout(seed: number): Loadout {
   const rng = new Rng(seed * 2654435761);
-  const melee = [WeaponId.Sword, WeaponId.Scythe, WeaponId.Lance, WeaponId.Daggers, WeaponId.Hammer];
-  const second = [WeaponId.Bow, WeaponId.Shield, WeaponId.Daggers, WeaponId.Lance];
-  const a = melee[rng.int(melee.length)];
-  let b = second[rng.int(second.length)];
-  if (b === a) b = WeaponId.Bow;
-  return { weapons: [a, b], skill: rng.int(4) as SkillId };
+  const cls = rng.int(CLASS_COUNT);
+  const second = [WeaponId.Bow, WeaponId.Shield, WeaponId.Daggers, WeaponId.Lance, WeaponId.Scythe, WeaponId.Sword];
+  return sanitizeLoadout({ weapons: [CLASSES[cls].signature, second[rng.int(second.length)]], skill: rng.int(4) as SkillId, cls });
+}
+
+/** The opponent's melee swing that can still reach us, with a margin for steps and lunges. */
+function swingAt(me: Fighter, foe: Fighter): Swing | null {
+  const o = foe.s;
+  if (o.act !== Act.Attack) return null;
+  const m = currentMove(o, foe.load);
+  if (!m || m.arrow) return null;
+  const close = m.startup + m.active;
+  if (o.actT >= close) return null;
+  const pad = HALF + 16 + (m.step ?? 0) * 0.5 + (m.dash ?? 0) * 0.25;
+  const hb = moveBox(m, o.x, o.y, o.face);
+  if (!overlaps({ x: hb.x - pad, y: hb.y, w: hb.w + 2 * pad, h: hb.h }, bodyBox(me.s.x, me.s.y))) return null;
+  return { seq: o.moveSeq, at: Math.max(0, m.startup - o.actT), end: close - o.actT, move: m };
+}
+
+/** Where and when a bomb comes down (it is lobbed with the same physics the World uses). */
+function bombLanding(w: World, p: Projectile): { x: number; ticks: number } {
+  let x = p.x;
+  let y = p.y;
+  let vy = p.vy;
+  for (let t = 1; t < 300; t++) {
+    vy += SKILL_FX.bomb.gravity * DT;
+    const py = y;
+    x += p.vx * DT;
+    y += vy * DT;
+    if (vy >= 0 && y >= surfaceBelow(w.arena, x, py)) return { x, ticks: t };
+  }
+  return { x, ticks: 300 };
+}
+
+/** The opponent's projectile that reaches us soonest (arrows and frost by flight, bombs by where they land). */
+function incomingShot(w: World, me: Fighter, foe: Fighter): Shot | null {
+  const s = me.s;
+  let best: Shot | null = null;
+  for (const p of w.projectiles) {
+    if (p.owner !== foe.id) continue;
+    let ticks: number;
+    let away = 0;
+    if (p.kind === 'bomb') {
+      const land = bombLanding(w, p);
+      if (Math.abs(land.x - s.x) > 110) continue;
+      ticks = land.ticks;
+      away = s.x >= land.x ? 1 : -1;
+    } else {
+      if ((p.vx > 0) !== s.x > p.x) continue; // flying away from us
+      if (Math.abs(p.y - (s.y - CHEST)) > 42) continue; // passes above or below us
+      ticks = Math.max(0, (Math.abs(p.x - s.x) - HALF) / Math.abs(p.vx * DT));
+      if (ticks > 60) continue;
+    }
+    if (!best || ticks < best.ticks) best = { id: p.id, kind: p.kind, ticks, away };
+  }
+  return best;
 }
 
 export class BotBrain {
   private seq = 0;
   private rng: Rng;
-  private held = 0;
-  private holdT = 0;
-  private reactAt = -1;
-  private plan: 'none' | 'roll' | 'block' | 'jump' = 'none';
-  private lastSeenMove = -1;
-  private strafe = 0;
-  private strafeT = 0;
+  /** Buttons sent last tick: a press is an edge against this, so a held button is never pressed twice. */
+  private prev = 0;
+  /** A button held on purpose (a shield guard or a charge), what kind it is, and its target. */
+  private hold = 0;
+  private holdKind: 'none' | 'block' | 'charge' = 'none';
+  private holdTarget = 0;
+  /** A guard tapped to bash: it is released on the next tick. */
+  private bash = false;
+  /** A reaction to the opponent's swing that has been decided but not yet carried out. */
+  private plan: Plan | null = null;
+  /** moveSeq of the last swing this bot has decided about (one decision per swing). */
+  private answered = -1;
+  private shots = new Map<number, ShotMemory>();
+  private mode: Mode = 'melee';
+  /** Slot of the weapon the current mode uses. */
+  private slot = 0;
+  private modeT = 0;
+  private moveMode: MoveMode = 'hold';
+  private moveT = 0;
+  private strafeDir = 1;
+  /** Ticks in a row with no movement and no button. */
+  private idleT = 0;
+  /** Wind-up before a swing: -1 means not yet in reach. */
+  private windT = -1;
+  private chainSeq = -1;
+  /** After laying a trap, back off for a while so the opponent walks onto it. */
+  private backT = 0;
+  /** Damage dealt by both fighters at the last check, and how long it has been since it changed. */
+  private dealtSeen = -1;
+  private quietT = 0;
+  /** Nothing has landed for a long time (a stand-off): stop guarding shots and close in. */
+  private bored = false;
+  /** Pushing into something without moving: ticks stuck, the x last seen, and ticks left backing off. */
+  private stuckT = 0;
+  private lastX = -1e9;
+  private unstuckT = 0;
 
   constructor(readonly id: number, seed: number, readonly level: BotDifficulty = 'normal') {
     this.rng = new Rng(seed);
   }
 
   think(w: World): InputCmd {
-    const me = w.fighters.get(this.id);
     const cmd: InputCmd = { seq: ++this.seq, moveX: 0, moveY: 0, buttons: 0, viewTick: 0 };
-    if (!me) return cmd;
-    const foe = w.opponent(me);
-    const L = LEVEL[this.level];
-    const s = me.s;
-    if (!foe || w.phase !== 'fight' || s.lock > 0) {
-      this.held = 0;
-      return cmd;
-    }
-    const o = foe.s;
-    const dx = o.x - s.x;
-    const dist = Math.abs(dx);
-    const dy = o.y - s.y;
-    const dir = dx >= 0 ? 1 : -1;
-    const shieldSlot = me.load.weapons[1] === WeaponId.Shield ? 1 : me.load.weapons[0] === WeaponId.Shield ? 0 : -1;
-    const bowSlot = me.load.weapons[0] === WeaponId.Bow ? 0 : me.load.weapons[1] === WeaponId.Bow ? 1 : -1;
-    const meleeSlot = WEAPONS[me.load.weapons[0]].combo[0].arrow || WEAPONS[me.load.weapons[0]].block ? 1 : 0;
-    const meleeW = me.load.weapons[meleeSlot];
-    const want = WEAPONS[meleeW].block || WEAPONS[meleeW].combo[0].arrow ? 40 : reach(meleeW) * 0.75;
-
-    // --- react to the opponent's swing (after a reaction delay)
-    const om = currentMove(o, foe.load);
-    if (om && o.act === Act.Attack && o.moveSeq !== this.lastSeenMove) {
-      this.lastSeenMove = o.moveSeq;
-      const threat = om.arrow ? Math.abs(dy) < 50 : dist < om.box.x + om.box.w + 60;
-      if (threat && this.rng.next() < L.dodge) {
-        this.reactAt = w.tick + L.react;
-        this.plan = shieldSlot >= 0 && !om.breaksGuard && this.rng.next() < 0.6 ? 'block' : om.arrow && this.rng.next() < 0.4 ? 'jump' : 'roll';
-      }
-    }
-    if (this.plan !== 'none' && w.tick >= this.reactAt) {
-      const p = this.plan;
-      this.plan = 'none';
-      if (p === 'roll' && s.rollCd === 0) {
-        cmd.moveX = this.rng.next() < 0.6 ? dir : -dir; // through them or away
-        cmd.buttons |= Btn.Roll;
-        return this.finish(cmd);
-      }
-      if (p === 'block') {
-        this.held = shieldSlot === 0 ? Btn.A : Btn.B;
-        this.holdT = 30;
-      }
-      if (p === 'jump') cmd.buttons |= Btn.Jump;
-    }
-
-    // --- keep holding (block / bow draw / lance charge)
-    if (this.held && this.holdT > 0) {
-      this.holdT--;
-      cmd.buttons |= this.held;
-      if (Math.abs(dx) > 6) cmd.moveX = dir * 0.01; // face them
-      if (this.holdT === 0) this.held = 0;
-      return this.finish(cmd);
-    }
-
-    // --- heal when safe
-    if (s.hp < FIGHTER.maxHp * 0.42 && s.flask > 0 && dist > 260 && s.ground && this.rng.next() < 0.08) {
-      cmd.buttons |= Btn.Heal;
-      return this.finish(cmd);
-    }
-
-    // --- skill
-    if (s.skillCd === 0 && this.rng.next() < L.skill * 3) {
-      const sk = me.load.skill;
-      const ok =
-        (sk === SkillId.Bomb && dist > 150 && dist < 420) ||
-        (sk === SkillId.Frost && Math.abs(dy) < 40 && dist > 120) ||
-        (sk === SkillId.Trap && dist < 140) ||
-        (sk === SkillId.Blink && dist > 260);
-      if (ok) {
-        cmd.moveX = dir * 0.5;
-        cmd.buttons |= Btn.Skill;
-        return this.finish(cmd);
-      }
-    }
-
-    // --- ranged poke from afar
-    if (bowSlot >= 0 && dist > 260 && Math.abs(dy) < 60 && s.act === Act.Free && this.rng.next() < L.aggro * 0.05) {
-      this.held = bowSlot === 0 ? Btn.A : Btn.B;
-      this.holdT = this.rng.next() < 0.5 ? 4 : 30;
-      cmd.moveX = dir * 0.01;
-      cmd.buttons |= this.held;
-      return this.finish(cmd);
-    }
-
-    // --- movement: get to range (strafe a little when there)
-    if (--this.strafeT <= 0) {
-      this.strafeT = 20 + this.rng.int(40);
-      this.strafe = this.rng.next() < 0.35 ? (this.rng.next() < 0.5 ? -1 : 1) : 0;
-    }
-    if (dist > want + 10) cmd.moveX = dir;
-    else if (dist < want * 0.5) cmd.moveX = -dir * 0.6;
-    else cmd.moveX = this.strafe * 0.4;
-    // follow them up / down platforms
-    if (dy < -60 && dist < 200 && s.ground && this.rng.next() < 0.06) cmd.buttons |= Btn.Jump;
-    if (dy > 60 && s.ground && dist < 160 && this.rng.next() < 0.05) {
-      cmd.moveY = 1;
-      cmd.buttons |= Btn.Jump;
-    }
-
-    // --- attack when in reach
-    const inReach = dist < reach(meleeW) + 8 && Math.abs(dy) < 50;
-    if (inReach && o.act !== Act.KO && o.invuln === 0) {
-      const facing = (dx > 0) === (s.face > 0);
-      if (!facing) cmd.moveX = dir * 0.4;
-      else if (this.rng.next() < L.aggro * 0.35 || (s.act === Act.Attack && this.rng.next() < L.combo * 0.5)) {
-        const btn = meleeSlot === 0 ? Btn.A : Btn.B;
-        // a lance charges sometimes
-        if (WEAPONS[meleeW].charged && !WEAPONS[meleeW].arrowSpeed && this.rng.next() < 0.25 && dist > 90) {
-          this.held = btn;
-          this.holdT = 24;
-        }
-        if (!(this.prev & btn)) cmd.buttons |= btn;
-      }
-    }
-    void isActive;
-    return this.finish(cmd);
-  }
-
-  private prev = 0;
-  private finish(cmd: InputCmd) {
+    const me = w.fighters.get(this.id);
+    const foe = me ? w.opponent(me) : undefined;
+    if (me && foe && w.phase === 'fight' && me.s.lock === 0) {
+      this.act(w, me, foe, cmd);
+      if (me.s.rift >= RIFT.max && !(this.prev & Btn.Special) && this.wantArt(me, foe)) cmd.buttons |= Btn.Special;
+    } else this.reset();
+    this.idleT = cmd.moveX === 0 && cmd.buttons === 0 ? this.idleT + 1 : 0;
     this.prev = cmd.buttons;
     return cmd;
   }
 
-  /** The bot's view of its own fighter (unused fields kept for tests). */
-  static seat(f: Fighter) {
-    return f.seat;
+  /** When to spend a full Rift gauge, per class (easy bots hold it longer). */
+  private wantArt(me: Fighter, foe: Fighter) {
+    const s = me.s;
+    const o = foe.s;
+    if (o.act === Act.KO || o.invuln > 0) return false;
+    if (this.level === 'easy' && this.rng.next() > 0.02) return false;
+    const dx = o.x - s.x;
+    const dist = Math.abs(dx);
+    const aligned = Math.abs(o.y - s.y) < 40;
+    const facing = s.face === (dx >= 0 ? 1 : -1);
+    switch (CLASSES[me.load.cls]?.art) {
+      case ArtId.FlashStep: return s.act === Act.Stun || (o.act === Act.Attack && dist < 140) || this.rng.next() < 0.004;
+      case ArtId.PiercingFang: return aligned && facing && dist > 90 && dist < 520 && s.act === Act.Free;
+      case ArtId.RadiantCleave: return aligned && facing && dist > 110 && s.act === Act.Free;
+      case ArtId.BloodFrenzy: return dist < 220 && s.act === Act.Free;
+      case ArtId.Bulwark: return (o.act === Act.Attack && dist < 120) || this.rng.next() < 0.003;
+      default: return s.act === Act.Free;
+    }
+  }
+
+  private reset() {
+    this.clearHold();
+    this.plan = null;
+    this.windT = -1;
+    this.moveT = 0;
+    this.backT = 0;
+  }
+
+  private clearHold() {
+    this.hold = 0;
+    this.holdKind = 'none';
+    this.bash = false;
+  }
+
+  private act(w: World, me: Fighter, foe: Fighter, cmd: InputCmd) {
+    const s = me.s;
+    const T = TUNE[this.level];
+    const dx = foe.s.x - s.x;
+    const g: Geo = { dist: Math.abs(dx), dir: dx >= 0 ? 1 : -1, dy: foe.s.y - s.y, facing: false };
+    g.facing = s.face === g.dir;
+    const dealt = me.dealt + foe.dealt;
+    if (dealt !== this.dealtSeen) {
+      this.dealtSeen = dealt;
+      this.quietT = 0;
+    } else this.quietT++;
+    this.bored = this.quietT > 360;
+    this.refreshMode(me);
+    if (this.holdKind !== 'none' && this.continueHold(w, me, foe, g, cmd)) return;
+    if (s.act === Act.Ledge) {
+      // hanging from an edge: climb up, or let go when they are below us
+      if (g.dy > 60 && this.rng.next() < 0.5) cmd.moveY = 1;
+      else if (!(this.prev & Btn.Jump)) cmd.buttons |= Btn.Jump;
+      return;
+    }
+    if (s.act === Act.Attack) {
+      this.chain(me, foe, g, cmd, T);
+      return;
+    }
+    // rolling, stunned, healing, casting, or a charge we did not start: nothing to decide
+    if (s.act !== Act.Free) return;
+    if (this.react(w, me, foe, g, cmd, T)) return;
+    if (this.heal(w, me, foe, g, cmd, T)) return;
+    if (this.skill(w, me, foe, g, cmd, T)) return;
+    // while a swing of theirs can reach us, our own swing would only trade: answer it instead
+    if (!swingAt(me, foe) && this.attack(me, foe, g, cmd, T)) return;
+    this.platforms(w, me, g, cmd, T);
+    this.move(w, me, foe, g, cmd, T);
+  }
+
+  /** Pick the weapon to space for, every so often: a melee weapon, or the bow. */
+  private refreshMode(me: Fighter) {
+    if (this.modeT > 0) {
+      this.modeT--;
+      return;
+    }
+    this.modeT = 80 + this.rng.int(120);
+    const bow = slotOf(me.load, isBow);
+    const melee = [0, 1].filter((i) => !isBow(me.load.weapons[i]) && !isShield(me.load.weapons[i]));
+    if (bow >= 0 && (melee.length === 0 || (!this.bored && this.rng.next() < 0.35))) {
+      this.mode = 'range';
+      this.slot = bow;
+    } else {
+      this.mode = 'melee';
+      this.slot = melee.length ? melee[this.rng.int(melee.length)] : 0;
+    }
+  }
+
+  /** The opponent is open: recovering from a swing, stunned, or drinking. */
+  private vulnerable(foe: Fighter): boolean {
+    const o = foe.s;
+    if (o.act === Act.Stun || o.act === Act.Heal) return true;
+    if (o.act === Act.Attack) {
+      const m = currentMove(o, foe.load);
+      return !!m && o.actT >= m.startup + m.active;
+    }
+    if (o.act === Act.Skill) return o.actT >= SKILLS[foe.load.skill].startup;
+    return false;
+  }
+
+  /** Keep a guard or a charge going, or let it go. Returns true when it has decided this tick's command. */
+  private continueHold(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd): boolean {
+    const s = me.s;
+    if (this.holdKind === 'block') {
+      if (s.act !== Act.Block) {
+        this.clearHold();
+        return false;
+      }
+      const shot = incomingShot(w, me, foe);
+      const incoming = swingAt(me, foe) !== null || (!this.bored && shot !== null && shot.ticks <= 14);
+      const release =
+        this.bash ||
+        (this.vulnerable(foe) && g.dist <= reachOf(WeaponId.Shield) + HALF + 30 && s.blockT < FIGHTER.parryWindow) ||
+        (!incoming && s.blockT >= FIGHTER.parryWindow) ||
+        s.blockT > 60;
+      if (release) this.clearHold();
+      else cmd.buttons |= this.hold;
+      return true;
+    }
+    if (this.holdKind === 'charge') {
+      if (s.act !== Act.Charge) {
+        this.clearHold();
+        return false;
+      }
+      const c = WEAPONS[me.load.weapons[s.slot]].charged;
+      const max = c ? c.max : 0;
+      if (s.charge >= this.holdTarget || s.charge >= max - 2 || g.dist < 90) this.clearHold();
+      else cmd.buttons |= this.hold;
+      return true;
+    }
+    return false;
+  }
+
+  /** Continue a combo: press again in the chain window so the next hit is buffered for when it opens. */
+  private chain(me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune) {
+    const s = me.s;
+    const m = currentMove(s, me.load);
+    if (!m || m.arrow || m.plunge || m.dash || this.chainSeq === s.moveSeq) return;
+    if (isShield(me.load.weapons[s.slot])) return;
+    const chainAt = m.startup + m.active + Math.ceil(m.recovery * 0.35);
+    const total = m.startup + m.active + m.recovery;
+    // the press is buffered for 10 ticks, so pressing a few ticks before the chain window opens is enough
+    if (s.actT < chainAt - 4 || s.actT >= total) return;
+    this.chainSeq = s.moveSeq;
+    const btn = s.slot === 0 ? Btn.A : Btn.B;
+    if (g.dist > reachOf(me.load.weapons[s.slot]) + HALF + 14 || this.rng.next() >= T.chain) return;
+    if (!(this.prev & btn)) cmd.buttons |= btn;
+  }
+
+  /** Answer the opponent's swings and shots: roll, or raise the shield to parry, on the right frame. */
+  private react(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
+    const s = me.s;
+    const shieldSlot = slotOf(me.load, isShield);
+    const sw = swingAt(me, foe);
+    if (sw && sw.seq !== this.answered) {
+      this.answered = sw.seq;
+      if (this.rng.next() < T.dodge) {
+        const canBlock = shieldSlot >= 0 && !sw.move.breaksGuard;
+        this.plan = { seq: sw.seq, at: w.tick + T.react, block: canBlock && this.rng.next() < T.parry };
+      }
+    }
+    if (this.plan) {
+      const P = this.plan;
+      if (!sw || sw.seq !== P.seq) this.plan = null;
+      else if (w.tick < P.at) return true; // reacting: stand still
+      else {
+        if (!P.block && s.rollCd > 0 && shieldSlot >= 0 && !sw.move.breaksGuard) P.block = true;
+        if (P.block) {
+          if (!s.ground) this.plan = null;
+          else if (sw.at <= 3) {
+            this.startBlock(me, cmd, false);
+            this.plan = null;
+            return true;
+          } else return true; // hold ground until the frame is right
+        } else if (s.rollCd > 0 || sw.end <= 1) this.plan = null;
+        else if (sw.at <= 2) {
+          this.roll(g, cmd, T);
+          this.plan = null;
+          return true;
+        } else return true; // wait for the roll frame
+      }
+    }
+
+    for (const id of this.shots.keys()) if (!w.projectiles.some((p) => p.id === id)) this.shots.delete(id);
+    const shot = incomingShot(w, me, foe);
+    if (!shot || this.bored) return false;
+    let m = this.shots.get(shot.id);
+    if (!m) {
+      m = { t: w.tick, answer: this.rng.next() < T.dodge, block: this.rng.next() < T.parry, through: this.rng.next() < T.through };
+      this.shots.set(shot.id, m);
+    }
+    if (!m.answer || w.tick - m.t < T.react) return false;
+    if (shot.kind === 'bomb') {
+      if (shot.ticks <= 4) return false;
+      cmd.moveX = shot.away; // get out from under the blast
+      return true;
+    }
+    if (m.block && shieldSlot >= 0 && s.ground) {
+      if (shot.ticks <= 8) {
+        this.startBlock(me, cmd, false);
+        return true;
+      }
+      return false; // keep moving; guard only when it is about to land
+    }
+    if (s.rollCd === 0 && shot.ticks <= 10) {
+      cmd.moveX = m.through ? g.dir : -g.dir;
+      cmd.buttons |= Btn.Roll;
+      return true;
+    }
+    return false;
+  }
+
+  private roll(g: Geo, cmd: InputCmd, T: Tune) {
+    cmd.moveX = this.rng.next() < T.through ? g.dir : -g.dir;
+    cmd.buttons |= Btn.Roll;
+  }
+
+  private startBlock(me: Fighter, cmd: InputCmd, bash: boolean) {
+    this.hold = slotOf(me.load, isShield) === 0 ? Btn.A : Btn.B;
+    this.holdKind = 'block';
+    this.bash = bash;
+    cmd.buttons |= this.hold;
+  }
+
+  private startCharge(btn: number, target: number, cmd: InputCmd) {
+    this.hold = btn;
+    this.holdKind = 'charge';
+    this.holdTarget = target;
+    this.bash = false;
+    cmd.buttons |= btn;
+  }
+
+  /** Drink the flask only when nothing can reach us during the 48 ticks it takes. */
+  private heal(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
+    const s = me.s;
+    if (!s.ground || s.flask <= 0 || s.hp > FIGHTER.maxHp * T.healBelow) return false;
+    const o = foe.s;
+    const safe = (o.act === Act.Stun && o.stun > 48) || (g.dist >= 260 && o.act !== Act.Attack && o.act !== Act.Charge);
+    if (!safe || incomingShot(w, me, foe) !== null) return false;
+    if (this.rng.next() >= T.heal) return false;
+    cmd.buttons |= Btn.Heal;
+    return true;
+  }
+
+  /** Fire the skill where it lands: bomb at mid range, frost along a level line, trap close, blink to close or escape. */
+  private skill(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
+    const s = me.s;
+    if (s.skillCd > 0) return false;
+    const sk = me.load.skill;
+    if (sk !== SkillId.Blink && swingAt(me, foe)) return false;
+    let face = g.dir;
+    let ok = false;
+    switch (sk) {
+      case SkillId.Bomb:
+        // a lob lands about 340 units out on level ground and its blast is about 90 wide
+        ok = g.dist >= 250 && g.dist <= 430 && foe.s.act !== Act.Attack;
+        break;
+      case SkillId.Frost:
+        ok = Math.abs(g.dy) < 40 && g.dist >= 130 && g.dist <= 650;
+        break;
+      case SkillId.Trap:
+        // laid just in front of us: the opponent has to walk onto it
+        ok = g.dist >= 60 && g.dist <= 170;
+        break;
+      case SkillId.Blink: {
+        const sw = swingAt(me, foe);
+        const room = -g.dir > 0 ? w.arena.w - s.x : s.x;
+        if (g.dist >= this.gap(me, T) + 170 && g.dist <= 520) ok = true;
+        else if (sw && sw.at >= 5 && s.rollCd > 0 && room >= 180) {
+          ok = true;
+          face = -g.dir;
+        }
+        break;
+      }
+    }
+    if (!ok || this.rng.next() >= T.skill) return false;
+    if (s.face !== face) {
+      cmd.moveX = face * 0.5; // turn to aim first
+      return true;
+    }
+    cmd.buttons |= Btn.Skill;
+    if (sk === SkillId.Trap) this.backT = 24;
+    return true;
+  }
+
+  /** Swing, shield-bash, lunge or shoot. Returns true when it has decided this tick's command. */
+  private attack(me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
+    const s = me.s;
+    const o = foe.s;
+    const vuln = this.vulnerable(foe);
+    // a guard that has only just gone up still parries: do not walk into it
+    const guardFresh = o.act === Act.Block && o.blockT < 14 && !vuln && !this.bored;
+    const order = [this.slot, 1 - this.slot];
+    let inReach = false;
+    if (!guardFresh && Math.abs(g.dy) < 50) {
+      for (const i of order) {
+        const wp = me.load.weapons[i];
+        const btn = i === 0 ? Btn.A : Btn.B;
+        if (isBow(wp) || g.dist > reachOf(wp) + HALF + 2) continue;
+        inReach = true;
+        if (!g.facing) {
+          cmd.moveX = g.dir * 0.4; // turn to face them
+          return true;
+        }
+        if (this.prev & btn) continue;
+        if (isShield(wp)) {
+          if (s.ground && (vuln || this.rng.next() < T.attack * 0.5)) {
+            this.startBlock(me, cmd, true);
+            return true;
+          }
+          continue;
+        }
+        if (!vuln && T.windup > 0) {
+          if (this.windT < 0) this.windT = T.windup;
+          if (this.windT > 0) {
+            this.windT--; // telegraph: stand still in reach before the swing
+            return true;
+          }
+        }
+        if (this.rng.next() >= (vuln ? T.punish : T.attack)) return false;
+        this.windT = -1;
+        if (!s.ground && WEAPONS[wp].plunge && g.dy > -10) cmd.moveY = 1; // plunge onto them
+        cmd.buttons |= btn;
+        return true;
+      }
+    }
+    // lance lunge (hold to charge) or bow draw (hold to draw), out of melee reach
+    for (const i of order) {
+      const wp = me.load.weapons[i];
+      const c = WEAPONS[wp].charged;
+      const btn = i === 0 ? Btn.A : Btn.B;
+      const bow = isBow(wp);
+      if (!c || (!s.ground && !bow) || this.prev & btn) continue;
+      const lo = bow ? 260 : 100;
+      const hi = bow ? 520 : 230;
+      if (g.dist < lo || g.dist > hi || Math.abs(g.dy) > 40 || !g.facing) continue;
+      const p = vuln ? 1 : this.mode === 'range' ? T.ranged : T.ranged * 0.3;
+      if (this.rng.next() >= p) continue;
+      const target = bow ? (this.rng.next() < 0.6 ? 26 + this.rng.int(18) : 3) : 18 + this.rng.int(14);
+      this.startCharge(btn, target, cmd);
+      return true;
+    }
+    if (!inReach) this.windT = -1;
+    // hop in from just outside reach and swing from the air
+    const reach = reachOf(me.load.weapons[this.slot]) + HALF;
+    if (
+      this.mode === 'melee' && s.ground && !vuln && g.facing && Math.abs(g.dy) < 40 &&
+      g.dist > reach + 2 && g.dist < reach + 90 && this.rng.next() < T.hop
+    ) {
+      cmd.buttons |= Btn.Jump;
+      return true;
+    }
+    return false;
+  }
+
+  private platforms(w: World, me: Fighter, g: Geo, cmd: InputCmd, T: Tune) {
+    const s = me.s;
+    if (cmd.buttons !== 0) return;
+    if (s.ground && g.dy < -60 && g.dist < 220 && this.rng.next() < T.climb) {
+      cmd.buttons |= Btn.Jump;
+      return;
+    }
+    if (!s.ground && s.jumps > 0 && s.vy > 0 && g.dy < -80 && g.dist < 160 && this.rng.next() < T.climb * 2) {
+      cmd.buttons |= Btn.Jump;
+      return;
+    }
+    const ledge = s.ground && s.y < w.arena.floor - 0.5;
+    if (ledge && g.dy > 60 && g.dist < 200 && this.rng.next() < T.drop) {
+      cmd.moveY = 1; // drop through the platform toward them
+      cmd.buttons |= Btn.Jump;
+    }
+  }
+
+  /** The distance the bot wants between itself and the opponent in its current mode. */
+  private gap(me: Fighter, T: Tune): number {
+    if (this.mode === 'range') return 340;
+    // a ready skill is worth a step back to where it lands
+    if (this.level !== 'easy' && me.s.skillCd === 0) {
+      if (me.load.skill === SkillId.Bomb) return 320;
+      if (me.load.skill === SkillId.Frost) return 240;
+      if (me.load.skill === SkillId.Trap) return 120;
+    }
+    return reachOf(me.load.weapons[this.slot]) * T.spaceMul + HALF + T.spaceAdd;
+  }
+
+  /** Walk to the wanted gap, hold it, or back off; the choice is kept for a while so the bot does not jitter. */
+  private move(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune) {
+    const s = me.s;
+    const o = foe.s;
+    if (this.backT > 0) {
+      this.backT--;
+      cmd.moveX = -g.dir;
+      return;
+    }
+    for (const t of w.traps) {
+      // step off an armed trap the opponent set under us
+      if (t.owner === foe.id && w.tick >= t.armAt && s.ground && Math.abs(t.x - s.x) < 46) {
+        cmd.moveX = s.x >= t.x ? 1 : -1;
+        return;
+      }
+    }
+    const vuln = this.vulnerable(foe);
+    const idle = this.idleT > 40 || this.bored;
+    const lunging = o.act === Act.Charge && g.dist < 280;
+    const err = g.dist - this.gap(me, T);
+    // pushing at a wall or a block that we cannot get over: back off for a while, and try a jump once
+    const moved = Math.abs(s.x - this.lastX) > 0.5;
+    this.lastX = s.x;
+    if (!moved && this.moveMode === 'in' && !vuln) this.stuckT++;
+    else this.stuckT = 0;
+    // a jump, then a second one in the air: enough to clear a block about as tall as two jumps
+    if (this.stuckT === 12 || this.stuckT === 16) cmd.buttons |= Btn.Jump;
+    // a very long stand-off: keep hopping at the obstacle, so a ledge grab or a double jump can get them over it
+    if (this.quietT > 900 && this.quietT % 8 === 0 && !vuln) cmd.buttons |= Btn.Jump;
+    if (this.stuckT > 20) {
+      this.stuckT = 0;
+      this.unstuckT = 30;
+    }
+    let mode = this.moveMode;
+    if (this.unstuckT > 0 && !vuln) {
+      this.unstuckT--;
+      mode = 'back';
+    } else if (vuln || idle) mode = 'in';
+    else if (lunging) mode = 'back';
+    else if (this.moveT <= 0 || (mode === 'in' && err < -20) || (mode === 'back' && err > 20)) {
+      this.moveT = T.commit + this.rng.int(T.commit);
+      if (err > 14) mode = 'in';
+      else if (err < -14) mode = this.rng.next() < T.retreat ? 'back' : 'hold';
+      else mode = this.rng.next() < 0.3 ? 'strafe' : 'hold';
+      if (mode === 'strafe') this.strafeDir = this.rng.next() < 0.5 ? -1 : 1;
+    }
+    this.moveT--;
+    const backDir = -g.dir;
+    if (mode === 'back' && (backDir > 0 ? s.x > w.arena.w - 130 : s.x < 130)) mode = 'hold';
+    this.moveMode = mode;
+    if (mode === 'in') cmd.moveX = g.dir;
+    else if (mode === 'back') cmd.moveX = backDir;
+    else if (mode === 'strafe') cmd.moveX = this.strafeDir * 0.35;
+    // a solid block in the way on the ground: jump it
+    if (cmd.moveX !== 0 && cmd.buttons === 0 && s.ground && solidAt(w.arena, s.x + Math.sign(cmd.moveX) * (HALF + 6), s.y - 12)) {
+      if (!(this.prev & Btn.Jump)) cmd.buttons |= Btn.Jump;
+    }
   }
 }

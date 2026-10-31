@@ -68,12 +68,39 @@ import * as damageNumber from '../vendor/pixelfx/fx/ui/damage-number.js';
 import * as critNumber from '../vendor/pixelfx/fx/ui/crit-number.js';
 // @ts-expect-error -
 import * as pow from '../vendor/pixelfx/fx/explosions/cartoon-pow.js';
+// @ts-expect-error -
+import * as lightningStrike from '../vendor/pixelfx/fx/lightning/lightning-strike.js';
+// @ts-expect-error -
+import * as chargeUp from '../vendor/pixelfx/fx/lightning/charge-up.js';
+// @ts-expect-error -
+import * as arcaneOrb from '../vendor/pixelfx/fx/arcane/arcane-orb.js';
+// @ts-expect-error -
+import * as divineShield from '../vendor/pixelfx/fx/holy/divine-shield.js';
+// @ts-expect-error -
+import * as rage from '../vendor/pixelfx/fx/status/rage.js';
+// @ts-expect-error -
+import * as energyDisc from '../vendor/pixelfx/fx/projectiles/energy-disc.js';
+// @ts-expect-error -
+import * as spellCharge from '../vendor/pixelfx/fx/arcane/spell-charge.js';
+// @ts-expect-error -
+import * as circleCast from '../vendor/pixelfx/fx/arcane/magic-circle-cast.js';
+// @ts-expect-error -
+import * as smite from '../vendor/pixelfx/fx/holy/smite.js';
 
 export const FX = {
   swordSlash, doubleSlash, spinSlash, scytheReap, thrust, spearSweep, claw, daggerFlurry, hammerSmash, heavyCleave, hitSpark, critHit, bluntHit,
   parry, shieldBlock, groundSlam, heavyLanding, smallExplosion, iceShatter, iceLance, blinkIn, blinkOut, heal, poof, arrow, fireball, burning,
-  slowed, stunned, damageNumber, critNumber, pow,
+  slowed, stunned, damageNumber, critNumber, pow, lightningStrike, chargeUp, arcaneOrb, divineShield, rage, energyDisc, spellCharge, circleCast,
+  smite,
 } as Record<string, FxModule>;
+
+/** Palettes that recolour PixelFX effects for the Arts (dark to bright). */
+export const PAL = {
+  gold: ['#2a1606', '#5a3410', '#9a6418', '#d8a030', '#f5d060', '#fff0a8', '#ffffff'],
+  violet: ['#140a26', '#2e1660', '#5a2aa8', '#8a5ae0', '#c09cff', '#ece0ff', '#ffffff'],
+  crimson: ['#1a0408', '#4a0a12', '#8c1420', '#d42a2e', '#ff6a4a', '#ffc0a0', '#ffffff'],
+  cyan: ['#04141a', '#0a3a4a', '#147a90', '#2ac0d8', '#7ae8f5', '#d0fbff', '#ffffff'],
+};
 
 export interface SwingFx {
   mod: FxModule;
@@ -106,6 +133,8 @@ export function swingFx(weapon: number, move: number): SwingFx | null {
     case WeaponId.Hammer:
       if (move === 2 || move === MOVE_PLUNGE) return null; // the slam plays ground-slam on impact
       return s(FX.heavyCleave, 1.8);
+    case WeaponId.Staff:
+      return null; // the bolt itself is the effect
     default:
       return null;
   }

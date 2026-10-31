@@ -1,0 +1,11 @@
+--- a/deploy/htaccess
++++ b/deploy/htaccess
+@@ -7,6 +7,8 @@
+   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+   # Already inside a release directory: serve as-is (prevents rewrite loops).
+   RewriteRule ^r/ - [L]
++  # Bladerift lives in /bladerift/ with its own router: never route its requests into Skyfire's release.
++  RewriteRule ^bladerift(/|$) - [L]
+   # Existing file in the active release -> serve it.
+   RewriteCond %{DOCUMENT_ROOT}/r/__RELEASE__/$1 -f
+   RewriteRule ^(.*)$ r/__RELEASE__/$1 [L]

@@ -16,7 +16,7 @@ export function setUpdater(fn: ApplyFn) {
 /** Called by main.ts when a new version has been downloaded and is waiting. */
 export function markUpdateReady() {
   ready = true;
-  window.dispatchEvent(new Event('skyfire:update-ready'));
+  window.dispatchEvent(new Event('bladerift:update-ready'));
 }
 
 export function updateReady() {

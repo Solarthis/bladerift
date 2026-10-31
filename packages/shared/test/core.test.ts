@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   Act, BotBrain, Btn, decodeSnapshot, emptyInput, encodeSnapshot, encodeSnapshotBody, FIGHTER, InputCmd, newFighterState, ROUND, SkillId,
-  stepFighter, getArena, World, WeaponId, WEAPONS, copyState, Loadout,
+  stepFighter, getArena, World, WeaponId, WEAPONS, copyState, Loadout, CLASSES,
 } from '../src/index';
 
-const LOAD: Loadout = { weapons: [WeaponId.Sword, WeaponId.Shield], skill: SkillId.Bomb };
+const MAXHP = CLASSES[0].hp;
+const LOAD: Loadout = { weapons: [WeaponId.Sword, WeaponId.Shield], skill: SkillId.Bomb, cls: 0 };
 
 function cmd(seq: number, moveX = 0, buttons = 0, moveY = 0): InputCmd {
   return { seq, moveX, moveY, buttons, viewTick: 0 };
@@ -83,56 +84,56 @@ describe('combat', () => {
   it('a sword swing hits once per move and the combo chains', () => {
     const { w, fb } = duel();
     run(w, 30, (i) => cmd(i, 0, i % 2 ? Btn.A : 0));
-    expect(fb.s.hp).toBeLessThan(FIGHTER.maxHp);
+    expect(fb.s.hp).toBeLessThan(MAXHP);
     const hp1 = fb.s.hp;
-    expect(FIGHTER.maxHp - hp1).toBeGreaterThanOrEqual(WEAPONS[WeaponId.Sword].combo[0].dmg);
+    expect(MAXHP - hp1).toBeGreaterThanOrEqual(WEAPONS[WeaponId.Sword].combo[0].dmg);
   });
 
   it('a roll dodges a swing (invulnerable frames)', () => {
     const { w, fb } = duel();
     // B rolls just before A's swing becomes active
     run(w, 40, (i) => cmd(i, 0, i === 1 ? Btn.A : 0), (i) => cmd(i, 1, i === 2 ? Btn.Roll : 0));
-    expect(fb.s.hp).toBe(FIGHTER.maxHp);
+    expect(fb.s.hp).toBe(MAXHP);
   });
 
   it('a held shield blocks (chip damage) and a fresh block parries and stuns the attacker', () => {
     const { w, fa, fb } = duel();
     // B raises the shield early and holds it: block, not parry
     run(w, 40, (i) => cmd(i, 0, i === 20 ? Btn.A : 0), (i) => cmd(i, 0, Btn.B));
-    expect(fb.s.hp).toBeLessThan(FIGHTER.maxHp);
-    expect(fb.s.hp).toBeGreaterThan(FIGHTER.maxHp - 30);
+    expect(fb.s.hp).toBeLessThan(MAXHP);
+    expect(fb.s.hp).toBeGreaterThan(MAXHP - 30);
     // parry: raise the shield just as the swing lands
     const p = duel();
     const startup = WEAPONS[WeaponId.Sword].combo[0].startup;
     run(p.w, 12, (i) => cmd(i, 0, i === 1 ? Btn.A : 0), (i) => cmd(i, 0, i >= startup - 2 ? Btn.B : 0));
-    expect(p.fb.s.hp).toBe(FIGHTER.maxHp);
+    expect(p.fb.s.hp).toBe(MAXHP);
     expect(p.fa.s.act).toBe(Act.Stun);
     void fa;
   });
 
   it('the hammer slam breaks a guard', () => {
-    const { w, fb } = duel({ weapons: [WeaponId.Hammer, WeaponId.Bow], skill: SkillId.Blink }, LOAD, 60);
+    const { w, fb } = duel({ weapons: [WeaponId.Hammer, WeaponId.Bow], skill: SkillId.Blink, cls: 0 }, LOAD, 60);
     run(w, 200, (i) => cmd(i, 0, i % 4 === 1 ? Btn.A : 0), (i) => cmd(i, 0, Btn.B));
-    expect(fb.s.hp).toBeLessThan(FIGHTER.maxHp - 100);
+    expect(fb.s.hp).toBeLessThan(MAXHP - 100);
   });
 
   it('arrows fly and hit at range', () => {
-    const { w, fb } = duel({ weapons: [WeaponId.Bow, WeaponId.Sword], skill: SkillId.Bomb }, LOAD, 360);
+    const { w, fb } = duel({ weapons: [WeaponId.Bow, WeaponId.Sword], skill: SkillId.Bomb, cls: 0 }, LOAD, 360);
     run(w, 80, (i) => cmd(i, 0, i >= 2 && i <= 4 ? Btn.A : 0));
-    expect(fb.s.hp).toBeLessThan(FIGHTER.maxHp);
+    expect(fb.s.hp).toBeLessThan(MAXHP);
   });
 
   it('skills: bomb burns, frost slows, trap roots, blink teleports', () => {
-    const bomb = duel({ weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb }, LOAD, 320);
+    const bomb = duel({ weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb, cls: 0 }, LOAD, 320);
     run(bomb.w, 90, (i) => cmd(i, 0, i === 2 ? Btn.Skill : 0));
-    expect(bomb.fb.s.hp).toBeLessThan(FIGHTER.maxHp);
-    const frost = duel({ weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Frost }, LOAD, 250);
+    expect(bomb.fb.s.hp).toBeLessThan(MAXHP);
+    const frost = duel({ weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Frost, cls: 0 }, LOAD, 250);
     run(frost.w, 30, (i) => cmd(i, 0, i === 2 ? Btn.Skill : 0));
     expect(frost.fb.s.slowT).toBeGreaterThan(0);
-    const trap = duel({ weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Trap }, LOAD, 120);
+    const trap = duel({ weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Trap, cls: 0 }, LOAD, 120);
     run(trap.w, 120, (i) => cmd(i, 0, i === 2 ? Btn.Skill : 0), (i) => cmd(i, i > 40 ? -1 : 0));
-    expect(trap.fb.s.hp).toBeLessThan(FIGHTER.maxHp);
-    const blink = duel({ weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Blink }, LOAD, 400);
+    expect(trap.fb.s.hp).toBeLessThan(MAXHP);
+    const blink = duel({ weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Blink, cls: 0 }, LOAD, 400);
     const x0 = blink.fa.s.x;
     run(blink.w, 20, (i) => cmd(i, 0, i === 2 ? Btn.Skill : 0));
     expect(blink.fa.s.x - x0).toBeGreaterThan(140);
@@ -152,8 +153,8 @@ describe('rounds and matches', () => {
     for (const arenaId of ['bridge', 'embers', 'crypt', 'grove']) {
       const w = new World({ arenaId, wins: 2, roundTime: 60 });
       const loads: Loadout[] = [
-        { weapons: [WeaponId.Scythe, WeaponId.Bow], skill: SkillId.Bomb },
-        { weapons: [WeaponId.Lance, WeaponId.Shield], skill: SkillId.Frost },
+        { weapons: [WeaponId.Scythe, WeaponId.Bow], skill: SkillId.Bomb, cls: 0 },
+        { weapons: [WeaponId.Lance, WeaponId.Shield], skill: SkillId.Frost, cls: 0 },
       ];
       w.addFighter(1, 0, 'A', loads[0], true);
       w.addFighter(2, 1, 'B', loads[1], true);
@@ -187,7 +188,7 @@ describe('rounds and matches', () => {
 
 describe('protocol', () => {
   it('round-trips a snapshot with the full self state', () => {
-    const { w, fa } = duel({ weapons: [WeaponId.Bow, WeaponId.Sword], skill: SkillId.Trap });
+    const { w, fa } = duel({ weapons: [WeaponId.Bow, WeaponId.Sword], skill: SkillId.Trap, cls: 0 });
     run(w, 10, (i) => cmd(i, 0, i === 2 ? Btn.Skill : 0));
     run(w, 4, (i) => cmd(i, 0, Btn.A));
     const body = encodeSnapshotBody(w, w.events);

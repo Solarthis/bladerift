@@ -1,12 +1,14 @@
 /**
- * One fighter's deterministic step: movement and the action state machine (attacks, charge, block, roll, heal,
- * skills). It depends only on (state, command, arena, loadout), so the client predicts its own fighter exactly; hits,
- * projectiles, burning and rounds are the World's job (server-authoritative).
+ * One fighter's deterministic step: movement (run, jump, double jump, coyote time, wall slide and wall jump, ledge grab
+ * and climb, air dash, fast fall, crouch, drop-through) and the action state machine (attacks, charge, block, roll,
+ * heal, skills). It depends only on (state, command, arena, loadout), so the client predicts its own fighter exactly;
+ * hits, projectiles, burning and rounds are the World's job (server-authoritative).
  */
-import { ArenaDef } from './arena';
+import { ArenaDef, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS } from './constants';
 import { Btn, InputCmd } from './input';
 import { Loadout, Move, SKILL_FX, SKILLS, SkillId, WEAPONS } from './weapons';
+import { ArtId, artOf, classOf, ClassDef, RIFT } from './classes';
 
 export const enum Act {
   Free = 0,
@@ -19,12 +21,24 @@ export const enum Act {
   Skill = 7,
   KO = 8,
   Win = 9,
+  /** Hanging from a top edge (ledgeX, ledgeY); jump climbs, down or away lets go. */
+  Ledge = 10,
+  Climb = 11,
+  /** Performing the class's Rift Art (classes.ts); the World plays out its effects. */
+  Art = 12,
 }
 
 /** Move index codes beyond the combo steps. */
 export const MOVE_AIR = 10;
 export const MOVE_PLUNGE = 11;
 export const MOVE_CHARGED = 12;
+/** Lancer's Piercing Fang: an attack move, so it uses the normal hit system. */
+export const MOVE_ART = 13;
+
+/** Piercing Fang: an unstoppable, guard-breaking lunge across the arena. */
+export const ART_FANG: Move = {
+  startup: 10, active: 24, recovery: 14, dmg: 240, box: { x: 2, y: -50, w: 72, h: 30 }, kbX: 460, kbY: 220, stun: 46, dash: 900, breaksGuard: true, shake: 0.9,
+};
 
 const enum Buf {
   None = 0,
@@ -34,6 +48,7 @@ const enum Buf {
   Roll = 4,
   Heal = 5,
   Jump = 6,
+  Special = 7,
 }
 
 export interface FighterState {
@@ -78,24 +93,54 @@ export interface FighterState {
   jumpHeld: number;
   /** Set on the tick a skill or arrow should spawn (the World reads and clears it). */
   spawn: number;
+  /** Side of a wall touching the body this tick (-1 left, 1 right, 0 none) and whether it is sliding down it. */
+  wall: number;
+  slide: number;
+  /** Ticks a wall jump is still allowed off `wallSide`, and ticks steering back toward that wall is ignored. */
+  wallT: number;
+  wallSide: number;
+  wlock: number;
+  /** The air dash has been used this airtime; the current roll is an air dash. */
+  dash: number;
+  rollAir: number;
+  /** Fast falling; crouching; ticks of coyote time left. */
+  fast: number;
+  crouch: number;
+  coyote: number;
+  /** The edge being hung from or climbed (x, top y), and the re-grab cooldown. */
+  ledgeX: number;
+  ledgeY: number;
+  ledgeCd: number;
+  /** Ticks a landed hit can still be cancelled into a jump (set by the World). */
+  confirm: number;
+  /** Rift gauge (0..RIFT.max): full = the class's Rift Art is ready. */
+  rift: number;
+  /** Berserker's Blood Frenzy ticks left (no stagger, harder hits, faster recovery). */
+  frenzy: number;
 }
 
 /** Every state field, in wire order (protocol.ts sends the whole state to its owner for prediction). */
 export const STATE_KEYS: (keyof FighterState)[] = [
   'x', 'y', 'vx', 'vy', 'face', 'ground', 'jumps', 'drop', 'act', 'actT', 'slot', 'move', 'combo', 'comboWin', 'buf', 'bufT',
   'charge', 'rollCd', 'skillCd', 'invuln', 'stun', 'slowT', 'rootT', 'burnT', 'flask', 'hp', 'prevBtn', 'moveSeq', 'blockT',
-  'lock', 'jumpHeld', 'spawn',
+  'lock', 'jumpHeld', 'spawn', 'wall', 'slide', 'wallT', 'wallSide', 'wlock', 'dash', 'rollAir', 'fast', 'crouch', 'coyote',
+  'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy',
 ];
 
-export function newFighterState(x: number, y: number, face: number): FighterState {
+export function newFighterState(x: number, y: number, face: number, cls = 0): FighterState {
   return {
-    x, y, vx: 0, vy: 0, face, ground: 1, jumps: PHYS.airJumps, drop: 0, act: Act.Free, actT: 0, slot: 0, move: 0, combo: 0,
+    x, y, vx: 0, vy: 0, face, ground: 1, jumps: classOf(cls).airJumps, drop: 0, act: Act.Free, actT: 0, slot: 0, move: 0, combo: 0,
     comboWin: 0, buf: 0, bufT: 0, charge: 0, rollCd: 0, skillCd: 0, invuln: 0, stun: 0, slowT: 0, rootT: 0, burnT: 0,
-    flask: FIGHTER.flasks, hp: FIGHTER.maxHp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
+    flask: FIGHTER.flasks, hp: classOf(cls).hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
+    wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
+    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0,
   };
 }
 
 export const copyState = (s: FighterState): FighterState => ({ ...s });
+
+/** Body height now (crouching ducks under high swings). */
+export const bodyH = (s: { crouch: number }) => (s.crouch ? FIGHTER.crouchH : FIGHTER.h);
 
 /** The move a fighter is performing (null when not attacking). */
 export function currentMove(s: FighterState, load: Loadout): Move | null {
@@ -109,6 +154,7 @@ export function moveOf(weapon: number, move: number): Move | null {
   if (move === MOVE_AIR) return w.air;
   if (move === MOVE_PLUNGE) return w.plunge ?? w.air;
   if (move === MOVE_CHARGED) return w.charged ?? w.combo[0];
+  if (move === MOVE_ART) return ART_FANG;
   return w.combo[move] ?? w.combo[0];
 }
 
@@ -127,13 +173,6 @@ export function moveDamage(s: FighterState, load: Loadout, m: Move) {
   return m.dmg;
 }
 
-/** The surface a fighter at x would land on at or below y (the floor if no platform). */
-export function surfaceBelow(arena: ArenaDef, x: number, y: number) {
-  let best = arena.floor;
-  for (const p of arena.platforms) if (x >= p.x && x <= p.x + p.w && p.y >= y - 0.5 && p.y < best) best = p.y;
-  return best;
-}
-
 const approach = (v: number, t: number, step: number) => (v < t ? Math.min(v + step, t) : Math.max(v - step, t));
 
 function startAttack(s: FighterState, slot: number, move: number) {
@@ -143,12 +182,20 @@ function startAttack(s: FighterState, slot: number, move: number) {
   s.move = move;
   s.moveSeq = (s.moveSeq + 1) % 65536;
   s.spawn = 0;
+  s.crouch = 0;
 }
 
 /** Try to start the buffered action; returns true if it started (the buffer is consumed). */
 function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Loadout): boolean {
   const b = s.buf;
   if (!b) return false;
+  const C = classOf(load.cls);
+  if (b === Buf.Special) {
+    if (!startArt(s, C)) return false;
+    s.buf = 0;
+    s.bufT = 0;
+    return true;
+  }
   if (b === Buf.A || b === Buf.B) {
     const slot = b === Buf.A ? 0 : 1;
     const w = WEAPONS[load.weapons[slot]];
@@ -160,12 +207,14 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
         s.actT = 0;
         s.blockT = 0;
         s.slot = slot;
+        s.crouch = 0;
       }
     } else if (w.charged && (s.ground || w.arrowSpeed)) {
       s.act = Act.Charge;
       s.actT = 0;
       s.charge = 0;
       s.slot = slot;
+      s.crouch = 0;
     } else if (!s.ground) {
       startAttack(s, slot, cmd.moveY > 0.5 && w.plunge ? MOVE_PLUNGE : MOVE_AIR);
     } else {
@@ -178,43 +227,94 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     const sk = SKILLS[load.skill];
     s.act = Act.Skill;
     s.actT = 0;
-    s.skillCd = sk.cooldown;
+    s.skillCd = Math.round(sk.cooldown * C.skillCd);
     s.spawn = 0;
+    s.crouch = 0;
   } else if (b === Buf.Roll) {
-    if (s.rollCd > 0) return false;
+    // on the ground a roll (cooldown); in the air a dash, once per airtime
+    if (s.ground ? s.rollCd > 0 : s.dash >= C.dashes) return false;
     if (Math.abs(cmd.moveX) > 0.3) s.face = cmd.moveX > 0 ? 1 : -1;
     s.act = Act.Roll;
     s.actT = 0;
-    s.invuln = Math.max(s.invuln, FIGHTER.rollInvuln);
+    s.rollAir = s.ground ? 0 : 1;
+    if (!s.ground) s.dash++;
+    s.fast = 0;
+    s.crouch = 0;
+    s.invuln = Math.max(s.invuln, s.ground ? FIGHTER.rollInvuln : PHYS.dashInvuln);
   } else if (b === Buf.Heal) {
-    if (s.flask <= 0 || !s.ground || s.hp >= FIGHTER.maxHp) return false;
+    if (s.flask <= 0 || !s.ground || s.hp >= C.hp) return false;
     s.flask--;
     s.act = Act.Heal;
     s.actT = 0;
+    s.crouch = 0;
   } else if (b === Buf.Jump) {
-    if (!jump(s, cmd, arena)) return false;
+    if (!jump(s, cmd, arena, C)) return false;
   }
   s.buf = 0;
   s.bufT = 0;
   return true;
 }
 
-function jump(s: FighterState, cmd: InputCmd, arena: ArenaDef): boolean {
-  if (s.rootT > 0) return false;
-  if (s.ground && cmd.moveY > 0.5 && s.y < arena.floor - 0.5) {
-    s.drop = PHYS.dropThroughTicks;
-    s.ground = 0;
+/** Standing on a one-way platform (not the floor or a block), so down + jump drops through. */
+function onPlatform(s: FighterState, arena: ArenaDef) {
+  if (s.y >= arena.floor - 0.5) return false;
+  for (const b of arena.blocks) if (Math.abs(s.y - b.y) < 0.5 && s.x > b.x - FIGHTER.w / 2 && s.x < b.x + b.w + FIGHTER.w / 2) return false;
+  return true;
+}
+
+/** Start the class's Rift Art if the gauge is full. */
+function startArt(s: FighterState, C: ClassDef): boolean {
+  if (s.rift < RIFT.max) return false;
+  s.rift = 0;
+  s.crouch = 0;
+  s.charge = 0;
+  s.stun = 0;
+  if (C.art === ArtId.PiercingFang) {
+    startAttack(s, 0, MOVE_ART);
     return true;
   }
-  if (s.ground) {
+  s.act = Act.Art;
+  s.actT = 0;
+  const art = artOf(C.id);
+  if (C.art === ArtId.FlashStep || C.art === ArtId.Bulwark) s.invuln = Math.max(s.invuln, art.ticks);
+  if (C.art === ArtId.BloodFrenzy) s.invuln = Math.max(s.invuln, art.ticks);
+  return true;
+}
+
+function jump(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef): boolean {
+  if (s.rootT > 0) return false;
+  if (s.ground && cmd.moveY > 0.5 && onPlatform(s, arena)) {
+    s.drop = PHYS.dropThroughTicks;
+    s.ground = 0;
+    s.coyote = 0;
+    s.crouch = 0;
+    return true;
+  }
+  if (s.ground || s.coyote > 0) {
     s.vy = -PHYS.jumpSpeed;
     s.ground = 0;
+    s.coyote = 0;
+    s.jumpHeld = 1;
+    s.crouch = 0;
+    return true;
+  }
+  // off a wall: kick away and up; the double jump and the air dash come back
+  if (s.wallT > 0 && s.wallSide) {
+    s.vy = -PHYS.wallJumpY;
+    s.vx = -s.wallSide * PHYS.wallJumpX;
+    s.face = -s.wallSide;
+    s.wlock = PHYS.wallLock;
+    s.wallT = 0;
+    s.jumps = C.airJumps;
+    s.dash = 0;
+    s.fast = 0;
     s.jumpHeld = 1;
     return true;
   }
   if (s.jumps > 0) {
     s.vy = -PHYS.airJumpSpeed;
     s.jumps--;
+    s.fast = 0;
     s.jumpHeld = 1;
     return true;
   }
@@ -231,7 +331,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   if (s.lock > 0) s.lock--;
   s.spawn = 0;
 
-  for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop'] as const) if (s[k] > 0) s[k]--;
+  for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm'] as const) if (s[k] > 0) s[k]--;
   if (s.bufT > 0 && --s.bufT === 0) s.buf = 0;
 
   // newest press wins the buffer (attacks over movement presses pressed on the same tick)
@@ -241,14 +341,27 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   if (press & Btn.Skill) { s.buf = Buf.Skill; s.bufT = FIGHTER.buffer; }
   if (press & Btn.B) { s.buf = Buf.B; s.bufT = FIGHTER.buffer; }
   if (press & Btn.A) { s.buf = Buf.A; s.bufT = FIGHTER.buffer; }
+  if (press & Btn.Special) { s.buf = Buf.Special; s.bufT = FIGHTER.buffer; }
+  const C = classOf(load.cls);
+  if (s.frenzy > 0) s.frenzy--;
+  // the Rift gauge fills on its own while the round is live (hits fill it faster: the World adds those)
+  if (!locked && s.act !== Act.Art && s.rift < RIFT.max) s.rift = Math.min(RIFT.max, s.rift + RIFT.passive);
 
-  const speedK = s.slowT > 0 ? PHYS.slowFactor : 1;
-  const ax = s.rootT > 0 ? 0 : cmd.moveX;
+  const speedK = (s.slowT > 0 ? PHYS.slowFactor : 1) * C.speed * (s.frenzy > 0 ? 1.15 : 1);
+  let ax = s.rootT > 0 ? 0 : cmd.moveX;
+  // just after a wall jump, steering back into that wall is ignored (so the kick carries you away)
+  if (s.wlock > 0 && Math.sign(ax) === s.wallSide) ax = 0;
   let gravity = true;
+  s.slide = 0;
   s.actT++;
 
   switch (s.act) {
     case Act.Stun: {
+      // the assassin's Flash Step breaks out of a combo
+      if (s.buf === Buf.Special && C.art === ArtId.FlashStep && startArt(s, C)) {
+        s.buf = 0;
+        break;
+      }
       if (s.ground) s.vx = approach(s.vx, 0, PHYS.stunFriction * DT);
       if (--s.stun <= 0) {
         s.stun = 0;
@@ -258,18 +371,77 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       break;
     }
     case Act.Roll: {
+      if (s.rollAir) {
+        // air dash: a straight, gravity-free burst, then normal falling
+        s.vx = s.face * PHYS.dashSpeed * speedK * (s.actT > PHYS.dashFloat ? 0.6 : 1);
+        if (s.actT <= PHYS.dashFloat) {
+          gravity = false;
+          s.vy = 0;
+        }
+        if (s.actT >= PHYS.dashTicks) {
+          s.act = Act.Free;
+          s.actT = 0;
+          s.rollAir = 0;
+        }
+        break;
+      }
       const k = s.actT > FIGHTER.rollTicks - 6 ? 0.55 : 1;
       s.vx = s.face * FIGHTER.rollSpeed * k * speedK;
       if (s.actT >= FIGHTER.rollTicks) {
         s.act = Act.Free;
         s.actT = 0;
-        s.rollCd = FIGHTER.rollCooldown;
+        s.rollCd = Math.round(FIGHTER.rollCooldown * C.rollCd);
+      }
+      break;
+    }
+    case Act.Ledge: {
+      gravity = false;
+      s.vx = 0;
+      s.vy = 0;
+      const side = s.face;
+      if (s.buf === Buf.Jump) {
+        s.buf = 0;
+        s.act = Act.Climb;
+        s.actT = 0;
+      } else if (cmd.moveY > 0.5 || ax * side < -0.5) {
+        // let go: drop, or push away from the wall
+        s.act = Act.Free;
+        s.actT = 0;
+        s.ledgeCd = PHYS.ledgeCooldown;
+      } else if (s.buf === Buf.A || s.buf === Buf.B || s.buf === Buf.Skill || s.buf === Buf.Roll) {
+        // swing or dash straight off the ledge
+        s.act = Act.Free;
+        s.actT = 0;
+        s.ledgeCd = PHYS.ledgeCooldown;
+        s.ground = 0;
+        tryBuffered(s, cmd, arena, load);
+      }
+      break;
+    }
+    case Act.Climb: {
+      gravity = false;
+      s.vx = 0;
+      s.vy = 0;
+      const half = FIGHTER.w / 2;
+      const u = Math.min(1, s.actT / PHYS.climbTicks);
+      // up first, then over the edge
+      const y0 = s.ledgeY + 56;
+      const x0 = s.ledgeX - s.face * half;
+      const x1 = s.ledgeX + s.face * 14;
+      s.y = y0 + (s.ledgeY - y0) * Math.min(1, u * 1.6);
+      s.x = x0 + (x1 - x0) * Math.max(0, (u - 0.45) / 0.55);
+      if (u >= 1) {
+        s.x = x1;
+        s.y = s.ledgeY;
+        s.ground = 1;
+        s.act = Act.Free;
+        s.actT = 0;
       }
       break;
     }
     case Act.Heal: {
       s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
-      s.hp = Math.min(FIGHTER.maxHp, s.hp + FIGHTER.healAmount / FIGHTER.healTicks);
+      s.hp = Math.min(C.hp, s.hp + FIGHTER.healAmount / FIGHTER.healTicks);
       if (s.actT >= FIGHTER.healTicks) {
         s.act = Act.Free;
         s.actT = 0;
@@ -282,7 +454,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       if (s.actT === sk.startup) {
         s.spawn = 1;
         if (load.skill === SkillId.Blink) {
-          s.x = Math.max(FIGHTER.w / 2, Math.min(arena.w - FIGHTER.w / 2, s.x + s.face * SKILL_FX.blink.dist));
+          s.x = blinkTarget(s, arena);
           s.invuln = Math.max(s.invuln, SKILL_FX.blink.invuln);
           s.vy = Math.min(s.vy, 0);
         }
@@ -341,10 +513,18 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       } else if (s.ground) s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
       else s.vx = approach(s.vx, ax * PHYS.runSpeed * speedK, PHYS.airAccel * 0.5 * DT);
       if (m.arrow && s.actT === m.startup) s.spawn = 1;
-      // chain: the next press is honoured once the hit window has passed and a little recovery is done
-      const total = end + m.recovery;
-      const chainAt = end + Math.ceil(m.recovery * 0.35);
-      if (s.actT >= chainAt && (s.buf === Buf.A || s.buf === Buf.B || s.buf === Buf.Roll || s.buf === Buf.Skill)) {
+      // chain: the next press is honoured once the hit window has passed and a little recovery is done; a hit that
+      // landed can also be cancelled into a jump (air combos)
+      const rec = m.recovery * (s.move === MOVE_ART ? 1 : C.recovery * (s.frenzy > 0 ? 0.75 : 1));
+      const total = end + Math.round(rec);
+      const chainAt = end + Math.ceil(rec * 0.35);
+      // any attack can be cancelled into the Rift Art
+      if (s.buf === Buf.Special && s.move !== MOVE_ART && startArt(s, C)) {
+        s.buf = 0;
+        break;
+      }
+      const jumpCancel = s.buf === Buf.Jump && s.confirm > 0 && s.actT >= end;
+      if (jumpCancel || (s.actT >= chainAt && (s.buf === Buf.A || s.buf === Buf.B || s.buf === Buf.Roll || s.buf === Buf.Skill))) {
         s.act = Act.Free;
         s.actT = 0;
         s.comboWin = 18;
@@ -358,18 +538,54 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       }
       break;
     }
+    case Act.Art: {
+      const art = artOf(C.id);
+      if (C.art === ArtId.FlashStep) {
+        // the World moves the assassin behind the opponent and lands the flurry; hold still in the air meanwhile
+        gravity = false;
+        s.vx = 0;
+        s.vy = 0;
+      } else if (C.art === ArtId.Bulwark) {
+        s.vx = approach(s.vx, ax * 60, PHYS.groundDecel * DT);
+      } else s.vx = approach(s.vx, 0, (s.ground ? PHYS.groundDecel : PHYS.airDecel) * DT);
+      if (s.actT >= art.ticks) {
+        s.act = Act.Free;
+        s.actT = 0;
+        if (C.art === ArtId.BloodFrenzy) s.frenzy = 360;
+      }
+      break;
+    }
     case Act.KO:
     case Act.Win:
       if (s.ground) s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
       break;
     default: {
       // Free: run, jump, or start the buffered action
-      if (tryBuffered(s, cmd, arena, load)) break;
-      const target = ax * PHYS.runSpeed * speedK;
+      if (tryBuffered(s, cmd, arena, load)) {
+        // an air dash floats from its very first tick
+        if (s.act === Act.Roll && s.rollAir) {
+          gravity = false;
+          s.vy = 0;
+        }
+        break;
+      }
+      s.crouch = s.ground && cmd.moveY > 0.5 && Math.abs(ax) < 0.35 ? 1 : 0;
+      if (!s.ground) {
+        // fast fall: hold down in the air
+        if (cmd.moveY > 0.5 && s.vy > -200) s.fast = 1;
+        // wall slide: pushing into a wall while falling
+        if (s.wall && Math.sign(ax) === s.wall && s.vy > 0) {
+          s.vy = Math.min(s.vy, PHYS.wallSlide);
+          s.slide = 1;
+          s.fast = 0;
+          s.face = -s.wall;
+        }
+      }
+      const target = s.crouch ? 0 : ax * PHYS.runSpeed * speedK;
       const turning = target !== 0 && Math.sign(target) !== Math.sign(s.vx);
       const accel = s.ground ? (target === 0 ? PHYS.groundDecel : turning ? PHYS.groundDecel : PHYS.groundAccel) : target === 0 ? PHYS.airDecel : PHYS.airAccel;
       s.vx = approach(s.vx, target, accel * DT);
-      if (Math.abs(ax) > 0.3) s.face = ax > 0 ? 1 : -1;
+      if (Math.abs(ax) > 0.3 && !s.slide) s.face = ax > 0 ? 1 : -1;
     }
   }
 
@@ -381,39 +597,150 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   if (s.vy >= 0) s.jumpHeld = 0;
 
   // integrate
-  if (gravity) s.vy = Math.min(PHYS.maxFall, s.vy + PHYS.gravity * DT);
+  if (gravity) {
+    const g = s.fast ? PHYS.gravity * PHYS.fastFallGravity : PHYS.gravity;
+    s.vy = Math.min(s.fast ? PHYS.fastFallMax : PHYS.maxFall, s.vy + g * DT);
+  }
+  if (s.slide) s.vy = Math.min(s.vy, PHYS.wallSlide);
+  if (s.act !== Act.Climb && s.act !== Act.Ledge) collide(s, arena);
+  else s.wall = 0;
+  if (s.act === Act.Ledge || s.act === Act.Climb) s.ground = s.act === Act.Climb ? s.ground : 0;
+  if (s.ground) {
+    s.coyote = PHYS.coyote;
+    s.jumps = C.airJumps;
+    s.dash = 0;
+    s.fast = 0;
+    if (s.rollAir && s.act === Act.Roll && s.actT > 2) {
+      s.act = Act.Free;
+      s.actT = 0;
+      s.rollAir = 0;
+    }
+  }
+  // a wall in the air keeps a wall jump available for a moment after leaving it
+  if (s.wall && !s.ground) {
+    s.wallT = PHYS.wallCoyote;
+    s.wallSide = s.wall;
+  }
+  if (!s.ground) s.crouch = 0;
+  grabLedge(s, cmd, arena, C);
+}
+
+/** Where a blink lands: up to its distance ahead, stopping short of a block in the way. */
+function blinkTarget(s: FighterState, arena: ArenaDef) {
   const half = FIGHTER.w / 2;
+  let x = Math.max(half, Math.min(arena.w - half, s.x + s.face * SKILL_FX.blink.dist));
+  for (const b of arena.blocks) {
+    if (!(s.y > b.y + 0.5 && s.y - FIGHTER.h < b.y + b.h)) continue;
+    if (s.face > 0 && s.x < b.x && x + half > b.x) x = Math.min(x, b.x - half);
+    if (s.face < 0 && s.x > b.x + b.w && x - half < b.x + b.w) x = Math.max(x, b.x + b.w + half);
+  }
+  return x;
+}
+
+/** Move by the velocity against the arena: side walls, block sides, floors, platform and block tops, block undersides. */
+function collide(s: FighterState, arena: ArenaDef) {
+  const half = FIGHTER.w / 2;
+  const h = bodyH(s);
+  const stunned = s.act === Act.Stun;
+  const hitWall = (x: number, side: number) => {
+    s.x = x;
+    s.wall = side;
+    // knocked into a wall: bounce off it a little
+    if (stunned) s.vx = -s.vx * 0.3;
+    else if (Math.sign(s.vx) === side) s.vx = 0;
+  };
+  s.wall = 0;
+  const x0 = s.x;
   s.x += s.vx * DT;
-  if (s.x < half) { s.x = half; if (s.act !== Act.Stun) s.vx = 0; else s.vx = -s.vx * 0.3; }
-  if (s.x > arena.w - half) { s.x = arena.w - half; if (s.act !== Act.Stun) s.vx = 0; else s.vx = -s.vx * 0.3; }
+  if (s.x <= half) hitWall(half, -1);
+  else if (s.x >= arena.w - half) hitWall(arena.w - half, 1);
+  for (const b of arena.blocks) {
+    if (!(s.y > b.y + 0.5 && s.y - h < b.y + b.h)) continue;
+    if (x0 + half <= b.x + 0.5 && s.x + half >= b.x) hitWall(b.x - half, 1);
+    else if (x0 - half >= b.x + b.w - 0.5 && s.x - half <= b.x + b.w) hitWall(b.x + b.w + half, -1);
+  }
   const prevY = s.y;
-  s.y += s.vy * DT;
+  let ny = s.y + s.vy * DT;
   const wasGround = s.ground;
   s.ground = 0;
-  if (s.y >= arena.floor) {
-    s.y = arena.floor;
+  if (ny >= arena.floor) {
+    ny = arena.floor;
     s.vy = 0;
     s.ground = 1;
-  } else if (s.vy >= 0 && s.drop === 0) {
-    for (const p of arena.platforms) {
-      if (prevY <= p.y + 0.01 && s.y >= p.y && s.x >= p.x - half * 0.5 && s.x <= p.x + p.w + half * 0.5) {
-        s.y = p.y;
+  } else if (s.vy >= 0) {
+    for (const b of arena.blocks) {
+      if (prevY <= b.y + 0.01 && ny >= b.y && s.x > b.x - half + 2 && s.x < b.x + b.w + half - 2) {
+        ny = b.y;
         s.vy = 0;
         s.ground = 1;
         break;
       }
     }
-  }
-  if (s.y < -400) { s.y = -400; s.vy = Math.max(0, s.vy); }
-  if (s.ground) {
-    s.jumps = PHYS.airJumps;
-    // landing out of an air attack ends it (no floating recovery on the floor)
-    if (!wasGround && s.act === Act.Attack && s.move === MOVE_AIR) {
-      s.act = Act.Free;
-      s.actT = 0;
+    if (!s.ground && s.drop === 0) {
+      for (const p of arena.platforms) {
+        if (prevY <= p.y + 0.01 && ny >= p.y && s.x >= p.x - half * 0.5 && s.x <= p.x + p.w + half * 0.5) {
+          ny = p.y;
+          s.vy = 0;
+          s.ground = 1;
+          break;
+        }
+      }
+    }
+  } else {
+    // head against the underside of a block
+    for (const b of arena.blocks) {
+      if (prevY - h >= b.y + b.h - 0.01 && ny - h < b.y + b.h && s.x > b.x - half + 1 && s.x < b.x + b.w + half - 1) {
+        ny = b.y + b.h + h;
+        s.vy = 0;
+      }
     }
   }
+  if (ny < -400) {
+    ny = -400;
+    s.vy = Math.max(0, s.vy);
+  }
+  s.y = ny;
+  if (s.ground && !wasGround && s.act === Act.Attack && s.move === MOVE_AIR) {
+    // landing out of an air attack ends it (no floating recovery on the floor)
+    s.act = Act.Free;
+    s.actT = 0;
+  }
+}
+
+/** Falling past a top edge (block or platform) within reach of the hands: catch it and hang. */
+function grabLedge(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef) {
+  if (s.act !== Act.Free || s.ground || s.vy < 0 || s.ledgeCd > 0 || cmd.moveY > 0.5) return;
+  const half = FIGHTER.w / 2;
+  const R = PHYS.ledgeReach;
+  const head = s.y - FIGHTER.h;
+  const tryEdge = (ex: number, top: number, side: number) => {
+    // side +1: the edge is to the right of the fighter (the left end of the block / platform)
+    if (head < top - 4 || head > top + 16) return false;
+    const gap = side > 0 ? ex - (s.x + half) : s.x - half - ex;
+    if (gap < -3 || gap > R) return false;
+    if (cmd.moveX * side < -0.3) return false; // steering away
+    if (s.face !== side && cmd.moveX * side <= 0.3) return false;
+    // room to stand on top
+    if (surfaceBelow(arena, ex + side * 14, top - 40) < top - 0.5) return false;
+    s.act = Act.Ledge;
+    s.actT = 0;
+    s.ledgeX = ex;
+    s.ledgeY = top;
+    s.face = side;
+    s.x = ex - side * half;
+    s.y = top + 56;
+    s.vx = 0;
+    s.vy = 0;
+    s.jumps = C.airJumps;
+    s.dash = 0;
+    s.fast = 0;
+    return true;
+  };
+  for (const b of arena.blocks) if (tryEdge(b.x, b.y, 1) || tryEdge(b.x + b.w, b.y, -1)) return;
+  for (const p of arena.platforms) if (tryEdge(p.x, p.y, 1) || tryEdge(p.x + p.w, p.y, -1)) return;
 }
 
 /** Is the fighter guarding this tick (for hits that arrive now)? */
 export const isBlocking = (s: FighterState) => s.act === Act.Block;
+
+

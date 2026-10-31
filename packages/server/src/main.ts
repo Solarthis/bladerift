@@ -1,3 +1,6 @@
+// Bladerift LAN host: one room served on the Wi-Fi at http://<lan-ip>:7360 (serves the built client and the
+// WebSocket /ws on the same port, so no certificates are needed). Started by start-host.cmd / start-host.command.
+//   node packages/server/dist/server.mjs --static=packages/client/dist --open [--port=7360] [--name=...] [--quiet]
 import { randomBytes } from 'node:crypto';
 import { exec } from 'node:child_process';
 import { existsSync, readFileSync, statSync, createReadStream } from 'node:fs';
@@ -16,9 +19,10 @@ for (const a of process.argv.slice(2)) {
   args.set(k, v ?? 'true');
 }
 
-const PORT = Number(args.get('port') ?? process.env.PORT ?? 7350);
+// 7360, not 7350: Skyfire Squad's LAN host keeps 7350, so both can run on one machine.
+const PORT = Number(args.get('port') ?? process.env.PORT ?? 7360);
 const here = dirname(fileURLToPath(import.meta.url));
-const STATIC = resolve(args.get('static') ?? process.env.SKYFIRE_STATIC ?? join(here, '../../client/dist'));
+const STATIC = resolve(args.get('static') ?? process.env.BLADERIFT_STATIC ?? join(here, '../../client/dist'));
 const CERT_DIR = resolve(args.get('certs') ?? join(here, '../../../certs'));
 const NAME = (args.get('name') ?? `${hostname()}'s Arena`).slice(0, 32);
 const HOST_KEY = args.get('hostkey') ?? randomBytes(9).toString('base64url');
@@ -137,7 +141,8 @@ const tls = existsSync(certFile) && existsSync(keyFile);
 const server = tls ? createHttps({ cert: readFileSync(certFile), key: readFileSync(keyFile) }, handle) : createHttp(handle);
 /**
  * Only accept WebSockets from pages this host served (same host), local development, or the official
- * PWA origin. Blocks drive-by pages on other sites from joining or flooding the LAN host.
+ * site. Bladerift is served at games.matsolutions.gy/bladerift/, and an origin has no path, so one entry covers it.
+ * Blocks drive-by pages on other sites from joining or flooding the LAN host.
  */
 const ALLOWED_ORIGINS = new Set(['https://games.matsolutions.gy']);
 function originAllowed(origin: string | undefined, hostHeader: string | undefined) {
@@ -208,13 +213,13 @@ server.listen(PORT, '0.0.0.0', async () => {
   room.start();
   const scheme = tls ? 'https' : 'http';
   const ips = lanAddresses();
-  const join = ips.map((ip) => `${scheme}://${ip}:${PORT}`);
-  console.log('\n  SKYFIRE SQUAD — LAN host');
+  const urls = ips.map((ip) => `${scheme}://${ip}:${PORT}`);
+  console.log('\n  BLADERIFT — LAN host');
   console.log(`  Arena: ${NAME}`);
   console.log(`  Host console (this device): ${scheme}://localhost:${PORT}/?host=${HOST_KEY}`);
-  for (const u of join) console.log(`  Players join: ${u}`);
-  if (join[0] && !args.has('quiet')) console.log('\n' + (await QRCode.toString(join[0], { type: 'terminal', small: true })));
-  if (!existsSync(join_(STATIC, 'index.html'))) console.log('  ! Client build not found at ' + STATIC);
+  for (const u of urls) console.log(`  Players join: ${u}`);
+  if (urls[0] && !args.has('quiet')) console.log('\n' + (await QRCode.toString(urls[0], { type: 'terminal', small: true })));
+  if (!existsSync(join(STATIC, 'index.html'))) console.log('  ! Client build not found at ' + STATIC);
   if (!ips.length) console.log('  ! No Wi-Fi/LAN address found. Connect this device to the Wi-Fi network players will use.');
   if (args.has('open')) {
     const url = `${scheme}://localhost:${PORT}/?host=${HOST_KEY}`;
@@ -222,10 +227,6 @@ server.listen(PORT, '0.0.0.0', async () => {
     exec(cmd);
   }
 });
-
-function join_(a: string, b: string) {
-  return join(a, b);
-}
 
 process.on('SIGINT', () => {
   room.stop();

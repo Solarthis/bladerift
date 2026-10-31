@@ -161,7 +161,8 @@ export class Room {
       close: () => {
         clearTimeout(helloTimer);
         settle();
-        if (client && client.ws === ws) this.onDisconnect(client);
+        // a client already removed (kicked, or forfeited and dropped) has nothing left to disconnect
+        if (client && client.ws === ws && this.clients.get(client.id) === client) this.onDisconnect(client);
       },
     };
   }
@@ -382,18 +383,20 @@ export class Room {
     for (const c of [...this.clients.values()]) if (!c.ws) this.clients.delete(c.id);
     const fighters: (Client | null)[] = [null, null];
     for (const c of this.clients.values()) if (c.seat === 0 || c.seat === 1) fighters[c.seat] = c;
+    // check before seating anyone: a refused start must not move a spectator into a seat
+    const watchers = [...this.clients.values()].filter((x) => x.seat < 0);
+    if (watchers.length === 0 && fighters.every((f) => !f)) return false;
+    const open = fighters.filter((f) => !f).length;
+    if (open > watchers.length && !this.botOn) return false;
     // an empty seat goes to a spectator first, then the bot
     for (const seat of [0, 1]) {
       if (fighters[seat]) continue;
-      const watcher = [...this.clients.values()].find((x) => x.seat < 0);
+      const watcher = watchers.shift();
       if (watcher) {
         watcher.seat = seat;
         fighters[seat] = watcher;
       }
     }
-    const empty = fighters.findIndex((f) => !f);
-    if (fighters.every((f) => !f)) return false;
-    if (empty >= 0 && !this.botOn) return false;
     this.lastSnapTick = 0;
     this.world = new World({ ...this.settings });
     if (this.opts.maxRewindSec) this.world.maxRewind = Math.min(60, Math.round(this.opts.maxRewindSec * TICK_RATE));
@@ -450,18 +453,21 @@ export class Room {
       this.timer = setTimeout(loop, Math.max(0, this.nextTickAt - performance.now() - 1));
     };
     loop();
-    this.sweeper = setInterval(() => {
-      for (const c of this.clients.values()) {
-        c.inputBudget = 0;
-        c.msgBudget = Math.min(MSG_BURST, c.msgBudget + MSG_RATE);
+    this.sweeper = setInterval(() => this.sweep(), 1000);
+  }
+
+  /** Once a second: refill rate budgets and drop fighters whose reconnect grace has run out. */
+  sweep() {
+    for (const c of this.clients.values()) {
+      c.inputBudget = 0;
+      c.msgBudget = Math.min(MSG_BURST, c.msgBudget + MSG_RATE);
+    }
+    const now = Date.now();
+    for (const c of [...this.clients.values()])
+      if (!c.ws && c.disconnectedAt && now - c.disconnectedAt > RECONNECT_GRACE_MS) {
+        this.dropClient(c);
+        this.broadcastLobby();
       }
-      const now = Date.now();
-      for (const c of [...this.clients.values()])
-        if (!c.ws && c.disconnectedAt && now - c.disconnectedAt > RECONNECT_GRACE_MS) {
-          this.dropClient(c);
-          this.broadcastLobby();
-        }
-    }, 1000);
   }
 
   stop() {
@@ -478,9 +484,9 @@ export class Room {
       const f = w.fighters.get(this.bot.id);
       if (f) f.inputs.push(this.bot.brain.think(w));
     }
-    const wasOver = w.phase === 'over';
     w.step();
-    if (!wasOver && w.phase === 'over' && this.phase === 'playing') {
+    // the match ended in play (last round won) or by forfeit (a fighter left, see dropClient); both go to results here
+    if (w.phase === 'over' && this.phase === 'playing') {
       this.phase = 'results';
       this.resultsUntil = w.tick + RESULTS_SECONDS * TICK_RATE;
       const winnerId = w.seats[w.winner] ?? -1;

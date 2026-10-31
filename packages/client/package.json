@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "node ../../tools/build-art.mjs && vite build",
+    "build": "vite build",
     "preview": "vite preview --host"
   },
   "dependencies": {

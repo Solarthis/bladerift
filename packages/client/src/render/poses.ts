@@ -3,7 +3,7 @@
  * The attack tracks are PixelFX's own acted moves (wind-up, a snap to the strike, follow-through, recovery), re-timed
  * onto Bladerift's startup / active / recovery ticks so what you see is exactly when the hit can land.
  */
-import { Act, FIGHTER, MOVE_AIR, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, TICK_RATE, WEAPONS, WeaponId } from '@bladerift/shared';
+import { Act, ArtId, classOf, FIGHTER, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, TICK_RATE, WEAPONS, WeaponId } from '@bladerift/shared';
 // @ts-expect-error - plain JS vendor module
 import { poseAt } from '../vendor/pixelfx/core/act.js';
 import type { ViewFighter } from '../net/NetGame';
@@ -22,6 +22,7 @@ const HOLD: Record<number, Pose> = {
   [WeaponId.Hammer]: { weapon: 'hammer', two: true, sa: 0.62, fx: 11, fy: -21 },
   [WeaponId.Bow]: { weapon: 'bow', sa: -0.4, fx: 12, fy: -20, bx: 6, by: -17 },
   [WeaponId.Shield]: { offWeapon: 'shield', sb: 0, bx: 10, by: -24, fx: 6, fy: -18 },
+  [WeaponId.Staff]: { weapon: 'staff', sa: -1.45, fx: 11, fy: -21, bx: 7, by: -16 },
 };
 
 const hold = (w: number): Pose => ({ ...READY, ...(HOLD[w] ?? {}) });
@@ -120,6 +121,16 @@ function bowShot(heavy: boolean): Key[] {
   return heavy ? [[-0.05, DRAWN], [0, LOOSED, 'snap'], [0.4, { ...LOOSED, bx: -6, by: -25 }], [0.7, REST_]] : [[-0.14, AIM], [-0.06, DRAWN], [0, LOOSED, 'snap'], [0.4, { ...LOOSED, bx: -6, by: -25 }], [0.7, REST_]];
 }
 
+function staffCast(heavy: boolean): Key[] {
+  // the staff swung up and thrust out at the target, the free hand flung forward with it
+  const REST_ = { ...READY, weapon: 'staff', sa: -1.45, fx: 11, fy: -21, bx: 7, by: -16 };
+  const UP = { ...REST_, crouch: 2, lean: -3, fx: 6, fy: -34, sa: -2.2, bx: -4, by: -30 };
+  const OUT_ = { ...REST_, crouch: 4, lean: 5, fx: 19, fy: -28, sa: -0.15, bx: 14, by: -30, armsFront: true, ffx: 11, fbx: -9, ghost: 1 };
+  return heavy
+    ? [[-0.1, { ...UP, fy: -40, sa: -1.6, bx: 4, by: -42 }], [0, OUT_, 'snap'], [0.4, { ...OUT_, ghost: 0 }], [0.75, REST_]]
+    : [[-0.1, UP], [0, OUT_, 'snap'], [0.3, { ...OUT_, ghost: 0 }], [0.6, REST_]];
+}
+
 function shieldBash(): Key[] {
   const S = hold(WeaponId.Shield);
   return [[-0.08, { ...S, crouch: 5, lean: -3, bx: 2 }], [0, { ...S, crouch: 6, lean: 7, bx: 18, by: -26, ffx: 14, fbx: -11, ghost: 1 }, 'snap'], [0.1, { ...S, crouch: 5, lean: 5, bx: 17, by: -25, ffx: 13, fbx: -10 }], [0.4, S]];
@@ -148,7 +159,8 @@ function trackFor(w: number, move: number): Key[] {
   switch (w) {
     case WeaponId.Sword: t = move === MOVE_AIR ? airSlash(w) : move === MOVE_PLUNGE ? plunge(w) : move === 1 ? swordRising(w) : move === 2 ? spinSlash(w) : swordSlash(w); break;
     case WeaponId.Scythe: t = move === MOVE_AIR ? spinSlash(w, 'scythe') : move === MOVE_PLUNGE ? plunge(w) : move === 2 ? scytheHook() : scytheReap(); break;
-    case WeaponId.Lance: t = move === MOVE_CHARGED ? lanceLunge() : move === 2 ? spearSweep() : move === MOVE_AIR ? thrust('spear', true) : thrust('spear', true); break;
+    case WeaponId.Staff: t = staffCast(move === MOVE_CHARGED); break;
+    case WeaponId.Lance: t = move === MOVE_CHARGED || move === MOVE_ART ? lanceLunge() : move === 2 ? spearSweep() : move === MOVE_AIR ? thrust('spear', true) : thrust('spear', true); break;
     case WeaponId.Daggers: t = move === 3 ? daggerFinish() : move === MOVE_PLUNGE ? plunge(w) : move === MOVE_AIR ? daggerStab(2) : daggerStab(move); break;
     case WeaponId.Hammer: t = move === 2 || move === MOVE_PLUNGE ? hammerSmash() : move === MOVE_AIR ? airSlash(w) : hammerSwing(); break;
     case WeaponId.Bow: t = bowShot(move === MOVE_CHARGED); break;
@@ -219,7 +231,20 @@ export function poseFor(v: ViewFighter, ctx: PoseCtx): Pose {
     }
     case Act.Block:
       return { ...hold(WeaponId.Shield), weapon: w === WeaponId.Shield ? undefined : HOLD[v.weapons[v.slot ^ 1]]?.weapon, crouch: 5, lean: 2, bx: 13, by: -26, sb: 0, ffx: 10, fbx: -8 };
+    case Act.Ledge:
+      // hanging by both hands from the edge above, legs dangling, a slight sway
+      return { ...base, weapon: undefined, offWeapon: undefined, two: false, crouch: -2, lean: 2, hy: -2, fx: 6, fy: -41, bx: 2, by: -41, ffx: 2 + Math.sin(ctx.time * 3), ffy: -1, fbx: -3, fby: -2, toeF: true, toeB: true };
+    case Act.Climb: {
+      const u = Math.min(1, t / 14);
+      return u < 0.5
+        ? { ...base, weapon: undefined, offWeapon: undefined, two: false, crouch: 4, lean: 6, fx: 9, fy: -46, bx: 5, by: -46, ffx: 6, ffy: -14, fbx: -2, fby: -6 }
+        : { ...base, crouch: 8, lean: 7, fx: 12, fy: -12, bx: 6, by: -12, ffx: 8, fby: -2, fbx: -6 };
+    }
     case Act.Roll: {
+      if (v.rollAir) {
+        // air dash: stretched flat into the dash, legs trailing
+        return { ...base, crouch: 2, lean: 9, fx: 17, fy: -27, bx: -10, by: -27, ffx: -6, ffy: -9, fbx: -12, fby: -11, toeF: true, toeB: true, ghost: 1 };
+      }
       const u = Math.min(1, t / FIGHTER.rollTicks);
       // tucked and tumbling: the whole sprite is spun by the renderer, the body stays a ball
       return { ...base, crouch: 10, lean: 8, fx: 6, fy: -14, bx: 3, by: -14, ffx: 5, fbx: -3, ffy: -6, fby: -6, ghost: u < 0.7 ? 1 : 0 };
@@ -237,11 +262,51 @@ export function poseFor(v: ViewFighter, ctx: PoseCtx): Pose {
         ? { ...base, crouch: 5, lean: -4, bx: -9, by: -36, ffx: 9, fbx: -8 }
         : { ...base, crouch: 4, lean: 6, bx: 18, by: -28, ffx: 12, fbx: -10, ghost: 1 };
     }
+    case Act.Art: {
+      const art = classOf(v.cls).art;
+      const sig = hold(classOf(v.cls).signature);
+      switch (art) {
+        case ArtId.RadiantCleave: {
+          // the blade raised high gathering light, then brought down in one stroke
+          const up = { ...sig, crouch: 2, lean: -4, fx: 4, fy: -46, sa: -1.6, bx: 2, by: -44, two: true, ffx: 9, fbx: -8 };
+          const down = { ...sig, crouch: 7, lean: 7, fx: 22, fy: -18, sa: 0.5, bx: 18, by: -20, two: true, ffx: 14, fbx: -11, toeB: true, ghost: 1 };
+          return t < 18 ? up : down;
+        }
+        case ArtId.HailOfArrows:
+          return { ...sig, crouch: 3, lean: -6, fx: 14, fy: -40, sa: -1.1, bx: 2, by: -38, nocked: t < 12, pull: t < 12, ffx: 9, fbx: -8 };
+        case ArtId.ThunderCall:
+          return { ...sig, crouch: 1, lean: -4, hy: -2, fx: 6, fy: -48, sa: -1.55, bx: -6, by: -40, ffx: 8, fbx: -8 };
+        case ArtId.FlashStep: {
+          // the flurry: alternating stabs every few frames
+          const k = Math.floor(Math.max(0, t - 12) / 3) % 4;
+          const stabs = [
+            { ...sig, crouch: 5, lean: 6, fx: 22, fy: -32, sa: -0.4, bx: 2, by: -24, sb: -1 },
+            { ...sig, crouch: 5, lean: 5, fx: 2, fy: -24, sa: -1, bx: 21, by: -24, sb: 0.4 },
+            { ...sig, crouch: 6, lean: 7, fx: 20, fy: -20, sa: 0.3, bx: 2, by: -26, sb: -1.2 },
+            { ...sig, crouch: 4, lean: 4, fx: 4, fy: -36, sa: -2, bx: 20, by: -30, sb: -0.6 },
+          ];
+          return { ...stabs[k], ghost: 1 };
+        }
+        case ArtId.BloodFrenzy:
+          // the roar: arms flung wide, head back
+          return { ...sig, crouch: 4, lean: -6, hy: -3, fx: 2, fy: -40, bx: 16, by: -40, ffx: 11, fbx: -10 };
+        case ArtId.Bulwark:
+          return { ...sig, crouch: 7, lean: 4, bx: 15, by: -28, sb: 0, fx: 8, fy: -24, ffx: 12, fbx: -10 };
+        default:
+          return sig;
+      }
+    }
     case Act.KO:
       return { ...base, crouch: 8, lean: -8, hx: -3, hy: -3, fx: 2, fy: -10, bx: -6, by: -12, ffx: 9, fbx: -4 };
     case Act.Win:
       return { ...base, crouch: 0, lean: -2, hy: -2, fx: 9, fy: -42, sa: -1.7, two: false, ffx: 6, fbx: -6 };
     default: {
+      if (v.slide) {
+        // back to the wall, one hand and one foot dragging on it
+        return { ...base, crouch: 3, lean: -3, fx: 10, fy: -26, bx: -10, by: -32, ffx: -7, ffy: -8, fbx: 2, fby: -3 };
+      }
+      if (v.crouch) return { ...base, crouch: 10, lean: 3, fy: (base.fy as number) + 8, by: (base.by as number) + 8, ffx: 8, fbx: -8 };
+      if (!v.ground && v.fast) return { ...base, crouch: -2, lean: 0, fy: -40, by: -40, ffx: 2, ffy: -1, fbx: -2, fby: -1, ghost: 1 };
       if (!v.ground) {
         const rising = v.vy < -60;
         return rising

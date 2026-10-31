@@ -23,27 +23,31 @@ interface KeyMap {
   skill: string[];
   roll: string[];
   heal: string[];
+  special: string[];
 }
 
 export const KEYMAPS: Record<KeyScheme, KeyMap> = {
   solo: {
     left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], down: ['KeyS', 'ArrowDown'], jump: ['KeyW', 'ArrowUp', 'Space'],
     a: ['KeyJ', 'KeyZ'], b: ['KeyK', 'KeyX'], skill: ['KeyL', 'KeyC'], roll: ['ShiftLeft', 'ShiftRight', 'KeyI'], heal: ['KeyH', 'KeyQ'],
+    special: ['KeyU', 'KeyV', 'KeyE'],
   },
   p1: {
     left: ['KeyA'], right: ['KeyD'], down: ['KeyS'], jump: ['KeyW'], a: ['KeyF'], b: ['KeyG'], skill: ['KeyH'], roll: ['ShiftLeft'], heal: ['KeyR'],
+    special: ['KeyT'],
   },
   p2: {
     left: ['ArrowLeft'], right: ['ArrowRight'], down: ['ArrowDown'], jump: ['ArrowUp'], a: ['Comma', 'Numpad1'], b: ['Period', 'Numpad2'],
     skill: ['Slash', 'Numpad3'], roll: ['ShiftRight', 'Numpad0'], heal: ['Quote', 'NumpadAdd'],
+    special: ['Backslash', 'Numpad4', 'Enter'],
   },
 };
 
 /** Human-readable key names for the how-to screen. */
 export const KEY_LABEL: Record<KeyScheme, Record<keyof KeyMap, string>> = {
-  solo: { left: 'A / ←', right: 'D / →', down: 'S / ↓', jump: 'W / ↑ / Space', a: 'J', b: 'K', skill: 'L', roll: 'Shift', heal: 'H' },
-  p1: { left: 'A', right: 'D', down: 'S', jump: 'W', a: 'F', b: 'G', skill: 'H', roll: 'Left Shift', heal: 'R' },
-  p2: { left: '←', right: '→', down: '↓', jump: '↑', a: ', or Num 1', b: '. or Num 2', skill: '/ or Num 3', roll: 'Right Shift / Num 0', heal: "' or Num +" },
+  solo: { left: 'A / ←', right: 'D / →', down: 'S / ↓', jump: 'W / ↑ / Space', a: 'J', b: 'K', skill: 'L', roll: 'Shift', heal: 'H', special: 'U / E' },
+  p1: { left: 'A', right: 'D', down: 'S', jump: 'W', a: 'F', b: 'G', skill: 'H', roll: 'Left Shift', heal: 'R', special: 'T' },
+  p2: { left: '←', right: '→', down: '↓', jump: '↑', a: ', or Num 1', b: '. or Num 2', skill: '/ or Num 3', roll: 'Right Shift / Num 0', heal: "' or Num +", special: '\\ / Num 4 / Enter' },
 };
 
 const held = new Set<string>();
@@ -80,6 +84,7 @@ export class KeyboardSource implements InputSource {
     if (any(m.skill)) b |= Btn.Skill;
     if (any(m.roll)) b |= Btn.Roll;
     if (any(m.heal)) b |= Btn.Heal;
+    if (any(m.special)) b |= Btn.Special;
     return { moveX: (any(m.right) ? 1 : 0) - (any(m.left) ? 1 : 0), moveY: any(m.down) ? 1 : 0, buttons: b };
   }
   destroy() {}
@@ -100,8 +105,9 @@ export class GamepadSource implements InputSource {
     if (btn(13)) y = 1;
     let b = 0;
     if (btn(0) || btn(12)) b |= Btn.Jump;
-    if (btn(2) || btn(7)) b |= Btn.A;
-    if (btn(3) || btn(6)) b |= Btn.B;
+    if (btn(2)) b |= Btn.A;
+    if (btn(3)) b |= Btn.B;
+    if (btn(7) || btn(6)) b |= Btn.Special;
     if (btn(5)) b |= Btn.Skill;
     if (btn(1)) b |= Btn.Roll;
     if (btn(4)) b |= Btn.Heal;
@@ -136,19 +142,24 @@ export interface TouchButtonState {
   aIcon: string;
   bIcon: string;
   skillIcon: string;
+  artIcon: string;
   /** Cooldowns 0..1 (1 = just used). */
   skillCd: number;
   rollCd: number;
   flask: number;
+  /** Rift gauge 0..1 (1 = the Art is ready). */
+  rift: number;
 }
 
+// square, framed image tiles (the art carries the meaning; no text labels)
 const BUTTONS: { id: string; bit: number; label: string; cls: string }[] = [
   { id: 'a', bit: Btn.A, label: '', cls: 'tb-a' },
   { id: 'b', bit: Btn.B, label: '', cls: 'tb-b' },
   { id: 'skill', bit: Btn.Skill, label: '', cls: 'tb-skill' },
-  { id: 'jump', bit: Btn.Jump, label: 'JUMP', cls: 'tb-jump' },
-  { id: 'roll', bit: Btn.Roll, label: 'ROLL', cls: 'tb-roll' },
+  { id: 'jump', bit: Btn.Jump, label: '', cls: 'tb-jump' },
+  { id: 'roll', bit: Btn.Roll, label: '', cls: 'tb-roll' },
   { id: 'heal', bit: Btn.Heal, label: '', cls: 'tb-heal' },
+  { id: 'art', bit: Btn.Special, label: '', cls: 'tb-art' },
 ];
 
 /** On-screen controls: a floating joystick on the left half, six buttons on the right. */
@@ -244,10 +255,17 @@ export class TouchSource implements InputSource {
     set('a', s.aIcon);
     set('b', s.bIcon);
     set('skill', s.skillIcon);
-    set('heal', 'assets/art/i-flask.png');
+    set('art', s.artIcon);
+    set('jump', 'assets/art/i-jump.jpg');
+    set('roll', 'assets/art/i-roll.jpg');
+    set('heal', 'assets/art/i-heal.jpg');
     const cd = (id: string, v: number) => this.btnEls.get(id)!.style.setProperty('--cd', String(Math.max(0, Math.min(1, v))));
     cd('skill', s.skillCd);
     cd('roll', s.rollCd);
+    // the Art tile fills from the bottom with the gauge and glows when ready
+    const art = this.btnEls.get('art')!;
+    art.style.setProperty('--fill', String(Math.max(0, Math.min(1, s.rift))));
+    art.classList.toggle('ready', s.rift >= 1);
     const heal = this.btnEls.get('heal')!;
     heal.querySelector('em')!.textContent = String(s.flask);
     heal.classList.toggle('empty', s.flask <= 0);

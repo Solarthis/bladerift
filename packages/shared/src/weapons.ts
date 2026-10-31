@@ -10,8 +10,10 @@ export const enum WeaponId {
   Hammer = 4,
   Bow = 5,
   Shield = 6,
+  /** Caster's arcane staff: bolts at range, a charged orb. */
+  Staff = 7,
 }
-export const WEAPON_COUNT = 7;
+export const WEAPON_COUNT = 8;
 
 export const enum SkillId {
   Bomb = 0,
@@ -55,6 +57,8 @@ export interface Move {
   dash?: number;
   /** Fires a projectile on the first active tick instead of using the box. */
   arrow?: boolean;
+  /** The projectile is an arcane bolt (staff) or, charged, an exploding orb, instead of an arrow. */
+  arcane?: boolean;
   /** Screen shake strength for the client (0..1). */
   shake?: number;
 }
@@ -168,6 +172,20 @@ export const WEAPONS: WeaponDef[] = [
     air: { startup: 5, active: 6, recovery: 12, dmg: 45, box: b(2, -52, 32, 48), kbX: 260, kbY: 80, stun: 30 },
     block: true,
   },
+  {
+    id: WeaponId.Staff,
+    name: 'Arcane Staff',
+    short: 'Staff',
+    blurb: 'Quick arcane bolts at range; hold to conjure an orb that bursts on impact.',
+    combo: [
+      { startup: 7, active: 1, recovery: 12, dmg: 48, box: b(0, 0, 0, 0), kbX: 120, kbY: 40, stun: 14, arrow: true, arcane: true },
+      { startup: 7, active: 1, recovery: 12, dmg: 50, box: b(0, 0, 0, 0), kbX: 120, kbY: 40, stun: 14, arrow: true, arcane: true },
+      { startup: 9, active: 1, recovery: 20, dmg: 66, box: b(0, 0, 0, 0), kbX: 220, kbY: 120, stun: 24, arrow: true, arcane: true },
+    ],
+    air: { startup: 6, active: 1, recovery: 12, dmg: 44, box: b(0, 0, 0, 0), kbX: 120, kbY: 60, stun: 14, arrow: true, arcane: true },
+    charged: { startup: 3, active: 1, recovery: 20, dmg: 90, dmgMax: 170, box: b(0, 0, 0, 0), kbX: 280, kbY: 220, stun: 32, arrow: true, arcane: true, min: 14, max: 60 },
+    arrowSpeed: 640,
+  },
 ];
 
 export interface SkillDef {
@@ -197,16 +215,23 @@ export const isWeapon = (v: unknown): v is WeaponId => Number.isInteger(v) && (v
 export const isSkill = (v: unknown): v is SkillId => Number.isInteger(v) && (v as number) >= 0 && (v as number) < SKILL_COUNT;
 
 export interface Loadout {
+  /** Slot A is always the class's signature weapon. */
   weapons: [WeaponId, WeaponId];
   skill: SkillId;
+  /** Fighter class (classes.ts ClassId). */
+  cls: number;
 }
 
-export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb };
+/** Signature weapon of each class (classes.ts keeps the full class table; repeated here to avoid an import cycle). */
+const SIGNATURE: WeaponId[] = [WeaponId.Sword, WeaponId.Bow, WeaponId.Lance, WeaponId.Staff, WeaponId.Daggers, WeaponId.Hammer, WeaponId.Shield];
+
+export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb, cls: 0 };
 
 export function sanitizeLoadout(v: unknown): Loadout {
-  const o = (v && typeof v === 'object' ? v : {}) as { weapons?: unknown[]; skill?: unknown };
-  const w0 = isWeapon(o.weapons?.[0]) ? o.weapons![0] as WeaponId : DEFAULT_LOADOUT.weapons[0];
+  const o = (v && typeof v === 'object' ? v : {}) as { weapons?: unknown[]; skill?: unknown; cls?: unknown };
+  const cls = Number.isInteger(o.cls) && (o.cls as number) >= 0 && (o.cls as number) < SIGNATURE.length ? (o.cls as number) : 0;
+  const w0 = SIGNATURE[cls];
   let w1 = isWeapon(o.weapons?.[1]) ? o.weapons![1] as WeaponId : DEFAULT_LOADOUT.weapons[1];
-  if (w1 === w0) w1 = ((w0 + 1) % WEAPON_COUNT) as WeaponId;
-  return { weapons: [w0, w1], skill: isSkill(o.skill) ? o.skill : DEFAULT_LOADOUT.skill };
+  if (w1 === w0) w1 = w0 === WeaponId.Bow ? WeaponId.Daggers : WeaponId.Bow;
+  return { weapons: [w0, w1], skill: isSkill(o.skill) ? o.skill : DEFAULT_LOADOUT.skill, cls };
 }

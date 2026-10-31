@@ -46,6 +46,13 @@ export interface ViewFighter {
   blockT: number;
   weapons: [number, number];
   skill: number;
+  crouch: boolean;
+  slide: boolean;
+  rollAir: boolean;
+  fast: boolean;
+  frenzy: boolean;
+  rift: number;
+  cls: number;
   /** Fractional action time for smooth pose stepping (ticks). */
   actTf: number;
   self: boolean;
@@ -318,6 +325,13 @@ export class NetGame {
     o.rollCd = s.rollCd;
     o.blockT = s.blockT;
     o.moveSeq = s.moveSeq;
+    o.crouch = !!s.crouch;
+    o.slide = !!s.slide;
+    o.rollAir = !!s.rollAir;
+    o.fast = !!s.fast;
+    o.frenzy = s.frenzy > 0;
+    o.rift = s.rift;
+    o.cls = nf.cls;
     o.weapons = nf.weapons;
     o.skill = nf.skill;
   }
