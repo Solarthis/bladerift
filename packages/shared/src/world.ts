@@ -753,7 +753,7 @@ export class World {
           const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable });
           // the Phantom Hand crushes the heart it grasps and feeds its master
           if (landed && p.kind === 'hand' && !p.skin && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.5));
-          if (p.burn) f.s.burnT = Math.max(f.s.burnT, p.burn);
+          if (p.burn && (landed || p.kind === 'steed')) f.s.burnT = Math.max(f.s.burnT, p.burn);
           if (p.pierce) {
             // trampled once: keeps running, harmless now
             p.dmg = 0;
@@ -802,8 +802,9 @@ export class World {
       const dy = f.s.y - FIGHTER.h / 2 - p.y;
       const R = orb ? 62 : B.radius;
       if (dx * dx + dy * dy > (R + 14) ** 2) continue;
-      this.applyHit(owner, f, { dmg: orb ? p.dmg : B.dmg, kbX: 240, kbY: 260, stun: orb ? p.stun : 26, crit: false, w: orb ? WeaponId.Staff : 100, x: f.s.x, y: f.s.y - FIGHTER.h / 2, front: false, melee: false });
+      const landed = this.applyHit(owner, f, { dmg: orb ? p.dmg : B.dmg, kbX: 240, kbY: 260, stun: orb ? p.stun : 26, crit: false, w: orb ? WeaponId.Staff : 100, x: f.s.x, y: f.s.y - FIGHTER.h / 2, front: false, melee: false });
       if (!orb) f.s.burnT = Math.max(f.s.burnT, B.burnTicks);
+      if (landed && p.slow) f.s.slowT = Math.max(f.s.slowT, p.slow);
     }
   }
 

@@ -20,6 +20,8 @@ const CRESTS = ['c-saber', 'c-archer', 'c-lancer', 'c-caster', 'c-assassin', 'c-
 const art = (n: string) => `assets/art/${n}.jpg`;
 export const weaponIcon = (w: number) => art(W[w] ?? 'g-sword');
 export const skillIcon = (s: number) => art(S[s] ?? 'i-art');
+/** Each hero's own dodge (d-00.jpg .. d-13.jpg, by hero id; icons-dodges sheet); the generic roll until it exists. */
+export const dodgeIcon = (hero: number) => art(hero >= 0 && hero < 14 ? `d-${String(hero).padStart(2, '0')}` : 'i-roll');
 /** A Rift Art's own icon (by ArtId). */
 export const artIconOf = (id: number) => art(ARTS[id] ?? 'i-art');
 /** The icon of a hero's signature Rift Art. */

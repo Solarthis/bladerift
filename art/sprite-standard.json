@@ -141,6 +141,22 @@
     "special recovery 2: returning to stance"
    ]
   },
+  "skill": {
+   "title": "Signature special (the hero's own SKILL, not the Rift Art): anticipation, execution, recovery",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "special anticipation 1: winding up the hero's own special move, gathering its power, the pose coiling",
+    "special anticipation 2: the instant before release, the special's energy at its peak",
+    "special execution 1: releasing the special move (its effect kept inside this cell)",
+    "special execution 2: the special move at full force (its effect kept inside this cell)",
+    "special recovery 1: the special's energy fading",
+    "special recovery 2: returning to the fighting stance"
+   ]
+  },
   "misc": {
    "title": "Skill throw, taunt and victory",
    "frames": [

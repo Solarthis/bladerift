@@ -137,6 +137,25 @@ Row 4: (13) PLAGUE HOUND: a shadow hound racing low along the ground, sickly gre
        REBOUND: a teal tower shield spinning in a wide arc with curved return arrows around it; (15) a plain golden rift crack on violet (spare);
        (16) a plain empty dark card with a gold rim (spare).`,
   },
+  'icons-dodges': {
+    ref: 'icons-abilities.png',
+    prompt: `${ICON_RULES}
+Match the attached sheet's frame and style exactly. Each of the first 14 cells is the signature DODGE of one hero, in hero order
+(hero 0 first, left to right, top row first; cells 15 and 16 are spare):
+Row 1: (1) LION'S STEP: a low armoured knight bursting forward in a fast low step, gold dust streaks behind; (2) HUNTER'S VAULT: a giant
+       archer in a back-flip vault over dark ground, a bow in one hand and an orange speed arc; (3) GATE STEP: a figure stepping through a
+       golden gate portal, a second gate glowing beyond it; (4) POLE VAULT: a figure vaulting high over a long spear planted in the ground,
+       a pale blue arc of motion.
+Row 2: (5) CLAY SHIFT: a green-clay figure melting into the earth and gliding through it, mint-green and earth-brown glints; (6) MIRAGE: a
+       pale robed figure splitting into shimmering pink illusion copies, one already fading; (7) TURN OF THE PAGE: a writer's silhouette
+       dissolving into turning pages of an open book with golden ink lines; (8) FLASH STEP: a hooded assassin splitting into fading cyan
+       after-images with a blade flash.
+Row 3: (9) BEAST BOUND: a heavy armoured beast-engine pouncing forward low, iron plates and sparks; (10) FOG FORM: a grey-coated gentleman
+       dissolving into grey fog, the edges of his body drifting away; (11) CAVALRY DASH: a rider low over the saddle with a red cape streaming
+       behind, a sudden burst of speed lines; (12) SHADOW SINK: a figure sinking into a dark shadow puddle, a faint pale outline above it.
+Row 4: (13) SHIELD SLIDE: a teal tower shield sliding low across the ground, sparks flying off its rim; (14) a plain golden rift crack on violet
+       (spare); (15) a plain empty dark card with a gold rim (spare); (16) a plain golden rift crack on violet (spare).`,
+  },
   'icons-gear': {
     ref: 'skills.png',
     prompt: `${ICON_RULES}

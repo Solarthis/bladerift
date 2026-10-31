@@ -457,23 +457,24 @@ describe('room: lobby commands and host control', () => {
     expect(room.botOn).toBe(false);
   });
 
-  it("a loadout's weapons become the hero's kit and an unknown skill falls back", () => {
+  it("a loadout's weapons become the hero's kit, and its special is the hero's own", () => {
     const room = makeRoom();
     const a = connect(room, 'Ann', { hostKey: KEY });
-    lobby(a, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Sword], skill: SkillId.Bomb, cls: 0 } });
+    lobby(a, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Sword], skill: SkillId.LionsRoar, cls: 0 } });
     expect(rosterOf(room, a.id)?.load.weapons[0]).toBe(WeaponId.Sword);
     expect(rosterOf(room, a.id)?.load.weapons[1]).toBe(WeaponId.Sword);
     // both slots are always the hero's signature weapon (hero 1, an Archer: the bow)
     lobby(a, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Sword], skill: 99 as never, hero: 1 } });
     expect(rosterOf(room, a.id)?.load.weapons).toEqual([WeaponId.Bow, WeaponId.Bow]);
-    expect(rosterOf(room, a.id)?.load.skill).toBe(DEFAULT_LOADOUT.skill);
+    // hero 1's own special (skill N belongs to hero N), whatever the skill sent
+    expect(rosterOf(room, a.id)?.load.skill).toBe(SkillId.NineLives);
   });
 
   it('a loadout chosen in the lobby is the one the fighter starts the match with', () => {
     const room = makeRoom();
     const a = connect(room, 'Ann', { hostKey: KEY });
     const b = connect(room, 'Ben');
-    lobby(b, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb } });
+    lobby(b, { op: 'loadout', load: { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.LionsRoar } });
     lobby(a, { op: 'start' });
     expect(room.world!.fighters.get(b.id)?.load.weapons).toEqual([WeaponId.Sword, WeaponId.Sword]);
   });

@@ -69,7 +69,8 @@
     "idle": "The spear is a LANCE, never a sword: a long spear held upright beside the body, the blade tilted slightly forward; the coat tails and jellyfish spirits drift with each breath.",
     "run": "The spear is carried upright at the side with its butt low and the blade tilting forward above the head; the coat tails stream behind and the jellyfish spirits trail after him.",
     "air": "The spear is held level with the body, blade forward; the coat tails stream upward and the jellyfish spirits trail behind.",
-    "dash": "The ground dash is a low run with the spear couched under the arm, blade forward; the cyan motes stream behind."
+    "dash": "The ground dash is a low run with the spear couched under the arm, blade forward; the cyan motes stream behind.",
+    "skill": "Rune Leap, his own special (a rune-fired leap over the enemy, spear first). He holds the sea-spear in the RIGHT hand near the butt. 1: he crouches low with the spear held back, a teal rune circle glowing under his feet. 2: coiled crouch, the spear tilted up overhead, about to spring. 3: he launches upward and forward in a high arc, the spear leading point first, body stretched. 4: at the top of the leap, diving over the spot ahead with the spear pointed down, a teal rune trail behind it, at full force. 5: landing in a low crouch with the spear driven into the ground ahead, teal motes falling. 6: rising back toward the stance, the spear sweeping back to ready."
   },
   "nativeHeight": 172
 }

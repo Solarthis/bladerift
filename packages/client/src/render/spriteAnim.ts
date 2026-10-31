@@ -4,7 +4,7 @@
  * frame inside it follows the move's own timing: startup = anticipation, the first active ticks = the strike, then the
  * extension and the recovery. Time-driven animations (idle, run, KO, victory) play at their own frame rates.
  */
-import { Act, ARTS, artIdOf, FIGHTER, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS } from '@bladerift/shared';
+import { Act, ARTS, artIdOf, DODGES, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
 
 export interface SpriteFrame {
@@ -116,9 +116,19 @@ export function spriteFrameFor(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlas
       return pick('ledge', 0, 'fall');
     case Act.Climb:
       return t < 10 ? pick('climb', 0, 'ledge') : pick('land', 0, 'idle');
-    case Act.Roll:
-      if (v.rollAir) return pick('airDash', 0, 'dash', 'roll');
-      return pick('roll', (t / FIGHTER.rollTicks) * (A.roll?.frames.length ?? 4), 'dash');
+    case Act.Roll: {
+      // no roll any more: every hero's dodge (DODGES) has its own pose
+      const D = DODGES[v.hero] ?? DODGES[0];
+      if (D.kind === 'phase') return timed('idle', ctx.time, true);
+      if (D.kind === 'leap') {
+        if (v.ground) return pick('land', 0, 'idle');
+        // the flair vaults (Hunter's Vault, Pole Vault) hold the attack's first frame in the air
+        if (v.hero === 1 || v.hero === 3) return pick('airAttack', 0, 'apex');
+        return v.vy < -160 ? pick('rise', 0, 'apex', 'fall') : v.vy < 140 ? pick('apex', 0, 'rise', 'fall') : pick('fall', 0, 'apex');
+      }
+      if (v.ground) return pick('dash', 0, 'roll');
+      return pick('airDash', 0, 'dash', 'roll');
+    }
     case Act.Stun:
       if (!v.ground) return v.vy < 0 ? pick('launched', 0, 'hitHeavy') : pick('knockFall', 0, 'launched', 'hitHeavy');
       if (t < 4) return pick('hitHeavy', 0, 'hitLight');
@@ -126,8 +136,21 @@ export function spriteFrameFor(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlas
     case Act.Heal:
       return pick('heal', t < 7 ? 0 : 1, 'idle');
     case Act.Skill: {
-      const sk = SKILLS[v.skill];
-      const st = sk?.startup ?? 8;
+      const sk = SKILLS[v.skill] ?? SKILLS[0];
+      const st = sk.startup;
+      if (A.skill) {
+        // the 6-frame special: anticipation (2 frames over the startup), execution (2 over the active window), recovery (2)
+        const n = A.skill.frames.length;
+        const exec = sk.kind === 'dash' ? sk.active ?? 8 : 4;
+        let idx: number;
+        if (t < st) idx = (t / Math.max(1, st)) * 2;
+        else if (t < st + exec) idx = 2 + ((t - st) / exec) * 2;
+        else idx = 4 + Math.min(1, (t - st - exec) / Math.max(1, sk.recovery)) * 2;
+        return pick('skill', Math.min(n - 1, Math.floor(idx)), 'throw', 'combo0');
+      }
+      // fallbacks until the atlas has the special: a dash lunges, an aura roars, a shot throws
+      if (sk.kind === 'dash') return pick('dash', 0, 'roll');
+      if (sk.kind === 'aura') return pick('taunt', t < st ? 0 : 1, 'idle');
       return pick('throw', t < st ? 0 : t < st + 6 ? 1 : 2, 'combo0');
     }
     case Act.Art: {

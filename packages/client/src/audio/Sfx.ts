@@ -21,7 +21,25 @@ export type SfxName =
   | 'artVault' | 'artChains' | 'artFate' | 'artPhantom' | 'artFog' | 'artStampede' | 'artNight'
   | 'starfall' | 'chains' | 'slam'
   // ranged shots (shoot events: arrow, arcane bolt, orb, frost shard, trap set)
-  | 'arrow' | 'arcane' | 'orb' | 'frost' | 'trapSet';
+  | 'arrow' | 'arcane' | 'orb' | 'frost' | 'trapSet'
+  // the Flash Step (heroes 7 and 8 share it, the second pitched up) and each hero's own dodge (DODGE_SOUNDS)
+  | 'blink' | 'dodgeLion' | 'dodgeVault' | 'dodgeGate' | 'dodgePole' | 'dodgeClay' | 'dodgeMirage' | 'dodgePage'
+  | 'dodgeBeast' | 'dodgeFog' | 'dodgeCharge' | 'dodgeShadow' | 'dodgeShield'
+  // each hero's signature special, one sound per SkillId (SKILL_SOUNDS)
+  | 'specLion' | 'specEmber' | 'specGate' | 'specRune' | 'specChain' | 'specStars' | 'specInk' | 'specDirk' | 'specFan'
+  | 'specTerror' | 'specScalpel' | 'specCharge' | 'specHound' | 'specShield';
+
+/** The dodge sound for each hero (DODGES index = hero id). */
+export const DODGE_SOUNDS: readonly SfxName[] = [
+  'dodgeLion', 'dodgeVault', 'dodgeGate', 'dodgePole', 'dodgeClay', 'dodgeMirage', 'dodgePage', 'blink', 'blink',
+  'dodgeBeast', 'dodgeFog', 'dodgeCharge', 'dodgeShadow', 'dodgeShield',
+];
+
+/** The special's sound for each SkillId (the Skill button). */
+export const SKILL_SOUNDS: readonly SfxName[] = [
+  'specLion', 'specEmber', 'specGate', 'specRune', 'specChain', 'specStars', 'specInk', 'specDirk', 'specFan',
+  'specTerror', 'specScalpel', 'specCharge', 'specHound', 'specShield',
+];
 
 /** Sound for each Rift Art, indexed by ArtId (packages/shared/src/classes.ts): RadiantCleave .. NightHunt. */
 const ART_SOUNDS: readonly SfxName[] = [
@@ -328,6 +346,33 @@ export class Sfx {
       case 'orb': this.sOrb(opts); break;
       case 'frost': this.sFrost(opts); break;
       case 'trapSet': this.sTrapSet(opts); break;
+      case 'blink': this.sBlink(opts); break;
+      case 'dodgeLion': this.sDodgeLion(opts); break;
+      case 'dodgeVault': this.sDodgeVault(opts); break;
+      case 'dodgeGate': this.sDodgeGate(opts); break;
+      case 'dodgePole': this.sDodgePole(opts); break;
+      case 'dodgeClay': this.sDodgeClay(opts); break;
+      case 'dodgeMirage': this.sDodgeMirage(opts); break;
+      case 'dodgePage': this.sDodgePage(opts); break;
+      case 'dodgeBeast': this.sDodgeBeast(opts); break;
+      case 'dodgeFog': this.sDodgeFog(opts); break;
+      case 'dodgeCharge': this.sDodgeCharge(opts); break;
+      case 'dodgeShadow': this.sDodgeShadow(opts); break;
+      case 'dodgeShield': this.sDodgeShield(opts); break;
+      case 'specLion': this.sSpecLion(opts); break;
+      case 'specEmber': this.sSpecEmber(opts); break;
+      case 'specGate': this.sSpecGate(opts); break;
+      case 'specRune': this.sSpecRune(opts); break;
+      case 'specChain': this.sSpecChain(opts); break;
+      case 'specStars': this.sSpecStars(opts); break;
+      case 'specInk': this.sSpecInk(opts); break;
+      case 'specDirk': this.sSpecDirk(opts); break;
+      case 'specFan': this.sSpecFan(opts); break;
+      case 'specTerror': this.sSpecTerror(opts); break;
+      case 'specScalpel': this.sSpecScalpel(opts); break;
+      case 'specCharge': this.sSpecCharge(opts); break;
+      case 'specHound': this.sSpecHound(opts); break;
+      case 'specShield': this.sSpecShield(opts); break;
     }
   }
 
@@ -1460,6 +1505,272 @@ export class Sfx {
     this.noise(v, t, 0.35, 0.35, 1800, 200, 'lowpass', 0.002, 0.7, 2.4);
     this.noise(v, t, 0.2, 0.3, 2500, 800, 'bandpass', 0.001, 1.2, 1.5);
     for (let i = 0; i < 5; i++) this.tone(v, t + 0.04 + i * 0.03, 0.08, 'triangle', 1600 + i * 300, 900, 0.05, 0.001);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dodges (the Roll button: each hero's own) and signature specials (the Skill button)
+  // ---------------------------------------------------------------------------
+
+  /** The Flash Step: a zip through the air with a small pop where it lands. */
+  private sBlink(o: PlayOpts): void {
+    const v = this.spawn('blink', o, 0.3, 0.12);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.12, 'triangle', 2000, 400, 0.14, 0.001, 1.2);
+    this.noise(v, t, 0.1, 0.12, 6000, 2000, 'bandpass', 0.001, 1.2);
+    this.tone(v, t + 0.11, 0.05, 'sine', 2200, 1400, 0.1, 0.001);
+  }
+
+  /** Lion's Step: a low guarded burst with gold dust hissing up. */
+  private sDodgeLion(o: PlayOpts): void {
+    const v = this.spawn('dodgeLion', o, 0.35, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.22, 0.3, 1100, 300, 'bandpass', 0.002, 0.9);
+    this.tone(v, t, 0.14, 'sine', 140, 60, 0.4, 0.001, 1.2);
+    this.tone(v, t + 0.03, 0.12, 'triangle', 1400, 1000, 0.05, 0.002);
+  }
+
+  /** Hunter's Vault: a back-flip whoosh and a landing thump. */
+  private sDodgeVault(o: PlayOpts): void {
+    const v = this.spawn('dodgeVault', o, 0.4, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.25, 'triangle', 300, 700, 0.14, 0.01);
+    this.noise(v, t, 0.2, 0.2, 2500, 5000, 'highpass', 0.01, 0.8);
+    this.noise(v, t + 0.22, 0.12, 0.3, 500, 150, 'lowpass', 0.001, 0.7, 1.4);
+  }
+
+  /** Gate Step: a gate's chime opening and closing. */
+  private sDodgeGate(o: PlayOpts): void {
+    const v = this.spawn('dodgeGate', o, 0.5, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.3, 'sine', 500, 1500, 0.14, 0.01);
+    this.tone(v, t + 0.12, 0.3, 'sine', 1320, 1320, 0.07, 0.005);
+    this.tone(v, t + 0.22, 0.2, 'sine', 1500, 800, 0.08, 0.005);
+    this.noise(v, t, 0.2, 0.08, 6000, 3000, 'highpass', 0.005, 0.8);
+  }
+
+  /** Pole Vault: the pole bends and springs with a twang. */
+  private sDodgePole(o: PlayOpts): void {
+    const v = this.spawn('dodgePole', o, 0.45, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.2, 'square', 420, 200, 0.1, 0.001, 1.5);
+    this.tone(v, t + 0.05, 0.3, 'sine', 620, 240, 0.12, 0.005);
+    this.noise(v, t + 0.2, 0.15, 0.22, 900, 400, 'lowpass', 0.001, 0.7, 1.2);
+  }
+
+  /** Clay Shift: a wet squelch as the body melts into the earth. */
+  private sDodgeClay(o: PlayOpts): void {
+    const v = this.spawn('dodgeClay', o, 0.4, 0.05);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.28, 0.35, 600, 200, 'lowpass', 0.01, 1.4, 2.4);
+    this.tone(v, t, 0.2, 'sine', 90, 60, 0.25, 0.005);
+    this.noise(v, t + 0.12, 0.1, 0.12, 1500, 500, 'bandpass', 0.002, 2);
+  }
+
+  /** Mirage: a shimmer of detuned glass and a sparkle where the decoy shatters. */
+  private sDodgeMirage(o: PlayOpts): void {
+    const v = this.spawn('dodgeMirage', o, 0.5, 0.25);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.35, 'sine', 1200, 2400, 0.1, 0.02);
+    this.tone(v, t, 0.35, 'sine', 1218, 2380, 0.1, 0.02);
+    this.noise(v, t, 0.3, 0.08, 4000, 9000, 'highpass', 0.02, 1);
+    for (let i = 0; i < 4; i++) this.tone(v, t + 0.42 + i * 0.03, 0.08, 'sine', 2600 + i * 400, 1800, 0.05, 0.001);
+  }
+
+  /** Turn of the Page: paper flutters and a page snaps over. */
+  private sDodgePage(o: PlayOpts): void {
+    const v = this.spawn('dodgePage', o, 0.4, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.3, 0.2, 4500, 2000, 'highpass', 0.01, 0.8);
+    for (let i = 0; i < 4; i++) this.noise(v, t + i * 0.05, 0.03, 0.12, 6000, 3500, 'bandpass', 0.001, 2);
+  }
+
+  /** Beast Bound: a heavy pounce with a low growl. */
+  private sDodgeBeast(o: PlayOpts): void {
+    const v = this.spawn('dodgeBeast', o, 0.6, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.4, 'sine', 110, 40, 0.5, 0.005, 1.5);
+    this.tone(v, t, 0.3, 'square', 80, 60, 0.07, 0.02, 2);
+    this.noise(v, t, 0.25, 0.25, 900, 200, 'lowpass', 0.002, 0.7, 2);
+  }
+
+  /** Fog Form: a soft, breathy drift that thins out. */
+  private sDodgeFog(o: PlayOpts): void {
+    const v = this.spawn('dodgeFog', o, 0.8, 0.3);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.6, 0.3, 1200, 400, 'lowpass', 0.05, 0.6);
+    this.tone(v, t, 0.5, 'sine', 200, 170, 0.12, 0.08);
+  }
+
+  /** Cavalry Dash: hoofbeats and a horse's bright call. */
+  private sDodgeCharge(o: PlayOpts): void {
+    const v = this.spawn('dodgeCharge', o, 0.5, 0.1);
+    if (!v) return;
+    const t = v.t;
+    for (let i = 0; i < 3; i++) this.noise(v, t + i * 0.07, 0.05, 0.4, 500, 200, 'lowpass', 0.001, 0.8, 1.6);
+    this.tone(v, t, 0.3, 'triangle', 220, 330, 0.1, 0.02);
+  }
+
+  /** Shadow Sink: a dark drop into the ground, rising back out of nothing. */
+  private sDodgeShadow(o: PlayOpts): void {
+    const v = this.spawn('dodgeShadow', o, 0.5, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.4, 'sine', 400, 90, 0.3, 0.005, 1.2);
+    this.noise(v, t, 0.4, 0.3, 500, 120, 'lowpass', 0.005, 0.8, 1.5);
+    this.tone(v, t + 0.3, 0.2, 'sine', 120, 260, 0.1, 0.01);
+  }
+
+  /** Shield Slide: steel scraping over the floor, sparks ticking away. */
+  private sDodgeShield(o: PlayOpts): void {
+    const v = this.spawn('dodgeShield', o, 0.4, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.3, 0.22, 2500, 1200, 'bandpass', 0.005, 1.5);
+    this.tone(v, t, 0.1, 'square', 900, 500, 0.06, 0.002, 1.5);
+    for (let i = 0; i < 3; i++) this.noise(v, t + 0.05 + i * 0.07, 0.02, 0.15, 5000, 3000, 'bandpass', 0.001, 3);
+  }
+
+  /** Lion's Roar: a royal war cry, low and wide. */
+  private sSpecLion(o: PlayOpts): void {
+    const v = this.spawn('specLion', o, 0.9, 0.3);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.6, 0.45, 600, 200, 'lowpass', 0.02, 0.7, 2.4);
+    this.tone(v, t, 0.6, 'sawtooth', 180, 260, 0.16, 0.05, 1.8);
+    this.tone(v, t + 0.1, 0.7, 'sine', 360, 340, 0.1, 0.05);
+  }
+
+  /** Nine Lives: three ember arrows loosed in a fan, with a crackle. */
+  private sSpecEmber(o: PlayOpts): void {
+    const v = this.spawn('specEmber', o, 0.4, 0.1);
+    if (!v) return;
+    const t = v.t;
+    for (let i = 0; i < 3; i++) this.tone(v, t + i * 0.035, 0.12, 'triangle', 900 - i * 80, 500, 0.12, 0.001);
+    this.noise(v, t, 0.25, 0.14, 3000, 1500, 'bandpass', 0.002, 1.2);
+  }
+
+  /** Gate Shot: a gate's bronze open and a golden blade's whistle. */
+  private sSpecGate(o: PlayOpts): void {
+    const v = this.spawn('specGate', o, 0.6, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.35, 'sine', 220, 660, 0.14, 0.01);
+    this.tone(v, t + 0.1, 0.4, 'sine', 880, 880, 0.08, 0.005);
+    this.noise(v, t + 0.12, 0.25, 0.12, 4000, 1500, 'bandpass', 0.005, 1.5);
+  }
+
+  /** Rune Leap: a chime of three runes lit in a row, with a push of air. */
+  private sSpecRune(o: PlayOpts): void {
+    const v = this.spawn('specRune', o, 0.5, 0.2);
+    if (!v) return;
+    const t = v.t;
+    [660, 880, 1320].forEach((f, i) => this.tone(v, t + i * 0.08, 0.2, 'sine', f, f, 0.1, 0.003));
+    this.noise(v, t, 0.2, 0.12, 2000, 800, 'highpass', 0.005, 0.8);
+  }
+
+  /** Chain Lash: a metal whip crack and rattling links. */
+  private sSpecChain(o: PlayOpts): void {
+    const v = this.spawn('specChain', o, 0.4, 0.15);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.1, 0.3, 3000, 1500, 'bandpass', 0.001, 1.2);
+    for (let i = 0; i < 5; i++) this.noise(v, t + 0.04 + i * 0.03, 0.02, 0.2, 5000, 3000, 'bandpass', 0.0005, 4);
+  }
+
+  /** Phantom Stars: a twinkle of three bright chimes. */
+  private sSpecStars(o: PlayOpts): void {
+    const v = this.spawn('specStars', o, 0.5, 0.25);
+    if (!v) return;
+    const t = v.t;
+    [1800, 2400, 3000].forEach((f, i) => this.tone(v, t + i * 0.05, 0.25, 'sine', f, f * 0.9, 0.08, 0.002));
+    this.noise(v, t, 0.2, 0.06, 6000, 3000, 'highpass', 0.005, 1);
+  }
+
+  /** Ink Blot: a wet splat of ink flung out. */
+  private sSpecInk(o: PlayOpts): void {
+    const v = this.spawn('specInk', o, 0.4, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.2, 0.25, 900, 300, 'lowpass', 0.002, 0.9, 1.4);
+    this.tone(v, t, 0.15, 'sine', 300, 180, 0.1, 0.002);
+  }
+
+  /** Shadow Dirk: a dark blade's quick hiss through the air. */
+  private sSpecDirk(o: PlayOpts): void {
+    const v = this.spawn('specDirk', o, 0.25, 0.1);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.1, 0.2, 6000, 3000, 'highpass', 0.001, 1);
+    this.tone(v, t, 0.06, 'square', 1400, 700, 0.05, 0.001);
+  }
+
+  /** Fan of Knives: three quick hisses in a row. */
+  private sSpecFan(o: PlayOpts): void {
+    const v = this.spawn('specFan', o, 0.25, 0.1);
+    if (!v) return;
+    const t = v.t;
+    for (let i = 0; i < 3; i++) this.noise(v, t + i * 0.03, 0.06, 0.18, 7000, 3500, 'highpass', 0.001, 1);
+    this.tone(v, t, 0.1, 'sine', 1700, 1100, 0.05, 0.002);
+  }
+
+  /** Terror Roar: a deep monstrous roar with a shiver. */
+  private sSpecTerror(o: PlayOpts): void {
+    const v = this.spawn('specTerror', o, 1.0, 0.3);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.8, 0.5, 400, 120, 'lowpass', 0.02, 0.7, 2.6);
+    this.tone(v, t, 0.9, 'sawtooth', 90, 60, 0.2, 0.05, 2);
+    this.tone(v, t + 0.1, 0.8, 'square', 130, 95, 0.05, 0.05, 1.5);
+  }
+
+  /** Scalpel Rain: a flurry of metallic ticks as the scalpels spin. */
+  private sSpecScalpel(o: PlayOpts): void {
+    const v = this.spawn('specScalpel', o, 0.35, 0.1);
+    if (!v) return;
+    const t = v.t;
+    for (let i = 0; i < 6; i++) this.tone(v, t + i * 0.025, 0.03, 'square', 3500 + (i % 3) * 300, 3000, 0.04, 0.001, 1.5);
+    this.noise(v, t, 0.2, 0.1, 5000, 3000, 'highpass', 0.002, 1);
+  }
+
+  /** Bucephalus Charge: a warhorse's neigh over a pounding gallop. */
+  private sSpecCharge(o: PlayOpts): void {
+    const v = this.spawn('specCharge', o, 0.8, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.45, 'sawtooth', 600, 900, 0.12, 0.03, 1.2);
+    this.tone(v, t + 0.45, 0.25, 'sawtooth', 900, 700, 0.08, 0.02);
+    for (let i = 0; i < 4; i++) this.noise(v, t + 0.1 + i * 0.09, 0.05, 0.3, 400, 180, 'lowpass', 0.001, 0.8, 1.5);
+  }
+
+  /** Plague Hound: a shadow hound's howl, low and sick. */
+  private sSpecHound(o: PlayOpts): void {
+    const v = this.spawn('specHound', o, 0.8, 0.25);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.5, 'sawtooth', 260, 520, 0.12, 0.05, 1.3);
+    this.tone(v, t + 0.5, 0.25, 'sawtooth', 520, 320, 0.1, 0.02);
+    this.noise(v, t, 0.6, 0.15, 500, 200, 'lowpass', 0.05, 0.7, 1.5);
+  }
+
+  /** Shield Rebound: a tower shield hurled and a clang as it comes back. */
+  private sSpecShield(o: PlayOpts): void {
+    const v = this.spawn('specShield', o, 0.8, 0.2);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.3, 0.25, 1200, 3000, 'bandpass', 0.01, 1.2);
+    this.tone(v, t, 0.2, 'triangle', 500, 250, 0.1, 0.005);
+    this.tone(v, t + 0.45, 0.3, 'sine', 1400, 1400, 0.16, 0.002);
+    this.noise(v, t + 0.45, 0.1, 0.2, 4000, 2000, 'highpass', 0.001, 1);
   }
 
   private sCountdown(o: PlayOpts): void {

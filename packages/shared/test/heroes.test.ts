@@ -16,7 +16,7 @@ const IGNIS = hero('Alexander');
 const THORNMAW = hero('Pale Rider');
 
 /** A loadout for a hero: slot A is its signature weapon, slot B the given second weapon (Shield by default: blockable). */
-const loadOf = (h: number, second: WeaponId = WeaponId.Shield) => sanitizeLoadout({ weapons: [0, second], skill: SkillId.Bomb, hero: h });
+const loadOf = (h: number, second: WeaponId = WeaponId.Shield) => sanitizeLoadout({ weapons: [0, second], skill: SkillId.LionsRoar, hero: h });
 
 /** A live duel on the bridge: fighter A (seat 0, hero a) at x 600 facing right, fighter B (seat 1, hero b) `gap` in front. A's gauge is full. */
 function duel(a: number, b: number, gap = 60) {
@@ -92,12 +92,13 @@ describe('roster', () => {
     const junk: unknown[][] = [[], [WeaponId.Hammer, WeaponId.Hammer], [WeaponId.Sword, WeaponId.Bow], [99, -1], [WeaponId.Lance, WeaponId.Lance]];
     for (const h of HEROES) {
       for (const weapons of junk) {
-        const l = sanitizeLoadout({ hero: h.id, weapons, skill: SkillId.Trap });
+        const l = sanitizeLoadout({ hero: h.id, weapons, skill: SkillId.ShadowDirk });
         expect(l.hero).toBe(h.id);
         expect(l.cls).toBe(h.cls);
         expect(l.weapons[0]).toBe(CLASSES[h.cls].signature);
         expect(l.weapons[1]).toBe(l.weapons[0]);
-        expect(l.skill).toBe(SkillId.Trap);
+        // the special is the hero's own (skill N belongs to hero N), whatever was sent
+        expect(l.skill).toBe(h.id);
         expect(artIdOf(l)).toBe(h.art);
       }
     }
@@ -109,10 +110,10 @@ describe('roster', () => {
     ]);
   });
 
-  it("the kit is the hero's weapon in both slots; the skill stays the player's choice when valid", () => {
-    const l = sanitizeLoadout({ hero: LEON, weapons: [WeaponId.Hammer, WeaponId.Lance], skill: SkillId.Frost });
+  it("the kit is the hero's weapon in both slots and its own special, whatever the player sent", () => {
+    const l = sanitizeLoadout({ hero: LEON, weapons: [WeaponId.Hammer, WeaponId.Lance], skill: SkillId.NineLives });
     expect(l.weapons).toEqual([WeaponId.Sword, WeaponId.Sword]);
-    expect(l.skill).toBe(SkillId.Frost);
+    expect(l.skill).toBe(LEON);
   });
 
   it('falls back safely for bad hero ids and for legacy class-only loadouts', () => {
@@ -123,7 +124,7 @@ describe('roster', () => {
     expect(sanitizeLoadout({ hero: 99, cls: 5 }).hero).toBe(hero('Humbaba'));
     expect(sanitizeLoadout({ cls: 99 }).hero).toBe(LEON);
     expect(sanitizeLoadout(undefined).hero).toBe(LEON);
-    expect(sanitizeLoadout({ hero: 'x', cls: 'x', weapons: 'nope', skill: 99 })).toMatchObject({ hero: LEON, cls: ClassId.Saber, skill: SkillId.Bomb });
+    expect(sanitizeLoadout({ hero: 'x', cls: 'x', weapons: 'nope', skill: 99 })).toMatchObject({ hero: LEON, cls: ClassId.Saber, skill: LEON });
   });
 });
 

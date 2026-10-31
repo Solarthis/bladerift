@@ -67,7 +67,8 @@
     "idle": "the crimson coat hem and the bob's stray curl drift with each breath; the staff stays in the right hand with its crown upright.",
     "run": "the long coat hem swings out behind on each stride; the staff is carried upright at the side in the right hand, never dragging.",
     "misc": "Taunt: she twirls the staff once, then tips her chin up with a sly smile and a wink. Victory: she plants the staff upright beside her, one hand resting on its crown, a small violet star-burst orbiting her, a playful pose.",
-    "ko": "Intro: she walks in with the staff trailing low, lifts it to shoulder height, spins it in a bright flourish that leaves a trail of violet sparks, then settles into stance with the crown raised and a confident smile."
+    "ko": "Intro: she walks in with the staff trailing low, lifts it to shoulder height, spins it in a bright flourish that leaves a trail of violet sparks, then settles into stance with the crown raised and a confident smile.",
+    "skill": "Phantom Stars, her own special (three falling-star bolts that slow whatever they touch). She holds the ivory staff in the RIGHT hand, the violet star crystal glowing. 1: she raises the staff overhead, the crystal brightening. 2: the staff pointed up, three violet stars gathering in a ring above her head. 3: she swings the staff down in front and the three star bolts launch forward. 4: three violet-pink falling stars streaking forward at full force, each with a sparkle trail. 5: the star trails fading into pink-white sparkles, the staff lowering. 6: back to a ready stance with the staff held low."
   },
   "nativeHeight": 162
 }

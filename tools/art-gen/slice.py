@@ -117,6 +117,9 @@ square_icons('icons-abilities', ['i-jump', 'i-roll', 'i-heal', 'i-art', 'a-cleav
 square_icons('icons-gear', ['g-sword', 'g-scythe', 'g-lance', 'g-daggers', 'g-hammer', 'g-bow', 'g-shield', 'g-staff',
                             'c-saber', 'c-archer', 'c-lancer', 'c-caster', 'c-assassin', 'c-berserker', 'c-shielder', 'c-blank'])
 square_icons('icons-arts2', ['a-vault', 'a-chains', 'a-fate', 'a-hand', 'a-fog', 'a-stampede', 'a-hunt', 'a-spare'], rows=2)
+# per-hero specials (k-NN, skill id = hero id) and dodges (d-NN, hero id); the sheets' last cells are spare
+square_icons('icons-specials', ['k-%02d' % i for i in range(14)])
+square_icons('icons-dodges', ['d-%02d' % i for i in range(14)])
 
 
 def portraits(name, first, count, w=240, h=320):

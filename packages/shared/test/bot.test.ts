@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Act, BotBrain, BotDifficulty, botLoadout, Btn, Fighter, InputCmd, Loadout, SkillId, World, WeaponId } from '../src/index';
+import { sanitizeLoadout } from '../src/heroes';
 
 const ARENAS = ['bridge', 'embers', 'crypt', 'grove'];
 /** Upper bound on a match in ticks: three 60 s rounds plus intros and KO pauses fit well inside it. */
 const CAP = 60 * 60 * 8;
-const DEFAULT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Shield], skill: SkillId.Bomb };
+const DEFAULT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Shield], skill: SkillId.LionsRoar };
 
 interface Side {
   level: BotDifficulty;
@@ -36,13 +37,9 @@ function playMatch(arenaId: string, a: Side, b: Side, watch?: (f: Fighter, cmd: 
   return { w, ticks, fa, fb };
 }
 
-/** Loadouts that between them put every weapon family and every skill in play. */
-const LOADOUTS: Loadout[] = [
-  { weapons: [WeaponId.Sword, WeaponId.Bow], skill: SkillId.Bomb },
-  { weapons: [WeaponId.Lance, WeaponId.Shield], skill: SkillId.Frost },
-  { weapons: [WeaponId.Daggers, WeaponId.Hammer], skill: SkillId.Blink },
-  { weapons: [WeaponId.Scythe, WeaponId.Bow], skill: SkillId.Trap },
-];
+/** Loadouts that between them put every kind of special in play: a shot, a dash, an aura and a second shot. */
+// real hero kits (the hero fixes weapon, special and dodge): a swordsman, an archer, a lancer, an assassin
+const LOADOUTS: Loadout[] = [0, 1, 3, 7].map((hero) => sanitizeLoadout({ hero }));
 
 const ALL_BUTTONS = [Btn.Jump, Btn.A, Btn.B, Btn.Skill, Btn.Roll, Btn.Heal];
 

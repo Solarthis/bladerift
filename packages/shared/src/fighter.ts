@@ -255,7 +255,7 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     }
   } else if (b === Buf.Skill) {
     if (s.skillCd > 0) return false;
-    const sk = SKILLS[load.skill];
+    const sk = SKILLS[load.skill] ?? SKILLS[0];
     s.act = Act.Skill;
     s.actT = 0;
     s.skillCd = Math.round(sk.cooldown * C.skillCd);
@@ -268,7 +268,8 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     let dx = cmd.moveX;
     let dy = D.horizontal || D.kind !== 'step' ? 0 : cmd.moveY;
     const still = Math.abs(dx) < 0.3 && Math.abs(dy) < 0.3;
-    const T = D.ticks * DT;
+    // a step also moves on its press tick and coasts ~0.54 of a tick while it settles: spread dist over that path
+    const T = (D.kind === 'step' ? D.ticks + 1.54 : D.ticks) * DT;
     let vx = 0;
     let vy = 0;
     if (D.kind === 'step') {
@@ -523,7 +524,8 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
           s.act = Act.Free;
           s.actT = 0;
           s.rollAir = 0;
-          if (s.ground) s.rollCd = Math.round(FIGHTER.rollCooldown * C.rollCd);
+          // (a leap that started on the ground lands back on it, or runs out in the air: the cooldown starts either way)
+          if (s.ground || D.kind === 'leap') s.rollCd = Math.round(FIGHTER.rollCooldown * C.rollCd);
         }
         break;
       }
@@ -738,10 +740,13 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     default: {
       // Free: run, jump, or start the buffered action
       if (tryBuffered(s, cmd, arena, load)) {
-        // an air dash floats from its very first tick
-        if (s.act === Act.Roll && s.rollAir) {
+        // an air dash floats from its very first tick; a step or a phase is gravity-free too (keeping its own vy)
+        if (s.act === Act.Roll && s.rollAir === 1) {
           gravity = false;
           s.vy = 0;
+        } else if (s.act === Act.Roll && s.rollAir === 2) {
+          const k = dodgeOf(load).kind;
+          if (k === 'step' || k === 'phase') gravity = false;
         }
         break;
       }
@@ -786,7 +791,8 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     s.jumps = C.airJumps;
     s.dash = 0;
     s.fast = 0;
-    if (s.rollAir && s.act === Act.Roll && s.actT > 2) {
+    // (a plain air dash ends on landing; a hero's dodge runs its own course)
+    if (s.rollAir === 1 && s.act === Act.Roll && s.actT > 2) {
       s.act = Act.Free;
       s.actT = 0;
       s.rollAir = 0;

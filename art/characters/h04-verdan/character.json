@@ -69,7 +69,8 @@
     "idle": "The lance is a LANCE, never a sword: held upright beside the body in the right hand, the gold blade tilted slightly forward; loose gold chains drift from the free arm and the long hair moves with each breath.",
     "run": "The lance is carried upright at the side with its butt low; loose gold chains swing from the free arm; the long green hair and the sash flow behind.",
     "air": "The lance is held level with the body, blade forward; the chains and hair stream upward and the robe billows.",
-    "dash": "The ground dash is a low, fast burst with the lance couched forward; gold chains trail behind like streamers."
+    "dash": "The ground dash is a low, fast burst with the lance couched forward; gold chains trail behind like streamers.",
+    "skill": "Chain Lash, his own special (a living golden chain lashes out and binds the target where it stands). He holds the celadon lance in the RIGHT hand at mid-shaft. 1: he raises the LEFT hand, palm open, toward the front, the lance held ready. 2: the left hand clenched, gold chain links coiling around the wrist and spilling from the lance butt, the arm drawn back. 3: the left arm snaps forward and a living gold chain lashes out from the hand, uncoiling. 4: the chain at full extension at full force, its links glowing gold, the tip curling to bind. 5: the chain retracting, the links loosening back into coils. 6: back in stance, the lance upright, chains hanging from its butt."
   },
   "nativeHeight": 180
 }

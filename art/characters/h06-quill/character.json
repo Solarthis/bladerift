@@ -67,7 +67,8 @@
     "idle": "the open book stays in the LEFT hand at the hip and the quill stays in the RIGHT hand with its feather crown upright; the curly mane bounces slightly with each breath.",
     "run": "the book bounces at the left hip and the curly mane bobs with each stride; the quill is carried upright in the right hand, never dragging on the ground.",
     "misc": "Taunt: he twirls the quill like a conductor's baton and gives a broad, mischievous grin with a wink. Victory: he raises the open book overhead with the quill held upright in his right hand, golden pages fanning out around him, a big grin.",
-    "ko": "Intro: he strolls in with the quill tapped lightly on the ground, lifts it and sweeps the feather crown in a grand theatrical flourish that scatters a few gold ink droplets, then settles into stance with the book at the hip."
+    "ko": "Intro: he strolls in with the quill tapped lightly on the ground, lifts it and sweeps the feather crown in a grand theatrical flourish that scatters a few gold ink droplets, then settles into stance with the book at the hip.",
+    "skill": "Ink Blot, his own special (a splash of golden ink that slows the target). He holds the quill-staff in the RIGHT hand, its ink-black nib at the base, and the open book in the LEFT hand. 1: he raises the quill-staff with the nib pointing forward, the book held open. 2: he draws the nib back, a drop of golden ink gathering on the nib. 3: he thrusts the quill forward and a splash of golden ink bursts from the nib. 4: the ink blot spreading into a golden splash in front of him at full force, glowing gold drips. 5: the splash drying into flecks of gold ink, the quill returning. 6: back to the stance, the book held open, the feather upright."
   },
   "nativeHeight": 178
 }

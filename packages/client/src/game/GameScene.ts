@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, ArtId, FIGHTER, GameEvent, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, ArtId, DODGES, DodgeDef, FIGHTER, GameEvent, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
@@ -10,7 +10,7 @@ import { poseFor } from '../render/poses';
 import { warmFighter } from '../render/warm';
 import { heroSpritesReady, loadHeroSprites, spritesPending, SpriteFighterView } from '../render/spriteFighter';
 import { FX, PAL, swingFx } from '../render/fxmap';
-import { sfx } from '../audio/Sfx';
+import { DODGE_SOUNDS, sfx, SKILL_SOUNDS } from '../audio/Sfx';
 import { prefs } from '../ui/prefs';
 import { buildArena } from '../render/arena';
 import { colorOf, accentOf } from '../ui/colors';
@@ -165,6 +165,99 @@ function rectPts(cx: number, cy: number, w: number, h: number, ang: number) {
   return [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(([x, y]) => new Phaser.Math.Vector2(cx + x * c - y * s, cy + x * s + y * c));
 }
 
+/** The colour of each hero's dodge trail (by hero id). */
+const TRAIL_COLOR = [0xffd84a, 0xffa040, 0xffd84a, 0x7ae8f5, 0xc8a878, 0x9a7aff, 0xfff0c0, 0x7affd0, 0x3ce0f5, 0xa8422a, 0xb8c4dc, 0xffa050, 0x8a5ae0, 0x7ae8f5];
+
+/** A polyline that fades toward its oldest point: a streak or an arc. `dy` lifts it to the body's middle. */
+function strokeTrail(g: Phaser.GameObjects.Graphics, pts: { x: number; y: number }[], color: number, a: number, w: number, dy = 0) {
+  for (let i = 1; i < pts.length; i++) {
+    const k = i / pts.length;
+    g.lineStyle(w * k + 0.4, color, a * k);
+    g.lineBetween(pts[i - 1].x, pts[i - 1].y + dy, pts[i].x, pts[i].y + dy);
+  }
+}
+
+/** A dark-bladed knife (the Shadow Dirk, the Fan of Knives) pointing along `ang`. */
+function drawKnife(g: Phaser.GameObjects.Graphics, x: number, y: number, ang: number, blade: number, edge: number) {
+  const c = Math.cos(ang);
+  const s = Math.sin(ang);
+  const P = (u: number, v: number) => new Phaser.Math.Vector2(x + u * c - v * s, y + u * s + v * c);
+  g.fillStyle(0x1a1a22, 1);
+  g.fillPoints([P(-8, -1.3), P(-4, -1.6), P(-4, 1.6), P(-8, 1.3)], true);
+  g.fillStyle(blade, 1);
+  g.fillPoints([P(-4, -2.4), P(4, -1.7), P(12, 0), P(4, 1.7), P(-4, 2.4)], true);
+  const a = P(-4, -2.4);
+  const b = P(12, 0);
+  g.lineStyle(1, edge, 1);
+  g.lineBetween(a.x, a.y, b.x, b.y);
+}
+
+/** A four-pointed violet star (Phantom Stars), turning as it flies. */
+function drawStar(g: Phaser.GameObjects.Graphics, x: number, y: number, R: number, r: number, rot: number, color: number, core: number) {
+  const pts: Phaser.Math.Vector2[] = [];
+  for (let i = 0; i < 8; i++) {
+    const a = rot + (i / 8) * Math.PI * 2;
+    const rr = i % 2 ? r : R;
+    pts.push(new Phaser.Math.Vector2(x + Math.cos(a) * rr, y + Math.sin(a) * rr));
+  }
+  g.fillStyle(0x8a5ae0, 0.25);
+  g.fillCircle(x, y, R + 3);
+  g.fillStyle(color, 1);
+  g.fillPoints(pts, true);
+  g.fillStyle(core, 1);
+  g.fillCircle(x, y, 1.4);
+}
+
+/** A scalpel (Scalpel Rain): a dark handle and a silver blade, spun to `ang`. */
+function drawScalpel(g: Phaser.GameObjects.Graphics, x: number, y: number, ang: number) {
+  const c = Math.cos(ang);
+  const s = Math.sin(ang);
+  const P = (u: number) => ({ x: x + u * c, y: y + u * s });
+  const h0 = P(-4);
+  const h1 = P(0);
+  const t = P(7);
+  g.lineStyle(3, 0x2a2a30, 1);
+  g.lineBetween(h0.x, h0.y, h1.x, h1.y);
+  g.lineStyle(2, 0xeef3fa, 1);
+  g.lineBetween(h1.x, h1.y, t.x, t.y);
+}
+
+/** A blob of golden ink with a black core (Ink Blot): a wobbling rim and a highlight. */
+function drawInk(g: Phaser.GameObjects.Graphics, x: number, y: number, t: number) {
+  const pts: Phaser.Math.Vector2[] = [];
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const r = 6 + Math.sin(a * 3 + t * 9) * 1.4 + Math.sin(a * 5 - t * 7) * 0.7;
+    pts.push(new Phaser.Math.Vector2(x + Math.cos(a) * r, y + Math.sin(a) * r));
+  }
+  g.fillStyle(0xe8c878, 0.3);
+  g.fillCircle(x, y, 10);
+  g.fillStyle(0x15110c, 0.95);
+  g.fillPoints(pts, true);
+  g.lineStyle(1.5, 0xe8c878, 0.95);
+  g.strokePoints(pts, true);
+  g.fillStyle(0xfff6d8, 1);
+  g.fillCircle(x - 2, y - 2, 1.2);
+}
+
+/** The tower shield (Shield Rebound), spinning about its vertical axis; `spin` is its angle. */
+function drawShield(g: Phaser.GameObjects.Graphics, x: number, y: number, spin: number) {
+  for (let k = 2; k >= 0; k--) {
+    const c = Math.cos(spin - k * 0.5);
+    const w = 10 * c;
+    const pts = [[x - w, y - 13], [x + w, y - 13], [x + w, y + 2], [x, y + 13], [x - w, y + 2]].map(([a, b]) => new Phaser.Math.Vector2(a, b));
+    g.fillStyle(c >= 0 ? 0x2a8a90 : 0x1c5a60, k === 0 ? 1 : 0.18);
+    g.fillPoints(pts, true);
+    if (k === 0) {
+      g.lineStyle(1.6, 0x7ae8f5, 1);
+      g.strokePoints(pts, true);
+      g.lineStyle(1.4, 0xd0fbff, 0.9);
+      g.lineBetween(x, y - 8, x, y + 7);
+      g.lineBetween(x - 5 * c, y - 3, x + 5 * c, y - 3);
+    }
+  }
+}
+
 /** An Art's camera-flash colour. */
 const ART_FLASH: Record<number, number> = {
   [ArtId.RadiantCleave]: 0xffe08a,
@@ -205,7 +298,7 @@ interface FighterView {
   /** Scene clock when the view was made (a loading atlas hides the rig for a moment). */
   createdAt?: number;
   tag: Phaser.GameObjects.Text;
-  ghosts: { img: Phaser.GameObjects.Image; tex: Phaser.Textures.CanvasTexture; life: number }[];
+  ghosts: { img: Phaser.GameObjects.Image; tex: Phaser.Textures.CanvasTexture; life: number; max: number; a0: number }[];
   ghostI: number;
   ghostAt: number;
   /** Pose time held during a hit-stop. */
@@ -233,6 +326,22 @@ interface FighterView {
   /** Night Hunt's shadow hound, while the Art plays. */
   hound: { tex: PixelTex; img: Phaser.GameObjects.Image; step: number } | null;
   veilOn: boolean;
+  /** The dodge in progress (each hero's own), and a warhorse under a rider (Cavalry Dash, Bucephalus Charge). */
+  dodge: Dodge | null;
+  mount: Painted | null;
+  /** Dodge trails and overlays, behind the body. */
+  dgfx: Phaser.GameObjects.Graphics;
+  /** The body's last drawn height (a dodge's sink). */
+  lastY: number;
+  runeAt: number;
+  flameAt: number;
+}
+
+/** A painted little sprite (a warhorse) that follows a fighter. */
+interface Painted {
+  tex: PixelTex;
+  img: Phaser.GameObjects.Image;
+  step: number;
 }
 
 type StatusKind = 'burning' | 'slowed' | 'stunned' | 'rage' | 'divineShield' | 'spellCharge' | 'portal' | 'blessing';
@@ -278,6 +387,25 @@ interface ProjView {
   paintedAt?: number;
   /** The Phantom Hand's reach toward an airborne fighter (world units). */
   lift?: number;
+  /** Hero special (skill id + 1, NetProjectile.skin); 0 for the ordinary projectiles. */
+  skin: number;
+  /** Where it has been, frame by frame (the trails). */
+  hist: { x: number; y: number }[];
+}
+
+/** A dodge in progress: each hero's own (DODGES[hero]), from the Roll until it arrives. */
+interface Dodge {
+  hero: number;
+  def: DodgeDef;
+  x0: number;
+  y0: number;
+  /** Where the body was, frame by frame (the streak). */
+  trail: { x: number; y: number }[];
+  /** After-images spawned so far (the Flash Step makes up to four). */
+  afterimages: number;
+  lastGhost: number;
+  lastPuff: number;
+  ended: boolean;
 }
 
 /** Scale both layers of a PixelFX effect. */
@@ -295,6 +423,10 @@ export class GameScene extends Phaser.Scene {
   private projViews = new Map<number, ProjView>();
   private trapViews = new Map<number, Phaser.GameObjects.Image>();
   private strikeViews = new Map<number, Phaser.GameObjects.Graphics>();
+  /** Recent hero specials going off (the caster of a special's projectile). */
+  private casts: { skill: number; caster: number; t: number }[] = [];
+  /** Spare Graphics for the specials' projectiles. */
+  private gfxPool: Phaser.GameObjects.Graphics[] = [];
   private scheduled: Scheduled[] = [];
   private vecs: Vec[] = [];
   private parts: Part[] = [];
@@ -335,6 +467,7 @@ export class GameScene extends Phaser.Scene {
     this.parts = [];
     this.lastList = [];
     this.punch = 0;
+    this.casts = [];
   }
 
   preload() {
@@ -595,6 +728,7 @@ export class GameScene extends Phaser.Scene {
       id: v.id, hero: v.hero, canvas, img, rigImg: img, sprite: null, tag, ghosts: [], ghostI: 0, ghostAt: 0, frozenT: 0, freezeUntil: 0, flashUntil: 0, lastSeq: -1, runPhase: 0,
       lastX: v.x, wasGround: true, landAt: -10, airAt: -10, status: {}, stunnedUntil: 0, koT: 0, color, shown: null,
       gfxB: this.add.graphics().setDepth(9), gfx: this.add.graphics().setDepth(11), hist: [], hound: null, veilOn: false,
+      dodge: null, mount: null, dgfx: this.add.graphics().setDepth(8), lastY: v.y, runeAt: 0, flameAt: 0,
     };
     for (let i = 0; i < 4; i++) {
       const key = `ghost${v.id}_${i}`;
@@ -603,7 +737,7 @@ export class GameScene extends Phaser.Scene {
       tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
       const gimg = this.add.image(0, 0, key).setOrigin(canvas.originX, canvas.originY).setScale(canvas.worldScale).setDepth(9).setVisible(false).setTint(color);
       gimg.tintMode = Phaser.TintModes.FILL;
-      fv.ghosts.push({ img: gimg, tex, life: 0 });
+      fv.ghosts.push({ img: gimg, tex, life: 0, max: 0.22, a0: 0.5 });
     }
     this.views.set(v.id, fv);
     return fv;
@@ -625,6 +759,11 @@ export class GameScene extends Phaser.Scene {
       fv.hound.img.destroy();
       fv.hound.tex.destroy();
     }
+    if (fv.mount) {
+      fv.mount.img.destroy();
+      fv.mount.tex.destroy();
+    }
+    fv.dgfx.destroy();
     if (this.textures.exists(fv.canvas.key)) this.textures.remove(fv.canvas.key);
     this.views.delete(id);
   }
@@ -632,6 +771,7 @@ export class GameScene extends Phaser.Scene {
   private drawFighter(v: ViewFighter, now: number, dt: number, list: ViewFighter[]) {
     const fv = this.viewFor(v);
     fv.shown = v;
+    fv.dgfx.clear();
     // swing effects for moves this device predicted (yours) start now; others come with their 'swing' events
     if (v.self && v.act === Act.Attack && v.moveSeq !== fv.lastSeq) this.startSwing(v.id, v.weapons[v.slot], v.move, v.actTf);
     if (v.self) fv.lastSeq = v.moveSeq;
@@ -646,6 +786,10 @@ export class GameScene extends Phaser.Scene {
     const pose = poseFor({ ...v, actTf: t }, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt });
     const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : 0;
     const tint = v.slowed ? 0xffffd2a8 : 0;
+    // dodges (each hero's own, the Roll button): started by the Roll, followed while it runs; the special's flight too
+    if (v.act === Act.Roll && !fv.dodge) this.startDodge(fv, v, now);
+    if (fv.dodge) this.stepDodge(fv, v, now);
+    this.specialDash(fv, v, now);
     // the sprite takes over from the rig as soon as the hero's atlas is in
     if (!fv.sprite) {
       const meta = heroSpritesReady(v.hero);
@@ -698,11 +842,13 @@ export class GameScene extends Phaser.Scene {
       }
       gh.img.setPosition(v.x, v.y).setFlipX(v.face < 0).setVisible(true).setAlpha(0.5);
       gh.life = 0.22;
+      gh.max = 0.22;
+      gh.a0 = 0.5;
     }
     for (const gh of fv.ghosts) {
       if (gh.life <= 0) continue;
       gh.life -= dt;
-      gh.img.setAlpha(Math.max(0, gh.life / 0.22) * 0.5);
+      gh.img.setAlpha(Math.max(0, gh.life / gh.max) * gh.a0);
       if (gh.life <= 0) gh.img.setVisible(false);
     }
     // plunge landing
@@ -752,9 +898,15 @@ export class GameScene extends Phaser.Scene {
       }
     }
     if (fv.sprite && flash > 0 && flash <= 0.5) alpha *= 0.5;
+    // a dodge's look (Shadow Sink sinks, Clay Shift melts, Fog Form drifts, Mirage shimmers)
+    const look = this.dodgeLook(fv, v);
+    alpha *= look.alpha;
+    if (look.tint && !v.veil) fv.img.setTint(look.tint);
+    fv.img.y += look.dy;
     fv.img.setAlpha(alpha);
     fv.tag.setAlpha(v.veil && !v.self ? 0.2 : 1);
     fv.lastX = v.x;
+    fv.lastY = v.y;
   }
 
   private statusLoop(fv: FighterView, kind: StatusKind, on: boolean, v: ViewFighter, palette?: string[]) {
@@ -1052,6 +1204,15 @@ export class GameScene extends Phaser.Scene {
         break;
       }
       case 'shoot': {
+        if (e.kind >= SKILL_EVENT) {
+          // a hero's special goes off: its own cast effect and sound, at the caster
+          const skill = e.kind - SKILL_EVENT;
+          this.casts.push({ skill, caster: e.p, t: performance.now() });
+          if (this.casts.length > 8) this.casts.shift();
+          const c = find(e.p);
+          if (c) this.skillCast(skill, c);
+          break;
+        }
         // kinds: 0 arrow, 1 bomb, 2 frost, 3 trap, 4 arcane bolt, 5 orb; 6+ are Rift Art projectiles (the Art's own sound covers them)
         const names = ['arrow', 'grenadeThrow', 'frost', 'trapSet', 'arcane', 'orb'] as const;
         const name = names[e.kind];
@@ -1078,12 +1239,9 @@ export class GameScene extends Phaser.Scene {
         sfx.play('impact', { x: e.x, y: e.y, pitch: 1.4 });
         break;
       }
-      case 'roll': {
-        const v = find(e.p);
-        if (v) this.addFx(FX.poof, v.x - v.face * 6, v.y, v.face > 0, 2.2, {}, 8, 8);
-        sfx.play('jetStart', { volume: 0.4 });
+      case 'roll':
+        // each dodge starts from the fighter's own state (startDodge), whichever hero it is
         break;
-      }
       case 'heal': {
         const v = find(e.p);
         if (v) this.addFx(FX.heal, v.x, v.y, false, 1.2, {}, 9, 16);
@@ -1174,8 +1332,11 @@ export class GameScene extends Phaser.Scene {
 
   private spawnProj(p: NetProjectile): ProjView {
     const face = p.vx < 0 ? -1 : 1;
-    const pv: ProjView = { kind: p.kind, x: p.x, y: p.y, face, age: 0, spawnNear: this.nearestFighter(p.x, p.y) };
-    if (p.kind === 'arrow') {
+    const caster = this.castCaster(p);
+    const pv: ProjView = { kind: p.kind, x: p.x, y: p.y, face, age: 0, spawnNear: caster >= 0 ? caster : this.nearestFighter(p.x, p.y), skin: p.skin, hist: [] };
+    if (p.skin) {
+      this.spawnSkin(pv, p);
+    } else if (p.kind === 'arrow') {
       // Serpent Rain's falling shafts are venom green; the bow's are as before
       const rain = Math.abs(p.vy) > 300;
       pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, p.heavy ? { palette: ['#3a1a70', '#7f5ad8', '#e8e2ff', '#ffffff'] } : rain ? { palette: PAL.serpent } : {}, 14, 14, 10);
@@ -1221,6 +1382,10 @@ export class GameScene extends Phaser.Scene {
     pv.age += dt;
     pv.face = p.vx < 0 ? -1 : 1;
     const face = pv.face;
+    if (p.skin) {
+      this.updateSkin(pv, p);
+      return;
+    }
     if (p.kind === 'arrow' || p.kind === 'frost' || p.kind === 'arcane' || p.kind === 'orb' || p.kind === 'wave') {
       pv.fx?.setPosition(p.x, p.kind === 'orb' ? p.y + 30 : p.y);
       if (pv.fx && p.kind === 'arrow') {
@@ -1308,6 +1473,11 @@ export class GameScene extends Phaser.Scene {
 
   /** A projectile is gone: a hand that reached its target clamps on, the rest fade out. */
   private endProj(id: number, pv: ProjView) {
+    if (pv.skin) {
+      this.endSkin(pv);
+      void id;
+      return;
+    }
     if (pv.kind === 'hand') {
       const opp = this.lastList.find((f) => f.id !== pv.spawnNear);
       if (opp && Math.abs(opp.x - pv.x) < 64 && Math.abs(opp.y - pv.y) < 120 && this.roomFor()) {
@@ -1378,6 +1548,647 @@ export class GameScene extends Phaser.Scene {
       }
     }
     for (const [id, g] of this.strikeViews) if (!seen.has(id)) (g.destroy(), this.strikeViews.delete(id));
+  }
+
+  // ------------------------------------------------------------------ dodges and specials
+
+  /** A ghost (an after-image) of the fighter at (x, y): its pose now, fading over `life` seconds from alpha `a0`. */
+  private ghostAt(fv: FighterView, v: ViewFighter, x: number, y: number, life: number, a0: number, tint: number) {
+    const gh = fv.ghosts[fv.ghostI++ % fv.ghosts.length];
+    if (fv.sprite) {
+      const sp = fv.sprite.img;
+      gh.img.setTexture(fv.sprite.textureKey, fv.sprite.current).setOrigin(sp.originX, sp.originY).setScale(fv.sprite.worldScale);
+    } else {
+      gh.tex.context.clearRect(0, 0, gh.tex.width, gh.tex.height);
+      gh.tex.context.drawImage(fv.canvas.tex.getSourceImage() as HTMLCanvasElement, 0, 0);
+      gh.tex.refresh();
+    }
+    gh.img.setPosition(x, y).setFlipX(v.face < 0).setVisible(true).setAlpha(a0).setTint(tint);
+    gh.life = life;
+    gh.max = life;
+    gh.a0 = a0;
+  }
+
+  /** A dodge begins (the Roll): the hero's own start visuals and sound. */
+  private startDodge(fv: FighterView, v: ViewFighter, now: number) {
+    const D = DODGES[v.hero] ?? DODGES[0];
+    const d: Dodge = { hero: v.hero, def: D, x0: fv.lastX, y0: fv.lastY, trail: [], afterimages: 0, lastGhost: 0, lastPuff: now, ended: false };
+    fv.dodge = d;
+    sfx.play(DODGE_SOUNDS[v.hero] ?? 'dodgeLion', { x: v.x, y: v.y, pitch: v.hero === 8 ? 1.3 : 1 });
+    const x = d.x0;
+    const y = d.y0;
+    const f = v.face;
+    switch (v.hero) {
+      case 0: // Lion's Step: a gold kick
+        this.ring(x, y, 4, 40, 0.35, 0xffd84a, 2.5);
+        this.dust(x, y, f, PAL.gold, 1.1);
+        break;
+      case 1: // Hunter's Vault: the back-flip takes off
+      case 9: // Beast Bound: the pounce takes off
+        this.dust(x, y, f, PAL.dust, v.hero === 9 ? 1.4 : 1);
+        break;
+      case 2: // Gate Step: a gold gate opens where he stood
+        if (this.roomFor()) this.addFx(FX.portal, x, y, false, 1, { palette: PAL.gold }, 8, 9, 0.5);
+        this.ring(x, y - 20, 4, 36, 0.35, 0xffd84a, 2);
+        break;
+      case 3: // Pole Vault: the pole plants
+        this.dust(x + f * 16, y, f, PAL.dust, 0.8);
+        break;
+      case 4: // Clay Shift: the earth takes the body
+        this.dust(x, y, f, PAL.dust, 1.3);
+        break;
+      case 5: // Mirage: the decoy stays behind a moment, then shatters into stars
+        this.ghostAt(fv, v, x, y, 0.42, 0.7, 0x9a7aff);
+        this.after(420, () => this.starBurst(x, y - 22, 0x9a7aff));
+        break;
+      case 6: // Turn of the Page: golden pages
+        this.pageBurst(x, y - 26);
+        break;
+      case 7: // Flash Step (the Assassins): a pop where it starts
+      case 8:
+        if (this.roomFor()) this.addFx(FX.blinkOut, x, y - 26, false, 2.2, {}, 16, 26, 0.5);
+        this.ring(x, y - 26, 4, 40, 0.3, TRAIL_COLOR[v.hero], 2);
+        break;
+      case 10: // Fog Form: the body breaks into smoke
+        if (this.roomFor()) this.addFx(FX.poof, x, y - 20, false, 1.2, { palette: PAL.smoke }, 14, 16, 1.1);
+        break;
+      case 11: // Cavalry Dash: dust, and the horse
+        this.dust(x, y, f, PAL.dust, 1.2);
+        break;
+      case 12: // Shadow Sink: a dark pool opens under her
+        this.puddle(x, y, 0.7);
+        break;
+      case 13: // Shield Slide
+        this.ring(x, y - 20, 4, 30, 0.3, 0x7ae8f5, 2);
+        break;
+    }
+  }
+
+  /** A running dodge: its trail, and the hero's own effects while it travels. */
+  private stepDodge(fv: FighterView, v: ViewFighter, now: number) {
+    const d = fv.dodge!;
+    const live = v.act === Act.Roll;
+    if (live) {
+      d.trail.push({ x: v.x, y: v.y });
+      if (d.trail.length > 24) d.trail.shift();
+      if (!d.ended) this.dodgeFrame(fv, d, v, now);
+    }
+    // a step arrives when its travel is over; the other dodges when the roll ends
+    if (!d.ended && (!live || (d.def.kind === 'step' && v.actTf >= d.def.ticks))) this.endDodge(fv, d, v);
+    if (!live) fv.dodge = null;
+  }
+
+  /** Each frame of a dodge that travels: the streak, and the hero's own effects. */
+  private dodgeFrame(fv: FighterView, d: Dodge, v: ViewFighter, now: number) {
+    const g = fv.dgfx;
+    const f = v.face;
+    const p = Math.min(1, v.actTf / Math.max(1, d.def.ticks));
+    strokeTrail(g, d.trail, TRAIL_COLOR[d.hero], 0.9, d.def.kind === 'step' ? 4 : 3, -24);
+    switch (d.hero) {
+      case 0: // gold dust kicked up behind the burst
+        if (now - d.lastPuff > 70) {
+          d.lastPuff = now;
+          this.dust(v.x - f * 10, v.y, f, PAL.gold, 0.9);
+        }
+        this.spark(v.x - f * 12, v.y - 3 + (Math.random() - 0.5) * 6, -f * (80 + Math.random() * 60), -Math.random() * 60, 0.35, 0xffd84a, 2, 240);
+        break;
+      case 2: // the gate's gold motes along the step
+        this.spark(v.x, v.y - 24 + (Math.random() - 0.5) * 20, 0, -10, 0.4, 0xffe08a, 2, 0);
+        break;
+      case 3: // the pole, planted at take-off, swinging with the body
+        if (p < 0.85) {
+          g.lineStyle(2, 0xcfd8e0, 0.9);
+          g.lineBetween(d.x0 + f * 16, d.y0, v.x, v.y - 44);
+        }
+        break;
+      case 4: // Clay Shift: the crack in the earth, behind the sinking body
+        if (now - d.lastPuff > 60) {
+          d.lastPuff = now;
+          this.dust(v.x, v.y, f, PAL.dust, 0.6);
+        }
+        g.lineStyle(2, 0x4f3f2c, 0.7);
+        for (let i = 1; i < d.trail.length; i++) {
+          const a = d.trail[i - 1];
+          const b = d.trail[i];
+          g.lineBetween(a.x, d.y0 + 1 + (i % 2) * 2, b.x, d.y0 + 1 + ((i + 1) % 2) * 2);
+        }
+        break;
+      case 5: // Mirage: a violet shimmer about the figure
+        if (this.parts.length < MAX_PARTS) this.spark(v.x + (Math.random() - 0.5) * 28, v.y - 8 - Math.random() * 30, 0, -10, 0.4, 0x9a7aff, 2, 0);
+        break;
+      case 6: // the pages' motes
+        if (now - d.lastPuff > 90) {
+          d.lastPuff = now;
+          this.spark(v.x, v.y - 30, -f * 40, -30, 0.5, 0xfff0c0, 3, 0);
+        }
+        break;
+      case 7: // Flash Step (the Assassins): up to four after-images along the step
+      case 8:
+        if (d.afterimages < 4 && now - d.lastGhost > 18) {
+          d.lastGhost = now;
+          d.afterimages++;
+          this.ghostAt(fv, v, v.x, v.y, 0.26, 0.6, TRAIL_COLOR[d.hero]);
+        }
+        break;
+      case 9: // Beast Bound: dust thrown up along the arc
+        if (now - d.lastPuff > 90) {
+          d.lastPuff = now;
+          this.dust(v.x, v.y, f, PAL.dust, 0.7);
+        }
+        break;
+      case 10: {
+        // Fog Form: a grey cloud that drifts about the body
+        g.fillStyle(0x9aa8c0, 0.16);
+        for (let i = 0; i < 5; i++) {
+          const a = now * 0.004 + i * 1.3;
+          g.fillCircle(v.x + Math.cos(a) * 14, v.y - 22 + Math.sin(a * 1.3) * 10, 9 + (i % 2) * 4);
+        }
+        if (Math.random() < 0.6) this.spark(v.x + (Math.random() - 0.5) * 30, v.y - 10 - Math.random() * 30, 0, -4 - Math.random() * 6, 0.8, 0xb8c4dc, 2, 0);
+        break;
+      }
+      case 11: // Cavalry Dash: dust, and a faint horse under the rider
+        if (now - d.lastPuff > 80) {
+          d.lastPuff = now;
+          this.dust(v.x - f * 16, v.y, f, PAL.dust, 0.9);
+        }
+        this.horseFor(fv, v, true, 0.32);
+        break;
+      case 13: // Shield Slide: sparks skipping along the floor
+        this.spark(v.x - f * 6, v.y - 1, -f * (60 + Math.random() * 90), -Math.random() * 30, 0.3, Math.random() < 0.5 ? 0x7ae8f5 : 0xeef3fa, 2, 260);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** The dodge arrives: its end visuals, and the streak it left fades. */
+  private endDodge(fv: FighterView, d: Dodge, v: ViewFighter) {
+    d.ended = true;
+    const x = v.x;
+    const y = v.y;
+    const f = v.face;
+    const c = TRAIL_COLOR[d.hero];
+    const trail = d.trail.slice();
+    if (trail.length > 1) this.addVec(0.32, (g, p) => strokeTrail(g, trail, c, 1 - p, 4, -24));
+    switch (d.hero) {
+      case 1:
+      case 3: // the vaults land
+        this.dust(x, y, f, PAL.dust, 1);
+        break;
+      case 2: // the gate at the arrival
+        if (this.roomFor()) this.addFx(FX.portal, x, y, false, 1, { palette: PAL.gold }, 8, 9, 0.5);
+        this.ring(x, y - 20, 4, 36, 0.35, 0xffd84a, 2);
+        break;
+      case 4:
+        this.dust(x, y, f, PAL.dust, 1);
+        break;
+      case 6:
+        this.pageBurst(x, y - 26);
+        break;
+      case 7: // Flash Step: a pop where it lands
+      case 8:
+        if (this.roomFor()) this.addFx(FX.blinkIn, x, y - 26, false, 2.2, {}, 16, 26, 0.5);
+        this.ring(x, y - 26, 4, 40, 0.3, c, 2);
+        for (let i = 0; i < 3; i++) this.spark(x, y - 26, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 120, 0.3, c, 2, 0);
+        break;
+      case 9: // Beast Bound lands hard
+        this.dust(x, y, f, PAL.dust, 1.5);
+        this.shake(0.4);
+        break;
+      case 10:
+        if (this.roomFor()) this.addFx(FX.poof, x, y - 20, false, 1.2, { palette: PAL.smoke }, 14, 16, 1);
+        break;
+      case 11:
+        this.horseFor(fv, v, false, 0);
+        break;
+      case 12: // Shadow Sink rises out of a pool
+        this.puddle(x, y, 0.8);
+        break;
+      case 13:
+        this.ring(x, y - 20, 4, 30, 0.3, 0x7ae8f5, 2);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** How the dodging body looks this frame: alpha, a vertical sink and a tint. */
+  private dodgeLook(fv: FighterView, v: ViewFighter): { alpha: number; dy: number; tint: number } {
+    const d = fv.dodge;
+    if (!d || v.act !== Act.Roll) return { alpha: 1, dy: 0, tint: 0 };
+    const p = Math.min(1, v.actTf / Math.max(1, d.def.ticks));
+    switch (d.hero) {
+      case 5: // Mirage: a violet illusion
+        return { alpha: 0.5, dy: 0, tint: 0x9a7aff };
+      case 10: // Fog Form: barely there
+        return { alpha: 0.15 + 0.03 * Math.sin(this.clock * 30), dy: 0, tint: 0xb8c4dc };
+      case 12: {
+        // Shadow Sink: under the shadow by the middle of the step, rising at the other end
+        const k = p < 0.35 ? p / 0.35 : p > 0.7 ? 1 - (p - 0.7) / 0.3 : 1;
+        return { alpha: 1 - k * 0.95, dy: 34 * k, tint: 0 };
+      }
+      case 4: {
+        // Clay Shift: melts into the ground, mostly hidden, and comes back out
+        const k = Math.sin(Math.min(1, p) * Math.PI);
+        return { alpha: 1 - k * 0.8, dy: 18 * k, tint: 0x9a7a50 };
+      }
+      default:
+        return { alpha: 1, dy: 0, tint: 0 };
+    }
+  }
+
+  /** A puff of dust (or gold, or smoke) on the ground: the dodges' and casts' footfalls. */
+  private dust(x: number, y: number, face: number, palette: string[], scale: number) {
+    if (this.roomFor()) this.addFx(FX.poof, x, y, face < 0, 1.3, { palette }, 8, 9, 0.45 * scale);
+  }
+
+  /** A dark pool on the floor that fades (Shadow Sink's way under the ground). */
+  private puddle(x: number, y: number, life: number) {
+    this.addVec(life, (g, p) => {
+      const w = 46 * (0.4 + 0.6 * Math.min(1, p * 4));
+      g.fillStyle(0x05030a, 0.85 * (1 - p));
+      g.fillEllipse(x, y - 1, w, 9);
+      g.lineStyle(1.5, 0x8a5ae0, 0.9 * (1 - p));
+      g.strokeEllipse(x, y - 1, w, 9);
+    });
+  }
+
+  /** Golden pages whirling out of a point, then fluttering down (Turn of the Page). */
+  private pageBurst(x: number, y: number) {
+    const seeds = Array.from({ length: 8 }, (_, i) => ({ a: (i / 8) * Math.PI * 2, s: 0.8 + ((i * 37) % 5) / 10 }));
+    this.addVec(0.6, (g, p) => {
+      for (const s of seeds) {
+        const r = 10 + 46 * p;
+        const cx = x + Math.cos(s.a + p * 4) * r;
+        const cy = y + Math.sin(s.a + p * 4) * r * 0.5 + p * 26;
+        const pts = rectPts(cx, cy, 7 * s.s, 9 * s.s, s.a + p * 6);
+        g.fillStyle(p < 0.5 ? 0xfff6dc : 0xf0c860, 0.92 * (1 - p));
+        g.fillPoints(pts, true);
+        g.lineStyle(1, 0x15110c, 0.8 * (1 - p));
+        g.strokePoints(pts, true);
+      }
+    });
+  }
+
+  /** Sparks bursting out of a point, and a ring: a special's or a mirage's shatter. */
+  private starBurst(x: number, y: number, c: number) {
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      this.spark(x, y, Math.cos(a) * (60 + Math.random() * 60), Math.sin(a) * (60 + Math.random() * 60), 0.45, c, 3, 40);
+    }
+    this.ring(x, y, 3, 30, 0.3, c, 2);
+  }
+
+  /** A rune lit in the air behind Rune Leap (it rises and fades in half a second). */
+  private rune(x: number, y: number, face: number) {
+    const s = 0.9 + Math.random() * 0.4;
+    this.addVec(0.5, (g, p) => {
+      const oy = y - p * 12;
+      g.lineStyle(2, 0x7ae8f5, 0.95 * (1 - p));
+      const L: [number, number, number, number][] = [[-3, -5, 3, -5], [0, -5, 0, 5], [-3, 0, 3, -3], [-3, 3, 3, 3]];
+      for (const [a, b, c, d] of L) g.lineBetween(x + face * a * s, oy + b * s, x + face * c * s, oy + d * s);
+    });
+  }
+
+  /** A warhorse silhouette under a rider or a charge (`a` its alpha); off removes it. */
+  private horseFor(fv: FighterView, v: ViewFighter, on: boolean, a: number) {
+    if (!on) {
+      if (fv.mount) {
+        fv.mount.img.destroy();
+        fv.mount.tex.destroy();
+        fv.mount = null;
+      }
+      return;
+    }
+    if (!fv.mount) {
+      if (!this.roomFor()) return;
+      const tex = new PixelTex(this, `horse${v.id}`, 46, 34);
+      fv.mount = { tex, img: this.add.image(v.x, v.y, tex.key).setScale(1.1).setDepth(8), step: -1 };
+    }
+    const m = fv.mount;
+    const step = Math.floor(this.clock * 14);
+    if (step !== m.step) {
+      m.step = step;
+      paintHorse(m.tex, this.clock);
+    }
+    m.img.setPosition(v.x - v.face * 18, v.y - 17).setFlipX(v.face < 0).setAlpha(a);
+  }
+
+  /** A dash special in flight: Rune Leap leaves runes in the air; Bucephalus Charge carries the warhorse with fire and dust. */
+  private specialDash(fv: FighterView, v: ViewFighter, now: number) {
+    if (v.act !== Act.Skill) {
+      if (fv.mount && v.skill === SkillId.BucephalusCharge && v.act !== Act.Roll) this.horseFor(fv, v, false, 0);
+      return;
+    }
+    const sk = SKILLS[v.skill];
+    const on = !!sk && sk.kind === 'dash' && v.actTf >= sk.startup && v.actTf < sk.startup + (sk.active ?? 0);
+    if (v.skill === SkillId.RuneLeap && on && now - fv.runeAt > 70) {
+      fv.runeAt = now;
+      this.rune(v.x - v.face * 8, v.y - 30, v.face);
+    }
+    if (v.skill === SkillId.BucephalusCharge) {
+      this.horseFor(fv, v, on, 0.9);
+      if (on && now - fv.flameAt > 90) {
+        fv.flameAt = now;
+        this.dust(v.x - v.face * 14, v.y, v.face, PAL.dust, 1);
+        if (this.roomFor()) this.addFx(FX.flamethrower, v.x - v.face * 26, v.y - 8, v.face > 0, 1.6, { palette: PAL.fire }, 12, 13, 0.4);
+      }
+    }
+  }
+
+  /** A hero's special goes off (its 'shoot' event): the cast effect and sound at the caster. */
+  private skillCast(skill: number, c: ViewFighter) {
+    const x = c.x;
+    const y = c.y;
+    const f = c.face;
+    sfx.play(SKILL_SOUNDS[skill] ?? 'specLion', { x, y, volume: 0.9 });
+    switch (skill) {
+      case SkillId.LionsRoar: // Richard's golden roar: a ring that throws everyone close away
+        this.ring(x, y - 30, 10, 110, 0.5, 0xffd84a, 5);
+        this.ring(x, y - 30, 6, 70, 0.35, 0xfff0a8, 2, true);
+        if (this.roomFor()) {
+          const sun = this.addFx(FX.sunburst, x, y - 30, false, 1, { palette: PAL.gold }, 16, 26, 0.5);
+          this.after(500, () => sun.stop());
+        }
+        this.shake(0.6);
+        break;
+      case SkillId.TerrorRoar: // Humbaba's terror: a dark shockwave, and the screen shakes
+        this.ring(x, y - 30, 10, 130, 0.5, 0xff2a2a, 5);
+        this.ring(x, y - 30, 6, 100, 0.4, 0x8a5ae0, 3, true);
+        if (this.roomFor()) this.addFx(FX.darkExplosion, x, y - 30, false, 1, { palette: PAL.abyss }, 16, 26, 0.5);
+        for (let i = 0; i < 10; i++) {
+          const a = (i / 10) * Math.PI * 2;
+          this.spark(x, y - 30, Math.cos(a) * 140, Math.sin(a) * 60, 0.5, 0x5a2aa8, 3, 0);
+        }
+        this.shake(0.9);
+        break;
+      case SkillId.NineLives: // three embers loosed from the bow
+        if (this.roomFor()) this.addFx(FX.poof, x + f * 22, y - 40, f < 0, 1.1, { palette: PAL.fire }, 14, 16, 0.5);
+        for (let i = 0; i < 8; i++) this.spark(x + f * 22, y - 40, f * (40 + Math.random() * 120), -Math.random() * 120, 0.45, Math.random() < 0.5 ? 0xffae35 : 0xff6a20, 2, 120);
+        break;
+      case SkillId.GateShot: // a small gold portal opens for the blade
+        if (this.roomFor()) {
+          const por = this.addFx(FX.portal, x + f * 22, y - 40, f < 0, 1, { palette: PAL.gold }, 14, 16, 0.4);
+          this.after(500, () => por.stop());
+        }
+        this.ring(x + f * 22, y - 40, 4, 30, 0.35, 0xffe08a, 2.5);
+        break;
+      case SkillId.RuneLeap: // runes ring the ground as he leaps
+        this.ring(x, y, 6, 50, 0.4, 0x7ae8f5, 2.5);
+        if (this.roomFor()) this.addFx(FX.runeCircle, x, y, false, 1.2, { palette: PAL.cyan }, 6, 8, 0.6);
+        break;
+      case SkillId.ChainLash: // gold rings snap out of the hand
+        this.ring(x + f * 20, y - 34, 3, 26, 0.3, 0xffd84a, 2.5);
+        break;
+      case SkillId.PhantomStars:
+        this.starBurst(x + f * 20, y - 36, 0xc09cff);
+        break;
+      case SkillId.InkBlot: // a splash of gold and black flung out
+        if (this.roomFor()) this.addFx(FX.poof, x + f * 20, y - 34, f < 0, 1, { palette: PAL.ink }, 14, 16, 0.5);
+        for (let i = 0; i < 6; i++) this.spark(x + f * 20, y - 34, f * (60 + Math.random() * 60), -40 - Math.random() * 60, 0.4, Math.random() < 0.5 ? 0xe8c878 : 0x2a2016, 2.5, 500);
+        break;
+      case SkillId.ShadowDirk: // a dark puff, mint sparks off the blade
+        if (this.roomFor()) this.addFx(FX.poof, x + f * 18, y - 30, f < 0, 1, { palette: PAL.smoke }, 14, 16, 0.6);
+        for (let i = 0; i < 6; i++) this.spark(x + f * 18, y - 30, f * (60 + Math.random() * 60), (Math.random() - 0.5) * 80, 0.3, 0x7affd0, 2, 0);
+        break;
+      case SkillId.FanOfKnives: // a cyan slash in front
+        if (this.roomFor()) this.addFx(FX.claw, x + f * 24, y - 34, f < 0, 2, { palette: PAL.cyan }, 16, 26, 0.9);
+        this.ring(x + f * 20, y - 34, 3, 26, 0.25, 0x3ce0f5, 2);
+        break;
+      case SkillId.ScalpelRain: // a fog of silver
+        if (this.roomFor()) this.addFx(FX.poof, x, y - 40, f < 0, 1.2, { palette: PAL.silver }, 14, 16, 0.9);
+        break;
+      case SkillId.BucephalusCharge: // the charge starts in a cloud of dust
+        this.dust(x, y, f, PAL.dust, 1.4);
+        this.shake(0.3);
+        break;
+      case SkillId.PlagueHound: // the hound rises out of the shadows
+        if (this.roomFor()) this.addFx(FX.poof, x + f * 20, y - 14, f < 0, 1.4, { palette: PAL.abyss }, 14, 16, 0.6);
+        this.ring(x + f * 20, y - 6, 4, 34, 0.35, 0x6cb82a, 2.5);
+        break;
+      case SkillId.ShieldRebound: // a teal ring as the shield leaves the hand
+        this.ring(x + f * 20, y - 30, 6, 50, 0.35, 0x7ae8f5, 3);
+        for (let i = 0; i < 6; i++) this.spark(x + f * 20, y - 30, f * (40 + Math.random() * 60), (Math.random() - 0.5) * 60, 0.35, 0x7ae8f5, 2, 0);
+        this.shake(0.2);
+        break;
+    }
+  }
+
+  /** The hero who threw the special whose projectile this is (the newest matching cast), or -1. */
+  private castCaster(p: NetProjectile): number {
+    const now = performance.now();
+    for (let i = this.casts.length - 1; i >= 0; i--) {
+      const c = this.casts[i];
+      if (c.skill === p.skin - 1 && now - c.t < 1500) return c.caster;
+    }
+    return -1;
+  }
+
+  private takeGfx(): Phaser.GameObjects.Graphics {
+    const g = this.gfxPool.pop() ?? this.add.graphics().setDepth(15);
+    g.setVisible(true);
+    return g;
+  }
+
+  private giveGfx(g: Phaser.GameObjects.Graphics) {
+    g.clear();
+    if (this.gfxPool.length < 12) {
+      g.setVisible(false);
+      this.gfxPool.push(g);
+    } else g.destroy();
+  }
+
+  /** A hero special's projectile: its own look (its skin is the skill id + 1). */
+  private spawnSkin(pv: ProjView, p: NetProjectile) {
+    pv.gfx = this.takeGfx();
+    switch (p.skin - 1) {
+      case SkillId.NineLives: // ember arrows: the fire-coloured arrow
+        pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, { palette: PAL.fire }, 14, 14, 10);
+        break;
+      case SkillId.GateShot: // a golden blade out of a small gold portal ring
+        pv.img = this.add.image(p.x, p.y, WEAPON_SPRITES[0]).setScale(0.3).setTint(0xffd870).setDepth(14);
+        this.ring(p.x, p.y, 4, 30, 0.35, 0xffe08a, 2.5);
+        if (this.roomFor()) {
+          const por = this.addFx(FX.portal, p.x, p.y, false, 1, { palette: PAL.gold }, 14, 16, 0.35);
+          this.after(350, () => por.stop());
+        }
+        break;
+      case SkillId.PlagueHound: // the shadow hound, smaller than Night Hunt's
+        pv.tex = new PixelTex(this, `hound${p.id}`, 56, 44);
+        pv.img = this.add.image(p.x, p.y, pv.tex.key).setScale(0.95).setOrigin(0.5, 0.76).setDepth(14);
+        break;
+      default: // the rest are drawn in updateSkin
+        break;
+    }
+    if (pv.fx) this.fx.push(pv.fx);
+  }
+
+  /** Each frame of a hero special's projectile (pv.age is already up to date). */
+  private updateSkin(pv: ProjView, p: NetProjectile) {
+    const g = pv.gfx!;
+    g.clear();
+    const face = pv.face;
+    const h = pv.hist;
+    h.push({ x: p.x, y: p.y });
+    if (h.length > 8) h.shift();
+    const ang = Math.atan2(p.vy, p.vx);
+    switch (p.skin - 1) {
+      case SkillId.NineLives: {
+        const a = Math.atan2(p.vy, Math.abs(p.vx)) * (p.vx < 0 ? -1 : 1);
+        pv.fx?.setPosition(p.x, p.y);
+        pv.fx?.front.setRotation(a);
+        pv.fx?.back.setRotation(a);
+        if (Math.random() < 0.8) this.spark(p.x - face * 8 + (Math.random() - 0.5) * 6, p.y + (Math.random() - 0.5) * 6, -face * (10 + Math.random() * 30), -20 - Math.random() * 40, 0.45, Math.random() < 0.5 ? 0xffae35 : 0xff6a20, 2, -60);
+        break;
+      }
+      case SkillId.GateShot: {
+        pv.img?.setPosition(p.x, p.y).setFlipX(face < 0).setRotation(Math.sin(pv.age * 22) * 0.06);
+        strokeTrail(g, h, 0xffd870, 0.85, 3);
+        if (Math.random() < 0.6) this.spark(p.x - face * 18, p.y + (Math.random() - 0.5) * 8, -face * 10, 10 + Math.random() * 20, 0.35, 0xffe08a, 2, 0);
+        break;
+      }
+      case SkillId.ChainLash: {
+        // a gold chain from the thrower's hand to the head
+        const c = this.views.get(pv.spawnNear)?.shown;
+        const sx = c ? c.x + c.face * 20 : p.x - face * 40;
+        const sy = c ? c.y - 34 : p.y;
+        const dist = Math.hypot(p.x - sx, p.y - sy);
+        this.chainLine(g, sx, sy, p.x, p.y, Math.max(3, Math.round(dist / 9)), 0xffd84a, 0.95);
+        g.fillStyle(0xffd84a, 1);
+        g.fillCircle(p.x, p.y, 2.5);
+        g.lineStyle(2, 0xffd84a, 1);
+        g.lineBetween(p.x, p.y, p.x + face * 5, p.y - 5);
+        break;
+      }
+      case SkillId.PhantomStars: {
+        drawStar(g, p.x, p.y, 7, 2.6, pv.age * 9, 0xc09cff, 0xffffff);
+        strokeTrail(g, h, 0x8a5ae0, 0.85, 2);
+        if (Math.random() < 0.7) this.spark(p.x + (Math.random() - 0.5) * 6, p.y + (Math.random() - 0.5) * 6, 0, 0, 0.35, 0xc09cff, 2, 0);
+        break;
+      }
+      case SkillId.InkBlot: {
+        drawInk(g, p.x, p.y, pv.age);
+        if (Math.random() < 0.5) this.spark(p.x, p.y, (Math.random() - 0.5) * 30, -Math.random() * 20, 0.3, 0x2a2016, 2, 300);
+        break;
+      }
+      case SkillId.ShadowDirk: {
+        strokeTrail(g, h, 0x7affd0, 0.9, 3);
+        drawKnife(g, p.x, p.y, ang, 0x1b1a24, 0x7affd0);
+        break;
+      }
+      case SkillId.FanOfKnives: {
+        strokeTrail(g, h, 0x3ce0f5, 0.9, 3);
+        drawKnife(g, p.x, p.y, ang, 0xd0fbff, 0x3ce0f5);
+        break;
+      }
+      case SkillId.ScalpelRain: {
+        strokeTrail(g, h, 0xc4ccd8, 0.6, 1.2);
+        drawScalpel(g, p.x, p.y, pv.age * 16 + p.id);
+        break;
+      }
+      case SkillId.PlagueHound: {
+        // the hound runs: its two poses alternate, and a shadow sits on the floor under it
+        const step = Math.floor(pv.age * 12);
+        if (pv.tex && pv.paintedAt !== step) {
+          pv.paintedAt = step;
+          paintHound(pv.tex, step % 2 ? 2 : 0, pv.age);
+        }
+        pv.img?.setPosition(p.x, p.y).setFlipX(face < 0);
+        g.fillStyle(0x000000, 0.4);
+        g.fillEllipse(p.x, p.y + 1, 22, 4);
+        if (Math.random() < 0.7) this.spark(p.x - face * 18 + Math.random() * 6, p.y - 6 + Math.random() * 10, -face * (20 + Math.random() * 40), -Math.random() * 30, 0.5, Math.random() < 0.5 ? 0x6cb82a : 0x8a5ae0, 2, -40);
+        break;
+      }
+      case SkillId.ShieldRebound: {
+        drawShield(g, p.x, p.y, pv.age * 14);
+        if (Math.random() < 0.6) this.spark(p.x + (Math.random() - 0.5) * 10, p.y + (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, 0.3, 0x7ae8f5, 2, 0);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  /** A hero special's projectile is gone: it bursts, sticks or bleeds where it ended. */
+  private endSkin(pv: ProjView) {
+    const x = pv.x;
+    const y = pv.y;
+    // the fighter it ended on (not its thrower), if any
+    let hit: ViewFighter | undefined;
+    for (const f of this.lastList) {
+      if (f.id !== pv.spawnNear && Math.hypot(f.x - x, f.y - (y - 24)) < 60) {
+        hit = f;
+        break;
+      }
+    }
+    switch (pv.skin - 1) {
+      case SkillId.NineLives:
+        for (let i = 0; i < 6; i++) this.spark(x, y, (Math.random() - 0.5) * 80, -Math.random() * 60, 0.45, Math.random() < 0.5 ? 0xffae35 : 0xff6a20, 2, 120);
+        break;
+      case SkillId.GateShot:
+        this.ring(x, y, 4, 30, 0.25, 0xffe08a, 2.5);
+        for (let i = 0; i < 6; i++) this.spark(x, y, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 120, 0.4, 0xffe08a, 2.5, 60);
+        break;
+      case SkillId.ChainLash:
+        if (hit) {
+          const tx = hit.x;
+          const ty = hit.y - 24;
+          this.ring(tx, ty, 6, 40, 0.35, 0xffd84a, 2.5);
+          this.addVec(0.3, (g, p) => this.chainLine(g, x, y, tx, ty, 8, 0xffd84a, 1 - p));
+          this.shake(0.3);
+        }
+        break;
+      case SkillId.PhantomStars:
+        this.starBurst(x, y, 0xc09cff);
+        break;
+      case SkillId.InkBlot: {
+        if (this.roomFor()) this.addFx(FX.splash, x, y, false, 1.4, { palette: PAL.ink }, 14, 16, 0.7);
+        this.ring(x, y, 4, 34, 0.35, 0xe8c878, 2);
+        for (let i = 0; i < 10; i++) this.spark(x, y, (Math.random() - 0.5) * 140, -Math.random() * 120, 0.5, Math.random() < 0.5 ? 0xe8c878 : 0x15110c, 3, 320);
+        this.addVec(0.9, (g, p) => {
+          g.fillStyle(0x15110c, 0.8 * (1 - p * 0.6));
+          g.fillEllipse(x, y, 30 * (0.5 + 0.5 * Math.min(1, p * 3)), 6);
+        });
+        break;
+      }
+      case SkillId.ShadowDirk:
+        if (this.roomFor()) this.addFx(FX.poof, x, y, false, 1.1, { palette: PAL.smoke }, 14, 16, 0.5);
+        for (let i = 0; i < 5; i++) this.spark(x, y, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, 0.3, 0x7affd0, 2, 0);
+        break;
+      case SkillId.FanOfKnives:
+        for (let i = 0; i < 4; i++) this.spark(x, y, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, 0.3, 0x3ce0f5, 2, 0);
+        break;
+      case SkillId.ScalpelRain:
+        if (hit) {
+          // the bleed: a red burst on the wound, and red drops running down
+          const wx = hit.x + (Math.random() - 0.5) * 10;
+          const wy = y - 24;
+          if (this.roomFor()) this.addFx(FX.hitSpark, wx, wy, false, 1.2, { palette: PAL.blood }, 16, 26);
+          for (let i = 0; i < 8; i++) this.spark(wx, wy, (Math.random() - 0.5) * 120, -Math.random() * 90, 0.4, 0xb0141c, 2, 300);
+          this.addVec(0.7, (g, p) => {
+            g.lineStyle(2, 0xa8122a, 0.9 * (1 - p));
+            g.lineBetween(wx - 3, wy, wx - 3, wy + 20 * p);
+            g.lineBetween(wx + 3, wy, wx + 3, wy + 14 * p);
+          });
+        } else {
+          for (let i = 0; i < 3; i++) this.spark(x, y, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 80, 0.3, 0xc4ccd8, 1.5, 0);
+        }
+        break;
+      case SkillId.PlagueHound:
+        if (this.roomFor()) this.addFx(FX.poof, x, y, false, 1.4, { palette: PAL.serpent }, 14, 16, 0.5);
+        break;
+      case SkillId.ShieldRebound:
+        this.ring(x, y, 4, 30, 0.3, 0x7ae8f5, 3);
+        for (let i = 0; i < 6; i++) this.spark(x, y, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 120, 0.35, 0x7ae8f5, 2, 0);
+        break;
+      default:
+        break;
+    }
+    pv.fx?.destroy();
+    pv.img?.destroy();
+    pv.tex?.destroy();
+    if (pv.gfx) this.giveGfx(pv.gfx);
+    pv.gfx = undefined;
   }
 
   // ------------------------------------------------------------------ camera
@@ -1470,6 +2281,8 @@ export class GameScene extends Phaser.Scene {
     this.vecB?.destroy();
     this.vecF?.destroy();
     this.partG?.destroy();
+    for (const g of this.gfxPool) g.destroy();
+    this.gfxPool = [];
   }
 
   private endProjQuiet(id: number, pv: ProjView) {

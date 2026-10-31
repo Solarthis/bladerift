@@ -108,12 +108,17 @@ import * as sunburst from '../vendor/pixelfx/fx/holy/sunburst.js';
 import * as earthSpike from '../vendor/pixelfx/fx/nature/earth-spike.js';
 // @ts-expect-error -
 import * as forceField from '../vendor/pixelfx/fx/scifi/force-field.js';
+// @ts-expect-error -
+import * as runeCircle from '../vendor/pixelfx/fx/arcane/rune-circle.js';
+// @ts-expect-error -
+import * as splash from '../vendor/pixelfx/fx/water/splash.js';
 
 export const FX = {
   swordSlash, doubleSlash, spinSlash, scytheReap, thrust, spearSweep, claw, daggerFlurry, hammerSmash, heavyCleave, hitSpark, critHit, bluntHit,
   parry, shieldBlock, groundSlam, heavyLanding, smallExplosion, iceShatter, iceLance, blinkIn, blinkOut, heal, poof, arrow, fireball, burning,
   slowed, stunned, damageNumber, critNumber, pow, lightningStrike, chargeUp, arcaneOrb, divineShield, rage, energyDisc, spellCharge, circleCast,
   smite, portal, starFall, graspingHands, shadowTendrils, darkExplosion, flamethrower, fireRing, blessing, sunburst, earthSpike, forceField,
+  runeCircle, splash,
 } as Record<string, FxModule>;
 
 /** Palettes that recolour PixelFX effects for the Arts (dark to bright). */
@@ -132,6 +137,14 @@ export const PAL = {
   smoke: ['#0e0c12', '#1d1a22', '#2e2a35', '#433e4b', '#5c5664', '#7b7484', '#a39cab'],
   dust: ['#1c1610', '#33281c', '#4f3f2c', '#6e5a40', '#927a58', '#b89f78', '#dcc8a2'],
   fire: ['#1f0b10', '#4a1118', '#8c1d1c', '#cc3a1a', '#f2701f', '#ffae35', '#ffe27a', '#fff8d6'],
+  /** Shadow Dirk's streak and the Flash Step: dark glass with a mint glow. */
+  mint: ['#04140e', '#0c3a2a', '#1f7a5a', '#4fd6a8', '#7affd0', '#d8fff0', '#ffffff'],
+  /** Shield Rebound and Shield Slide: teal steel. */
+  teal: ['#031416', '#0a3a40', '#1d6a72', '#2a8a90', '#7ae8f5', '#d0fbff', '#ffffff'],
+  /** Scalpel Rain: silver steel. */
+  silver: ['#101216', '#2a2e36', '#4d5560', '#8a94a2', '#c4ccd8', '#eef3fa', '#ffffff'],
+  /** Scalpel Rain's bleed and the Blood Frenzy-like wounds. */
+  blood: ['#1a0206', '#3a0410', '#6e0c1a', '#a8122a', '#d42a3a', '#ff6a70'],
 };
 
 export interface SwingFx {

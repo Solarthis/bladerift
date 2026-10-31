@@ -247,7 +247,7 @@ export const SKILLS: SkillDef[] = [
   { id: SkillId.NineLives, name: 'Nine Lives', blurb: 'Three ember arrows loosed at once in a fan.', cooldown: 360, startup: 10, recovery: 12,
     kind: 'shot', proj: 'arrow', count: 3, spread: 0.16, speed: 1100, life: 70, gravity: 160, dmg: 42, kb: 160, stun: 14 },
   { id: SkillId.GateShot, name: 'Gate Shot', blurb: 'A golden gate opens and fires one treasured blade straight through.', cooldown: 380, startup: 8, recovery: 12,
-    kind: 'shot', proj: 'relic', speed: 1150, life: 60, launchY: 62, dmg: 88, kb: 260, stun: 22, pierce: true },
+    kind: 'shot', proj: 'relic', speed: 1150, life: 60, launchY: 32, dmg: 88, kb: 260, stun: 22, pierce: true },
   { id: SkillId.RuneLeap, name: 'Rune Leap', blurb: 'A rune-fired leap over the enemy, spear first.', cooldown: 360, startup: 5, recovery: 16,
     kind: 'dash', vx: 620, vy: -620, active: 22, dmg: 78, kb: 300, kbY: 220, stun: 26 },
   { id: SkillId.ChainLash, name: 'Chain Lash', blurb: 'A living chain lashes out and binds the target where it stands.', cooldown: 420, startup: 9, recovery: 14,

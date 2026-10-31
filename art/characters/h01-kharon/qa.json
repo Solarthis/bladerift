@@ -481,6 +481,42 @@
    "feetDrift": -23,
    "spill": 0,
    "anchorX": 220
+  },
+  "skill:0": {
+   "h": 434,
+   "feetDrift": 0,
+   "spill": 0,
+   "anchorX": 230
+  },
+  "skill:1": {
+   "h": 442,
+   "feetDrift": 0,
+   "spill": 0,
+   "anchorX": 215
+  },
+  "skill:2": {
+   "h": 463,
+   "feetDrift": 0,
+   "spill": 3066,
+   "anchorX": 171
+  },
+  "skill:3": {
+   "h": 411,
+   "feetDrift": 0,
+   "spill": 19109,
+   "anchorX": 189
+  },
+  "skill:4": {
+   "h": 432,
+   "feetDrift": 0,
+   "spill": 1606,
+   "anchorX": 293
+  },
+  "skill:5": {
+   "h": 440,
+   "feetDrift": 1,
+   "spill": 0,
+   "anchorX": 277
   }
  }
 }

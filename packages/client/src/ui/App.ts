@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
-  ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout, SKILLS,
-  SKILL_COUNT, WEAPONS, WEAPON_COUNT,
+  ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, dodgeOf, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout,
+  SKILLS, WEAPONS, WEAPON_COUNT,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
 import { GameScene, LocalPlayer } from '../game/GameScene';
@@ -16,7 +16,7 @@ import { sfx } from '../audio/Sfx';
 import { prefs, setPref } from './prefs';
 import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
-import { crestIcon, heroArtIcon, skillIcon, weaponIcon } from './icons';
+import { crestIcon, dodgeIcon, heroArtIcon, skillIcon, weaponIcon } from './icons';
 import { animatePreview } from './spritePreview';
 import { startTitleShowcase } from './titleShowcase';
 import { prefetchHeroSprites } from '../render/spriteFighter';
@@ -242,10 +242,10 @@ export class App {
     const C = classOf(h.cls);
     const A = ARTS[h.art] ?? ARTS[0];
     const wa = WEAPONS[C.signature];
-    const sk = SKILLS[p.load.skill];
+    // the hero's own special and dodge (skill N and DODGES[N] belong to hero N): nothing to pick, the hero fixes them
+    const sp = SKILLS[h.id];
+    const dg = dodgeOf({ hero: h.id });
     const slot = (x: HeroDef) => (x.slot === 'True' ? 'True' : x.slot === 'False' ? 'False' : 'Extra');
-    const pick = (kind: string, i: number, icon: string, name: string, on: boolean) =>
-      `<button class="hs-tile ${on ? 'on' : ''}" data-pick="${kind}" data-i="${i}" title="${esc(name)}" aria-label="${esc(name)}"><img src="${icon}" alt=""><span>${esc(name)}</span></button>`;
     const card = (x: HeroDef) =>
       `<button class="hs-hero ${x.id === h.id ? 'on' : ''}" data-pick="hero" data-i="${x.id}" title="${esc(x.name)}, ${esc(x.epithet)}" aria-label="${esc(x.name)}" aria-pressed="${x.id === h.id}">
         <img src="${heroPortrait(x)}" alt=""><span class="hs-tag">${slot(x)}</span><span class="hs-nm">${esc(x.name)}</span></button>`;
@@ -260,7 +260,6 @@ export class App {
       </div>`;
     }).join('');
     const bar = (label: string, v: number) => `<div class="hs-bar"><span>${label}</span><i>${'<b></b>'.repeat(v)}${'<em></em>'.repeat(5 - v)}</i></div>`;
-    const skills = Array.from({ length: SKILL_COUNT }, (_, i) => pick('skill', i, skillIcon(i), SKILLS[i].name, p.load.skill === i)).join('');
     const sw = (kind: string, list: { name: string; rgb: number }[], cur: number) =>
       list.map((c, i) => `<button class="sw ${cur === i ? 'on' : ''}" data-pick="${kind}" data-i="${i}" style="--c:${css(c.rgb)}" title="${c.name}" aria-label="${c.name}"></button>`).join('');
     const title = this.editing ? 'Player 2 hero' : 'Your hero';
@@ -282,8 +281,8 @@ export class App {
             <p class="hs-lore">${esc(h.lore)}</p>
             <div class="hs-bars">${bar('Power', C.bars.power)}${bar('Speed', C.bars.speed)}${bar('Health', C.bars.health)}${bar('Reach', C.bars.reach)}</div>
             <p class="hs-blurb">${esc(C.blurb)}</p>
-            <div class="hs-item hs-art"><img src="${heroArtIcon(h.id)}" alt=""><div><small>Rift Art</small><b>${esc(A.name)}</b><p>${esc(A.blurb)}</p></div></div>
-            <div class="hs-item hs-sig"><img src="${weaponIcon(C.signature)}" alt=""><div><small>Signature weapon, locked to the hero</small><b>${esc(wa.name)}</b><p>${esc(wa.blurb)}</p></div></div>
+            <div class="hs-item hs-special"><img src="${skillIcon(h.id)}" alt=""><div><small>Special</small><b>${esc(sp.name)}</b><p>${esc(sp.blurb)}</p></div></div>
+            <div class="hs-item hs-dodge"><img src="${dodgeIcon(h.id)}" alt=""><div><small>Dodge</small><b>${esc(dg.name)}</b><p>${esc(dg.blurb)}</p></div></div>
           </div>
           <div class="card hs-gear" data-keep="gear">
             <div class="hs-gear-a">
@@ -292,11 +291,9 @@ export class App {
               <div class="sws">${sw('color', COLORS, p.color)}</div>
             </div>
             <div class="hs-gear-b">
-              <div class="hs-lbl">Weapon <small>${esc(wa.name)}</small></div>
+              <div class="hs-item hs-art"><img src="${heroArtIcon(h.id)}" alt=""><div><small>Rift Art</small><b>${esc(A.name)}</b><p>${esc(A.blurb)}</p></div></div>
+              <div class="hs-item hs-sig"><img src="${weaponIcon(C.signature)}" alt=""><div><small>Signature weapon, locked to the hero</small><b>${esc(wa.name)}</b><p>${esc(wa.blurb)}</p></div></div>
               <p class="hs-note">${esc(h.name)} fights with ${esc(wa.name.toLowerCase())} alone: light combo on one button, a heavy strike on the other (a plunge in the air).</p>
-              <div class="hs-lbl">Skill <small>${esc(sk.name)}</small></div>
-              <div class="hs-tiles">${skills}</div>
-              <p class="hs-note">${esc(sk.blurb)}</p>
             </div>
           </div>
         </div>
@@ -436,7 +433,6 @@ export class App {
         if (k === 'color') p.color = i;
         else if (k === 'hero') p.load = sanitizeLoadout({ ...p.load, hero: i }); // the hero fixes class, signature and Rift Art
         else if (k === 'accent') p.look = { ...p.look!, accent: i };
-        else if (k === 'skill') p.load = { ...p.load, skill: i };
         sfx.play('uiClick');
         saveProfile(this.editing, p);
         this.show('fighter');

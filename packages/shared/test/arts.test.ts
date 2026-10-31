@@ -3,7 +3,7 @@ import { Act, ArtId, Btn, CLASSES, ClassId, HEROES, InputCmd, Loadout, RIFT, ROU
 
 /** The hero whose Art is the class's own (Sable for the assassin's Flash Step, Leon for Saber...). */
 const heroFor = (cls: ClassId) => HEROES.find((h) => h.cls === cls && h.art === CLASSES[cls].art)!.id;
-const loadFor = (cls: ClassId, b = WeaponId.Bow): Loadout => sanitizeLoadout({ weapons: [0, b], skill: SkillId.Bomb, hero: heroFor(cls) });
+const loadFor = (cls: ClassId, b = WeaponId.Bow): Loadout => sanitizeLoadout({ weapons: [0, b], skill: SkillId.LionsRoar, hero: heroFor(cls) });
 const cmd = (seq: number, moveX = 0, buttons = 0): InputCmd => ({ seq, moveX, moveY: 0, buttons, viewTick: 0 });
 
 /** A live duel, fighters `gap` apart, A of class `a`, B of class `b`, A's gauge full. */

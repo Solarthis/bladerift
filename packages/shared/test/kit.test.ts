@@ -7,7 +7,7 @@ const c = (buttons = 0, moveX = 0): InputCmd => ({ seq: 0, moveX, moveY: 0, butt
 const arena = getArena(0);
 
 function fighter(hero: number) {
-  const load: Loadout = sanitizeLoadout({ hero, skill: SkillId.Bomb });
+  const load: Loadout = sanitizeLoadout({ hero, skill: SkillId.LionsRoar });
   const s = newFighterState(400, arena.floor, 1, load.cls);
   return { s, load, step: (cmd: InputCmd) => stepFighter(s, cmd, arena, load) };
 }
