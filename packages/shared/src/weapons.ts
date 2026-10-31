@@ -107,12 +107,12 @@ export const WEAPONS: WeaponDef[] = [
     short: 'Sword',
     blurb: 'Balanced three-hit combo. The third swing launches.',
     combo: [
-      { startup: 6, active: 5, recovery: 11, dmg: 76, box: b(4, -52, 60, 46), kbX: 170, kbY: 60, stun: 22, step: 90 },
-      { startup: 6, active: 5, recovery: 11, dmg: 80, box: b(4, -52, 60, 46), kbX: 180, kbY: 60, stun: 22, step: 90 },
-      { startup: 12, active: 6, recovery: 22, dmg: 115, box: b(2, -66, 52, 64), kbX: 170, kbY: 520, stun: 34, step: 120, shake: 0.4 },
+      { startup: 5, active: 5, recovery: 11, dmg: 90, box: b(4, -52, 60, 46), kbX: 170, kbY: 60, stun: 22, step: 90 },
+      { startup: 5, active: 5, recovery: 11, dmg: 95, box: b(4, -52, 60, 46), kbX: 180, kbY: 60, stun: 22, step: 90 },
+      { startup: 10, active: 6, recovery: 22, dmg: 132, box: b(2, -66, 52, 64), kbX: 170, kbY: 520, stun: 34, step: 120, shake: 0.4 },
     ],
-    air: { startup: 6, active: 8, recovery: 12, dmg: 70, box: b(-6, -56, 56, 54), kbX: 170, kbY: 140, stun: 22 },
-    plunge: { startup: 9, active: 40, recovery: 16, dmg: 110, box: b(-18, -24, 46, 38), kbX: 230, kbY: 320, stun: 30, plunge: true, shake: 0.5 },
+    air: { startup: 6, active: 8, recovery: 12, dmg: 80, box: b(-6, -56, 56, 54), kbX: 170, kbY: 140, stun: 22 },
+    plunge: { startup: 9, active: 40, recovery: 16, dmg: 126, box: b(-18, -24, 46, 38), kbX: 230, kbY: 320, stun: 30, plunge: true, shake: 0.5 },
   },
   {
     id: WeaponId.Scythe,
@@ -133,8 +133,8 @@ export const WEAPONS: WeaponDef[] = [
     short: 'Lance',
     blurb: 'Longest reach. Hold to charge a lunge across the arena.',
     combo: [
-      { startup: 9, active: 5, recovery: 14, dmg: 80, box: b(12, -44, 78, 18), kbX: 230, kbY: 40, stun: 22, step: 60 },
-      { startup: 9, active: 5, recovery: 14, dmg: 85, box: b(12, -44, 78, 18), kbX: 230, kbY: 40, stun: 22, step: 60 },
+      { startup: 7, active: 5, recovery: 14, dmg: 80, box: b(12, -44, 78, 18), kbX: 230, kbY: 40, stun: 22, step: 60 },
+      { startup: 7, active: 5, recovery: 14, dmg: 85, box: b(12, -44, 78, 18), kbX: 230, kbY: 40, stun: 22, step: 60 },
       { startup: 12, active: 6, recovery: 22, dmg: 110, box: b(12, -48, 88, 22), kbX: 340, kbY: 140, stun: 30, step: 160, shake: 0.35 },
     ],
     air: { startup: 7, active: 8, recovery: 14, dmg: 80, box: b(8, -40, 74, 20), kbX: 220, kbY: 80, stun: 22 },
@@ -163,20 +163,20 @@ export const WEAPONS: WeaponDef[] = [
     short: 'Hammer',
     blurb: 'Crushing and slow. The third blow slams the ground and breaks guards.',
     combo: [
-      { startup: 18, active: 6, recovery: 24, dmg: 150, box: b(2, -72, 58, 72), kbX: 290, kbY: 110, stun: 36, step: 50, shake: 0.45 },
-      { startup: 18, active: 6, recovery: 24, dmg: 160, box: b(2, -72, 58, 72), kbX: 290, kbY: 110, stun: 36, step: 50, shake: 0.45 },
-      { startup: 26, active: 6, recovery: 34, dmg: 220, box: b(-56, -34, 176, 34), kbX: 220, kbY: 440, stun: 46, breaksGuard: true, shake: 0.9 },
+      { startup: 18, active: 6, recovery: 24, dmg: 135, box: b(2, -72, 58, 72), kbX: 290, kbY: 110, stun: 36, step: 50, shake: 0.45 },
+      { startup: 18, active: 6, recovery: 24, dmg: 145, box: b(2, -72, 58, 72), kbX: 290, kbY: 110, stun: 36, step: 50, shake: 0.45 },
+      { startup: 26, active: 6, recovery: 34, dmg: 200, box: b(-56, -34, 176, 34), kbX: 220, kbY: 440, stun: 46, breaksGuard: true, shake: 0.9 },
     ],
-    air: { startup: 12, active: 8, recovery: 18, dmg: 140, box: b(-12, -62, 64, 70), kbX: 230, kbY: 120, stun: 30, shake: 0.4 },
-    plunge: { startup: 12, active: 40, recovery: 24, dmg: 190, box: b(-40, -28, 100, 40), kbX: 260, kbY: 380, stun: 40, plunge: true, breaksGuard: true, shake: 0.9 },
+    air: { startup: 12, active: 8, recovery: 18, dmg: 126, box: b(-12, -62, 64, 70), kbX: 230, kbY: 120, stun: 30, shake: 0.4 },
+    plunge: { startup: 12, active: 40, recovery: 24, dmg: 170, box: b(-40, -28, 100, 40), kbX: 260, kbY: 380, stun: 40, plunge: true, breaksGuard: true, shake: 0.9 },
   },
   {
     id: WeaponId.Bow,
     name: 'Hunter Bow',
     short: 'Bow',
     blurb: 'Arrows from range. Hold to draw a heavy, fast shot.',
-    combo: [{ startup: 8, active: 1, recovery: 14, dmg: 60, box: b(0, 0, 0, 0), kbX: 140, kbY: 40, stun: 16, arrow: true }],
-    air: { startup: 7, active: 1, recovery: 12, dmg: 55, box: b(0, 0, 0, 0), kbX: 140, kbY: 40, stun: 16, arrow: true },
+    combo: [{ startup: 8, active: 1, recovery: 18, dmg: 60, box: b(0, 0, 0, 0), kbX: 140, kbY: 40, stun: 8, arrow: true }],
+    air: { startup: 7, active: 1, recovery: 16, dmg: 55, box: b(0, 0, 0, 0), kbX: 140, kbY: 40, stun: 8, arrow: true },
     charged: { startup: 2, active: 1, recovery: 16, dmg: 70, dmgMax: 150, box: b(0, 0, 0, 0), kbX: 260, kbY: 80, stun: 30, arrow: true, min: 12, max: 60 },
     arrowSpeed: 880,
   },
@@ -185,7 +185,7 @@ export const WEAPONS: WeaponDef[] = [
     name: 'Tower Shield',
     short: 'Shield',
     blurb: 'Hold to block. Block at the last moment to parry; tap to bash.',
-    combo: [{ startup: 5, active: 5, recovery: 16, dmg: 50, box: b(2, -52, 32, 48), kbX: 300, kbY: 60, stun: 40, step: 140, shake: 0.3 }],
+    combo: [{ startup: 5, active: 5, recovery: 16, dmg: 36, box: b(2, -52, 32, 48), kbX: 300, kbY: 60, stun: 40, step: 140, shake: 0.3 }],
     air: { startup: 5, active: 6, recovery: 12, dmg: 45, box: b(2, -52, 32, 48), kbX: 260, kbY: 80, stun: 30 },
     block: true,
   },
@@ -195,11 +195,11 @@ export const WEAPONS: WeaponDef[] = [
     short: 'Staff',
     blurb: 'Quick arcane bolts at range; hold to conjure an orb that bursts on impact.',
     combo: [
-      { startup: 7, active: 1, recovery: 12, dmg: 48, box: b(0, 0, 0, 0), kbX: 120, kbY: 40, stun: 14, arrow: true, arcane: true },
-      { startup: 7, active: 1, recovery: 12, dmg: 50, box: b(0, 0, 0, 0), kbX: 120, kbY: 40, stun: 14, arrow: true, arcane: true },
-      { startup: 9, active: 1, recovery: 20, dmg: 66, box: b(0, 0, 0, 0), kbX: 220, kbY: 120, stun: 24, arrow: true, arcane: true },
+      { startup: 7, active: 1, recovery: 17, dmg: 48, box: b(0, 0, 0, 0), kbX: 120, kbY: 40, stun: 8, arrow: true, arcane: true },
+      { startup: 7, active: 1, recovery: 17, dmg: 50, box: b(0, 0, 0, 0), kbX: 120, kbY: 40, stun: 8, arrow: true, arcane: true },
+      { startup: 9, active: 1, recovery: 26, dmg: 66, box: b(0, 0, 0, 0), kbX: 220, kbY: 120, stun: 16, arrow: true, arcane: true },
     ],
-    air: { startup: 6, active: 1, recovery: 12, dmg: 44, box: b(0, 0, 0, 0), kbX: 120, kbY: 60, stun: 14, arrow: true, arcane: true },
+    air: { startup: 6, active: 1, recovery: 17, dmg: 44, box: b(0, 0, 0, 0), kbX: 120, kbY: 60, stun: 8, arrow: true, arcane: true },
     charged: { startup: 3, active: 1, recovery: 20, dmg: 90, dmgMax: 170, box: b(0, 0, 0, 0), kbX: 280, kbY: 220, stun: 32, arrow: true, arcane: true, min: 14, max: 60 },
     arrowSpeed: 640,
   },
@@ -209,10 +209,10 @@ export const WEAPONS: WeaponDef[] = [
     short: 'Gate',
     blurb: 'Golden portals open behind him and fire treasured blades. Hold to open more gates: up to nine blades at once.',
     combo: [
-      { startup: 7, active: 1, recovery: 12, dmg: 46, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 15, arrow: true, gate: true, blades: 1 },
-      { startup: 8, active: 1, recovery: 16, dmg: 64, box: b(0, 0, 0, 0), kbX: 150, kbY: 60, stun: 15, arrow: true, gate: true, blades: 2 },
+      { startup: 7, active: 1, recovery: 18, dmg: 42, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 9, arrow: true, gate: true, blades: 1 },
+      { startup: 8, active: 1, recovery: 22, dmg: 58, box: b(0, 0, 0, 0), kbX: 150, kbY: 60, stun: 9, arrow: true, gate: true, blades: 2 },
     ],
-    air: { startup: 6, active: 1, recovery: 12, dmg: 40, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 14, arrow: true, gate: true, blades: 1 },
+    air: { startup: 6, active: 1, recovery: 18, dmg: 36, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 8, arrow: true, gate: true, blades: 1 },
     // the whole volley's damage, shared among its blades: the count grows with the hold (2 at the threshold, 9 at full)
     charged: { startup: 3, active: 1, recovery: 20, dmg: 70, dmgMax: 170, box: b(0, 0, 0, 0), kbX: 200, kbY: 90, stun: 18, arrow: true, gate: true, min: 10, max: 60 },
     arrowSpeed: 1050,
@@ -281,9 +281,9 @@ export const SKILLS: SkillDef[] = [
   { id: SkillId.FanOfKnives, name: 'Fan of Knives', blurb: 'Three knives flung in a spread, faster than the eye.', cooldown: 300, startup: 4, recovery: 10,
     kind: 'shot', proj: 'arrow', count: 3, spread: 0.2, speed: 1350, life: 34, gravity: 0, dmg: 30, kb: 80, stun: 12 },
   { id: SkillId.TerrorRoar, name: 'Terror Roar', blurb: 'Humbaba roars - a roar like the flood - and everyone near is frozen in fear.', cooldown: 480, startup: 12, recovery: 16,
-    kind: 'aura', radius: 120, dmg: 30, kb: 60, stun: 54 },
-  { id: SkillId.ScalpelRain, name: 'Scalpel Rain', blurb: 'Three scalpels arc through the fog; the wounds keep bleeding.', cooldown: 360, startup: 8, recovery: 12,
-    kind: 'shot', proj: 'arrow', count: 3, spread: 0.18, speed: 760, life: 70, gravity: 900, launchY: 50, dmg: 32, kb: 90, stun: 12, burn: 150 },
+    kind: 'aura', radius: 120, dmg: 30, kb: 60, stun: 36 },
+  { id: SkillId.ScalpelRain, name: 'Scalpel Rain', blurb: 'Three scalpels arc through the fog; the wounds keep bleeding.', cooldown: 270, startup: 8, recovery: 12,
+    kind: 'shot', proj: 'arrow', count: 3, spread: 0.18, speed: 760, life: 70, gravity: 900, launchY: 50, dmg: 42, kb: 90, stun: 12, burn: 150 },
   { id: SkillId.BucephalusCharge, name: 'Bucephalus Charge', blurb: 'A short, unstoppable charge on Bucephalus, his great black warhorse.', cooldown: 420, startup: 7, recovery: 14,
     kind: 'dash', vx: 980, vy: 0, active: 16, dmg: 82, kb: 440, kbY: 180, stun: 28 },
   { id: SkillId.PlagueHound, name: 'Plague Hound', blurb: 'A shadow hound races along the ground; its bite slows and sickens.', cooldown: 420, startup: 10, recovery: 14,
@@ -333,6 +333,13 @@ export const DODGES: DodgeDef[] = [
   { name: 'Shield Slide', blurb: 'Slides forward low behind the tower shield.', kind: 'dash', vx: 640, ticks: 12, invuln: 12 },
 ];
 export const dodgeOf = (load: { hero?: number }) => DODGES[load.hero ?? 0] ?? DODGES[0];
+
+/** The Gate's portals, in the order they open (back from the hero, up from the feet): a fan behind his shoulders. */
+export const GATE_PORTALS: [number, number][] = [[22, 46], [40, 30], [34, 66], [58, 48], [54, 80], [74, 30], [72, 66], [18, 84], [88, 50]];
+export const gatePortal = (i: number, x: number, y: number, face: number): [number, number] => {
+  const [b, u] = GATE_PORTALS[i % GATE_PORTALS.length];
+  return [x - face * b, y - u];
+};
 
 export const SKILL_FX = {
   bomb: { speedX: 460, speedY: -420, gravity: 1300, radius: 74, dmg: 80, burnTicks: 180, burnDps: 24 },

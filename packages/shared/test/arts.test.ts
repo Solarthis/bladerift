@@ -84,7 +84,8 @@ describe('Rift Arts', () => {
     // now behind B (B faces left, so behind is to its right)
     expect(fa.s.x).toBeGreaterThan(fb.s.x);
     run(w, 45, (i) => cmd(i));
-    expect(hp - fb.s.hp).toBeGreaterThan(250);
+    // five cuts and a finisher (15 / 32 x the assassin's backstab 1.9, x its damage 0.86: 177)
+    expect(hp - fb.s.hp).toBeGreaterThan(150);
   });
 
   it('Flash Step breaks out of hit-stun (a counter)', () => {

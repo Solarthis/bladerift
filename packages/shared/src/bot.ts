@@ -8,10 +8,10 @@
 import { DT, FIGHTER } from './constants';
 import { ArtId, classOf, RIFT } from './classes';
 import { solidAt, surfaceBelow } from './arena';
-import { Act, currentMove } from './fighter';
+import { Act, currentMove, FLASH } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
-import { Box, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
+import { Box, dodgeOf, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
 import { HEROES, HERO_COUNT, sanitizeLoadout } from './heroes';
 import { bodyBox, Fighter, moveBox, Projectile, ProjKind, World } from './world';
 
@@ -114,6 +114,8 @@ const CHEST = FIGHTER.h / 2;
 
 const isBow = (w: WeaponId) => WEAPONS[w].arrowSpeed !== undefined;
 const isShield = (w: WeaponId) => WEAPONS[w].block === true;
+/** A zoner's kit: its weapon fights from range (bow, staff, gate). */
+const isRanged = (load: Loadout) => isBow(load.weapons[0]);
 /** Forward reach of a weapon's opening hit, from the feet to the far edge of its box. */
 const reachOf = (w: WeaponId) => {
   const m = WEAPONS[w].combo[0];
@@ -453,7 +455,7 @@ export class BotBrain {
           } else return true; // hold ground until the frame is right
         } else if (!this.canRoll(me) || sw.end <= 1) this.plan = null;
         else if (sw.at <= 2) {
-          this.roll(g, cmd, T);
+          this.roll(me, g, cmd, T);
           this.plan = null;
           return true;
         } else return true; // wait for the roll frame
@@ -465,7 +467,9 @@ export class BotBrain {
     if (!shot || this.bored) return false;
     let m = this.shots.get(shot.id);
     if (!m) {
-      m = { t: w.tick, answer: this.rng.next() < T.dodge, block: this.rng.next() < T.parry, through: this.rng.next() < T.through };
+      // (against a zoner, a melee fighter dodges its shots forward: backing off only gives it the range it wants)
+      const rush = isRanged(foe.load) && !isRanged(me.load);
+      m = { t: w.tick, answer: this.rng.next() < T.dodge, block: this.rng.next() < T.parry, through: this.rng.next() < T.through || rush };
       this.shots.set(shot.id, m);
     }
     if (!m.answer || w.tick - m.t < T.react) return false;
@@ -482,7 +486,7 @@ export class BotBrain {
       return false; // keep moving; guard only when it is about to land
     }
     if (this.canRoll(me) && shot.ticks <= 10) {
-      cmd.moveX = m.through ? g.dir : -g.dir;
+      cmd.moveX = this.dodgeDir(me, g, m.through);
       cmd.buttons |= Btn.Roll;
       return true;
     }
@@ -518,9 +522,19 @@ export class BotBrain {
     return false;
   }
 
-  private roll(g: Geo, cmd: InputCmd, T: Tune) {
-    cmd.moveX = this.rng.next() < T.through ? g.dir : -g.dir;
+  private roll(me: Fighter, g: Geo, cmd: InputCmd, T: Tune) {
+    cmd.moveX = this.dodgeDir(me, g, this.rng.next() < T.through);
     cmd.buttons |= Btn.Roll;
+  }
+
+  /**
+   * The stick for a dodge. A behind-step (Flash Step, Shadow Sink) lands behind a close foe only with the stick released
+   * (fighter.ts: no direction and the opponent close). Other dodges are rolled through the foe, or away from it.
+   */
+  private dodgeDir(me: Fighter, g: Geo, through: boolean): number {
+    const D = dodgeOf(me.load);
+    if (D.behind && g.dist < FLASH.behindRange && Math.abs(g.dy) < 90) return 0;
+    return through ? g.dir : -g.dir;
   }
 
   private startBlock(me: Fighter, cmd: InputCmd, bash: boolean) {
@@ -673,10 +687,10 @@ export class BotBrain {
   }
 
   /** The distance the bot wants between itself and the opponent in its current mode. */
-  private gap(me: Fighter, T: Tune): number {
+  private gap(me: Fighter, foe: Fighter, T: Tune): number {
     if (this.mode === 'range') return 340;
-    // a ready skill is worth a step back to where it lands
-    if (this.level !== 'easy' && me.s.skillCd === 0) {
+    // a ready skill is worth a step back to where it lands (not against a zoner: out there is where it wants us)
+    if (this.level !== 'easy' && me.s.skillCd === 0 && !isRanged(foe.load)) {
       const sk = SKILLS[me.load.skill];
       if (sk?.kind === 'shot') return 260;
       if (sk?.kind === 'dash') return 170;
@@ -704,7 +718,7 @@ export class BotBrain {
     const vuln = this.vulnerable(foe);
     const idle = this.idleT > 40 || this.bored;
     const lunging = o.act === Act.Charge && g.dist < 280;
-    const err = g.dist - this.gap(me, T);
+    const err = g.dist - this.gap(me, foe, T);
     // pushing at a wall or a block that we cannot get over: back off for a while, and try a jump once
     const moved = Math.abs(s.x - this.lastX) > 0.5;
     this.lastX = s.x;

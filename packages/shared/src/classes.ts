@@ -109,7 +109,7 @@ export const CLASSES: ClassDef[] = [
   {
     id: ClassId.Lancer, name: 'Lancer', title: 'The hound of the spear', signature: WeaponId.Lance, art: ArtId.PiercingFang,
     blurb: 'Fast and long-reaching. Pokes from outside your range and closes the gap in a heartbeat.',
-    hp: 880, dmg: 1, speed: 1.1, airJumps: 1, dashes: 1, rollCd: 0.85, recovery: 0.9, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
+    hp: 1000, dmg: 1, speed: 1.1, airJumps: 1, dashes: 1, rollCd: 0.85, recovery: 0.9, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
     bars: { power: 3, speed: 4, health: 3, reach: 5 },
   },
   {
@@ -121,7 +121,7 @@ export const CLASSES: ClassDef[] = [
   {
     id: ClassId.Assassin, name: 'Assassin', title: 'Gone before the blade lands', signature: WeaponId.Daggers, art: ArtId.FlashStep,
     blurb: 'Blindingly swift: triple jump, two air dashes, quick rolls and recoveries, brutal backstabs. Hits lighter and breaks easily.',
-    hp: 920, dmg: 0.92, speed: 1.3, airJumps: 2, dashes: 2, rollCd: 0.5, recovery: 0.75, backstab: 1.9, chip: 1.2, skillCd: 0.9, arrowSpeed: 1,
+    hp: 920, dmg: 0.86, speed: 1.3, airJumps: 2, dashes: 2, rollCd: 0.5, recovery: 0.75, backstab: 1.9, chip: 1.2, skillCd: 0.9, arrowSpeed: 1,
     bars: { power: 2, speed: 5, health: 1, reach: 1 },
   },
   {
@@ -139,7 +139,7 @@ export const CLASSES: ClassDef[] = [
   {
     id: ClassId.Rider, name: 'Rider', title: 'Master of the charge', signature: WeaponId.Scythe, art: ArtId.Stampede,
     blurb: 'Fast and far-reaching: rides the arena and tramples with a summoned mount.',
-    hp: 980, dmg: 0.93, speed: 1.2, airJumps: 1, dashes: 2, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
+    hp: 980, dmg: 1.12, speed: 1.2, airJumps: 1, dashes: 2, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
     bars: { power: 3, speed: 4, health: 3, reach: 4 },
   },
 ];

@@ -11,7 +11,7 @@ import { ARENAS } from '../packages/shared/src/arena';
 import { BotBrain } from '../packages/shared/src/bot';
 import { ARTS, CLASSES } from '../packages/shared/src/classes';
 import { ROUND, TICK_RATE } from '../packages/shared/src/constants';
-import { HEROES, sanitizeLoadout } from '../packages/shared/src/heroes';
+import { heroClass, HEROES, sanitizeLoadout } from '../packages/shared/src/heroes';
 import { SkillId, WeaponId } from '../packages/shared/src/weapons';
 import { World } from '../packages/shared/src/world';
 
@@ -208,7 +208,8 @@ console.log(line(header.map((h, i) => '-'.repeat(widths[i]))));
 for (const h of HEROES_SEL) {
   const r = rows.get(h)!;
   const rd = r.rounds; // each round is counted once for each of its two heroes
-  const C = CLASSES[HEROES[h].cls];
+  // (the class's stats with the hero's own tune: heroes.ts HERO_TUNE)
+  const C = heroClass({ cls: HEROES[h].cls, hero: h });
   console.log(line([
     short(h),
     clsName(h),

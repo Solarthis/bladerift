@@ -3,7 +3,7 @@
  * class (stats, signature weapon) and the Rift Art; colours and costume pieces are cosmetic (client). The loadout's
  * second weapon and skill stay the player's choice.
  */
-import { ArtId, ClassId } from './classes';
+import { ArtId, ClassDef, ClassId, classOf } from './classes';
 import { isWeapon, Loadout, SkillId, WeaponId } from './weapons';
 
 export interface HeroDef {
@@ -66,6 +66,29 @@ const HERO_WEAPON: Partial<Record<number, WeaponId>> = { 2: WeaponId.Gate, 10: W
 const SIGNATURE: WeaponId[] = [WeaponId.Sword, WeaponId.Bow, WeaponId.Lance, WeaponId.Staff, WeaponId.Daggers, WeaponId.Hammer, WeaponId.Shield, WeaponId.Scythe];
 /** The weapon a hero fights with: its own (Gilgamesh's Gate) or its class's signature weapon. */
 export const heroWeapon = (hero: number) => HERO_WEAPON[hero] ?? SIGNATURE[HEROES[hero]?.cls ?? 0];
+
+/** Per-hero balance on top of the class: multipliers on the class's own numbers, for a hero who fights unlike its
+ * class-mates. Jack the Ripper is a Berserker with knives, not a hammer: quicker on his feet, out of a swing and out of
+ * a dodge than Humbaba, and each cut a little deeper. */
+export type HeroTune = Partial<Pick<ClassDef, 'dmg' | 'speed' | 'recovery' | 'rollCd'>>;
+export const HERO_TUNE: Partial<Record<number, HeroTune>> = {
+  10: { dmg: 1.15, speed: 1.3, recovery: 0.85, rollCd: 0.7 },
+};
+const tunedClasses = new Map<number, ClassDef>();
+/** The class stats a loadout fights with: its class's, with its hero's tune (HERO_TUNE) applied. */
+export function heroClass(load: { cls: number; hero?: number }): ClassDef {
+  const C = classOf(load.cls);
+  const t = HERO_TUNE[load.hero ?? -1];
+  if (!t) return C;
+  const key = (load.hero ?? 0) * 64 + C.id;
+  let T = tunedClasses.get(key);
+  if (!T) {
+    T = { ...C };
+    for (const k of Object.keys(t) as (keyof HeroTune)[]) T[k] = C[k] * (t[k] ?? 1);
+    tunedClasses.set(key, T);
+  }
+  return T;
+}
 
 /** How each hero's weapon is named and drawn in the menus (the moveset is the WeaponDef; the look is the hero's own). */
 export interface WeaponLook {

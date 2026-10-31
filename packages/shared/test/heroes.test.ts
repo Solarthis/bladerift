@@ -248,7 +248,7 @@ describe('new Rift Arts', () => {
     expect(fa.s.veil).toBeLessThanOrEqual(360);
   });
 
-  it('Grim Fog: the veil multiplies the first melee hit by 2.2 and is spent on it', () => {
+  it('Grim Fog: the veil multiplies the first melee hit by 3.5 and is spent on it', () => {
     const firstHit = (veil: number) => {
       const { w, fa, fb } = duel(MR_GRAY, LEON, 40);
       fa.s.veil = veil;
@@ -263,7 +263,7 @@ describe('new Rift Arts', () => {
     expect(veiled.hit).toBeDefined();
     expect(veiled.hit.crit).toBe(true);
     expect(plain.hit.crit).toBe(false);
-    expect(veiled.hit.amt / plain.hit.amt).toBeCloseTo(2.2, 1);
+    expect(veiled.hit.amt / plain.hit.amt).toBeCloseTo(3.5, 1);
     expect(veiled.veilAfter).toBe(0);
   });
 
@@ -292,7 +292,7 @@ describe('new Rift Arts', () => {
     expect(steedSeen).toBe(true);
     const trample = hitsBy(log, fa.id, fb.id).filter((e) => e.w === 106);
     expect(trample).toHaveLength(1);
-    expect(trample[0].amt).toBe(158); // Rider dmg 0.93 (classes.ts)
+    expect(trample[0].amt).toBe(190); // 170 x Rider dmg 1.12 (classes.ts)
     // the burn: the trampled fighter keeps taking fire damage for a while
     const burns = hitsBy(log, fa.id, fb.id).filter((e) => e.w === 200);
     expect(burns.length).toBeGreaterThanOrEqual(5);
@@ -313,8 +313,8 @@ describe('new Rift Arts', () => {
     play(w, 110, nothing, nothing, log);
     const slams = hitsBy(log, fa.id, fb.id).filter((e) => e.w === 106);
     expect(slams).toHaveLength(1);
-    expect(slams[0].amt).toBe(153); // Rider dmg 0.93 (classes.ts)
-    expect(hp0 - fb.s.hp).toBe(153);
+    expect(slams[0].amt).toBe(185); // 165 x Rider dmg 1.12 (classes.ts)
+    expect(hp0 - fb.s.hp).toBe(185);
     // the slam lands on the opponent's spot (where it stood when the hound came down), not short or past it
     const boom = log.find((e) => e.t === 'boom') as { x: number } | undefined;
     expect(boom).toBeDefined();

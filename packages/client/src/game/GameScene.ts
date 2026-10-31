@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, ArtId, DODGES, DodgeDef, FIGHTER, GameEvent, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, ArtId, DODGES, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
@@ -985,6 +985,7 @@ export class GameScene extends Phaser.Scene {
     if (art === ArtId.PiercingFang && v.actTf < 46) fv.hist.push({ x: v.x, y: v.y, t: now });
     while (fv.hist.length && now - fv.hist[0].t > 350) fv.hist.shift();
     this.drawTendrils(fv, v, now);
+    this.drawGatePortals(fv, v);
     // Chains of Genesis: the rooted fighter is bound in chains
     this.drawBinds(fv, v);
     // Grim Fog: unseen by the opponent. The veiled fighter is a faint shimmer on their screen; you still see yourself.
@@ -1030,6 +1031,27 @@ export class GameScene extends Phaser.Scene {
       s.update(0);
       if (!this.fx.includes(s)) this.fx.push(s);
     }
+  }
+
+  /**
+   * The Gate charging: one golden portal opens behind Gilgamesh for each blade the held volley will fire (2 up to 9, the
+   * same count and spots as World.spawnFrom), so the player sees the volley grow.
+   */
+  private drawGatePortals(fv: FighterView, v: ViewFighter) {
+    const w = v.weapons[v.slot];
+    const c = WEAPONS[w]?.charged;
+    if (v.act !== Act.Charge || w !== WeaponId.Gate || !c) return;
+    const k = Math.max(0, Math.min(1, (v.charge - c.min) / Math.max(1, c.max - c.min)));
+    const n = v.charge < c.min ? 1 : 2 + Math.round(7 * k);
+    const g = fv.gfxB;
+    for (let i = 0; i < n; i++) {
+      const [px, py] = gatePortal(i, v.x, v.y, v.face);
+      const r = 9 + Math.sin(this.clock * 9 + i) * 1.2;
+      g.fillStyle(0x2a1606, 0.55).fillEllipse(px, py, r * 1.1, r * 2.1);
+      g.lineStyle(2.5, 0xffd060, 0.95).strokeEllipse(px, py, r * 1.1, r * 2.1);
+      g.lineStyle(1, 0xfff4c0, 0.8).strokeEllipse(px, py, r * 0.6, r * 1.4);
+    }
+    if (k >= 1 && Math.random() < 0.5) this.spark(v.x - v.face * 40 + (Math.random() - 0.5) * 60, v.y - 70 + (Math.random() - 0.5) * 50, 0, -30, 0.4, 0xffe08a, 2, 0);
   }
 
   /** Abyss Fang: four wavy cyan strands trailing the fighter's recent path. */

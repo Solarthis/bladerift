@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  Act, Btn, CLASSES, classOf, FIGHTER, GameEvent, getArena, HEROES, Loadout, ROUND, SKILLS, SkillDef, sanitizeLoadout, SkillId, World, WeaponId,
+  Act, Btn, CLASSES, classOf, FIGHTER, GameEvent, getArena, heroClass, HEROES, Loadout, ROUND, SKILLS, SkillDef, sanitizeLoadout, SkillId, World, WeaponId,
 } from '../src/index';
 
 /**
@@ -70,7 +70,8 @@ const GATE = SkillId.GateShot;
 describe('specials: every hero casts its own special at an opponent in range', () => {
   for (const h of HEROES) {
     const sk = SKILLS[h.id];
-    const cls = classOf(h.cls);
+    // (the class's damage multiplier with the hero's tune: heroes.ts HERO_TUNE)
+    const cls = heroClass({ cls: h.cls, hero: h.id });
     // KNOWN BUG (world.ts, Gate Shot): the blade is launched at launchY 62 (fighter.ts / weapons.ts), above the body
     // height (FIGHTER.h 52), so it passes over any standing opponent: no hit at any range (repro: opponent at 0.3 * reach).
     const check = it;

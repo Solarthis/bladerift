@@ -9,8 +9,8 @@ import {
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
-import { artIdOf } from './heroes';
-import { Box, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
+import { artIdOf, heroClass } from './heroes';
+import { Box, gatePortal, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
 
 export interface MatchSettings {
   arenaId: string;
@@ -70,6 +70,9 @@ export interface Projectile {
   kbY?: number;
   /** Turns back toward its thrower at this life left (a thrown shield). */
   boomerang?: number;
+  /** Fired by a Rift Art: its hits land as Art hits (Art hit-stop, no combo scaling). Weapon and skill projectiles that
+   * share a kind with an Art's (the Gate's blades and Gate Shot are relics, Chain Lash a hand) are ordinary hits. */
+  art?: boolean;
 }
 
 export interface Trap {
@@ -502,7 +505,7 @@ export class World {
     if (mc.backstab || mc.tip) dmg = Math.round(dmg * (mc.backstab ? C.backstab : 1.4));
     // out of the Grim Fog: the first blow that lands crits and reveals (a blocked swing keeps the fog)
     const veiled = a.s.veil > 0;
-    if (veiled) dmg = Math.round(dmg * 2.2);
+    if (veiled) dmg = Math.round(dmg * 3.5);
     const ix = (Math.max(box.x, seen.x - FIGHTER.w / 2) + Math.min(box.x + box.w, seen.x + FIGHTER.w / 2)) / 2;
     const iy = Math.max(box.y, seen.y - FIGHTER.h) + Math.min(box.h, FIGHTER.h) / 2;
     const landed = this.applyHit(a, d, {
@@ -515,9 +518,9 @@ export class World {
     meleeConnect(a.s, a.load, m, this.lastStop);
   }
 
-  /** The attacker's damage scale: class, the berserker's low-health rage, Blood Frenzy. */
+  /** The attacker's damage scale: class (and hero tune), the berserker's low-health rage, Blood Frenzy. */
   private dmgScale(a: Fighter) {
-    const C = classOf(a.load.cls);
+    const C = heroClass(a.load);
     let k = C.dmg;
     if (C.id === ClassId.Berserker && a.s.hp < C.hp / 3) k *= 1.4 / 1.2;
     if (a.s.frenzy > 0) k *= 1.25;
@@ -539,7 +542,7 @@ export class World {
       guard?: { blocking: boolean; blockT: number }; melee?: boolean;
       /** The damage the hit-stop is sized from (default dmg): the move's own, before crits and scaling. */
       hsDmg?: number;
-      /** A Rift Art hit (also any w in 104..199): Art hit-stop, no combo scaling, never trips the combo break. */
+      /** A Rift Art hit (when unset: any w in 104..199): Art hit-stop, no combo scaling, never trips the combo break. */
       art?: boolean;
     },
   ): boolean {
@@ -560,7 +563,7 @@ export class World {
       }
       return false;
     }
-    const art = !!h.art || (h.w >= 104 && h.w < 200);
+    const art = h.art ?? (h.w >= 104 && h.w < 200);
     const hsDmg = h.hsDmg ?? h.dmg;
     h = { ...h, dmg: a ? Math.round(h.dmg * this.dmgScale(a)) : h.dmg };
     const guard = h.guard ?? { blocking: isBlocking(ds), blockT: ds.blockT };
@@ -680,9 +683,7 @@ export class World {
         const per = Math.round(moveDamage(s, f.load, m) / n);
         for (let i = 0; i < n; i++) {
           const last = i === n - 1;
-          // portals fan out behind the shoulders: alternating heights, further back for later blades
-          const px = s.x - s.face * (18 + (i % 3) * 22 + Math.floor(i / 3) * 10);
-          const py = s.y - 54 - ((i * 37) % 5) * 13;
+          const [px, py] = gatePortal(i, s.x, s.y, s.face);
           const tx = o ? o.s.x : s.x + s.face * 400;
           const ty = o ? o.s.y - 26 : s.y - 26;
           const d = Math.hypot(tx - px, ty - py) || 1;
@@ -825,7 +826,7 @@ export class World {
           const guardOk = isBlocking(f.s) && front;
           const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' || p.kind === 'relic' || p.kind === 'hand' || p.kind === 'steed' ? 106 : 101;
           const kbY = p.kbY ?? (p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40);
-          const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable });
+          const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable, art: !!p.art });
           // the Phantom Hand crushes the heart it grasps and feeds its master
           if (landed && p.kind === 'hand' && !p.skin && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.5));
           if (p.burn && (landed || p.kind === 'steed')) f.s.burnT = Math.max(f.s.burnT, p.burn);
@@ -896,7 +897,7 @@ export class World {
       switch (artIdOf(f.load)) {
         case ArtId.RadiantCleave:
           if (t === 18) {
-            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'wave', owner: f.id, x: s.x + s.face * 30, y: s.y - 30, vx: s.face * 720, vy: 0, dmg: 200, kb: 380, stun: 42, life: Math.round(1.4 * TICK_RATE), heavy: true });
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'wave', owner: f.id, x: s.x + s.face * 30, y: s.y - 30, vx: s.face * 720, vy: 0, dmg: 200, kb: 380, stun: 42, life: Math.round(1.4 * TICK_RATE), heavy: true, art: true });
             this.events.push({ t: 'shoot', p: f.id, kind: 6 });
           }
           break;
@@ -922,19 +923,19 @@ export class World {
           if (t >= 10 && t <= 40 && (t - 10) % 3 === 0) {
             const k = (t - 10) / 3;
             const y = s.y - 22 - ((k * 7) % 4) * 14;
-            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'relic', owner: f.id, x: s.x - s.face * (24 + (k % 3) * 18), y, vx: s.face * 820, vy: 0, dmg: 30, kb: 60, stun: 10, life: Math.round(1.3 * TICK_RATE), heavy: k % 4 === 3 });
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'relic', owner: f.id, x: s.x - s.face * (24 + (k % 3) * 18), y, vx: s.face * 820, vy: 0, dmg: 30, kb: 60, stun: 10, life: Math.round(1.3 * TICK_RATE), heavy: k % 4 === 3, art: true });
             this.events.push({ t: 'shoot', p: f.id, kind: 7 });
           }
           break;
         case ArtId.PhantomHand:
           if (t === 12) {
-            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 1050, vy: 0, dmg: 260, kb: 0, stun: 72, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true });
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 1050, vy: 0, dmg: 260, kb: 0, stun: 72, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true, art: true });
             this.events.push({ t: 'shoot', p: f.id, kind: 8 });
           }
           break;
         case ArtId.Stampede:
           if (t === 14) {
-            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'steed', owner: f.id, x: s.x - s.face * 80, y: s.y - 30, vx: s.face * 900, vy: 0, dmg: 170, kb: 420, stun: 40, life: Math.round(2 * TICK_RATE), heavy: true, pierce: true, burn: 150, unblockable: true });
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'steed', owner: f.id, x: s.x - s.face * 80, y: s.y - 30, vx: s.face * 900, vy: 0, dmg: 170, kb: 420, stun: 40, life: Math.round(2 * TICK_RATE), heavy: true, pierce: true, burn: 150, unblockable: true, art: true });
             this.events.push({ t: 'shoot', p: f.id, kind: 9 });
           }
           break;
@@ -963,7 +964,7 @@ export class World {
             const k = (t - 14) / 6;
             const last = k === 5;
             if (Math.abs(o.s.x - s.x) < 60 && Math.abs(o.s.y - s.y) < 60 && o.s.invuln <= 0) {
-              const dmg = Math.round((last ? 50 : 25) * C.backstab);
+              const dmg = Math.round((last ? 32 : 15) * C.backstab);
               this.applyHit(f, o, { dmg, kbX: last ? 340 : 20, kbY: last ? 280 : 0, stun: last ? 36 : 14, crit: true, w: 104, x: o.s.x, y: o.s.y - 28, front: false, breaksGuard: true });
               s.confirm = PHYS.confirmTicks;
             }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   Act, Btn, classOf, DODGES, dodgeOf, FIGHTER, FLASH, FoeView, FighterState, getArena, HEROES, HERO_COUNT, InputCmd, isFlashStepper,
-  newFighterState, sanitizeLoadout, stepFighter, WEAPONS,
+  heroClass, newFighterState, sanitizeLoadout, stepFighter, WEAPONS,
 } from '../src/index';
 
 /**
@@ -282,7 +282,8 @@ describe('dodges: invulnerability window', () => {
 describe('dodges: ground cooldown and air charges', () => {
   // KNOWN BUG (the same cut as above): a grounded dodge that is cut short never sets rollCd, so the next dodge is accepted at once.
   for (const h of HEROES) {
-    const C = classOf(h.cls);
+    // (the class's roll cooldown, with the hero's tune: heroes.ts HERO_TUNE)
+    const C = heroClass({ cls: h.cls, hero: h.id });
     it(`${h.name}: after a grounded dodge the cooldown is set `, () => {
       const r = runDodge(h.id, { ground: true, press: { x: 1 } });
       expect(r.endT).toBeGreaterThan(0);

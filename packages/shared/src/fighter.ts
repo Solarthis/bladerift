@@ -9,7 +9,7 @@ import { DT, FIGHTER, HITSTOP, PHYS } from './constants';
 import { Btn, InputCmd } from './input';
 import { dodgeOf, Loadout, Move, SKILLS, WEAPONS } from './weapons';
 import { ArtId, ARTS, classOf, ClassDef, ClassId, RIFT } from './classes';
-import { artIdOf } from './heroes';
+import { artIdOf, heroClass } from './heroes';
 
 export const enum Act {
   Free = 0,
@@ -277,7 +277,7 @@ function startAttack(s: FighterState, slot: number, move: number) {
 function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Loadout): boolean {
   const b = s.buf;
   if (!b) return false;
-  const C = classOf(load.cls);
+  const C = heroClass(load);
   if (b === Buf.Special) {
     if (!startArt(s, C, artIdOf(load))) return false;
     s.buf = 0;
@@ -528,7 +528,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   if (s.bufT > 0 && --s.bufT === 0) s.buf = 0;
 
   bufferPresses(s, press);
-  const C = classOf(load.cls);
+  const C = heroClass(load);
   const ART = artIdOf(load);
   if (s.frenzy > 0) s.frenzy--;
   if (s.buff > 0) s.buff--;
