@@ -1,6 +1,6 @@
 {
- "scale": 0.4594594594594595,
- "standHeight": 444.0,
+ "scale": 0.5643153526970954,
+ "standHeight": 361.5,
  "frames": {
   "air:0": {
    "h": 339,
@@ -42,7 +42,7 @@
    "h": 491,
    "feetDrift": null,
    "spill": 268,
-   "anchorX": 158
+   "anchorX": 172
   },
   "air:7": {
    "h": 420,

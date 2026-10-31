@@ -188,8 +188,10 @@ def measure(frame, pad, cw, chh):
     # the hands of a hanging frame: the top rows of the figure
     hb = ys < top + max(6, h * 0.08)
     hands_x = int(np.median(xs[hb])) if hb.any() else mid
+    # the top of the body (head or helmet): a raised spear or sword above the head does not count
+    body_top = int(y2.min()) if len(y2) else int(top)
     return {'top': int(top), 'bot': int(bot), 'h': int(h), 'x0': int(xs.min()), 'x1': int(xs.max()), 'mid': mid, 'feet': feet,
-            'feetCx': feet_cx, 'body': body, 'handsX': hands_x}
+            'feetCx': feet_cx, 'body': body, 'handsX': hands_x, 'bodyTop': body_top}
 
 
 # ------------------------------------------------------------------ load every sheet the animations need
@@ -226,7 +228,7 @@ ground = pad + int(round(chh * (1 - STD['groundFrac'])))
 stance = [meas[f'idle:{i}'] for i in range(4) if meas.get(f'idle:{i}')]
 if not stance:
     sys.exit('the idle sheet is required (it sets the scale)')
-stand_h = float(np.median([m['feet'] - m['top'] for m in stance]))
+stand_h = float(np.median([m['feet'] - m['bodyTop'] for m in stance]))
 scale = NATIVE / stand_h
 # sheets drawn smaller (standFrac): the model misses the asked height by the same factor as on the idle sheet
 idle_spec = (CH.get('sheets') or {}).get('idle') or STD['sheets']['idle']
