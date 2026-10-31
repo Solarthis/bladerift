@@ -136,7 +136,7 @@
 .hp-side.right .hp-gear { justify-content: flex-end; }
 .hp-gear img { height: clamp(15px, calc(var(--u) * 3.9), 26px); max-width: clamp(26px, calc(var(--u) * 7), 40px); padding: 1px 2px; }
 
-/* status chips and the combo counter, under the gauge */
+/* status chips, under the gauge */
 .hp-status {
   display: flex;
   flex-wrap: wrap;
@@ -171,27 +171,6 @@
 .chip-rooted { color: #e8d6b0; border-color: #a88a5a; }
 .chip-buff { color: #fff3b0; border-color: #ffd24a; box-shadow: 0 0 7px rgba(255, 210, 74, 0.55); }
 .chip-frenzy { color: #ffc4c4; border-color: #ff3a3a; }
-.hp-combo {
-  display: none;
-  font-family: var(--display);
-  font-weight: 400;
-  font-size: clamp(16px, calc(var(--u) * 4.4), 30px);
-  line-height: 1;
-  letter-spacing: 1px;
-  color: var(--ac, var(--gold-hi));
-  text-shadow: 0 2px 0 #000, 0 0 8px color-mix(in srgb, var(--ac, #ffd98a) 60%, transparent);
-  white-space: nowrap;
-}
-.hp-combo.on { display: inline-block; }
-/* the hit pop grows from the screen edge side of its panel, so it never pushes past the screen edge */
-.hp-side.right .hp-combo { transform-origin: 100% 50%; }
-.hp-side.left .hp-combo { transform-origin: 0 50%; }
-.hp-combo.pop { animation: combo-pop 0.35s cubic-bezier(0.2, 1.8, 0.4, 1); }
-@keyframes combo-pop {
-  from { transform: scale(1.7); }
-  to { transform: scale(1); }
-}
-
 /* ------------------------------------------------------------------ round intro: VS card */
 /* In the top band, in the clock's place while it shows (the clock fades out). The fighters stay uncovered. */
 .hud-mid { transition: opacity 0.2s; }
@@ -249,6 +228,291 @@
   color: var(--ac, #c09cff);
   text-shadow: 0 5px 0 #000, 0 0 4px #000, 0 0 28px color-mix(in srgb, var(--ac, #c09cff) 60%, transparent);
 }
+
+/* Comic slam-in banners (ROUND N / READY / FIGHT! / K.O. / WINNER!): the text drops in from 2.2x with a tilt and a
+   1.1 overshoot, while a white light ring and a burst of rays expand behind it. Colours per banner below; the outline is
+   eight hard text shadows (--ol, --ow) so the solid fill stays crisp. */
+.hud-banner {
+  --ol: #2a1000;
+  --ow: 3px;
+  --od: calc(var(--ow) * 0.7);
+  isolation: isolate;
+  top: 27%;
+  font-size: clamp(44px, calc(var(--u) * 15), 128px);
+  letter-spacing: 3px;
+  color: #ffe9a0;
+  text-shadow:
+    var(--ow) 0 0 var(--ol), calc(var(--ow) * -1) 0 0 var(--ol), 0 var(--ow) 0 var(--ol), 0 calc(var(--ow) * -1) 0 var(--ol),
+    var(--od) var(--od) 0 var(--ol), calc(var(--od) * -1) var(--od) 0 var(--ol), var(--od) calc(var(--od) * -1) 0 var(--ol), calc(var(--od) * -1) calc(var(--od) * -1) 0 var(--ol),
+    0 calc(var(--ow) + 5px) 0 #000, 0 0 28px rgba(0, 0, 0, 0.7);
+  transform: none;
+  transition: opacity 0.18s;
+}
+.hud-banner.on { transform: none; }
+.bn-t { display: inline-block; font-style: italic; transform: skewX(-8deg); white-space: nowrap; }
+.hud-banner small {
+  display: block;
+  margin-top: 0.12em;
+  font-size: 0.32em;
+  letter-spacing: 0.18em;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hud-banner.on .bn-t { animation: bn-slam 0.24s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes bn-slam {
+  0% { transform: skewX(-8deg) scale(2.2) rotate(-6deg); opacity: 0; }
+  50% { transform: skewX(-8deg) scale(0.94) rotate(0deg); opacity: 1; }
+  75% { transform: skewX(-8deg) scale(1.1); }
+  100% { transform: skewX(-8deg) scale(1); opacity: 1; }
+}
+.hud-banner::before,
+.hud-banner::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+/* the light ring */
+.hud-banner::before {
+  width: 2.6em;
+  height: 2.6em;
+  margin: -1.3em 0 0 -1.3em;
+  background: radial-gradient(circle, transparent 49%, rgba(255, 255, 255, 0.95) 56%, rgba(255, 240, 200, 0.4) 62%, transparent 70%);
+}
+/* the rays */
+.hud-banner::after {
+  width: 4.2em;
+  height: 4.2em;
+  margin: -2.1em 0 0 -2.1em;
+  background: repeating-conic-gradient(from 3deg, rgba(255, 255, 255, 0.85) 0deg 3deg, transparent 3deg 13deg);
+  -webkit-mask: radial-gradient(circle, transparent 16%, #000 30%, transparent 69%);
+  mask: radial-gradient(circle, transparent 16%, #000 30%, transparent 69%);
+}
+.hud-banner.on::before { animation: bn-ring 0.45s ease-out both; }
+.hud-banner.on::after { animation: bn-rays 0.6s ease-out both; }
+@keyframes bn-ring {
+  from { transform: scale(0.3); opacity: 1; }
+  to { transform: scale(2); opacity: 0; }
+}
+@keyframes bn-rays {
+  0% { transform: scale(0.4) rotate(0deg); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: scale(1.5) rotate(14deg); opacity: 0; }
+}
+.hud-banner.round, .hud-banner.ready { font-size: clamp(34px, calc(var(--u) * 11), 92px); }
+.hud-banner.round { color: #fff; --ol: #2a1430; }
+.hud-banner.ready { color: #fff3a0; --ol: #3a1a00; }
+.hud-banner.fight { color: #ffd84a; --ol: #4a1000; font-size: clamp(50px, calc(var(--u) * 17), 150px); }
+.hud-banner.win { color: #ffd84a; --ol: #3a1400; }
+/* K.O.: huge red letters outlined in white, a beat after the hit, with a slower ring */
+.hud-banner.ko {
+  color: #ff2a2a;
+  --ol: #fff;
+  --ow: 4px;
+  font-size: clamp(60px, calc(var(--u) * 22), 190px);
+  text-shadow:
+    var(--ow) 0 0 var(--ol), calc(var(--ow) * -1) 0 0 var(--ol), 0 var(--ow) 0 var(--ol), 0 calc(var(--ow) * -1) 0 var(--ol),
+    var(--od) var(--od) 0 var(--ol), calc(var(--od) * -1) var(--od) 0 var(--ol), var(--od) calc(var(--od) * -1) 0 var(--ol), calc(var(--od) * -1) calc(var(--od) * -1) 0 var(--ol),
+    0 calc(var(--ow) + 6px) 0 #4a0010, 0 0 30px rgba(0, 0, 0, 0.6);
+}
+.hud-banner.ko.time { color: #ff9a2a; font-size: clamp(50px, calc(var(--u) * 17), 150px); }
+.hud-banner.on.ko .bn-t { animation-duration: 0.36s; animation-delay: 0.12s; }
+.hud-banner.on.ko::before { animation-duration: 0.6s; animation-delay: 0.12s; }
+.hud-banner.on.ko::after { animation-duration: 0.95s; animation-delay: 0.12s; }
+
+/* ------------------------------------------------------------------ big combo counter */
+/* A huge italic numeral and HITS! on the attacker's side, a third of the way down: from 2 hits, a pop on every hit
+   (Hud.popCombo), lingering 1.5 s after the chain, then sliding back out toward its edge. */
+.combo-big {
+  position: absolute;
+  top: calc(var(--u) * 29);
+  left: max(6%, env(safe-area-inset-left));
+  display: flex;
+  align-items: baseline;
+  gap: 0.12em;
+  font-size: clamp(38px, calc(var(--u) * 10), 124px);
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-35%);
+  transition: opacity 0.25s ease-in, transform 0.25s ease-in;
+}
+.combo-big.right { left: auto; right: max(6%, env(safe-area-inset-right)); transform: translateX(35%); }
+.combo-big.on { opacity: 1; transform: none; transition: opacity 0.06s, transform 0.1s ease-out; }
+/* the numeral: a black stroke layer under an orange-to-yellow gradient layer (the element's own text only sizes it) */
+.cb-n {
+  position: relative;
+  display: inline-block;
+  font-style: italic;
+  color: transparent;
+  text-shadow: none;
+  transform: skewX(-8deg);
+  transform-origin: 50% 70%;
+}
+.cb-n::before,
+.cb-n::after {
+  content: attr(data-n);
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.cb-n::before {
+  color: #000;
+  -webkit-text-stroke: 0.15em #000;
+  filter: drop-shadow(0 0.06em 0 #000);
+}
+.cb-n::after {
+  color: transparent;
+  background: linear-gradient(180deg, #fff3a0 12%, #ff9a1a 55%, #e04a10 88%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.cb-l {
+  font-size: 0.42em;
+  font-style: italic;
+  letter-spacing: 1px;
+  color: #ffe27a;
+  transform: skewX(-8deg);
+  text-shadow: 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000, 2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000, -2px -2px 0 #000, 0 4px 0 #000;
+}
+
+/* ------------------------------------------------------------------ cinematic: HUD out of the way */
+/* game/cinematic.ts puts .cinematic on the HUD root during a Rift Art: the panels, clock and menu fade out fast and
+   come back slower; the combo counter and the banners (K.O. after an Art finish) stay. */
+.hud > .hp-side, .hud > .hud-mid, .hud > .hud-menu, .hud > .hud-net { transition: opacity 0.25s ease-out, transform 0.25s ease-out; }
+.hud.cinematic > .hp-side,
+.hud.cinematic > .hud-mid,
+.hud.cinematic > .hud-vs,
+.hud.cinematic > .hud-menu,
+.hud.cinematic > .hud-net {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 80ms linear, transform 80ms linear;
+}
+.hud.cinematic > .hp-side { transform: translateY(-14px); }
+
+/* ------------------------------------------------------------------ cinematic layers (game/cinematic.ts) */
+/* Under the HUD and the touch controls (first child of #ui), over the game canvas; never takes input. */
+#ui > .cine-root { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.cine { --ac: #fff; --ac-hi: #fff; --ac-lo: #333; --ax: 50%; --ay: 55%; position: absolute; inset: 0; overflow: hidden; }
+.cine > * { position: absolute; }
+/* the colour wash: white-hot at the caster, the hero colour, deeper at the edges */
+.cine-wash {
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(circle at var(--ax) var(--ay), #fff 0%, var(--ac-hi) 9%, var(--ac) 28%, var(--ac) 70%, var(--ac-lo) 100%);
+}
+/* manga focus lines centred on the caster, clear around it */
+.cine-focus { left: var(--ax); top: var(--ay); width: 0; height: 0; opacity: 0; }
+.cine-focus i {
+  position: absolute;
+  left: -150vmax;
+  top: -150vmax;
+  width: 300vmax;
+  height: 300vmax;
+  background:
+    repeating-conic-gradient(from 0deg, transparent 0deg 2.3deg, rgba(255, 255, 255, 0.62) 2.3deg 2.7deg),
+    repeating-conic-gradient(from 1.1deg, transparent 0deg 3.7deg, color-mix(in srgb, var(--ac-hi) 55%, transparent) 3.7deg 4.1deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 16vmax, rgba(0, 0, 0, 0.35) 23vmax, #000 38vmax);
+  mask: radial-gradient(circle, transparent 0 16vmax, rgba(0, 0, 0, 0.35) 23vmax, #000 38vmax);
+}
+.cine-bars { inset: 0; }
+.cine-bars i { position: absolute; left: 0; right: 0; height: 9%; background: #000; }
+.cine-bars .t { top: 0; box-shadow: 0 2px 0 var(--ac); }
+.cine-bars .b { bottom: 0; box-shadow: 0 -2px 0 var(--ac); }
+/* the cut-in: a slanted band the full height of the screen on the side away from the caster */
+.cine-panel {
+  top: -10%;
+  bottom: -10%;
+  width: max(44%, 300px);
+  overflow: hidden;
+  border-left: 4px solid #fff;
+  border-right: 4px solid #fff;
+  box-shadow: 0 0 0 3px #000, 0 0 28px var(--ac), inset 0 0 40px rgba(0, 0, 0, 0.6);
+  transform: translateX(125%) skewX(-12deg);
+  background: #000;
+}
+.cine.right .cine-panel { right: -9%; }
+.cine.left .cine-panel { left: -9%; }
+.cine-pbg {
+  position: absolute;
+  inset: -10%;
+  background: linear-gradient(165deg, var(--ac-hi) 0%, var(--ac) 35%, var(--ac-lo) 75%, #000 100%);
+}
+.cine-pz { position: absolute; inset: 0 -20%; transform: skewX(12deg); overflow: hidden; }
+.cine-pt {
+  position: absolute;
+  top: 4%;
+  left: 43%;
+  height: 112%;
+  width: auto;
+  max-width: none;
+  transform: translateX(-50%);
+  transform-origin: 50% 30%;
+}
+/* (43% / 57% of the counter-skewed box is the middle of the band's on-screen part) */
+.cine.left .cine-pt { left: 57%; }
+/* a transparent bust (cut-XX.png) stands on the band's own gradient and stripes, with a hero-colour rim */
+.cine.has-bust .cine-pt { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 14px var(--ac)); }
+/* on a short (phone) screen the face rides higher, clear of the thumb cluster in the lower right */
+@media (max-height: 500px) { .cine.has-bust .cine-pt { top: -9%; } }
+/* over a plain portrait (h-XX.jpg) the stripes run on top instead */
+.cine:not(.has-bust) .cine-pst { z-index: 1; opacity: 0.6; }
+.cine-pst {
+  position: absolute;
+  inset: -10% -40%;
+  background: repeating-linear-gradient(100deg, transparent 0 22px, rgba(255, 255, 255, 0.22) 22px 25px, transparent 25px 47px, rgba(255, 255, 255, 0.12) 47px 48px);
+  mix-blend-mode: screen;
+}
+/* the Art's name: huge, italic, a black stroke under a white-to-hero gradient, with a hero-colour offset ghost */
+.cine-title { top: 11%; max-width: 94%; }
+.cine.right .cine-title { right: 3%; text-align: right; }
+.cine.left .cine-title { left: 3%; text-align: left; }
+.cine-title b {
+  position: relative;
+  display: block;
+  font-family: var(--display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: min(calc(var(--app-h) * 0.16), calc(var(--app-w) * 0.075));
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: transparent;
+  opacity: 0;
+}
+.cine-title b::before,
+.cine-title b::after { content: attr(data-t); position: absolute; inset: 0; }
+.cine-title b::before {
+  color: #000;
+  -webkit-text-stroke: 0.17em #000;
+  filter: drop-shadow(0.07em 0.07em 0 var(--ac)) drop-shadow(0 0 0.25em var(--ac));
+}
+.cine-title b::after {
+  color: transparent;
+  background: linear-gradient(180deg, #fff 18%, var(--ac-hi) 50%, var(--ac) 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.cine-title small {
+  display: block;
+  margin-top: 0.35em;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: max(11px, calc(var(--app-h) * 0.034));
+  letter-spacing: 0.32em;
+  color: #fff;
+  text-shadow: 0 2px 0 #000, 0 0 8px var(--ac);
+  opacity: 0;
+}
+.cine-flick { inset: 0; background: #fff; opacity: 0; }
+.cine-white { inset: 0; opacity: 0; background: radial-gradient(circle at var(--ax) var(--ay), #fff 0 45%, #fff4dc 100%); }
 
 /* ------------------------------------------------------------------ touch: joystick */
 .stick-base { overflow: visible; }

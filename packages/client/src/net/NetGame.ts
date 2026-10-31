@@ -1,6 +1,7 @@
 import {
   ArenaDef, copyState, FighterState, GameEvent, getArena, InputCmd, Loadout, MatchSettings, NetFighter, NetProjectile, NetTrap, Phase,
-  Act, SNAPSHOT_INTERVAL, Snapshot, stepFighter, TICK_RATE,
+  Act, SNAPSHOT_INTERVAL, Snapshot, stepFighter, TICK_RATE, ArtId, artIdOf, bodyBox, ClassId, currentMove, FIGHTER, hitstopFor, isActive,
+  isFrozen, meleeConnect, meleeCrit, moveBox, moveDamage, MOVE_ART,
 } from '@bladerift/shared';
 
 /**
@@ -56,6 +57,10 @@ export interface ViewFighter {
   rift: number;
   cls: number;
   hero: number;
+  /** Hit-stop / superpause ticks left (frozen: actTf does not advance) and the knockdown fall (see NetFighter). */
+  hitstop: number;
+  pause: number;
+  fall: boolean;
   /** Fractional action time for smooth pose stepping (ticks). */
   actTf: number;
   self: boolean;
@@ -104,6 +109,11 @@ export class NetGame {
   load: Loadout | null = null;
   /** Ticks your predicted fighter has run (new attacks start on these, for effects). */
   predTick = 0;
+  /** A hit of your own the client predicted (its hit-stop, confirm and pogo are re-applied when pending commands are
+   * replayed, until the server has run that command and answers for itself). */
+  private predHit: { seq: number; moveSeq: number; hs: number } | null = null;
+  /** moveSeq of your last move already judged (hit or not): a move connects at most once. */
+  private judgedSeq = -1;
 
   constructor(
     readonly settings: MatchSettings,
@@ -175,9 +185,14 @@ export class NetGame {
       return;
     }
     this.pending = this.pending.filter((c) => c.seq > s.ack);
+    // the server has run the command of a predicted hit: from here on its state says whether it landed
+    if (this.predHit && this.predHit.seq <= s.ack) this.predHit = null;
+    // (or it already landed that move's hit, a tick earlier than the client saw it: not twice)
+    const ph = this.predHit;
+    if (ph && s.self && s.self.moveSeq === ph.moveSeq && s.self.act === Act.Attack && s.self.confirm > 0) this.predHit = null;
     if (!this.pred) {
       this.pred = copyState(s.self);
-      for (const c of this.pending) stepFighter(this.pred, c, this.arena, this.load, this.foe);
+      this.replay(this.pred);
       this.prev = { x: this.pred.x, y: this.pred.y };
       return;
     }
@@ -187,7 +202,9 @@ export class NetGame {
     const stepY = this.pred.y - this.prev.y;
     const before = this.pred;
     const next = copyState(s.self);
-    for (const c of this.pending) stepFighter(next, c, this.arena, this.load, this.foe);
+    this.replay(next);
+    // a hit the server landed for you that the client did not foresee: that move has connected
+    if (s.self.act === Act.Attack && s.self.confirm > 0 && next.moveSeq === s.self.moveSeq) this.judgedSeq = s.self.moveSeq;
     // keep the visual attack timeline when the reconciled state is the same move (no re-triggered effects)
     this.pred = next;
     void before;
@@ -203,6 +220,61 @@ export class NetGame {
       this.corr.y = ey;
     }
     if (err > 2) this.mispredicts++;
+  }
+
+  /** Step the pending commands over a state from the server, with your predicted hit (if the server has not run it). */
+  private replay(st: FighterState) {
+    const ph = this.predHit;
+    for (const c of this.pending) {
+      const frozen = isFrozen(st);
+      stepFighter(st, c, this.arena, this.load!, this.foe);
+      if (ph && c.seq === ph.seq && !frozen && st.moveSeq === ph.moveSeq) {
+        const m = currentMove(st, this.load!);
+        if (m) meleeConnect(st, this.load!, m, ph.hs);
+      }
+    }
+  }
+
+  /**
+   * Did the step just taken land your swing? The server judges a melee hit against the opponent as you saw it at the
+   * command's view tick (lag compensation), so the client can tell the same from the interpolated opponent: on a hit
+   * (or a block) your fighter freezes in hit-stop at once, as the server's will, instead of being pulled back later.
+   */
+  private predictConnect(cmd: InputCmd) {
+    const s = this.pred!;
+    const load = this.load!;
+    if (this.phase !== 'fight') return;
+    const m = currentMove(s, load);
+    if (!m || m.arrow || !isActive(s, m) || s.moveSeq === this.judgedSeq) return;
+    const o = this.opponentAt(cmd.viewTick);
+    if (!o || o.act === Act.KO || o.invuln) return;
+    if (!overlaps(moveBox(m, s.x, s.y, s.face), bodyBox(o.x, o.y, o.crouch))) return;
+    this.judgedSeq = s.moveSeq;
+    // a Bulwark or a parry turns the swing back: the server decides those
+    if (o.act === Act.Art && artIdOf({ hero: o.hero, cls: o.cls }) === ArtId.Bulwark) return;
+    const mc = meleeCrit(s, load, m, o.x, o.face);
+    let blocked = false;
+    if (o.act === Act.Block && mc.front && !m.breaksGuard) {
+      if (o.blockT <= FIGHTER.parryWindow * (o.cls === ClassId.Shielder ? 1.6 : 1)) return;
+      blocked = true;
+    }
+    const hs = hitstopFor(moveDamage(s, load, m), mc.crit, s.move === MOVE_ART, blocked);
+    // (out of the Grim Fog, the first blow that lands reveals)
+    if (!blocked) s.veil = 0;
+    meleeConnect(s, load, m, hs);
+    this.predHit = { seq: cmd.seq, moveSeq: s.moveSeq, hs };
+  }
+
+  /** The opponent as drawn at a tick (interpolated between snapshots), or undefined. */
+  private opponentAt(tick: number): NetFighter | undefined {
+    if (!this.snaps.length) return undefined;
+    const { a, b, t } = this.bracket(tick);
+    const fb = b.fighters.find((f) => f.id !== this.selfId);
+    if (!fb) return undefined;
+    const fa = a.fighters.find((f) => f.id === fb.id) ?? fb;
+    const lt = Math.abs(fa.x - fb.x) > 140 || Math.abs(fa.y - fb.y) > 140 ? 1 : t;
+    const near = t < 0.5 ? fa : fb;
+    return { ...near, x: fa.x + (fb.x - fa.x) * lt, y: fa.y + (fb.y - fa.y) * lt };
   }
 
   private adaptDelay(sample: number, gap: number) {
@@ -236,7 +308,9 @@ export class NetGame {
     const cmd: InputCmd = { seq: ++this.seq, moveX: q(moveX), moveY: q(moveY), buttons, viewTick: this.viewTick() };
     if (this.pred && this.load) {
       this.prev = { x: this.pred.x, y: this.pred.y };
+      const frozen = isFrozen(this.pred);
       stepFighter(this.pred, cmd, this.arena, this.load, this.foe);
+      if (!frozen) this.predictConnect(cmd);
       this.predTick++;
     }
     this.pending.push(cmd);
@@ -287,17 +361,20 @@ export class NetGame {
         const al = this.renderAlpha;
         o.x = this.prev.x + (this.pred.x - this.prev.x) * al + this.corr.x;
         o.y = this.prev.y + (this.pred.y - this.prev.y) * al + this.corr.y;
-        o.actTf = this.pred.actT + al;
+        // (frozen: the pose holds)
+        o.actTf = this.pred.actT + (isFrozen(this.pred) ? 0 : al);
         o.self = true;
       } else {
         Object.assign(o, fb as NetFighter);
         const jump = Math.abs(fa.x - fb.x) > 140 || Math.abs(fa.y - fb.y) > 140;
         const lt = jump ? 1 : t;
-        o.x = fa.x + (fb.x - fa.x) * lt + (fb.vx * extra) / TICK_RATE;
-        o.y = fa.y + (fb.y - fa.y) * lt + (fb.ground ? 0 : (fb.vy * extra) / TICK_RATE);
+        // (a frozen fighter keeps its knockback velocity for later: do not run it on past the newest snapshot)
+        const ex = fb.hitstop > 0 || fb.pause > 0 ? 0 : extra;
+        o.x = fa.x + (fb.x - fa.x) * lt + (fb.vx * ex) / TICK_RATE;
+        o.y = fa.y + (fb.y - fa.y) * lt + (fb.ground ? 0 : (fb.vy * ex) / TICK_RATE);
         // action time runs on between snapshots (the action itself switches at the later snapshot)
         const sameAct = fa.act === fb.act && fa.move === fb.move && fb.actT >= fa.actT;
-        o.actTf = sameAct ? fa.actT + (fb.actT - fa.actT) * t + extra : fb.actT + Math.max(0, rt - b.tick);
+        o.actTf = sameAct ? fa.actT + (fb.actT - fa.actT) * t + ex : fb.actT + Math.max(0, rt - b.tick);
         o.act = sameAct || t > 0.5 || a === b ? fb.act : fa.act;
         if (o.act === fa.act && !sameAct && t <= 0.5 && a !== b) {
           o.move = fa.move;
@@ -344,6 +421,9 @@ export class NetGame {
     o.hero = nf.hero;
     o.buff = s.buff > 0;
     o.veil = s.veil > 0;
+    o.hitstop = s.hitstop;
+    o.pause = s.pause;
+    o.fall = !!s.fall;
     o.weapons = nf.weapons;
     o.skill = nf.skill;
   }
@@ -388,6 +468,9 @@ export class NetGame {
     return out;
   }
 }
+
+const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+  a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 /** Events shown at once (your own actions and hits on you), not at the opponent's delayed time. */
 function aboutMe(e: GameEvent, me: number) {

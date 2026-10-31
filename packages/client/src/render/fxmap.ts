@@ -184,3 +184,102 @@ export function swingFx(weapon: number, move: number): SwingFx | null {
       return null;
   }
 }
+
+/**
+ * Each hero's energy colours (from the character bibles, art/characters/<id>/character.json): `arc` is the swing arc's
+ * body, `rim` its outer glow, `spark` the hit spark's hot rays. All are drawn with additive blending, so a white core
+ * on top of them reads as white-hot.
+ */
+export interface HeroEnergy {
+  arc: number;
+  rim: number;
+  spark: number;
+}
+export const HERO_ENERGY: HeroEnergy[] = [
+  { arc: 0x8ccaff, rim: 0x2a6aff, spark: 0xffd84a }, // 0 Richard: blue-white arcs, gold sparks
+  { arc: 0xffa040, rim: 0xc8401a, spark: 0xff6a2a }, // 1 Alcides: ember amber, orange-red sparks
+  { arc: 0xffd060, rim: 0xd88a10, spark: 0xfff0a0 }, // 2 Gilgamesh: molten gold, white-hot core
+  { arc: 0x5af0e0, rim: 0x108a9a, spark: 0xd0fbff }, // 3 Cu Chulainn: cyan-teal, pale motes
+  { arc: 0xffd84a, rim: 0x2aa86a, spark: 0x9affc0 }, // 4 Enkidu: gold with jade glints
+  { arc: 0xc08aff, rim: 0x6a2ad0, spark: 0xffc0f0 }, // 5 Prelati: violet starlight, pink-white
+  { arc: 0xffb848, rim: 0xb86a10, spark: 0xfff0c0 }, // 6 Dumas: golden ink
+  { arc: 0x6affc8, rim: 0x109a70, spark: 0xe0fff4 }, // 7 Hassan: mint-teal, white cores
+  { arc: 0x3ce0f5, rim: 0x1a6ad0, spark: 0xd8fbff }, // 8 Hashashin: cyan #3ce0f5
+  { arc: 0xff5a1a, rim: 0xb0101a, spark: 0xffae35 }, // 9 Humbaba: red-orange embers, crimson glow
+  { arc: 0xd0dcf0, rim: 0x6a7490, spark: 0xff4a5a }, // 10 Jack: steel and fog, a red cut
+  { arc: 0xff8a1a, rim: 0xd8300a, spark: 0xffe27a }, // 11 Alexander: orange-gold flame
+  { arc: 0xa86aff, rim: 0x5a1ab0, spark: 0xd8b8ff }, // 12 Pale Rider: violet-purple
+  { arc: 0x8af0f8, rim: 0x1a8a90, spark: 0xffd84a }, // 13 Brynhildr: teal-white, gold stars
+];
+export const heroEnergy = (hero: number): HeroEnergy => HERO_ENERGY[hero] ?? HERO_ENERGY[0];
+
+/**
+ * A procedural swing arc for a sprite fighter (layered over the painted frames with additive blending). Angles are in
+ * degrees for a fighter facing right, screen space (0 = forward, -90 = up, 90 = down); the sweep goes a0 -> a1.
+ *   slash  - a crescent swept round (cx, cy) at radius r, `w` thick at its widest, squashed vertically by `sy`
+ *   thrust - a tapered spear streak from x = r0 to x = r, at height cy
+ * Sizes are world units (a standing fighter is ~58 tall). `dur` is the sweep time, `life` the whole effect's.
+ */
+export interface ArcShape {
+  kind: 'slash' | 'thrust';
+  a0: number;
+  a1: number;
+  r: number;
+  r0?: number;
+  w: number;
+  cx: number;
+  cy: number;
+  sy: number;
+  dur: number;
+  life: number;
+  /** A second crossing arc (an X), mirrored vertically. */
+  cross?: boolean;
+  /** Heavy: a brighter rim and sparks flying off the arc's head. */
+  heavy?: boolean;
+}
+
+/** The arc a sprite fighter's move draws (null = none: projectiles, plunges). */
+export function arcFor(weapon: number, move: number): ArcShape | null {
+  const S = (a0: number, a1: number, r: number, w: number, o: Partial<ArcShape> = {}): ArcShape => ({
+    kind: 'slash', a0, a1, r, w, cx: 4, cy: 30, sy: 0.8, dur: 0.07, life: 0.24, ...o,
+  });
+  switch (weapon) {
+    case WeaponId.Sword:
+      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
+      if (move === MOVE_AIR) return S(-100, 250, 40, 10, { cx: 0, cy: 28, sy: 0.9, dur: 0.1, life: 0.26 });
+      if (move === 1) return S(55, -115, 46, 11, { sy: 0.7 });
+      if (move === 2) return S(-150, 60, 58, 15, { cy: 34, sy: 0.95, dur: 0.09, life: 0.32, heavy: true });
+      return S(-125, 35, 46, 11, { sy: 0.7 });
+    case WeaponId.Scythe:
+      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
+      if (move === MOVE_AIR) return S(-90, 270, 64, 13, { cx: 2, cy: 30, sy: 0.85, dur: 0.12, life: 0.3, heavy: true });
+      if (move === 1) return S(40, -150, 66, 14, { cx: 0, cy: 34, sy: 0.6, dur: 0.09, life: 0.3, heavy: true });
+      if (move === 2) return S(-160, 120, 74, 17, { cx: 0, cy: 32, sy: 0.55, dur: 0.12, life: 0.36, heavy: true });
+      return S(-150, 40, 66, 14, { cx: 0, cy: 34, sy: 0.6, dur: 0.09, life: 0.3, heavy: true });
+    case WeaponId.Lance: {
+      const T = (r: number, w: number, o: Partial<ArcShape> = {}): ArcShape => ({
+        kind: 'thrust', a0: 0, a1: 0, r0: 6, r, w, cx: 0, cy: 36, sy: 1, dur: 0.05, life: 0.2, ...o,
+      });
+      if (move === MOVE_CHARGED) return T(96, 9, { life: 0.34, heavy: true });
+      if (move === MOVE_AIR) return T(84, 6, { cy: 31 });
+      if (move === 2) return S(-40, 40, 92, 12, { cx: -6, cy: 38, sy: 0.35, dur: 0.07, life: 0.28, heavy: true });
+      return T(92, 7);
+    }
+    case WeaponId.Daggers:
+      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
+      if (move === MOVE_AIR) return S(-80, 260, 34, 7, { cx: 0, cy: 28, dur: 0.08, life: 0.2 });
+      if (move === 3) return S(-60, 50, 38, 9, { cy: 30, sy: 0.9, life: 0.26, cross: true, heavy: true });
+      if (move === 1) return S(45, -55, 32, 7, { cy: 30, sy: 0.75, dur: 0.05, life: 0.17 });
+      if (move === 2) return S(-20, 25, 36, 6, { cy: 27, sy: 0.4, dur: 0.05, life: 0.17 });
+      return S(-55, 45, 32, 7, { cy: 31, sy: 0.75, dur: 0.05, life: 0.17 });
+    case WeaponId.Hammer:
+      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
+      if (move === MOVE_AIR) return S(-150, 70, 52, 15, { cy: 30, sy: 1, dur: 0.09, life: 0.3, heavy: true });
+      if (move === 2) return S(-175, 60, 64, 19, { cx: 0, cy: 40, sy: 0.85, dur: 0.11, life: 0.38, heavy: true });
+      return S(-150, 50, 58, 17, { cx: 2, cy: 38, sy: 0.95, dur: 0.1, life: 0.34, heavy: true });
+    case WeaponId.Shield:
+      return S(-55, 55, 30, 9, { cx: 6, cy: 28, sy: 1, dur: 0.05, life: 0.18 });
+    default:
+      return null;
+  }
+}

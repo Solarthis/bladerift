@@ -9,11 +9,12 @@ import { bakeFrames, FighterCanvas, fighterLut, FxModule, FxSprite, paintLive, P
 import { poseFor } from '../render/poses';
 import { warmFighter } from '../render/warm';
 import { heroSpritesReady, loadHeroSprites, spritesPending, SpriteFighterView } from '../render/spriteFighter';
-import { FX, PAL, swingFx } from '../render/fxmap';
+import { arcFor, ArcShape, FX, heroEnergy, HeroEnergy, PAL, swingFx } from '../render/fxmap';
 import { DODGE_SOUNDS, sfx, SKILL_SOUNDS } from '../audio/Sfx';
 import { prefs } from '../ui/prefs';
 import { buildArena } from '../render/arena';
 import { colorOf, accentOf } from '../ui/colors';
+import { koCinematic, playSuperCinematic, superConnect } from './cinematic';
 
 /** A fighter controlled on this device: its connection and its input. */
 export interface LocalPlayer {
@@ -165,6 +166,9 @@ function rectPts(cx: number, cy: number, w: number, h: number, ang: number) {
   return [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(([x, y]) => new Phaser.Math.Vector2(cx + x * c - y * s, cy + x * s + y * c));
 }
 
+/** Heroes whose dodge draws no generic after-images: Clay Shift, Mirage, the Flash Steps (their own), Fog Form, Shadow Sink. */
+const NO_GHOST_DODGE = new Set([4, 5, 7, 8, 10, 12]);
+
 /** The colour of each hero's dodge trail (by hero id). */
 const TRAIL_COLOR = [0xffd84a, 0xffa040, 0xffd84a, 0x7ae8f5, 0xc8a878, 0x9a7aff, 0xfff0c0, 0x7affd0, 0x3ce0f5, 0xa8422a, 0xb8c4dc, 0xffa050, 0x8a5ae0, 0x7ae8f5];
 
@@ -284,6 +288,39 @@ const STEP_MS = 1000 / TICK_RATE;
 const MAX_FX = 70;
 /** Live square particles. */
 const MAX_PARTS = 150;
+/** Live swing arcs and additive impact drawings (the hit sparks' layers). */
+const MAX_ARCS = 10;
+const MAX_ADDS = 48;
+/** After-images per fighter (a dodge spawns one every two frames). */
+const GHOSTS = 6;
+/** Standing body height in world units (sizes the hit sparks). */
+const BODY_H = 58;
+
+/** A camera shot that takes over from the follow camera (zoomTo): a point or a fighter to frame, and how close. */
+export interface ZoomShot {
+  /** Frame this fighter (its body's middle) while the shot lasts... */
+  id?: number;
+  /** ...or this world point. With neither, the shot zooms on the follow camera's own centre. */
+  x?: number;
+  y?: number;
+  /** Zoom multiplier over the follow camera's (1.5 = 50% closer). */
+  zoom: number;
+}
+
+/** A swing arc drawn over a sprite fighter (additive), following its body while the move plays. */
+interface Arc {
+  owner: number;
+  shape: ArcShape;
+  face: number;
+  x: number;
+  y: number;
+  age: number;
+  c: HeroEnergy;
+  /** Heavy arcs throw sparks off their head (spawn clock). */
+  sparkAt: number;
+}
+
+const easeOut3 = (p: number) => 1 - (1 - p) * (1 - p) * (1 - p);
 
 interface FighterView {
   id: number;
@@ -304,6 +341,8 @@ interface FighterView {
   /** Pose time held during a hit-stop. */
   frozenT: number;
   freezeUntil: number;
+  /** In hit-stop this frame (the sim's per-fighter `hitstop` when the snapshot carries it, else the client freeze). */
+  frozen: boolean;
   flashUntil: number;
   lastSeq: number;
   runPhase: number;
@@ -434,10 +473,33 @@ export class GameScene extends Phaser.Scene {
   private vecF!: Phaser.GameObjects.Graphics;
   private partG!: Phaser.GameObjects.Graphics;
   private lastList: ViewFighter[] = [];
+  /** Swing arcs over sprite fighters, and the additive impact layers (sparks, flashes, streaks), on their own Graphics. */
+  private arcs: Arc[] = [];
+  private adds: Vec[] = [];
+  /** The arcs' colour layers (normal blend: the hue survives over a bright stage) and their white-hot cores (additive). */
+  private arcN!: Phaser.GameObjects.Graphics;
+  private arcG!: Phaser.GameObjects.Graphics;
+  private addG!: Phaser.GameObjects.Graphics;
+  /** Scratch points for the arc polygons (reused every frame: no garbage). */
+  private ptPool: { x: number; y: number }[] = Array.from({ length: 40 }, () => ({ x: 0, y: 0 }));
+  private pts: { x: number; y: number }[] = [];
+  /** The rig's PixelFX swing effects (the only effects a hit-stop freezes; the hit sparks keep playing). */
+  private swingFxs = new Set<FxSprite>();
+  /** Screen shake: a vertical damped sine (peak as a fraction of the view height, seconds since it started, length). */
+  private shakeA = 0;
   private shakeT = 0;
-  private shakeAmp = 0;
-  /** Zoom punch of the last Art (decays in a fraction of a second). */
-  private punch = 0;
+  private shakeDur = 0;
+  /** The camera shot in progress (zoomTo), with its timing in seconds and the weight it started from. */
+  private shot: { tgt: ZoomShot; t: number; inS: number; holdS: number; outS: number; w0: number } | null = null;
+  /** The follow camera's horizontal frame centre (the dead zone keeps it still) and how long a closer zoom has been wanted. */
+  private camFc = 640;
+  private zoomInWait = 0;
+  private camInit = false;
+  /** K.O. slow motion: the visual time scale and the fighters' display lag behind real time (s). */
+  private slowT = -1;
+  private timeScale = 1;
+  private dispLag = 0;
+  private hist: { t: number; list: ViewFighter[] }[] = [];
   private clock = 0;
   private arenaW = 1280;
   private floor = 600;
@@ -466,8 +528,17 @@ export class GameScene extends Phaser.Scene {
     this.vecs = [];
     this.parts = [];
     this.lastList = [];
-    this.punch = 0;
     this.casts = [];
+    this.arcs = [];
+    this.adds = [];
+    this.swingFxs.clear();
+    this.shot = null;
+    this.shakeA = 0;
+    this.slowT = -1;
+    this.timeScale = 1;
+    this.dispLag = 0;
+    this.hist = [];
+    this.camInit = false;
   }
 
   preload() {
@@ -495,17 +566,24 @@ export class GameScene extends Phaser.Scene {
       [FX.daggerFlurry, {}], [FX.heavyCleave, {}],
     ]);
     this.camX = arena.w / 2;
+    this.camFc = arena.w / 2;
     this.camY = arena.floor - 200;
     this.vecB = this.add.graphics().setDepth(9);
     this.vecF = this.add.graphics().setDepth(16);
     this.partG = this.add.graphics().setDepth(17).setBlendMode(Phaser.BlendModes.ADD);
+    this.arcN = this.add.graphics().setDepth(14.9);
+    this.arcG = this.add.graphics().setDepth(15).setBlendMode(Phaser.BlendModes.ADD);
+    this.addG = this.add.graphics().setDepth(27).setBlendMode(Phaser.BlendModes.ADD);
     this.events.once('shutdown', () => this.teardown());
+    if (import.meta.env.DEV) (globalThis as unknown as { __gameScene: GameScene }).__gameScene = this; // (dev tooling: frame capture)
   }
 
   // ------------------------------------------------------------------ loop
 
   override update(_time: number, deltaMs: number) {
-    const dt = Math.min(0.1, deltaMs / 1000);
+    const rdt = Math.min(0.1, deltaMs / 1000);
+    // K.O. slow motion is visual only: the effects, particles and animation clock run slower (the sim does not)
+    const dt = rdt * this.stepSlowmo(rdt);
     this.clock += dt;
     // fixed-step input
     this.acc += Math.min(deltaMs, 250);
@@ -545,20 +623,21 @@ export class GameScene extends Phaser.Scene {
       const m = mine.get(list[i].id);
       if (m) list[i] = m;
     }
-    this.lastList = list;
+    const shown = this.delayed(list, now);
+    this.lastList = shown;
     const seen = new Set<number>();
-    for (const v of list) {
+    for (const v of shown) {
       seen.add(v.id);
-      this.drawFighter(v, now, dt, list);
+      this.drawFighter(v, now, dt, shown);
     }
     for (const [id, fv] of this.views) if (!seen.has(id)) this.removeView(id, fv);
 
     // events (the primary's; same-device sessions get identical ones)
-    for (const e of g.drainEvents(now)) this.onGameEvent(e, list);
+    for (const e of g.drainEvents(now)) this.onGameEvent(e, shown);
     // other local sessions: drain so their queues stay short
     for (const p of this.players) if (p.session.game && p.session.game !== g) p.session.game.drainEvents(now);
 
-    this.drawProjectiles(g.projectiles(now), list, dt);
+    this.drawProjectiles(g.projectiles(now), shown, dt);
     this.drawTraps(g.traps());
     this.drawStrikes(g.latest?.strikes ?? []);
     // scheduled visuals (effects lined up with strikes)
@@ -571,12 +650,17 @@ export class GameScene extends Phaser.Scene {
     }
     for (let i = this.fx.length - 1; i >= 0; i--) {
       this.fx[i].update(dt);
-      if (this.fx[i].dead) this.fx.splice(i, 1);
+      if (this.fx[i].dead) {
+        this.swingFxs.delete(this.fx[i]);
+        this.fx.splice(i, 1);
+      }
     }
     paintLive(6);
     this.drawVecs(dt);
+    this.drawArcs(dt, now);
+    this.drawAdds(dt);
     this.drawParts(dt);
-    this.updateCamera(list, dt);
+    this.updateCamera(shown, rdt);
     this.cullArena();
     bakeFrames(3);
   }
@@ -725,17 +809,18 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(30);
     fv = {
-      id: v.id, hero: v.hero, canvas, img, rigImg: img, sprite: null, tag, ghosts: [], ghostI: 0, ghostAt: 0, frozenT: 0, freezeUntil: 0, flashUntil: 0, lastSeq: -1, runPhase: 0,
+      id: v.id, hero: v.hero, canvas, img, rigImg: img, sprite: null, tag, ghosts: [], ghostI: 0, ghostAt: 0, frozenT: 0, freezeUntil: 0, frozen: false, flashUntil: 0, lastSeq: -1, runPhase: 0,
       lastX: v.x, wasGround: true, landAt: -10, airAt: -10, status: {}, stunnedUntil: 0, koT: 0, color, shown: null,
       gfxB: this.add.graphics().setDepth(9), gfx: this.add.graphics().setDepth(11), hist: [], hound: null, veilOn: false,
       dodge: null, mount: null, dgfx: this.add.graphics().setDepth(8), lastY: v.y, runeAt: 0, flameAt: 0,
     };
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < GHOSTS; i++) {
       const key = `ghost${v.id}_${i}`;
       if (this.textures.exists(key)) this.textures.remove(key);
       const tex = this.textures.createCanvas(key, canvas.tex.width, canvas.tex.height)!;
       tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
-      const gimg = this.add.image(0, 0, key).setOrigin(canvas.originX, canvas.originY).setScale(canvas.worldScale).setDepth(9).setVisible(false).setTint(color);
+      // (additive: an after-image is a glow of the hero's trail colour, not a solid copy)
+      const gimg = this.add.image(0, 0, key).setOrigin(canvas.originX, canvas.originY).setScale(canvas.worldScale).setDepth(9).setVisible(false).setTint(color).setBlendMode(Phaser.BlendModes.ADD);
       gimg.tintMode = Phaser.TintModes.FILL;
       fv.ghosts.push({ img: gimg, tex, life: 0, max: 0.22, a0: 0.5 });
     }
@@ -773,12 +858,22 @@ export class GameScene extends Phaser.Scene {
     fv.shown = v;
     fv.dgfx.clear();
     // swing effects for moves this device predicted (yours) start now; others come with their 'swing' events
-    if (v.self && v.act === Act.Attack && v.moveSeq !== fv.lastSeq) this.startSwing(v.id, v.weapons[v.slot], v.move, v.actTf);
-    if (v.self) fv.lastSeq = v.moveSeq;
-    // hit-stop: the pose holds while frozen
+    // (not while the K.O. slow motion replays the recent past: those moves already started)
+    if (this.dispLag <= 0) {
+      if (v.self && v.act === Act.Attack && v.moveSeq !== fv.lastSeq) this.startSwing(v.id, v.weapons[v.slot], v.move, v.actTf);
+      if (v.self) fv.lastSeq = v.moveSeq;
+    }
+    // hit-stop: the sim's own freeze when the snapshot carries it (the pose already holds), else the client's
+    const simStop = hitstopOf(v);
     let t = v.actTf;
-    if (now < fv.freezeUntil) t = fv.frozenT;
-    else fv.frozenT = v.actTf;
+    if (simStop !== undefined) {
+      fv.frozen = simStop > 0;
+      fv.frozenT = v.actTf;
+    } else {
+      fv.frozen = now < fv.freezeUntil;
+      if (fv.frozen) t = fv.frozenT;
+      else fv.frozenT = v.actTf;
+    }
     const speed = Math.abs(v.vx);
     if (v.ground && speed > 25) fv.runPhase += dt * (6 + speed / 28);
     if (v.ground && !fv.wasGround) fv.landAt = this.clock;
@@ -995,8 +1090,14 @@ export class GameScene extends Phaser.Scene {
       const fv = this.views.get(id);
       const v = fv?.shown;
       if (!fv || !v || v.act !== Act.Attack) return;
-      // (a sprite fighter's frames carry their own painted weapon trails: no procedural trail on top)
-      if (sw && !fv.sprite) this.addFx(sw.mod, v.x, v.y, v.face < 0, sw.rate, sw.opts);
+      if (fv.sprite) {
+        // a sprite fighter: a crisp additive arc in the hero's energy colour over the painted frame (thinner and brighter
+        // than the painted trail, so the two read as one swing rather than doubling up)
+        const sh = arcFor(weapon, move);
+        if (sh) this.spawnArc(v, sh);
+      } else if (sw) {
+        this.swingFxs.add(this.addFx(sw.mod, v.x, v.y, v.face < 0, sw.rate, sw.opts));
+      }
       // the hammer's third blow and any hammer plunge crack the ground
       if (weapon === WeaponId.Hammer && move === 2) {
         this.addFx(FX.groundSlam, v.x + v.face * 40, v.y, v.face < 0, 1.8);
@@ -1014,6 +1115,295 @@ export class GameScene extends Phaser.Scene {
     if (scale !== 1) scaleFx(f, scale);
     this.fx.push(f);
     return f;
+  }
+
+  // ------------------------------------------------------------------ combat feedback: arcs, sparks, slow motion
+
+  /** A swing arc over a sprite fighter (the oldest gives way past the cap). */
+  private spawnArc(v: ViewFighter, shape: ArcShape) {
+    if (this.arcs.length >= MAX_ARCS) this.arcs.shift();
+    this.arcs.push({ owner: v.id, shape, face: v.face, x: v.x, y: v.y, age: 0, c: heroEnergy(v.hero), sparkAt: 0 });
+  }
+
+  /** The arcs: each sweeps, holds through its owner's hit-stop (the strike freezes with the bodies), then closes and fades. */
+  private drawArcs(dt: number, now: number) {
+    const g = this.arcG;
+    g.clear();
+    this.arcN.clear();
+    for (let i = this.arcs.length - 1; i >= 0; i--) {
+      const a = this.arcs[i];
+      const fv = this.views.get(a.owner);
+      const v = fv?.shown;
+      if (!fv || !v) {
+        this.arcs.splice(i, 1);
+        continue;
+      }
+      if (!fv.frozen) a.age += dt;
+      if (a.age >= a.shape.life) {
+        this.arcs.splice(i, 1);
+        continue;
+      }
+      // the arc rides the body through the swing's step (a hit or a dodge leaves it where it was)
+      if (v.act === Act.Attack) {
+        a.x = v.x;
+        a.y = v.y;
+      }
+      this.paintArc(g, a, now);
+    }
+  }
+
+  private paintArc(g: Phaser.GameObjects.Graphics, a: Arc, now: number) {
+    const s = a.shape;
+    const f = a.face;
+    const p = Math.min(1, a.age / s.dur);
+    // after the sweep the tail closes in on the head and everything thins and fades
+    const q = Math.max(0, (a.age - s.dur) / Math.max(0.01, s.life - s.dur));
+    const alpha = Math.min(1, a.age / 0.03 + 0.35) * (1 - q * q);
+    const thin = 1 - q * 0.55;
+    const cx = a.x + f * s.cx;
+    const cy = a.y - s.cy;
+    if (s.kind === 'thrust') {
+      const r0 = s.r0 ?? 0;
+      const tip = r0 + (s.r - r0) * easeOut3(p);
+      const base = r0 + (tip - r0) * q * 0.85;
+      const tx = cx + f * tip;
+      const bx = cx + f * base;
+      const streak = (gg: Phaser.GameObjects.Graphics, w: number, color: number, al: number) => {
+        const mx = bx + (tx - bx) * 0.72;
+        gg.fillStyle(color, al);
+        gg.fillTriangle(bx, cy, mx, cy - w / 2, tx, cy);
+        gg.fillTriangle(bx, cy, mx, cy + w / 2, tx, cy);
+      };
+      streak(this.arcN, s.w * 2 * thin, a.c.rim, 0.45 * alpha);
+      streak(this.arcN, s.w * thin, a.c.arc, 0.85 * alpha);
+      streak(g, s.w * 0.36 * thin, 0xffffff, alpha);
+      // speed lines above and below the shaft
+      g.lineStyle(1.2, a.c.arc, 0.55 * alpha);
+      g.lineBetween(bx + f * 10, cy - s.w * 1.3, tx - f * 18, cy - s.w * 1.3);
+      g.lineBetween(bx + f * 22, cy + s.w * 1.2, tx - f * 8, cy + s.w * 1.2);
+      if (s.heavy && p < 1) g.fillStyle(0xffffff, alpha).fillCircle(tx, cy, s.w * 0.6);
+      return;
+    }
+    const head = s.a0 + (s.a1 - s.a0) * easeOut3(p);
+    const tail = s.a0 + (head - s.a0) * Math.min(1, q * q * 0.95);
+    const layers = (mirror: number) => {
+      const t0 = tail * mirror;
+      const h0 = head * mirror;
+      // the coloured glow and body in normal blend, a thin additive bloom over the body, and the white-hot core edge
+      const n = this.arcN;
+      this.crescent(n, cx, cy, s.r + 3, s.sy, f, t0, h0, s.w * 1.75 * thin, a.c.rim, (s.heavy ? 0.5 : 0.38) * alpha);
+      this.crescent(n, cx, cy, s.r, s.sy, f, t0, h0, s.w * thin, a.c.arc, 0.85 * alpha);
+      this.crescent(g, cx, cy, s.r, s.sy, f, t0, h0, s.w * 0.7 * thin, a.c.arc, 0.35 * alpha);
+      this.crescent(g, cx, cy, s.r - 0.5, s.sy, f, t0, h0, s.w * 0.36 * thin, 0xffffff, alpha);
+    };
+    layers(1);
+    if (s.cross) layers(-1);
+    // the head: a white-hot point while it sweeps, and sparks flung off it on the heavies
+    if (p < 1) {
+      const hr = (head * Math.PI) / 180;
+      const hx = cx + f * Math.cos(hr) * s.r;
+      const hy = cy + Math.sin(hr) * s.r * s.sy;
+      g.fillStyle(0xffffff, 0.9 * alpha).fillCircle(hx, hy, s.w * 0.22);
+      if (s.heavy && now - a.sparkAt > 16) {
+        a.sparkAt = now;
+        const dir = s.a1 > s.a0 ? 1 : -1;
+        const tx = -Math.sin(hr) * dir * f;
+        const ty = Math.cos(hr) * dir;
+        for (let k = 0; k < 2; k++) {
+          this.spark(hx, hy, tx * (120 + Math.random() * 160) + (Math.random() - 0.5) * 60, ty * (120 + Math.random() * 160) - 40, 0.3, k ? 0xffffff : a.c.arc, 2, 300);
+        }
+      }
+    }
+  }
+
+  /**
+   * A crescent swept round (cx, cy) from angle aT (tail) to aH (head), degrees for a right-facing swing (f mirrors it):
+   * the outer edge on radius r, the inner edge `w` in at its widest, thickest just ahead of the middle, tapering to points.
+   */
+  private crescent(g: Phaser.GameObjects.Graphics, cx: number, cy: number, r: number, sy: number, f: number, aT: number, aH: number, w: number, color: number, alpha: number) {
+    if (alpha <= 0.01 || w <= 0.2 || Math.abs(aH - aT) < 1) return;
+    const N = 18;
+    const P = this.pts;
+    P.length = 0;
+    for (let i = 0; i < 2 * N + 2; i++) P.push(this.ptPool[i]);
+    for (let i = 0; i <= N; i++) {
+      const u = i / N;
+      const ang = ((aT + (aH - aT) * u) * Math.PI) / 180;
+      const c = Math.cos(ang) * f;
+      const sn = Math.sin(ang);
+      const wd = w * Math.pow(Math.sin(Math.PI * (0.03 + u * 0.94)), 0.7) * (0.3 + 0.7 * u);
+      const o = P[i];
+      o.x = cx + c * r;
+      o.y = cy + sn * r * sy;
+      const n = P[2 * N + 1 - i];
+      n.x = cx + c * (r - wd);
+      n.y = cy + sn * (r - wd) * sy;
+    }
+    g.fillStyle(color, alpha);
+    g.fillPoints(P as Phaser.Math.Vector2[], true);
+  }
+
+  /** An additive drawing that lives `life` seconds (a spark's layers), drawn above the fighters and the effects. */
+  private addAdd(life: number, draw: Vec['draw']) {
+    if (this.adds.length >= MAX_ADDS) this.adds.shift();
+    this.adds.push({ age: 0, life, back: false, draw });
+  }
+
+  private drawAdds(dt: number) {
+    const g = this.addG;
+    g.clear();
+    for (let i = this.adds.length - 1; i >= 0; i--) {
+      const v = this.adds[i];
+      v.age += dt;
+      if (v.age >= v.life) {
+        this.adds.splice(i, 1);
+        continue;
+      }
+      v.draw(g, v.age / v.life);
+    }
+  }
+
+  /** A jagged star: rays of the given lengths (radius multipliers) round (x, y), filled. */
+  private star(g: Phaser.GameObjects.Graphics, x: number, y: number, R: number, r: number, rot: number, lens: number[], color: number, alpha: number) {
+    const n = lens.length;
+    const P = this.pts;
+    P.length = 0;
+    for (let i = 0; i < 2 * n; i++) P.push(this.ptPool[i]);
+    for (let i = 0; i < n; i++) {
+      const a = rot + (i / n) * Math.PI * 2;
+      const b = a + Math.PI / n;
+      P[2 * i].x = x + Math.cos(a) * R * lens[i];
+      P[2 * i].y = y + Math.sin(a) * R * lens[i];
+      P[2 * i + 1].x = x + Math.cos(b) * r;
+      P[2 * i + 1].y = y + Math.sin(b) * r;
+    }
+    g.fillStyle(color, alpha);
+    g.fillPoints(P as Phaser.Math.Vector2[], true);
+  }
+
+  /** A tapered blade of light from (x0, y0) to (x1, y1), `w` wide just behind its middle (streaks, the X slash). */
+  private sliver(g: Phaser.GameObjects.Graphics, x0: number, y0: number, x1: number, y1: number, w: number, color: number, alpha: number) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const L = Math.hypot(dx, dy) || 1;
+    const nx = (-dy / L) * w * 0.5;
+    const ny = (dx / L) * w * 0.5;
+    const mx = x0 + dx * 0.45;
+    const my = y0 + dy * 0.45;
+    g.fillStyle(color, alpha);
+    g.fillTriangle(x0, y0, mx + nx, my + ny, x1, y1);
+    g.fillTriangle(x0, y0, mx - nx, my - ny, x1, y1);
+  }
+
+  /**
+   * A layered hit spark at the contact point: a white core flash (two frames), a jagged starburst in the attacker's spark
+   * colour, directional streaks along the blow, and particles. `str` scales it (light ~0.8, heavy ~1.5); heavies and crits
+   * add a long white streak through the victim and an X slash. None of it freezes in hit-stop.
+   */
+  private impact(x: number, y: number, dir: number, str: number, c: HeroEnergy, heavy: boolean, crit: boolean) {
+    const R = BODY_H * 0.2 * str;
+    const big = heavy || crit;
+    // core flash
+    this.addAdd(0.075, (g, p) => {
+      const k = 0.7 + 0.6 * p;
+      g.fillStyle(c.spark, 0.55 * (1 - p)).fillCircle(x, y, R * 1.25 * k);
+      g.fillStyle(0xffffff, 0.95 * (1 - p * 0.7)).fillCircle(x, y, R * 0.62 * k);
+    });
+    // starburst: a hot disc that grows into jagged rays, the long one along the blow
+    const n = crit ? 12 : 9;
+    const rot = dir > 0 ? -0.12 : Math.PI + 0.12;
+    const lens = Array.from({ length: n }, (_, i) => (i === 0 ? 1.45 : 0.5 + Math.random() * 0.5));
+    const life = crit ? 0.26 : big ? 0.22 : 0.18;
+    this.addAdd(life, (g, p) => {
+      const grow = easeOut3(Math.min(1, p * 2.4));
+      const a = p < 0.45 ? 1 : 1 - (p - 0.45) / 0.55;
+      this.star(g, x, y, R * 1.7 * grow, R * 0.32 * grow + 1, rot, lens, c.spark, 0.85 * a);
+      this.star(g, x, y, R * 0.95 * grow, R * 0.2 * grow + 0.5, rot, lens, 0xffffff, 0.9 * a);
+    });
+    // directional streaks (speed lines out of the contact, along the blow)
+    const k = big ? 5 : 3;
+    const streaks = Array.from({ length: k }, () => ({ a: (dir > 0 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.8, L: R * (2.2 + Math.random() * 1.6), w: 2 + Math.random() * 2 }));
+    this.addAdd(0.13, (g, p) => {
+      for (const st of streaks) {
+        const cs = Math.cos(st.a);
+        const sn = Math.sin(st.a);
+        const d0 = st.L * (0.15 + 0.6 * p);
+        const d1 = st.L * (0.45 + 0.55 * easeOut3(p));
+        this.sliver(g, x + cs * d0, y + sn * d0, x + cs * d1, y + sn * d1, st.w * (1 - p) + 0.6, 0xffffff, 0.95 * (1 - p));
+      }
+    });
+    if (big) {
+      // a long white line through the victim (two frames), and the X slash
+      const tilt = (Math.random() - 0.5) * 0.3;
+      this.addAdd(0.09, (g, p) => {
+        const L = R * 4.2;
+        this.sliver(g, x - dir * L, y - tilt * L, x + dir * L, y + tilt * L, 7 * (1 - p) + 1, 0xffffff, 1 - p);
+      });
+      this.addAdd(0.2, (g, p) => {
+        const L = R * 1.9 * easeOut3(Math.min(1, p * 3));
+        const a = 1 - p * p;
+        for (const sg of [1, -1]) {
+          this.sliver(g, x - L, y - sg * L, x + L, y + sg * L, 9 * (1 - p * 0.6), c.spark, 0.7 * a);
+          this.sliver(g, x - L, y - sg * L, x + L, y + sg * L, 3.5 * (1 - p * 0.6), 0xffffff, a);
+        }
+      });
+    }
+    // particles, thrown along the blow
+    const np = big ? 9 : 5;
+    for (let i = 0; i < np; i++) {
+      this.spark(x, y, dir * (90 + Math.random() * 260) + (Math.random() - 0.5) * 90, -40 - Math.random() * 200, 0.22 + Math.random() * 0.22, Math.random() < 0.5 ? c.spark : 0xffffff, 2 + Math.random() * 1.5, 520);
+    }
+  }
+
+  /** A guarded blow: a steel-blue half-ring flash facing the attacker, a small white pop and sparks glancing back. */
+  private blockSpark(x: number, y: number, dir: number) {
+    const R = BODY_H * 0.3;
+    // `dir` points from the attacker to the defender: the guard faces back along -dir
+    const a0 = dir > 0 ? 180 : 0;
+    const gx = x - dir * R * 0.2;
+    this.addAdd(0.18, (g, p) => {
+      const rr = R * (0.8 + 0.6 * easeOut3(p));
+      const a = 1 - p;
+      this.crescent(g, gx, y, rr, 1.25, 1, a0 - 75, a0 + 75, 6 * a + 1, 0x7ac8ff, 0.8 * a);
+      this.crescent(g, gx, y, rr - 1, 1.25, 1, a0 - 60, a0 + 60, 2.5 * a + 0.5, 0xffffff, a);
+    });
+    this.addAdd(0.06, (g, p) => g.fillStyle(0xd8f0ff, 0.9 * (1 - p)).fillCircle(x, y, R * 0.5 * (0.8 + p)));
+    for (let i = 0; i < 6; i++) this.spark(x, y, -dir * (60 + Math.random() * 160), -60 - Math.random() * 140, 0.28 + Math.random() * 0.15, Math.random() < 0.5 ? 0x9ad8ff : 0xffffff, 2, 600);
+  }
+
+  /** K.O. slow motion: 0.25x for 0.4 s, then back to 1x over 0.15 s. Returns this frame's visual time scale. */
+  private stepSlowmo(rdt: number): number {
+    if (this.slowT < 0) {
+      this.timeScale = 1;
+    } else {
+      this.slowT += rdt;
+      const t = this.slowT;
+      this.timeScale = t < 0.4 ? 0.25 : t < 0.55 ? 0.25 + ((t - 0.4) / 0.15) * 0.75 : 1;
+      if (t >= 0.55) this.slowT = -1;
+    }
+    // the fighters run behind real time while slowed, then slip back to it (a gentle 1.25x catch-up)
+    this.dispLag = Math.max(0, this.dispLag + rdt * (1 - this.timeScale) - (this.timeScale >= 1 ? rdt * 0.25 : 0));
+    return this.timeScale;
+  }
+
+  /** The fighters to draw: as they are, or (in the K.O. slow motion) as they were `dispLag` seconds ago, interpolated. */
+  private delayed(list: ViewFighter[], now: number): ViewFighter[] {
+    const h = this.hist;
+    if (this.dispLag > 0 || this.slowT >= 0) h.push({ t: now, list: list.map((v) => ({ ...v })) });
+    else if (h.length) h.length = 0;
+    while (h.length > 2 && now - h[0].t > 1500) h.shift();
+    if (this.dispLag <= 0 || h.length < 2) return list;
+    const at = now - this.dispLag * 1000;
+    let i = h.length - 1;
+    while (i > 0 && h[i - 1].t > at) i--;
+    const b = h[i];
+    const a = h[Math.max(0, i - 1)];
+    const k = b.t > a.t ? Phaser.Math.Clamp((at - a.t) / (b.t - a.t), 0, 1) : 1;
+    return a.list.map((va) => {
+      const vb = b.list.find((q) => q.id === va.id);
+      if (!vb) return va;
+      return { ...va, x: va.x + (vb.x - va.x) * k, y: va.y + (vb.y - va.y) * k, actTf: va.act === vb.act ? va.actTf + (vb.actTf - va.actTf) * k : va.actTf };
+    });
   }
 
   // ------------------------------------------------------------------ Rift Art beats
@@ -1153,6 +1543,12 @@ export class GameScene extends Phaser.Scene {
         if (!burn) {
           const flip = a ? a.x > e.x : false;
           this.addFx(e.crit ? FX.critHit : heavy ? FX.bluntHit : FX.hitSpark, e.x, e.y + 14, flip, 1.3, {}, 16, 26);
+          // the layered spark over it, in the attacker's energy colour, sized by the blow
+          const dir = a ? (e.x >= a.x ? 1 : -1) : v ? -v.face : 1;
+          const str = Phaser.Math.Clamp(0.6 + e.amt / 180, 0.75, 1.6) * (e.crit ? 1.25 : 1);
+          this.impact(e.x, e.y, dir, str, heroEnergy(a?.hero ?? 0), heavy, e.crit);
+          // a big Art's first connect gets its beat (zoom, speed-line takeover); a no-op otherwise
+          superConnect(this, { attackerId: e.a, x: e.x, y: e.y });
           // Flash Step's cuts: a cyan slash on every strike of the flurry
           if (e.w === 104) {
             this.addFx(FX.claw, e.x, e.y + 26, flip, 2.4, { palette: PAL.cyan }, 16, 26);
@@ -1163,19 +1559,29 @@ export class GameScene extends Phaser.Scene {
               g.lineBetween(sx - 16, sy - 14 + p * 6, sx + 16, sy - 22 + p * 6);
             });
           }
-          const stop = Math.min(0.16, 0.05 + e.amt / 1600);
-          for (const id of [e.a, e.v]) {
-            const fv = this.views.get(id);
-            if (fv) fv.freezeUntil = performance.now() + stop * 1000;
+          // hit-stop: the sim freezes both bodies once its snapshot carries `hitstop`; until then the client holds the poses
+          // (the event's `hs` is the sim's freeze in ticks, when the sim has hit-stop)
+          const simStop = hitstopOf(v);
+          const evHs = (e as { hs?: number }).hs;
+          const stop = simStop !== undefined ? Math.max(simStop, hitstopOf(a) ?? 0) / TICK_RATE : typeof evHs === 'number' ? evHs / TICK_RATE : Math.min(0.16, 0.05 + e.amt / 1600);
+          if (simStop === undefined) {
+            for (const id of [e.a, e.v]) {
+              const fv = this.views.get(id);
+              if (fv) fv.freezeUntil = performance.now() + stop * 1000;
+            }
           }
-          for (const f of this.fx) if (f.rate > 1.1) f.freeze = Math.max(f.freeze, stop);
+          // only the swing trails freeze with the bodies; the hit sparks keep playing through the stop
+          for (const f of this.swingFxs) f.freeze = Math.max(f.freeze, stop);
+          // shake by the blow: light ~0.3, medium ~0.45, heavy ~0.8 (peak ~2.4% of the view height), crits harder
           const wdef = WEAPONS[e.w];
-          this.shake(Math.max(0.15, wdef ? Math.max(...wdef.combo.map((m) => m.shake ?? 0)) * 0.7 : 0.2, e.crit ? 0.5 : 0));
+          const wShake = wdef ? Math.max(...wdef.combo.map((m) => m.shake ?? 0)) : 0;
+          this.shake(Phaser.Math.Clamp(0.2 + e.amt / 300 + wShake * 0.3, 0.25, 0.85), e.crit ? 0.2 : 0);
           sfx.play(heavy ? 'impact' : 'hit', { x: e.x, y: e.y, pitch: e.crit ? 1.2 : 1 });
           if (isLocal(e.v)) navigator.vibrate?.(e.amt > 120 ? 40 : 18);
         }
         const fv = this.views.get(e.v);
-        if (fv && !burn) fv.flashUntil = performance.now() + 90;
+        // (a short white flash: three frames, so the hurt drawing shows through the rest of the freeze)
+        if (fv && !burn) fv.flashUntil = performance.now() + 50;
         if (prefs().damageNumbers && v) {
           const pal = burn ? ['#1a0a04', '#4a1a06', '#8c3a08', '#d46a10', '#ff9a2a', '#ffc46a', '#ffe8b0', '#ffffff'] : undefined;
           const mod = e.crit ? FX.critNumber : FX.damageNumber;
@@ -1187,12 +1593,19 @@ export class GameScene extends Phaser.Scene {
         const v = find(e.v);
         const a = find(e.a);
         if (v) this.addFx(FX.shieldBlock, v.x, v.y, a ? a.x < v.x : v.face < 0, 1.4);
+        this.blockSpark(e.x, e.y, a ? (e.x >= a.x ? 1 : -1) : v ? -v.face : 1);
         sfx.play('shieldHit', { x: e.x, y: e.y });
         this.shake(0.15);
         break;
       }
       case 'parry': {
         this.addFx(FX.parry, e.x, e.y + 20, false, 1.3, {}, 16, 26);
+        // a parry rings out: a white ring and a bright star at the guard
+        this.addAdd(0.28, (g, p) => {
+          g.lineStyle(5 * (1 - p) + 1, 0xffffff, 1 - p);
+          g.strokeCircle(e.x, e.y, 8 + 46 * easeOut3(p));
+        });
+        this.impact(e.x, e.y, 1, 1.1, { arc: 0xffffff, rim: 0x7ac8ff, spark: 0xbfe8ff }, false, false);
         sfx.play('shieldBreak', { x: e.x, y: e.y });
         const fv = this.views.get(e.v);
         if (fv) fv.stunnedUntil = performance.now() + (FIGHTER.parryStun / TICK_RATE) * 1000;
@@ -1230,7 +1643,7 @@ export class GameScene extends Phaser.Scene {
         }
         sfx.play('slam', { x: e.x, y: e.y });
         this.shake(0.9);
-        this.punch = Math.max(this.punch, 0.03);
+        this.punch(0.12);
         break;
       }
       case 'trap': {
@@ -1264,15 +1677,17 @@ export class GameScene extends Phaser.Scene {
       case 'art': {
         const v = find(e.p);
         sfx.playArt(e.art, { volume: 0.9 });
-        this.shake(0.35);
-        // the beat: a colour wash and a short zoom punch, well under a third of a second
-        this.flash(ART_FLASH[e.art] ?? 0xffffff, 0.2, 150);
-        this.punch = Math.max(this.punch, 0.035);
+        // the super staging (game/cinematic.ts): wash, dim, cut-in, the camera push on the caster; it fills the sim's
+        // superpause (`pause` ticks) when the event carries it
+        const pause = (e as { pause?: number }).pause;
         if (v) {
+          playSuperCinematic(this, { casterId: e.p, heroId: v.hero, artId: e.art, x: v.x, y: v.y, pauseMs: typeof pause === 'number' ? (pause / TICK_RATE) * 1000 : undefined });
           this.artStart(e.art, v, list);
-          // every Art freezes the moment for a beat
+          // before the sim had a superpause, every Art froze the caster's pose for a beat
           const fv = this.views.get(e.p);
-          if (fv) fv.freezeUntil = performance.now() + 110;
+          if (fv && typeof pause !== 'number') fv.freezeUntil = performance.now() + 110;
+        } else {
+          this.flash(ART_FLASH[e.art] ?? 0xffffff, 0.2, 150);
         }
         break;
       }
@@ -1297,9 +1712,23 @@ export class GameScene extends Phaser.Scene {
       }
       case 'ko': {
         const v = find(e.v);
-        if (v) this.addFx(FX.pow, v.x, v.y - 30, false, 1, {}, 31, 32);
+        // (smaller than it used to be: the camera pushes in on it)
+        if (v) this.addFx(FX.pow, v.x, v.y - 30, false, 1, {}, 31, 32, 0.6);
         sfx.play('death');
-        this.shake(0.8);
+        this.shake(1);
+        // the K.O.: a beat of slow motion (visual only, 0.25x for 0.4 s) and the camera pushes in on the loser, following
+        // the body as it flies; the white flash (or an Art finish's white-out) and the light ring are cinematic.ts's
+        this.slowT = 0;
+        const loser = e.v;
+        const push = { zoomTo: (_x: number, _y: number, z: number, inMs: number, holdMs: number) => this.zoomShot({ id: loser, zoom: Math.min(z, 1.7) }, inMs + 50, holdMs + 500, 450) };
+        if (v) koCinematic(this, { x: v.x, y: v.y - 30, attackerId: e.a, camera: push });
+        else this.flash(0xffffff, 0.8, 300);
+        if (v) {
+          for (let i = 0; i < 18; i++) {
+            const ang = (i / 18) * Math.PI * 2;
+            this.spark(v.x, v.y - 30, Math.cos(ang) * (160 + Math.random() * 120), Math.sin(ang) * (160 + Math.random() * 120), 0.7, i % 2 ? 0xffffff : 0xffe08a, 3, 0);
+          }
+        }
         break;
       }
       case 'fight':
@@ -1644,6 +2073,12 @@ export class GameScene extends Phaser.Scene {
     const f = v.face;
     const p = Math.min(1, v.actTf / Math.max(1, d.def.ticks));
     strokeTrail(g, d.trail, TRAIL_COLOR[d.hero], 0.9, d.def.kind === 'step' ? 4 : 3, -24);
+    // after-images on every dash and dodge: a faint ghost in the hero's trail colour every two frames (the bodies that
+    // hide or melt, and the Flash Steps with their own, are left out; a long vault only ghosts its take-off)
+    if (!NO_GHOST_DODGE.has(d.hero) && now - d.lastGhost > 32 && (d.def.kind !== 'leap' || v.actTf < 14)) {
+      d.lastGhost = now;
+      this.ghostAt(fv, v, v.x, v.y, 0.15, 0.32, TRAIL_COLOR[d.hero]);
+    }
     switch (d.hero) {
       case 0: // gold dust kicked up behind the burst
         if (now - d.lastPuff > 70) {
@@ -1882,6 +2317,11 @@ export class GameScene extends Phaser.Scene {
     }
     const sk = SKILLS[v.skill];
     const on = !!sk && sk.kind === 'dash' && v.actTf >= sk.startup && v.actTf < sk.startup + (sk.active ?? 0);
+    // a dash special leaves after-images too
+    if (on && now - fv.ghostAt > 32) {
+      fv.ghostAt = now;
+      this.ghostAt(fv, v, v.x, v.y, 0.15, 0.32, TRAIL_COLOR[v.hero] ?? 0xffffff);
+    }
     if (v.skill === SkillId.RuneLeap && on && now - fv.runeAt > 70) {
       fv.runeAt = now;
       this.rune(v.x - v.face * 8, v.y - 30, v.face);
@@ -2193,10 +2633,62 @@ export class GameScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ camera
 
+  /**
+   * Screen shake: a vertical damped bounce, y = A e^(-t/0.12) sin(2 pi 11 t), measured off the reference (MUGEN shakes
+   * vertically only). `amp` 0..1.2: light hit ~0.3, heavy ~0.8, a super or a K.O. 1; the peak is amp x 3% of the view
+   * height, over 0.2-0.35 s. A weaker shake never cuts a stronger one short. Time-based, so frame-rate independent.
+   */
   private shake(amp: number, extra = 0) {
-    const k = prefs().shake;
-    this.shakeAmp = Math.max(this.shakeAmp, (amp + extra) * 7 * k);
-    this.shakeT = 0.22;
+    const a = Math.min(1.2, amp + extra) * prefs().shake;
+    if (a <= 0) return;
+    const left = this.shakeT < this.shakeDur ? this.shakeA * Math.exp(-this.shakeT / 0.12) : 0;
+    if (a < left) return;
+    this.shakeA = a;
+    this.shakeT = 0;
+    this.shakeDur = 0.2 + 0.15 * Math.min(1, a);
+  }
+
+  /** This frame's shake offset (world units, vertical), stepping the shake's clock. */
+  private shakeOffset(dt: number, viewH: number): number {
+    if (this.shakeT >= this.shakeDur) return 0;
+    const t = this.shakeT;
+    this.shakeT += dt;
+    // (the last 50 ms ease to zero so the bounce never ends on a jump)
+    const tail = Math.min(1, (this.shakeDur - t) / 0.05);
+    return this.shakeA * 0.03 * viewH * Math.exp(-t / 0.12) * Math.sin(2 * Math.PI * 11 * t) * tail;
+  }
+
+  /**
+   * A camera shot that takes over from the follow camera: zooms to `zoom` x the follow camera's zoom on the world point
+   * (x, y) over `inMs` (ease-out), holds `holdMs`, then lets go over `outMs` (<= 20 snaps straight back). For super
+   * connects, heavy finishers and the K.O. push (game/cinematic.ts calls it as its camera). A new shot starts from
+   * wherever the current one is, so shots chain without a jump.
+   */
+  zoomTo(x: number, y: number, zoom: number, inMs = 90, holdMs = 700, outMs = 40) {
+    this.zoomShot({ x, y, zoom }, inMs, holdMs, outMs);
+  }
+
+  /** zoomTo on a ZoomShot: a point, a fighter followed while the shot lasts (`id`), or the follow camera's own centre. */
+  zoomShot(target: ZoomShot, inMs = 90, holdMs = 700, outMs = 40) {
+    this.shot = { tgt: target, t: 0, inS: Math.max(0.001, inMs / 1000), holdS: Math.max(0, holdMs / 1000), outS: Math.max(0, outMs / 1000), w0: this.shotWeight() };
+  }
+
+  /** A short zoom punch on the follow camera's own centre (`amount` 0.1 = 10% closer); the old Art punch. */
+  punch(amount: number) {
+    if (this.shot && this.shotWeight() > 0.5) return; // a bigger shot is already framing
+    this.zoomShot({ zoom: 1 + amount }, 50, 70, 220);
+  }
+
+  /** How far the current shot has taken over (0 = the follow camera, 1 = the shot). */
+  private shotWeight(): number {
+    const s = this.shot;
+    if (!s) return 0;
+    if (s.t < s.inS) return s.w0 + (1 - s.w0) * easeOut3(s.t / s.inS);
+    const t = s.t - s.inS - s.holdS;
+    if (t < 0) return 1;
+    if (s.outS <= 0.02 || t >= s.outS) return 0;
+    const p = t / s.outS;
+    return 1 - p * p;
   }
 
   private updateCamera(list: ViewFighter[], dt: number) {
@@ -2218,34 +2710,68 @@ export class GameScene extends Phaser.Scene {
     // cluster (right), with the floor raised above the cluster's lower rows
     const pad = this.touchInsets(vw);
     const useW = vw - pad.left - pad.right;
-    // how much world fits: about 340-520 units of height, zoomed out to keep both fighters in view
-    const wantH = Phaser.Math.Clamp(vh * 0.62, 330, 520);
+    // how much world fits: 290-360 units of height (a standing fighter is 16-20% of the view, like the reference),
+    // zoomed out to keep both fighters in view
+    const wantH = Phaser.Math.Clamp(vh * 0.62, 290, 360);
     let zoom = vh / wantH;
     zoom = Math.min(zoom, useW / (maxX - minX + 300), vh / (maxY - minY + 260));
     zoom = Math.max(zoom, vw / (this.arenaW + 240));
-    const cx = (minX + maxX) / 2 + (pad.right - pad.left) / 2 / zoom;
-    const cy = Math.min(this.floor - (vh / zoom) * (pad.right ? 0.24 : 0.36), (minY + maxY) / 2 - 40);
-    const k = 1 - Math.exp(-dt * 6);
-    this.camZoom += (zoom - this.camZoom) * k;
-    this.camX += (cx - this.camX) * k;
-    this.camY += (cy - this.camY) * k;
-    const halfW = vw / this.camZoom / 2;
-    const halfH = vh / this.camZoom / 2;
-    const x = Phaser.Math.Clamp(this.camX, halfW - 120, this.arenaW + 120 - halfW);
-    // (touch: a little more floor shows below the fighters, lifting them above the button cluster's lower rows)
-    const y = Math.min(this.camY, this.floor + (pad.right ? 135 : 70) - halfH);
-    let sx = 0;
-    let sy = 0;
-    if (this.shakeT > 0) {
-      this.shakeT -= dt;
-      sx = (Math.random() * 2 - 1) * this.shakeAmp;
-      sy = (Math.random() * 2 - 1) * this.shakeAmp;
-      this.shakeAmp *= 0.86;
+    if (!this.camInit) {
+      // the first frame of a match frames the fighters at once
+      this.camInit = true;
+      this.camZoom = zoom;
+      this.camFc = (minX + maxX) / 2;
     }
-    // an Art's zoom punch: a quick push in that eases back
-    this.punch *= Math.exp(-dt * 16);
-    cam.setZoom(this.camZoom * (1 + this.punch));
-    cam.centerOn(halfW * 2 > this.arenaW + 240 ? this.arenaW / 2 : x + sx, y + sy);
+    // zoom out fast when the fighters part; zoom in slowly, and only once the closer framing has been wanted for half a
+    // second, so the frame does not breathe with every step of an exchange
+    if (zoom < this.camZoom) {
+      this.zoomInWait = 0;
+      this.camZoom += (zoom - this.camZoom) * (1 - Math.exp(-dt * 8));
+    } else if (zoom > this.camZoom * 1.015) {
+      this.zoomInWait += dt;
+      if (this.zoomInWait > 0.5) this.camZoom += (zoom - this.camZoom) * (1 - Math.exp(-dt * 2));
+    } else {
+      this.zoomInWait = 0;
+    }
+    // horizontal dead zone: the frame stays still while both fighters are inside its middle 60%, and only then follows
+    const off = (pad.right - pad.left) / 2 / this.camZoom; // the usable area's centre sits this far left of the camera's
+    const dz = (useW / this.camZoom) * 0.3;
+    let fc = this.camFc;
+    if (maxX - minX > dz * 2) fc = (minX + maxX) / 2;
+    else if (minX < fc - dz) fc = minX + dz;
+    else if (maxX > fc + dz) fc = maxX - dz;
+    this.camFc += (fc - this.camFc) * (1 - Math.exp(-dt * 10));
+    const cy = Math.min(this.floor - (vh / this.camZoom) * (pad.right ? 0.24 : 0.36), (minY + maxY) / 2 - 40);
+    this.camY += (cy - this.camY) * (1 - Math.exp(-dt * 6));
+    this.camX = this.camFc + off;
+    // a camera shot (zoomTo) blends in over the follow camera
+    let z = this.camZoom;
+    let x = this.camX;
+    let y = this.camY;
+    if (this.shot) {
+      this.shot.t += dt;
+      const w = this.shotWeight();
+      const s = this.shot;
+      if (s.t >= s.inS + s.holdS + (s.outS <= 0.02 ? 0 : s.outS)) this.shot = null;
+      if (w > 0) {
+        const zt = this.camZoom * s.tgt.zoom;
+        const f = s.tgt.id !== undefined ? list.find((q) => q.id === s.tgt.id) : undefined;
+        const tx = f ? f.x : s.tgt.x ?? this.camFc;
+        const ty = f ? f.y - 34 : s.tgt.y ?? this.camY;
+        z = this.camZoom + (zt - this.camZoom) * w;
+        x = this.camX + (tx + (pad.right - pad.left) / 2 / zt - this.camX) * w;
+        y = this.camY + (ty - this.camY) * w;
+      }
+    }
+    const halfW = vw / z / 2;
+    const halfH = vh / z / 2;
+    x = Phaser.Math.Clamp(x, halfW - 120, this.arenaW + 120 - halfW);
+    // (touch: a little more floor shows below the fighters, lifting them above the button cluster's lower rows)
+    y = Math.min(y, this.floor + (pad.right ? 135 : 70) - halfH);
+    // the shake is an offset after the clamp (vertical only)
+    const sy = this.shakeOffset(dt, vh / z);
+    cam.setZoom(z);
+    cam.centerOn(halfW * 2 > this.arenaW + 240 ? this.arenaW / 2 : x, y + sy);
     const me = list.find((f) => f.self);
     if (me) sfx.setListener(me.x, me.y);
   }
@@ -2281,6 +2807,9 @@ export class GameScene extends Phaser.Scene {
     this.vecB?.destroy();
     this.vecF?.destroy();
     this.partG?.destroy();
+    this.arcN?.destroy();
+    this.arcG?.destroy();
+    this.addG?.destroy();
     for (const g of this.gfxPool) g.destroy();
     this.gfxPool = [];
   }
@@ -2373,4 +2902,14 @@ function stripXY(p: Pose): Pose {
   void _x;
   void _y;
   return rest;
+}
+
+/**
+ * The sim's per-fighter freeze in ticks (hit-stop, or the superpause of a Rift Art), once the snapshot carries it;
+ * undefined before that, and the client fakes the hit-stop.
+ */
+function hitstopOf(v: ViewFighter | null | undefined): number | undefined {
+  const f = v as (ViewFighter & { hitstop?: number; pause?: number }) | null | undefined;
+  if (typeof f?.hitstop !== 'number') return undefined;
+  return Math.max(f.hitstop, f.pause ?? 0);
 }

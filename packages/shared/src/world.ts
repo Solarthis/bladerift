@@ -5,7 +5,7 @@
 import { ArenaDef, getArena, solidAt, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS, ROUND, TICK_RATE } from './constants';
 import {
-  Act, copyState, currentMove, FighterState, FoeView, isActive, isBlocking, moveDamage, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, newFighterState, stepFighter,
+  Act, copyState, currentMove, FighterState, FoeView, hitstopFor, isActive, isBlocking, isFrozen, meleeConnect, meleeCrit, moveDamage, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
@@ -82,9 +82,12 @@ export interface Trap {
 }
 
 export type GameEvent =
-  /** v was hit by a for amt; w = weapon id (or 100 + skill / 200 burn); crit; x,y = impact point. */
-  | { t: 'hit'; a: number; v: number; amt: number; w: number; crit: boolean; x: number; y: number }
-  | { t: 'block'; a: number; v: number; amt: number; x: number; y: number }
+  /** v was hit by a for amt; w = weapon id (or 100 + skill / 200 burn); crit; x,y = impact point; n = the hit's number in
+   * v's current combo (1 = a fresh hit, 0 = burning); hs = the hit-stop it set on v (ticks; the attacker of a melee hit
+   * freezes the same, 0 = none). */
+  | { t: 'hit'; a: number; v: number; amt: number; w: number; crit: boolean; x: number; y: number; n: number; hs: number }
+  /** v blocked a's hit (chip amt); hs = the hit-stop on both (melee) or v (projectiles). */
+  | { t: 'block'; a: number; v: number; amt: number; x: number; y: number; hs: number }
   | { t: 'parry'; a: number; v: number; x: number; y: number }
   | { t: 'swing'; p: number; w: number; m: number }
   | { t: 'shoot'; p: number; kind: number }
@@ -98,8 +101,9 @@ export type GameEvent =
   | { t: 'round'; winner: number; why: number }
   | { t: 'fight'; round: number }
   | { t: 'match'; winner: number }
-  /** p started its Rift Art (classes.ts ArtId). */
-  | { t: 'art'; p: number; art: number }
+  /** p started its Rift Art (classes.ts ArtId); pause = the superpause that starts now (ticks, FIGHTER.superpause): both
+   * fighters, projectiles, strikes and the clock are frozen, and the Art plays out after it. */
+  | { t: 'art'; p: number; art: number; pause: number }
   /** A Starfall bolt or Chains of Genesis landed. */
   | { t: 'strike'; x: number; y: number; kind: number };
 
@@ -136,8 +140,10 @@ export interface Fighter {
   skillHit: boolean;
   /** x before this tick's step (Flash Step's blink trail). */
   blinkFrom: number;
+  /** Hits of the combo this fighter is taking (0 = not in one). */
   comboHits: number;
-  comboAt: number;
+  /** Frozen this tick (hit-stop or superpause at the start of the tick): it cannot land hits or run Art effects. */
+  held: boolean;
   // stats
   dealt: number;
   roundDealt: number;
@@ -172,6 +178,9 @@ export const SKILL_EVENT = 32;
 export const SKILL_WEAPON = 100;
 const overlap = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
+/** Damage scale of the n-th hit of a combo (FIGHTER.comboScaleStep / comboScaleMin). */
+export const comboScale = (n: number) => Math.max(FIGHTER.comboScaleMin, 1 - FIGHTER.comboScaleStep * Math.max(0, n - 1));
+
 export function bodyBox(x: number, y: number, crouch = false): Box {
   const h = crouch ? FIGHTER.crouchH : FIGHTER.h;
   return { x: x - FIGHTER.w / 2, y: y - h, w: FIGHTER.w, h };
@@ -200,7 +209,14 @@ export class World {
   events: GameEvent[] = [];
   winner = -1;
   maxRewind = MAX_REWIND;
+  /** Superpause ticks left: projectiles, strikes, traps, burning and the round clock are frozen (the fighters carry
+   * their own `pause`). */
+  pause = 0;
   private nextId = 1;
+  /** Fighters whose Rift Art started this tick (their opponent is put in the superpause after every fighter moved). */
+  private casting: Fighter[] = [];
+  /** The hit-stop the last applyHit set (0: none, e.g. a parry). */
+  private lastStop = 0;
 
   constructor(readonly settings: MatchSettings) {
     this.arena = getArena(settings.arenaId);
@@ -217,7 +233,7 @@ export class World {
       owed: 0, carry: 0, lagTicks: -1, prevViewTick: 0,
       histTick: new Int32Array(HIST).fill(-1), histX: new Float32Array(HIST), histY: new Float32Array(HIST), histFlags: new Uint8Array(HIST),
       histBlockT: new Uint16Array(HIST), histFace: new Int8Array(HIST),
-      lastHitSeq: -1, skillHit: false, comboHits: 0, comboAt: -999, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0, blinkFrom: 0,
+      lastHitSeq: -1, skillHit: false, comboHits: 0, held: false, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0, blinkFrom: 0,
     };
     f.s.lock = Math.max(0, this.phaseEnd - this.tick);
     this.fighters.set(id, f);
@@ -255,6 +271,7 @@ export class World {
     this.projectiles = [];
     this.traps = [];
     this.strikes = [];
+    this.pause = 0;
     for (const f of this.fighters.values()) {
       const seq = f.s.moveSeq;
       const prevBtn = f.s.prevBtn;
@@ -277,16 +294,35 @@ export class World {
       this.phase = 'fight';
       this.events.push({ t: 'fight', round: this.round });
     }
+    // a superpause started last tick or earlier freezes the world this tick
+    const paused = this.pause > 0;
+    if (paused) this.pause--;
+    for (const f of this.fighters.values()) f.held = isFrozen(f.s);
     for (const f of this.fighters.values()) this.runCommands(f);
+    this.startSuperpause();
     if (this.phase === 'over') return;
     for (const f of this.fighters.values()) this.spawnFrom(f);
     for (const f of this.fighters.values()) this.checkMelee(f);
     for (const f of this.fighters.values()) this.checkSkillDash(f);
-    this.stepArts();
-    this.stepProjectiles();
-    this.stepTraps();
-    this.stepStatus();
-    this.stepRound();
+    this.stepArts(paused);
+    if (paused) {
+      for (const t of this.traps) (t.armAt++, t.until++);
+    } else {
+      this.stepProjectiles();
+      this.stepTraps();
+      this.stepStatus();
+    }
+    this.stepRound(paused);
+  }
+
+  /** A Rift Art started this tick: its caster froze itself (stepFighter); freeze the opponent and the world as long. */
+  private startSuperpause() {
+    for (const f of this.casting) {
+      const o = this.opponent(f);
+      if (o && o.s.act !== Act.KO) o.s.pause = Math.max(o.s.pause, FIGHTER.superpause);
+      this.pause = Math.max(this.pause, FIGHTER.superpause);
+    }
+    this.casting.length = 0;
   }
 
   // ------------------------------------------------------------ input queue (ported from Skyfire Squad)
@@ -387,17 +423,24 @@ export class World {
   private moveFighter(f: Fighter, cmd: InputCmd) {
     const s = f.s;
     const before = s.act;
-    const hpBefore = s.hp;
+    // (a frozen step changes nothing: no new action, no events)
+    const frozen = isFrozen(s);
     f.blinkFrom = s.x;
     stepFighter(s, cmd, this.arena, f.load, this.foeView(f));
-    if (s.act === Act.Roll && before !== Act.Roll) this.events.push({ t: 'roll', p: f.id });
-    if (s.act === Act.Heal && before !== Act.Heal) this.events.push({ t: 'heal', p: f.id });
-    if (s.act === Act.Attack && s.actT === 0) {
-      if (s.move === MOVE_ART) this.events.push({ t: 'art', p: f.id, art: artIdOf(f.load) });
-      else this.events.push({ t: 'swing', p: f.id, w: f.load.weapons[s.slot], m: s.move });
+    if (!frozen) {
+      if (s.act === Act.Roll && before !== Act.Roll) this.events.push({ t: 'roll', p: f.id });
+      if (s.act === Act.Heal && before !== Act.Heal) this.events.push({ t: 'heal', p: f.id });
+      let art = false;
+      if (s.act === Act.Attack && s.actT === 0) {
+        if (s.move === MOVE_ART) art = true;
+        else this.events.push({ t: 'swing', p: f.id, w: f.load.weapons[s.slot], m: s.move });
+      }
+      if (s.act === Act.Art && s.actT === 0 && before !== Act.Art) art = true;
+      if (art) {
+        this.events.push({ t: 'art', p: f.id, art: artIdOf(f.load), pause: FIGHTER.superpause });
+        this.casting.push(f);
+      }
     }
-    if (s.act === Act.Art && s.actT === 0 && before !== Act.Art) this.events.push({ t: 'art', p: f.id, art: artIdOf(f.load) });
-    void hpBefore;
     this.recordHistory(f);
   }
 
@@ -442,6 +485,7 @@ export class World {
   // ------------------------------------------------------------ combat
 
   private checkMelee(a: Fighter) {
+    if (a.held) return;
     const m = currentMove(a.s, a.load);
     if (!m || m.arrow || !isActive(a.s, m)) return;
     const d = this.opponent(a);
@@ -450,41 +494,25 @@ export class World {
     const box = moveBox(m, a.s.x, a.s.y, a.s.face);
     if (!overlap(box, bodyBox(seen.x, seen.y, seen.crouch)) || seen.invuln) return;
     d.lastHitSeq = a.s.moveSeq;
-    let crit = false;
-    const front = (a.s.x - seen.x) * seen.face > 0;
-    let dmg = moveDamage(a.s, a.load, m);
+    // from behind: backstab weapons crit, and the assassin crits with anything; the tip of a tipCrit weapon crits
+    const mc = meleeCrit(a.s, a.load, m, seen.x, seen.face);
+    const base = moveDamage(a.s, a.load, m);
+    let dmg = base;
     const C = classOf(a.load.cls);
-    // from behind: backstab weapons crit, and the assassin crits with anything
-    const backstab = !front && (m.backCrit || C.id === ClassId.Assassin);
-    if (backstab) crit = true;
-    let tip = false;
-    if (m.tipCrit) {
-      const reach = m.box.x + m.box.w;
-      if (Math.abs(seen.x - a.s.x) > reach * 0.68) crit = tip = true;
-    }
-    if (crit) dmg = Math.round(dmg * (backstab ? C.backstab : 1.4));
+    if (mc.backstab || mc.tip) dmg = Math.round(dmg * (mc.backstab ? C.backstab : 1.4));
     // out of the Grim Fog: the first blow that lands crits and reveals (a blocked swing keeps the fog)
     const veiled = a.s.veil > 0;
-    if (veiled) {
-      dmg = Math.round(dmg * 2.2);
-      crit = true;
-    }
-    void tip;
+    if (veiled) dmg = Math.round(dmg * 2.2);
     const ix = (Math.max(box.x, seen.x - FIGHTER.w / 2) + Math.min(box.x + box.w, seen.x + FIGHTER.w / 2)) / 2;
     const iy = Math.max(box.y, seen.y - FIGHTER.h) + Math.min(box.h, FIGHTER.h) / 2;
-    const landed = this.applyHit(a, d, { dmg, kbX: m.kbX, kbY: m.kbY, stun: m.stun, pull: !!m.pull, breaksGuard: !!m.breaksGuard, crit, w: a.load.weapons[a.s.slot], x: ix, y: iy, front, guard: seen });
+    const landed = this.applyHit(a, d, {
+      dmg, hsDmg: base, art: a.s.move === MOVE_ART, kbX: m.kbX, kbY: m.kbY, stun: m.stun, pull: !!m.pull, breaksGuard: !!m.breaksGuard, crit: mc.crit,
+      w: a.load.weapons[a.s.slot], x: ix, y: iy, front: mc.front, guard: seen,
+    });
     if (veiled && landed) a.s.veil = 0;
-    // a lunge stops on impact; a landed hit can be cancelled into a jump (air combos)
-    if (a.s.move === MOVE_CHARGED && m.dash) a.s.vx *= 0.2;
-    a.s.confirm = PHYS.confirmTicks;
-    // a plunge that connects bounces the attacker back up (pogo) instead of slamming into the floor
-    if (a.s.move === MOVE_PLUNGE && !a.s.ground) {
-      a.s.act = Act.Free;
-      a.s.actT = 0;
-      a.s.vy = -PHYS.pogo;
-      a.s.dash = 0;
-      a.s.jumps = classOf(a.load.cls).airJumps;
-    }
+    // the attacker freezes with the defender (melee hit-stop), a lunge brakes, a landed hit can be cancelled into a jump
+    // or chained at once, and a plunge pogos (shared with the client's prediction)
+    meleeConnect(a.s, a.load, m, this.lastStop);
   }
 
   /** The attacker's damage scale: class, the berserker's low-health rage, Blood Frenzy. */
@@ -506,9 +534,17 @@ export class World {
   private applyHit(
     a: Fighter | undefined,
     d: Fighter,
-    h: { dmg: number; kbX: number; kbY: number; stun: number; pull?: boolean; breaksGuard?: boolean; crit: boolean; w: number; x: number; y: number; front: boolean; guard?: { blocking: boolean; blockT: number }; melee?: boolean },
+    h: {
+      dmg: number; kbX: number; kbY: number; stun: number; pull?: boolean; breaksGuard?: boolean; crit: boolean; w: number; x: number; y: number; front: boolean;
+      guard?: { blocking: boolean; blockT: number }; melee?: boolean;
+      /** The damage the hit-stop is sized from (default dmg): the move's own, before crits and scaling. */
+      hsDmg?: number;
+      /** A Rift Art hit (also any w in 104..199): Art hit-stop, no combo scaling, never trips the combo break. */
+      art?: boolean;
+    },
   ): boolean {
     const ds = d.s;
+    this.lastStop = 0;
     if (d.s.act === Act.KO) return false;
     const DC = classOf(d.load.cls);
     const dirX = a ? (a.s.x <= ds.x ? 1 : -1) : h.x <= ds.x ? 1 : -1;
@@ -518,11 +554,14 @@ export class World {
         a.s.act = Act.Stun;
         a.s.actT = 0;
         a.s.stun = 30;
+        a.s.fall = 0;
         a.s.vx = -dirX * 260;
         this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y });
       }
       return false;
     }
+    const art = !!h.art || (h.w >= 104 && h.w < 200);
+    const hsDmg = h.hsDmg ?? h.dmg;
     h = { ...h, dmg: a ? Math.round(h.dmg * this.dmgScale(a)) : h.dmg };
     const guard = h.guard ?? { blocking: isBlocking(ds), blockT: ds.blockT };
     if (guard.blocking && h.front && !h.breaksGuard) {
@@ -531,16 +570,21 @@ export class World {
         a.s.act = Act.Stun;
         a.s.actT = 0;
         a.s.stun = FIGHTER.parryStun;
+        a.s.fall = 0;
         a.s.vx = -dirX * 120;
         a.s.charge = 0;
         this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y });
         return false;
       }
       const chip = Math.max(1, Math.round(h.dmg * FIGHTER.chip * DC.chip));
+      const hs = hitstopFor(hsDmg, false, art, true);
+      this.lastStop = hs;
+      ds.hitstop = Math.max(ds.hitstop, hs);
+      d.comboHits = 0;
       this.gainRift(a, d, chip);
       ds.hp -= chip;
       ds.vx = dirX * FIGHTER.blockPush;
-      this.events.push({ t: 'block', a: a?.id ?? 255, v: d.id, amt: chip, x: h.x, y: h.y });
+      this.events.push({ t: 'block', a: a?.id ?? 255, v: d.id, amt: chip, x: h.x, y: h.y, hs });
       if (a) {
         a.dealt += chip;
         a.roundDealt += chip;
@@ -549,6 +593,9 @@ export class World {
       if (ds.hp <= 0) this.knockOut(d, a);
       return false;
     }
+    // the combo: a hit on a defender still in hit-stun continues it (scaled down hit by hit, Arts land in full)
+    const n = ds.act === Act.Stun && d.comboHits > 0 ? d.comboHits + 1 : 1;
+    if (!art) h.dmg = Math.max(1, Math.round(h.dmg * comboScale(n)));
     ds.hp -= h.dmg;
     this.gainRift(a, d, h.dmg);
     if (a) {
@@ -556,13 +603,21 @@ export class World {
       a.roundDealt += h.dmg;
       a.hits++;
     }
-    this.events.push({ t: 'hit', a: a?.id ?? 255, v: d.id, amt: h.dmg, w: h.w, crit: h.crit, x: h.x, y: h.y });
-    // super armour: Blood Frenzy and Piercing Fang take the damage but never flinch
+    // super armour: Blood Frenzy and Piercing Fang take the damage but never flinch (nor freeze: the attacker does)
     const armour = ds.frenzy > 0 || (ds.act === Act.Attack && ds.move === MOVE_ART);
+    const hs = hitstopFor(hsDmg, h.crit, art, false);
+    this.lastStop = hs;
+    if (!armour) ds.hitstop = Math.max(ds.hitstop, hs);
+    this.events.push({ t: 'hit', a: a?.id ?? 255, v: d.id, amt: h.dmg, w: h.w, crit: h.crit, x: h.x, y: h.y, n, hs: armour ? 0 : hs });
     if (h.stun > 0 && !armour) {
+      // knocked off the feet: a launch that is heavy (or a finisher's, or an Art's), or any hit on a fighter already
+      // falling, lands in a knockdown
+      const launch = h.kbY > 150;
+      const fall = (launch && (h.kbY >= FIGHTER.knockdownKbY || h.stun >= FIGHTER.knockdownStun || art)) || (!!ds.fall && !ds.ground);
       ds.act = Act.Stun;
       ds.actT = 0;
       ds.stun = h.stun;
+      ds.fall = fall ? 1 : 0;
       ds.charge = 0;
       ds.blockT = 0;
       const push = h.pull && a ? -dirX : dirX;
@@ -574,19 +629,14 @@ export class World {
       }
       if (h.kbY > 0) {
         ds.vy = -h.kbY;
-        if (h.kbY > 150) ds.ground = 0;
+        if (launch) ds.ground = 0;
       }
       ds.face = a ? (a.s.x < ds.x ? -1 : 1) : ds.face;
     }
-    // (Rift Art hits never trip the combo break: the flurry is meant to land in full)
-    if (h.w >= 104 && h.w < 200) {
-      if (ds.hp <= 0) this.knockOut(d, a);
-      return true;
-    }
-    if (this.tick - d.comboAt < FIGHTER.comboWindow) d.comboHits++;
-    else d.comboHits = 1;
-    d.comboAt = this.tick;
-    if (d.comboHits >= FIGHTER.comboBreak) {
+    d.comboHits = ds.act === Act.Stun ? n : 0;
+    // the anti-infinite: the comboBreak-th hit makes the defender untouchable for a moment (Rift Art hits never trip it:
+    // the flurry is meant to land in full)
+    if (!art && d.comboHits >= FIGHTER.comboBreak) {
       ds.invuln = Math.max(ds.invuln, FIGHTER.breakInvuln);
       d.comboHits = 0;
     }
@@ -682,7 +732,7 @@ export class World {
   /** A dash special's body hits the opponent once while it is active. */
   private checkSkillDash(f: Fighter) {
     const s = f.s;
-    if (s.act !== Act.Skill || f.skillHit) return;
+    if (s.act !== Act.Skill || f.skillHit || f.held) return;
     const sk = SKILLS[f.load.skill];
     if (!sk || sk.kind !== 'dash' || s.actT < sk.startup || s.actT >= sk.startup + (sk.active ?? 0)) return;
     const o = this.opponent(f);
@@ -740,7 +790,7 @@ export class World {
           p.vx = -p.vx * 1.1;
           p.vy = -Math.abs(p.vy); // back along its own arc
           p.life = Math.max(p.life, 60);
-          this.events.push({ t: 'block', a: owner?.id ?? 255, v: f.id, amt: 0, x: p.x, y: p.y });
+          this.events.push({ t: 'block', a: owner?.id ?? 255, v: f.id, amt: 0, x: p.x, y: p.y, hs: 0 });
           continue;
         }
         if (p.kind === 'bomb' || p.kind === 'orb') {
@@ -810,10 +860,11 @@ export class World {
 
   // ------------------------------------------------------------ Rift Arts
 
-  private stepArts() {
+  private stepArts(paused: boolean) {
     for (const f of this.fighters.values()) {
       const s = f.s;
-      if (s.act !== Act.Art) continue;
+      // (a frozen caster's timeline waits: the superpause before the Art, or a hit-stop during it)
+      if (s.act !== Act.Art || f.held) continue;
       const C = classOf(f.load.cls);
       const o = this.opponent(f);
       const t = s.actT;
@@ -896,7 +947,12 @@ export class World {
         }
       }
     }
-    // Thunder Call: each strike locks on 20 ticks before it lands, then hits whoever stands under it
+    // Thunder Call: each strike locks on 20 ticks before it lands, then hits whoever stands under it (a superpause holds
+    // them where they are in their countdown)
+    if (paused) {
+      for (const st of this.strikes) st.at++;
+      return;
+    }
     for (const st of [...this.strikes]) {
       if (!this.strikes.includes(st)) continue; // (a KO ended the round and cleared them)
       const owner = this.fighters.get(st.owner);
@@ -953,7 +1009,7 @@ export class World {
         f.s.hp -= amt;
         const owner = this.opponent(f);
         if (owner) (owner.dealt += amt), (owner.roundDealt += amt);
-        this.events.push({ t: 'hit', a: owner?.id ?? 255, v: f.id, amt, w: 200, crit: false, x: f.s.x, y: f.s.y - FIGHTER.h * 0.6 });
+        this.events.push({ t: 'hit', a: owner?.id ?? 255, v: f.id, amt, w: 200, crit: false, x: f.s.x, y: f.s.y - FIGHTER.h * 0.6, n: 0, hs: 0 });
         if (f.s.hp <= 0) this.knockOut(f, owner);
       }
     }
@@ -961,10 +1017,10 @@ export class World {
 
   // ------------------------------------------------------------ rounds
 
-  private stepRound() {
+  private stepRound(paused: boolean) {
     if (this.phase === 'fight') {
-      // a solo warm-up (one seat empty) has no clock
-      if (this.seats[0] >= 0 && this.seats[1] >= 0) this.timeLeft = Math.max(0, this.timeLeft - DT);
+      // a solo warm-up (one seat empty) has no clock; a superpause stops it
+      if (this.seats[0] >= 0 && this.seats[1] >= 0 && !paused) this.timeLeft = Math.max(0, this.timeLeft - DT);
       if (this.timeLeft <= 0) {
         const a = this.fighters.get(this.seats[0]);
         const b = this.fighters.get(this.seats[1]);

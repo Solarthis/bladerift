@@ -84,7 +84,7 @@ export async function startSpriteLab() {
     id: 0, seat: 0, x: 0, y: 0, vx: 0, vy: 0, face: 1, ground: true, act: Act.Free, actT: 0, slot: 0, move: 0, hp: 1000, charge: 0,
     invuln: false, burning: false, slowed: false, rooted: false, flask: 3, skillCd: 0, rollCd: 0, blockT: 0, weapons: [w, w], skill: 0,
     crouch: false, slide: false, rollAir: false, fast: false, frenzy: false, buff: false, veil: false, rift: 0, cls: h.cls, hero, actTf: 0,
-    self: true, moveSeq: 0,
+    self: true, moveSeq: 0, hitstop: 0, pause: 0, fall: false,
   };
   const frame = () => {
     const time = (performance.now() - t0) / 1000 / slow;

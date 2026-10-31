@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   Act, ARENAS, ARTS, ArtId, artIdOf, BotBrain, Btn, CLASSES, ClassId, decodeSnapshot, DT, encodeSnapshot, encodeSnapshotBody, Fighter, GameEvent,
-  HERO_COUNT, HEROES, InputCmd, MOVE_ART, PROJ_KINDS, Projectile, RIFT, ROUND, sanitizeLoadout, SkillId, solidAt, World, WeaponId,
+  HERO_COUNT, HEROES, InputCmd, MOVE_ART, PROJ_KINDS, Projectile, RIFT, ROUND, sanitizeLoadout, SkillId, solidAt, World, WeaponId, FIGHTER,
 } from '../src/index';
+
+/** Every Rift Art starts with the superpause: its timeline runs after it. */
+const SP = FIGHTER.superpause;
 
 /** Hero id by display name (the roster is fixed, so names are stable handles). */
 const hero = (name: string) => HEROES.find((h) => h.name === name)!.id;
@@ -150,7 +153,7 @@ describe('new Rift Arts', () => {
     const { w, fa, fb } = duel(VERDAN, LEON, 120);
     const log: GameEvent[] = [];
     const hp0 = fb.s.hp;
-    play(w, 40, (i) => (i === 1 ? special() : nothing()), nothing, log);
+    play(w, 40 + SP, (i) => (i === 1 ? special() : nothing()), nothing, log);
     expect(log.find((e) => e.t === 'strike')).toMatchObject({ kind: 1 });
     expect(fb.s.rootT).toBeGreaterThan(60);
     const x0 = fb.s.x;
@@ -169,7 +172,7 @@ describe('new Rift Arts', () => {
     const { w, fb } = duel(VERDAN, LEON, 120);
     const log: GameEvent[] = [];
     // the lock-on is taken when the chains are called; the opponent runs right for the whole window
-    play(w, 60, (i) => (i === 1 ? special() : nothing()), () => ({ x: 1 }), log);
+    play(w, 60 + SP, (i) => (i === 1 ? special() : nothing()), () => ({ x: 1 }), log);
     expect(log.some((e) => e.t === 'strike')).toBe(true);
     expect(fb.s.rootT).toBe(0);
     expect(hitsBy(log, 1, fb.id).some((e) => e.w === 107)).toBe(false);
@@ -179,7 +182,7 @@ describe('new Rift Arts', () => {
     const { w, fa } = duel(QUILL, LEON, 500);
     fa.s.hp = 400;
     play(w, 1, special);
-    play(w, 60);
+    play(w, 60 + SP);
     const C = CLASSES[ClassId.Caster];
     expect(fa.s.hp).toBeCloseTo(400 + 0.28 * C.hp, 0);
     expect(fa.s.buff).toBeGreaterThan(340); // granted at cast: 420 minus the ticks since
@@ -219,7 +222,7 @@ describe('new Rift Arts', () => {
     let blocking = false;
     // Aegis raises her tower shield (A) from the first tick and keeps it up
     play(w, 1, special, () => ({ btn: Btn.A }), log);
-    play(w, 100, nothing, () => ({ btn: Btn.A }), log, (w) => {
+    play(w, 100 + SP, nothing, () => ({ btn: Btn.A }), log, (w) => {
       w.projectiles.forEach((p) => p.kind === 'hand' && handY.add(Math.round(p.y)));
       if (fb.s.act === Act.Block) blocking = true;
       if (fb.s.act === Act.Stun && fb.s.stun > 0) stunned++;
@@ -238,7 +241,7 @@ describe('new Rift Arts', () => {
   it('Grim Fog (Mr. Gray): the veil lasts six seconds', () => {
     const { w, fa } = duel(MR_GRAY, LEON, 60);
     play(w, 1, special);
-    play(w, 30);
+    play(w, 30 + SP);
     expect(fa.s.act).not.toBe(Act.Art);
     expect(fa.s.veil).toBeGreaterThan(320);
     expect(fa.s.veil).toBeLessThanOrEqual(360);
@@ -352,7 +355,7 @@ describe('the Rift gauge', () => {
       const { w, fa } = duel(h.id, LEON, 260);
       const log: GameEvent[] = [];
       play(w, 1, special, nothing, log);
-      play(w, 130, (i) => (i % 25 === 0 ? { btn: Btn.A } : nothing()), nothing, log);
+      play(w, 130 + SP, (i) => (i % 25 === 0 ? { btn: Btn.A } : nothing()), nothing, log);
       expect(log.some((e) => e.t === 'art' && e.p === fa.id && e.art === h.art), `${h.name} starts ${ARTS[h.art].name}`).toBe(true);
       expect(fa.s.act, h.name).not.toBe(Act.Art);
     }
@@ -395,7 +398,7 @@ describe('protocol round-trip', () => {
     w.strikes.push({ id: 8, owner: 1, x: 700, y: 600, at: w.tick + 40, aimed: true, kind: 1 });
     const events: GameEvent[] = [
       { t: 'strike', x: 300, y: 600, kind: 1 },
-      { t: 'art', p: 2, art: ArtId.RewrittenFate },
+      { t: 'art', p: 2, art: ArtId.RewrittenFate, pause: SP },
       { t: 'shoot', p: 1, kind: 6 },
     ];
     const snap = decodeSnapshot(encodeSnapshot(w, 1, encodeSnapshotBody(w, events)));
@@ -430,7 +433,7 @@ describe('protocol round-trip', () => {
     expect(snap.strikes.map((s) => s.left)).toEqual([20, 40]);
 
     expect(snap.events).toContainEqual({ t: 'strike', x: 300, y: 600, kind: 1 });
-    expect(snap.events).toContainEqual({ t: 'art', p: 2, art: ArtId.RewrittenFate });
+    expect(snap.events).toContainEqual({ t: 'art', p: 2, art: ArtId.RewrittenFate, pause: SP });
     expect(snap.events).toContainEqual({ t: 'shoot', p: 1, kind: 6 });
   });
 });

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Act, ArtId, Btn, CLASSES, ClassId, HEROES, InputCmd, Loadout, RIFT, ROUND, sanitizeLoadout, SkillId, World, WeaponId } from '../src/index';
+import { Act, ArtId, Btn, CLASSES, ClassId, FIGHTER, HEROES, InputCmd, Loadout, RIFT, ROUND, sanitizeLoadout, SkillId, World, WeaponId } from '../src/index';
+
+/** Every Rift Art starts with the superpause: its timeline runs after it. */
+const SP = FIGHTER.superpause;
 
 /** The hero whose Art is the class's own (Sable for the assassin's Flash Step, Leon for Saber...). */
 const heroFor = (cls: ClassId) => HEROES.find((h) => h.cls === cls && h.art === CLASSES[cls].art)!.id;
@@ -75,7 +78,7 @@ describe('Rift Arts', () => {
     expect(fa.s.act).toBe(Act.Art);
     expect(fa.s.invuln).toBeGreaterThan(40);
     expect(fa.s.rift).toBe(0);
-    run(w, 10, (i) => cmd(i));
+    run(w, 10 + SP, (i) => cmd(i));
     // now behind B (B faces left, so behind is to its right)
     expect(fa.s.x).toBeGreaterThan(fb.s.x);
     run(w, 45, (i) => cmd(i));
@@ -100,14 +103,14 @@ describe('Rift Arts', () => {
   it('Piercing Fang lunges across the arena, breaks a guard and cannot be staggered', () => {
     const { w, fa, fb } = duel(ClassId.Lancer, ClassId.Shielder, 340);
     const hp = fb.s.hp;
-    run(w, 40, (i) => cmd(i, 0, i === 1 ? Btn.Special : 0), (i) => cmd(i, 0, Btn.B));
+    run(w, 40 + SP, (i) => cmd(i, 0, i === 1 ? Btn.Special : 0), (i) => cmd(i, 0, Btn.B));
     expect(hp - fb.s.hp).toBeGreaterThan(150);
   });
 
   it('Radiant Cleave sends a wave that hits at range', () => {
     const { w, fb } = duel(ClassId.Saber, ClassId.Archer, 500);
     const hp = fb.s.hp;
-    run(w, 80, (i) => cmd(i, 0, i === 1 ? Btn.Special : 0));
+    run(w, 80 + SP, (i) => cmd(i, 0, i === 1 ? Btn.Special : 0));
     expect(hp - fb.s.hp).toBeGreaterThan(150);
   });
 
@@ -127,10 +130,12 @@ describe('Rift Arts', () => {
 
   it('Blood Frenzy: hits land but do not stagger the berserker', () => {
     const { w, fa } = duel(ClassId.Berserker, ClassId.Saber, 40);
-    run(w, 30, (i) => cmd(i, 0, i === 1 ? Btn.Special : 0));
+    run(w, 30 + SP, (i) => cmd(i, 0, i === 1 ? Btn.Special : 0));
     expect(fa.s.frenzy).toBeGreaterThan(300);
-    // (the roar knocked the saber away: bring it back in reach)
+    // (the roar knocked the saber down and away: let it get up, then bring it back in reach)
+    run(w, 70, (i) => cmd(i));
     const fb = w.fighters.get(2)!;
+    expect(fb.s.act).toBe(Act.Free);
     fb.s.x = fa.s.x + 40;
     fb.s.act = Act.Free;
     fb.s.stun = 0;

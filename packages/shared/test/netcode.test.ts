@@ -58,7 +58,7 @@ interface Seat {
   // metrics (fight phase only)
   corrections: number;
   correctionMax: number;
-  shownJumps: { t: number; d: number; art: boolean; act: number }[];
+  shownJumps: { t: number; d: number; art: boolean; act: number; pause: number; hs: number }[];
   opponentFrozenFrames: number;
   frames: number;
   castFrames: number;
@@ -67,7 +67,13 @@ interface Seat {
   artOnFrames: number;
   /** Corrections over 120 px (the client snaps instead of smoothing) while the Rift Art is on, other than hits. */
   hardArtCorrections: number;
+  /** Hits this seat landed (server events) and frames its own predicted fighter showed a hit-stop of its own swing. */
+  hitsLanded: number;
+  predFrozenFrames: number;
 }
+
+/** A scripted pad for a seat (replaces the seeded policy): what to hold this frame. */
+type Policy = (seat: Seat, frame: number, me: { x: number } | undefined, opp: { x: number } | undefined) => { moveX: number; buttons: number };
 
 interface Result {
   seats: [Seat, Seat];
@@ -75,7 +81,7 @@ interface Result {
 }
 
 /** Plays a duel of heroA vs heroB for `seconds` of match time. The Rift gauges are filled at `fillAt` seconds. */
-function duel(heroA: number, heroB: number, opts: { latency?: number; jitter?: number; seconds?: number; seed?: number; fillAt?: number } = {}): Result {
+function duel(heroA: number, heroB: number, opts: { latency?: number; jitter?: number; seconds?: number; seed?: number; fillAt?: number; policy?: [Policy, Policy] } = {}): Result {
   const latency = opts.latency ?? 0;
   const jitter = opts.jitter ?? 0;
   const seconds = opts.seconds ?? 12;
@@ -95,7 +101,7 @@ function duel(heroA: number, heroB: number, opts: { latency?: number; jitter?: n
       rnd: ((s) => () => (s = (s * 16807) % 2147483647) / 2147483647)(seed0 * 101 + idx * 59 + 3),
       moveX: 0, turnIn: 0, specialCool: 0,
       corrections: 0, correctionMax: 0, shownJumps: [], opponentFrozenFrames: 0, frames: 0, castFrames: 0,
-      lastSelf: null, lastOpp: null, artOnFrames: 0, hardArtCorrections: 0,
+      lastSelf: null, lastOpp: null, artOnFrames: 0, hardArtCorrections: 0, hitsLanded: 0, predFrozenFrames: 0,
     };
     const socket: RoomSocket = {
       readyState: 1,
@@ -143,11 +149,13 @@ function duel(heroA: number, heroB: number, opts: { latency?: number; jitter?: n
     const fight = s.phase === 'fight' && room.phase === 'playing';
     // (a Rift Art moves you on the server only, see the art tests below: its corrections are counted there)
     const art = g.pred?.act === Act.Art || s.self?.act === Act.Art;
+    for (const ev of s.events) if (ev.t === 'hit' && ev.a === seat.id && ev.w < 100) seat.hitsLanded++;
     g.onSnapshot(s, now);
     // correction: how far the shown own position moved because the server disagreed with the prediction
     const e = Math.max(Math.hypot(g.corr.x - cx, g.corr.y - cy), Math.hypot((g.pred?.x ?? 0) + g.corr.x - sx, (g.pred?.y ?? 0) + g.corr.y - sy));
-    // (a hit that lands during the Art knocks you back: the server is then in its stun, and that correction is the hit)
-    if (fight && art && e > 120 && s.self?.act !== Act.Stun) seat.hardArtCorrections++;
+    // (a hit that lands during the Art knocks you back: the server is then in its stun, and that correction is the hit;
+    // the opponent's own Rift Art freezes you in its superpause, which no client can foresee either)
+    if (fight && art && e > 120 && s.self?.act !== Act.Stun && !(s.self && s.self.pause > 0)) seat.hardArtCorrections++;
     if (!fight || art) return;
     if (e > 3) {
       seat.corrections++;
@@ -209,12 +217,13 @@ function duel(heroA: number, heroB: number, opts: { latency?: number; jitter?: n
     const opp = view.find((f) => !f.self);
     seat.frames++;
     const inFight = g.latest?.phase === 'fight';
+    if (inFight && g.pred && g.pred.hitstop > 0 && g.pred.act === Act.Attack) seat.predFrozenFrames++;
     if (inFight && me) {
       const art = me.act === Act.Art;
       if (art) seat.artOnFrames++;
       if (seat.lastSelf) {
         const d = Math.hypot(me.x - seat.lastSelf.x, me.y - seat.lastSelf.y);
-        if (d > 30) seat.shownJumps.push({ t: Math.round((t - t0) / 10) / 100, d, art, act: me.act });
+        if (d > 30) seat.shownJumps.push({ t: Math.round((t - t0) / 10) / 100, d, art, act: me.act, pause: me.pause, hs: me.hitstop });
       }
       seat.lastSelf = { x: me.x, y: me.y };
     }
@@ -223,6 +232,14 @@ function duel(heroA: number, heroB: number, opts: { latency?: number; jitter?: n
     }
     const newest = g.latest?.tick ?? 0;
     if (inFight && g.renderTick(t) > newest + 6) seat.opponentFrozenFrames++;
+    const scripted = opts.policy?.[seats.indexOf(seat)];
+    if (scripted) {
+      const pad = scripted(seat, frame, me, opp);
+      const c = g.tick(pad.moveX, 0, pad.buttons);
+      const bytes = encodeInputs([c]);
+      seat.toServer.send(t, () => seat.handlers.message(bytes));
+      return;
+    }
     // policy
     seat.turnIn -= STEP_MS / 1000;
     if (seat.turnIn <= 0) {
@@ -251,6 +268,30 @@ function duel(heroA: number, heroB: number, opts: { latency?: number; jitter?: n
 
 /** Hero pairs: each hero against a different one, so every hero and every Rift Art fights. */
 const PAIRS = HEROES.map((h) => [h.id, (h.id + 5) % HEROES.length] as const);
+
+describe('online netcode: hit-stop prediction', () => {
+  // the attacker's own hit-stop: the server freezes both fighters when a swing lands; the client sees the same hit
+  // against the opponent as drawn at its view tick (what the server's lag compensation judges), so its own fighter
+  // freezes at once instead of running on and being pulled back one round trip later
+  it('your own swings freeze you as they land, with no correction, at 110 ms each way', () => {
+    for (const [hero, seed] of [[0, 3], [4, 5], [9, 7]] as const) {
+      const walkAndSwing: Policy = (_seat, frame, me, opp) => {
+        if (!me || !opp) return { moveX: 0, buttons: 0 };
+        const dx = opp.x - me.x;
+        // close in, then tap the light attack every 7 frames (a press, a release)
+        if (Math.abs(dx) > 40) return { moveX: Math.sign(dx), buttons: 0 };
+        return { moveX: 0, buttons: frame % 7 === 0 ? Btn.A : 0 };
+      };
+      const idle: Policy = () => ({ moveX: 0, buttons: 0 });
+      const r = duel(hero, 1, { latency: 110, jitter: 0, seconds: 10, seed, fillAt: 999, policy: [walkAndSwing, idle] });
+      const a = r.seats[0];
+      expect(a.hitsLanded, `hero ${hero}: hits landed`).toBeGreaterThan(3);
+      expect(a.predFrozenFrames, `hero ${hero}: frozen frames shown`).toBeGreaterThan(a.hitsLanded * 4);
+      // the swings are the only thing happening to A: its prediction must hold (a couple of small slips allowed)
+      expect(a.corrections, `hero ${hero}: corrections (max ${a.correctionMax.toFixed(1)})`).toBeLessThanOrEqual(2);
+    }
+  });
+});
 
 describe('online netcode: every hero and Rift Art, end to end', () => {
   it('plays every hero with no frozen opponent and no snap in the fight, at zero latency', () => {
@@ -285,7 +326,8 @@ describe('online netcode: every hero and Rift Art, end to end', () => {
     for (const seed of [3, 5, 9]) {
       const r = duel(12, 5, { latency: 110, jitter: 25, seconds: 14, seed, fillAt: 0.5 });
       const thornmaw = r.seats[0];
-      const artSnaps = thornmaw.shownJumps.filter((j) => j.art && j.d > 40);
+      // (the opponent's Rift Art can freeze the leap in its superpause: that one is the server's news, like a hit)
+      const artSnaps = thornmaw.shownJumps.filter((j) => j.art && j.d > 40 && j.pause === 0);
       expect(artSnaps, `seed ${seed}: Night Hunt snaps ${JSON.stringify(artSnaps)}`).toEqual([]);
       expect(thornmaw.hardArtCorrections, `seed ${seed}: hard corrections during the Art`).toBe(0);
     }

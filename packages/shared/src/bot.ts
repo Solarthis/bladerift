@@ -543,7 +543,8 @@ export class BotBrain {
     const s = me.s;
     if (!s.ground || s.flask <= 0 || s.hp > FIGHTER.maxHp * T.healBelow) return false;
     const o = foe.s;
-    const safe = (o.act === Act.Stun && o.stun > 48) || (g.dist >= 260 && o.act !== Act.Attack && o.act !== Act.Charge);
+    // (a knocked-down foe lies there for half a second: time to drink)
+    const safe = (o.act === Act.Stun && o.stun > 48) || o.act === Act.Down || (g.dist >= 260 && o.act !== Act.Attack && o.act !== Act.Charge);
     if (!safe || incomingShot(w, me, foe) !== null) return false;
     if (this.rng.next() >= T.heal) return false;
     cmd.buttons |= Btn.Heal;

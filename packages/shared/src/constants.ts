@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -74,10 +74,26 @@ export const FIGHTER = {
   healTicks: 48,
   healAmount: 300,
   flasks: 1,
-  /** Hits within this many ticks count as one combo; the comboBreak-th hit grants breakInvuln ticks of invulnerability. */
-  comboWindow: 72,
-  comboBreak: 5,
+  /** A hit that lands while the defender is still in hit-stun (Act.Stun) continues the combo; any other hit starts a new
+   * one. The comboBreak-th hit of a combo grants breakInvuln ticks of invulnerability (the anti-infinite safeguard; Rift
+   * Art hits count toward the combo but never trip it). */
+  comboBreak: 15,
   breakInvuln: 45,
+  /** Combo damage scaling: hit n of a combo deals max(comboScaleMin, 1 - comboScaleStep * (n - 1)) of its damage
+   * (100%, 94%, 88% ... down to 40% from the 11th hit). Rift Art hits land in full. */
+  comboScaleStep: 0.06,
+  comboScaleMin: 0.4,
+  /** Knockdown: a hit that launches the defender (kbY > 150) with kbY >= knockdownKbY, stun >= knockdownStun, or from a
+   * Rift Art sets `fall`: the defender stays in hit-stun until it lands, then lies in Act.Down for downTicks and rises in
+   * Act.GetUp for getUpTicks, invulnerable all along and for wakeInvuln ticks after it is up. */
+  knockdownKbY: 240,
+  knockdownStun: 34,
+  downTicks: 32,
+  getUpTicks: 12,
+  wakeInvuln: 6,
+  /** Superpause: when a Rift Art starts, both fighters (and projectiles, strikes, traps, burning, the clock) freeze this
+   * many ticks; the caster's Art timeline (and its invulnerability) starts after it. */
+  superpause: 45,
   /** A block this young parries; a parried attacker is stunned for parryStun ticks. */
   parryWindow: 10,
   parryStun: 54,
@@ -87,6 +103,23 @@ export const FIGHTER = {
   blockSpeed: 70,
   /** Inputs pressed slightly early are remembered this long (ticks). */
   buffer: 10,
+} as const;
+
+/**
+ * Hit-stop (hit pause): on a landed hit both fighters freeze (position, velocity, action and status timers held; the
+ * knockback starts when it ends) for hitstopFor(dmg, crit, art, blocked) ticks:
+ * blocked `block`; a Rift Art hit `art`; otherwise round(base + dmg / perDmg) clamped to [min, max] (dmg = the move's own
+ * damage before class and combo scaling: light ~6, medium ~8-9, heavy 12), and a crit max(max, that + 2) up to `crit`.
+ * Projectile, skill, trap and Art-effect hits freeze only the defender.
+ */
+export const HITSTOP = {
+  block: 4,
+  art: 14,
+  base: 4,
+  perDmg: 20,
+  min: 6,
+  max: 12,
+  crit: 14,
 } as const;
 
 export const ROUND = {

@@ -5,10 +5,10 @@
  * hits, projectiles, burning and rounds are the World's job (server-authoritative).
  */
 import { ArenaDef, surfaceBelow } from './arena';
-import { DT, FIGHTER, PHYS } from './constants';
+import { DT, FIGHTER, HITSTOP, PHYS } from './constants';
 import { Btn, InputCmd } from './input';
 import { dodgeOf, Loadout, Move, SKILLS, WEAPONS } from './weapons';
-import { ArtId, ARTS, classOf, ClassDef, RIFT } from './classes';
+import { ArtId, ARTS, classOf, ClassDef, ClassId, RIFT } from './classes';
 import { artIdOf } from './heroes';
 
 export const enum Act {
@@ -27,6 +27,10 @@ export const enum Act {
   Climb = 11,
   /** Performing the class's Rift Art (classes.ts); the World plays out its effects. */
   Art = 12,
+  /** Knocked down: lying on the floor after a knockdown hit (`fall`) landed, FIGHTER.downTicks, invulnerable. */
+  Down = 13,
+  /** Rising from a knockdown, FIGHTER.getUpTicks, invulnerable (then Free). */
+  GetUp = 14,
 }
 
 /** Move index codes beyond the combo steps. */
@@ -122,6 +126,13 @@ export interface FighterState {
   buff: number;
   /** Grim Fog: unseen by the opponent ticks left (the first blow from it crits and ends it). */
   veil: number;
+  /** Hit-stop ticks left: frozen (position, velocity, action and status timers held; presses are buffered). Set by the
+   * World on a landed or blocked hit (and by the client's prediction of its own hits). */
+  hitstop: number;
+  /** Superpause ticks left (a Rift Art is starting): frozen like hit-stop, and counted down before it. */
+  pause: number;
+  /** Knocked off the feet by a knockdown hit: stays in hit-stun until it lands, then Act.Down. */
+  fall: number;
 }
 
 /** Every state field, in wire order (protocol.ts sends the whole state to its owner for prediction). */
@@ -129,7 +140,7 @@ export const STATE_KEYS: (keyof FighterState)[] = [
   'x', 'y', 'vx', 'vy', 'face', 'ground', 'jumps', 'drop', 'act', 'actT', 'slot', 'move', 'combo', 'comboWin', 'buf', 'bufT',
   'charge', 'rollCd', 'skillCd', 'invuln', 'stun', 'slowT', 'rootT', 'burnT', 'flask', 'hp', 'prevBtn', 'moveSeq', 'blockT',
   'lock', 'jumpHeld', 'spawn', 'wall', 'slide', 'wallT', 'wallSide', 'wlock', 'dash', 'rollAir', 'fast', 'crouch', 'coyote',
-  'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil',
+  'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil', 'hitstop', 'pause', 'fall',
 ];
 
 export function newFighterState(x: number, y: number, face: number, cls = 0): FighterState {
@@ -138,8 +149,59 @@ export function newFighterState(x: number, y: number, face: number, cls = 0): Fi
     comboWin: 0, buf: 0, bufT: 0, charge: 0, rollCd: 0, skillCd: 0, invuln: 0, stun: 0, slowT: 0, rootT: 0, burnT: 0,
     flask: FIGHTER.flasks, hp: classOf(cls).hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
     wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
-    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0,
+    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0,
   };
+}
+
+/** Frozen this tick (hit-stop or superpause): stepFighter only counts the freeze down and buffers presses. */
+export const isFrozen = (s: { hitstop: number; pause: number }) => s.hitstop > 0 || s.pause > 0;
+
+/** Hit-stop ticks for a hit (constants.ts HITSTOP). `dmg` is the move's own damage (moveDamage, or a projectile's dmg),
+ * before class and combo scaling, so the client's prediction of its own hits computes the same number. */
+export function hitstopFor(dmg: number, crit: boolean, art: boolean, blocked: boolean): number {
+  if (blocked) return HITSTOP.block;
+  if (art) return HITSTOP.art;
+  const base = Math.max(HITSTOP.min, Math.min(HITSTOP.max, Math.round(HITSTOP.base + dmg / HITSTOP.perDmg)));
+  return crit ? Math.min(HITSTOP.crit, Math.max(HITSTOP.max, base + 2)) : base;
+}
+
+/** Does a melee hit on a defender seen at (dx, dface) crit? (From behind with a backstab weapon or as the assassin,
+ * with the tip of a tipCrit weapon, or out of the Grim Fog.) */
+export function meleeCrit(s: FighterState, load: Loadout, m: Move, dx: number, dface: number) {
+  const front = (s.x - dx) * dface > 0;
+  const backstab = !front && (!!m.backCrit || classOf(load.cls).id === ClassId.Assassin);
+  const tip = !!m.tipCrit && Math.abs(dx - s.x) > (m.box.x + m.box.w) * 0.68;
+  return { crit: backstab || tip || s.veil > 0, backstab, tip, front };
+}
+
+/**
+ * The attacker's side of a melee swing that connected (hit or blocked; `hitstop` 0 for a parry): the freeze, the
+ * jump-cancel / chain-on-hit window, a lunge braking on impact and a plunge's pogo. The World calls it after applying the
+ * hit; the client calls it on its predicted hits, so both agree.
+ */
+export function meleeConnect(s: FighterState, load: Loadout, m: Move, hitstop: number) {
+  if (hitstop > 0) s.hitstop = Math.max(s.hitstop, hitstop);
+  if (s.move === MOVE_CHARGED && m.dash) s.vx *= 0.2;
+  s.confirm = PHYS.confirmTicks;
+  // a plunge that connects bounces the attacker back up (pogo) instead of slamming into the floor
+  if (s.move === MOVE_PLUNGE && !s.ground) {
+    s.act = Act.Free;
+    s.actT = 0;
+    s.vy = -PHYS.pogo;
+    s.dash = 0;
+    s.jumps = classOf(load.cls).airJumps;
+  }
+}
+
+/** Newest press wins the buffer (attacks over movement presses pressed on the same tick). */
+function bufferPresses(s: FighterState, press: number) {
+  if (press & Btn.Jump) { s.buf = Buf.Jump; s.bufT = FIGHTER.buffer; }
+  if (press & Btn.Heal) { s.buf = Buf.Heal; s.bufT = FIGHTER.buffer; }
+  if (press & Btn.Roll) { s.buf = Buf.Roll; s.bufT = FIGHTER.buffer; }
+  if (press & Btn.Skill) { s.buf = Buf.Skill; s.bufT = FIGHTER.buffer; }
+  if (press & Btn.B) { s.buf = Buf.B; s.bufT = FIGHTER.buffer; }
+  if (press & Btn.A) { s.buf = Buf.A; s.bufT = FIGHTER.buffer; }
+  if (press & Btn.Special) { s.buf = Buf.Special; s.bufT = FIGHTER.buffer; }
 }
 
 export const copyState = (s: FighterState): FighterState => ({ ...s });
@@ -207,6 +269,8 @@ function startAttack(s: FighterState, slot: number, move: number) {
   s.moveSeq = (s.moveSeq + 1) % 65536;
   s.spawn = 0;
   s.crouch = 0;
+  // (confirm > 0 during an attack means this very move connected: chain on hit, jump cancel)
+  s.confirm = 0;
 }
 
 /** Try to start the buffered action; returns true if it started (the buffer is consumed). */
@@ -334,6 +398,10 @@ function startArt(s: FighterState, C: ClassDef, artId: ArtId): boolean {
   s.crouch = 0;
   s.charge = 0;
   s.stun = 0;
+  s.fall = 0;
+  // the superpause: frozen from the next tick, the Art's timeline (and its invulnerability) runs after it (the World
+  // freezes the opponent and the projectiles for the same ticks)
+  s.pause = FIGHTER.superpause;
   if (artId === ArtId.PiercingFang) {
     startAttack(s, 0, MOVE_ART);
     return true;
@@ -447,17 +515,19 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   if (s.lock > 0) s.lock--;
   s.spawn = 0;
 
+  // hit-stop / superpause: nothing moves and no timer runs (the buffer's included, so a press made during the freeze is
+  // still there when it ends); only the freeze counts down (the superpause first)
+  if (s.pause > 0 || s.hitstop > 0) {
+    if (s.pause > 0) s.pause--;
+    else s.hitstop--;
+    bufferPresses(s, press);
+    return;
+  }
+
   for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm'] as const) if (s[k] > 0) s[k]--;
   if (s.bufT > 0 && --s.bufT === 0) s.buf = 0;
 
-  // newest press wins the buffer (attacks over movement presses pressed on the same tick)
-  if (press & Btn.Jump) { s.buf = Buf.Jump; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.Heal) { s.buf = Buf.Heal; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.Roll) { s.buf = Buf.Roll; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.Skill) { s.buf = Buf.Skill; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.B) { s.buf = Buf.B; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.A) { s.buf = Buf.A; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.Special) { s.buf = Buf.Special; s.bufT = FIGHTER.buffer; }
+  bufferPresses(s, press);
   const C = classOf(load.cls);
   const ART = artIdOf(load);
   if (s.frenzy > 0) s.frenzy--;
@@ -482,9 +552,37 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         s.buf = 0;
         break;
       }
+      if (s.fall) {
+        // knocked off the feet: no recovery in the air; landing lays the fighter down (invulnerable until it is up)
+        if (s.ground && s.vy >= 0) {
+          s.act = Act.Down;
+          s.actT = 0;
+          s.stun = 0;
+          s.fall = 0;
+          s.vx *= 0.35;
+          s.invuln = Math.max(s.invuln, FIGHTER.downTicks + FIGHTER.getUpTicks + FIGHTER.wakeInvuln);
+        } else if (s.stun > 1) s.stun--;
+        break;
+      }
       if (s.ground) s.vx = approach(s.vx, 0, PHYS.stunFriction * DT);
       if (--s.stun <= 0) {
         s.stun = 0;
+        s.act = Act.Free;
+        s.actT = 0;
+      }
+      break;
+    }
+    case Act.Down: {
+      if (s.ground) s.vx = approach(s.vx, 0, PHYS.stunFriction * DT);
+      if (s.actT >= FIGHTER.downTicks) {
+        s.act = Act.GetUp;
+        s.actT = 0;
+      }
+      break;
+    }
+    case Act.GetUp: {
+      s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
+      if (s.actT >= FIGHTER.getUpTicks) {
         s.act = Act.Free;
         s.actT = 0;
       }
@@ -677,11 +775,11 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       } else if (s.ground) s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
       else s.vx = approach(s.vx, ax * PHYS.runSpeed * speedK, PHYS.airAccel * 0.5 * DT);
       if (m.arrow && s.actT === m.startup) s.spawn = 1;
-      // chain: the next press is honoured once the hit window has passed and a little recovery is done; a hit that
-      // landed can also be cancelled into a jump (air combos)
+      // chain: the next press is honoured once the hit window has passed and a little recovery is done (on a hit, at
+      // once: chain on hit); a hit that landed can also be cancelled into a jump (air combos)
       const rec = m.recovery * (s.move === MOVE_ART ? 1 : C.recovery * (s.frenzy > 0 ? 0.75 : 1));
       const total = end + Math.round(rec);
-      const chainAt = end + Math.ceil(rec * 0.35);
+      const chainAt = end + (s.confirm > 0 ? 0 : Math.ceil(rec * 0.35));
       // any attack can be cancelled into the Rift Art
       if (s.buf === Buf.Special && s.move !== MOVE_ART && startArt(s, C, ART)) {
         s.buf = 0;

@@ -2,6 +2,7 @@ import { ARTS, classOf, GameEvent, heroOf, RIFT, RosterEntry, SKILLS, WEAPONS } 
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import { colorOf, css } from './colors';
 import { artIconOf, skillIcon, weaponIcon } from './icons';
+import { preloadCinematic } from '../game/cinematic';
 
 const asset = (n: string) => `assets/art/${n}.jpg`;
 /** Hero portraits are h-00..h-13, and HeroDef.portrait is the index. */
@@ -16,9 +17,12 @@ const CHIPS = [
   { k: 'frenzy', label: 'FRENZY' },
 ] as const;
 
-/** Hits in a row that earn the combo counter, and the pause that ends a chain. */
-const COMBO_MIN = 3;
-const COMBO_GAP_MS = 1800;
+/** Hits in a row that earn the big combo counter, the pause that ends a chain, and how long the count lingers. */
+const COMBO_MIN = 2;
+const COMBO_GAP_MS = 1300;
+const COMBO_HOLD_MS = 1500;
+/** How long the K.O. banner holds. */
+const KO_MS = 2000;
 /** Intro seconds left: the VS card first, then ROUND N, then READY. */
 const INTRO_VS = 1.4;
 const INTRO_ROUND = 0.5;
@@ -47,7 +51,9 @@ interface Side {
   artWrap: HTMLElement;
   artIcon: HTMLImageElement;
   chips: HTMLElement[];
+  /** The big combo counter on this fighter's side of the screen, and its numeral. */
   combo: HTMLElement;
+  comboN: HTMLElement;
   trailHp: number;
   key: string;
 }
@@ -74,6 +80,7 @@ export class Hud {
   private vsKey = '';
   private net: HTMLElement;
   private bannerUntil = 0;
+  private bannerKey = '';
   private combo: [Combo, Combo] = [
     { n: 0, t: 0 },
     { n: 0, t: 0 },
@@ -95,16 +102,19 @@ export class Hud {
         <div class="rift"><div class="rift-fill"></div><span class="rift-pct"></span></div>
         <div class="hp-gear"></div>
       </div>
-      <div class="hp-status">${CHIPS.map((c) => `<i class="chip chip-${c.k}">${c.label}</i>`).join('')}<b class="hp-combo"></b></div>
+      <div class="hp-status">${CHIPS.map((c) => `<i class="chip chip-${c.k}">${c.label}</i>`).join('')}</div>
     </div>`;
+    const combo = (cls: string) => `<div class="combo-big ${cls}"><b class="cb-n" data-n="2">2</b><span class="cb-l">HITS!</span></div>`;
     const vsSide = (cls: string) => `<div class="hud-vs-side ${cls}"><b class="hud-vs-name"></b></div>`;
     this.root.innerHTML = `${side('left')}<div class="hud-mid"><div class="hud-round"></div><div class="hud-clock">90</div></div>${side('right')}
       <div class="hud-vs">${vsSide('l')}<span class="hud-vs-x">VS</span>${vsSide('r')}</div>
       <button class="hud-menu" aria-label="Menu">II</button>
+      ${combo('left')}${combo('right')}
       <div class="hud-banner"></div><div class="hud-net"></div>`;
     parent.appendChild(this.root);
 
-    const mk = (el: HTMLElement): Side => {
+    const combos = this.root.querySelectorAll<HTMLElement>('.combo-big');
+    const mk = (el: HTMLElement, combo: HTMLElement): Side => {
       const q = <T extends Element = HTMLElement>(sel: string) => el.querySelector<T>(sel)!;
       return {
         root: el,
@@ -123,13 +133,14 @@ export class Hud {
         artWrap: q('.rift-art'),
         artIcon: q<HTMLImageElement>('.rift-art img'),
         chips: Array.from(el.querySelectorAll<HTMLElement>('.chip')),
-        combo: q('.hp-combo'),
+        combo,
+        comboN: combo.querySelector<HTMLElement>('.cb-n')!,
         trailHp: 1000,
         key: '',
       };
     };
     const els = this.root.querySelectorAll<HTMLElement>('.hp-side');
-    this.sides = [mk(els[0]), mk(els[1])];
+    this.sides = [mk(els[0], combos[0]), mk(els[1], combos[1])];
     const vsEls = this.root.querySelectorAll<HTMLElement>('.hud-vs-side');
     const vs = (el: HTMLElement): VsSide => ({ root: el, name: el.querySelector<HTMLElement>('.hud-vs-name')! });
     this.vsSides = [vs(vsEls[0]), vs(vsEls[1])];
@@ -157,6 +168,7 @@ export class Hud {
         s.pips.innerHTML = Array.from({ length: g.settings.wins }, (_, i) => `<i class="${i < g.wins[seat] ? 'won' : ''}"></i>`).join('');
         if (f) {
           const h = heroOf(f.hero);
+          preloadCinematic(f.hero);
           s.root.style.setProperty('--ac', css(h.accent));
           s.portrait.src = portraitOf(h.portrait);
           s.heroName.textContent = h.name;
@@ -190,9 +202,10 @@ export class Hud {
 
       s.chips.forEach((el, i) => el.classList.toggle('on', !!f && !!f[CHIPS[i].k]));
 
+      // the count lingers a moment after the chain ends, then slides away
       const c = this.combo[seat];
       if (c.n && now - c.t > COMBO_GAP_MS) c.n = 0;
-      s.combo.classList.toggle('on', c.n >= COMBO_MIN);
+      if (now - c.t > COMBO_HOLD_MS) s.combo.classList.remove('on');
     }
 
     const t = Math.ceil(g.timeLeft);
@@ -211,7 +224,7 @@ export class Hud {
     if (vsOn) this.fillVs(fighters);
     if (intro && !vsOn) {
       const round = left > INTRO_ROUND;
-      this.showBanner(round ? roundText : 'READY', 300, round ? '' : 'ready');
+      this.showBanner(round ? roundText : 'READY', 300, round ? 'round' : 'ready');
     }
     if (now > this.bannerUntil) this.banner.classList.remove('on');
 
@@ -228,12 +241,14 @@ export class Hud {
         break;
       case 'round':
         this.resetCombos();
-        this.showBanner(e.why === 1 ? 'TIME!' : 'K.O.', 1600, 'ko', undefined, true);
+        this.showBanner(e.why === 1 ? 'TIME!' : 'K.O.', KO_MS, e.why === 1 ? 'ko time' : 'ko', undefined, true);
         break;
       case 'hit':
         this.countHit(e, g);
         break;
       case 'art': {
+        // the cinematic (game/cinematic.ts) shows the Art's name in its cut-in and marks the HUD; this is the fallback
+        if (this.root.classList.contains('cinematic')) break;
         const f = g.fighters().find((x) => x.id === e.p);
         const accent = f ? heroOf(f.hero).accent : undefined;
         this.showBanner(ARTS[e.art]?.name.toUpperCase() ?? 'RIFT ART', 1100, 'art', accent, true);
@@ -242,7 +257,7 @@ export class Hud {
       case 'match': {
         const f = g.fighters().find((x) => x.seat === e.winner);
         const name = f ? roster.get(f.id)?.name : '';
-        this.showBanner(`${(name ?? 'Winner').toUpperCase()} WINS`, 4000, 'win', undefined, true);
+        this.showBanner('WINNER!', 4000, 'win', undefined, true, (name || 'Winner').toUpperCase());
         break;
       }
     }
@@ -253,7 +268,7 @@ export class Hud {
     const fs = g.fighters();
     const att = fs.find((x) => x.id === e.a);
     const vic = fs.find((x) => x.id === e.v);
-    if (vic) this.combo[vic.seat as 0 | 1] = { n: 0, t: 0 };
+    if (vic) this.combo[vic.seat as 0 | 1].n = 0;
     if (!att || !vic || att.id === vic.id) return;
     const now = performance.now();
     const c = this.combo[att.seat as 0 | 1];
@@ -262,13 +277,18 @@ export class Hud {
     if (c.n >= COMBO_MIN) this.popCombo(att.seat as 0 | 1, c.n);
   }
 
+  /** The big numeral: its new count, and a pop (1.45x back to 1 in 90 ms) on every hit. */
   private popCombo(seat: 0 | 1, n: number) {
-    const el = this.sides[seat].combo;
-    setText(el, `${n} HIT COMBO`);
-    el.classList.remove('pop');
-    el.classList.add('on');
-    void el.offsetWidth; // restart the pop
-    el.classList.add('pop');
+    const s = this.sides[seat];
+    const text = String(n);
+    setText(s.comboN, text);
+    s.comboN.dataset.n = text;
+    s.combo.classList.add('on');
+    s.comboN.getAnimations().forEach((a) => a.cancel());
+    s.comboN.animate(
+      [{ transform: 'skewX(-8deg) scale(1.45)', filter: 'brightness(1.8)' }, { transform: 'skewX(-8deg) scale(1)', filter: 'brightness(1)' }],
+      { duration: 90, easing: 'ease-out' },
+    );
   }
 
   private resetCombos() {
@@ -276,6 +296,7 @@ export class Hud {
       { n: 0, t: 0 },
       { n: 0, t: 0 },
     ];
+    for (const s of this.sides) s.combo.classList.remove('on');
   }
 
   private fillVs(fighters: ViewFighter[]) {
@@ -296,15 +317,27 @@ export class Hud {
     }
   }
 
-  private showBanner(text: string, ms: number, cls: string, accent?: number, fresh = false) {
+  /** A comic slam-in banner (ui/hud.css: scale-in with overshoot, a light ring and rays behind it); `sub` is a small second line. */
+  private showBanner(text: string, ms: number, cls: string, accent?: number, fresh = false, sub = '') {
     const b = this.banner;
     if (accent === undefined) b.style.removeProperty('--ac');
     else b.style.setProperty('--ac', css(accent));
     const className = `hud-banner on ${cls}`;
-    if (fresh || b.textContent !== text || b.className !== className) {
-      // off, then on again in the same frame: the pop animation restarts
+    const key = `${text}|${sub}`;
+    if (fresh || this.bannerKey !== key || b.className !== className) {
+      // off, then on again in the same frame: the slam animation restarts
+      this.bannerKey = key;
       b.className = 'hud-banner';
-      b.textContent = text;
+      b.replaceChildren();
+      const t = document.createElement('span');
+      t.className = 'bn-t';
+      t.textContent = text;
+      b.appendChild(t);
+      if (sub) {
+        const s = document.createElement('small');
+        s.textContent = sub;
+        b.appendChild(s);
+      }
       void b.offsetWidth;
       b.className = className;
     }
