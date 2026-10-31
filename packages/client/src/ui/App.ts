@@ -17,6 +17,7 @@ import { prefs, setPref } from './prefs';
 import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
 import { quotesOf } from './quotes';
+import { checkForUpdate, CURRENT_RELEASE, updateReady } from '../update';
 import { crestIcon, dodgeIcon, heroArtIcon, heroWeaponIcon, skillIcon } from './icons';
 import { animatePreview } from './spritePreview';
 import { startTitleShowcase } from './titleShowcase';
@@ -85,6 +86,13 @@ export class App {
     addEventListener('resize', () => this.fit());
     window.visualViewport?.addEventListener('resize', () => this.fit());
     setInterval(() => this.fit(), 1000);
+    // a newer release finished downloading: the Update buttons say so
+    window.addEventListener('bladerift:update-ready', () => {
+      this.ui.querySelectorAll<HTMLElement>('.update-btn').forEach((b) => {
+        b.classList.add('ready');
+        if (!b.dataset.busy) b.textContent = 'Update ready';
+      });
+    });
     document.addEventListener('pointerdown', () => sfx.unlock(), { capture: true });
     document.addEventListener('keydown', () => sfx.unlock(), { capture: true });
     sfx.volume = prefs().volume;
@@ -190,6 +198,7 @@ export class App {
         <canvas class="title-hero left" aria-hidden="true"></canvas><canvas class="title-hero right" aria-hidden="true"></canvas>
         <div class="title-wrap">
           ${/\/bladerift\//.test(location.pathname) ? '<a class="arcade-back" href="../" aria-label="Back to all games">‹ All games</a>' : ''}
+          <button class="update-btn${updateReady() ? ' ready' : ''}" data-act="update">${updateReady() ? 'Update ready' : 'Update game'}</button>
           <div class="logo"><span>BLADE</span><span>RIFT</span></div>
           <div class="tag">One rift. Two fighters. Pick your blades.</div>
           <div class="menu">
@@ -224,6 +233,7 @@ export class App {
           <label>Screen shake <input type="range" min="0" max="1" step="0.1" value="${p.shake}" data-pref="shake"></label>
           <label class="check"><input type="checkbox" ${p.damageNumbers ? 'checked' : ''} data-pref="damageNumbers"> Damage numbers</label>
           <label class="check"><input type="checkbox" ${p.haptics ? 'checked' : ''} data-pref="haptics"> Vibration</label>
+          <div class="update-row"><span>Version <b>${esc(CURRENT_RELEASE)}</b></span><button class="update-btn inline${updateReady() ? ' ready' : ''}" data-act="update">${updateReady() ? 'Update ready' : 'Update game'}</button></div>
         </div>`;
       }
       case 'howto':
@@ -231,6 +241,23 @@ export class App {
       default:
         return '';
     }
+  }
+
+  /** The Update button: install a newer release now (the page reloads), or say it is already the latest. */
+  private async updateGame(btn: HTMLElement) {
+    if (btn.dataset.busy) return;
+    btn.dataset.busy = '1';
+    btn.textContent = 'Checking…';
+    const r = await checkForUpdate();
+    if (r === 'reloading') {
+      btn.textContent = 'Updating…';
+      return;
+    }
+    btn.textContent = r === 'offline' ? 'Offline: try later' : 'Up to date ✓';
+    window.setTimeout(() => {
+      delete btn.dataset.busy;
+      if (btn.isConnected) btn.textContent = 'Update game';
+    }, 2500);
   }
 
   private header(title: string, back = 'back') {
@@ -480,6 +507,9 @@ export class App {
       case 'settings':
       case 'howto':
         this.show(a);
+        break;
+      case 'update':
+        void this.updateGame(el);
         break;
       case 'online':
         this.mode = 'online';

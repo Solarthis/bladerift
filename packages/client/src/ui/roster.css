@@ -463,3 +463,15 @@
   font: 800 13px Nunito, sans-serif; text-decoration: none; backdrop-filter: blur(6px);
 }
 .arcade-back:hover { background: rgba(255, 255, 255, 0.16); }
+
+/* the Update game button: top right of the title screen (mirrors All games), and inline in Settings */
+.update-btn {
+  position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 3;
+  min-height: 0; padding: 7px 14px; border-radius: 99px; border: 0; background: rgba(255, 255, 255, 0.08); color: #e8e2f4;
+  font: 800 13px Nunito, sans-serif; backdrop-filter: blur(6px); box-shadow: none;
+}
+.update-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.update-btn.ready { background: linear-gradient(180deg, #ffd98a, #e9a93a); color: #2a1406; box-shadow: 0 0 14px rgba(233, 182, 74, 0.55); }
+.update-btn.inline { position: static; }
+.update-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; font-size: 13px; color: var(--dim); }
+.update-row b { color: var(--ink); font-weight: 800; }
