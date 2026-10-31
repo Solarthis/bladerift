@@ -33,6 +33,16 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,webp,woff2,json}'],
+        // fighter sprite atlases (~1 MB each) are not precached: they download for the heroes actually played and are
+        // cached at runtime (stale-while-revalidate: an updated atlas arrives on the next visit)
+        globIgnores: ['**/assets/characters/**'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/assets\/characters\//,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'bladerift-fighters', expiration: { maxEntries: 40 } },
+          },
+        ],
         // Only Vite's content-hashed bundles skip revisioning; generated art (assets/gen) is unhashed and
         // must get a precache revision so a new release never pairs new code with stale atlases.
         dontCacheBustURLsMatching: /-[A-Za-z0-9_-]{8}\.(js|css|woff2?)$/,

@@ -18,6 +18,7 @@ import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
 import { crestIcon, heroArtIcon, skillIcon, weaponIcon } from './icons';
 import { animatePreview } from './spritePreview';
+import { prefetchHeroSprites } from '../render/spriteFighter';
 import { measureViewport, setViewport, viewH, viewW } from './viewport';
 
 type Screen = 'title' | 'fighter' | 'online' | 'lobby' | 'game' | 'results' | 'settings' | 'howto' | 'connecting';
@@ -300,6 +301,8 @@ export class App {
     if (!s || !l) return `<div class="center-msg"><div class="spinner"></div>Waiting for the host…</div>`;
     // (two players on one device: either local session may hold host)
     const host = this.sessions.some((x) => x.isHost);
+    // the seated heroes' sprite atlases download while the lobby is open, so the duel starts with them
+    for (const r of s.roster.values()) if (r.seat >= 0) prefetchHeroSprites(r.load.hero);
     const seatCard = (seat: number) => {
       const r = [...s.roster.values()].find((x) => x.seat === seat);
       const isMe = this.sessions.some((x) => x.selfId === r?.id);

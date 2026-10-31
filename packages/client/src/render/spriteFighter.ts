@@ -60,6 +60,15 @@ export function loadHeroSprites(scene: Phaser.Scene, hero: number): Promise<Spri
   return p;
 }
 
+const prefetched = new Set<number>();
+/** Warm the HTTP cache with a hero's atlas (the lobby calls this for the seated heroes, so the match starts with sprites). */
+export function prefetchHeroSprites(hero: number) {
+  const id = SPRITE_IDS[hero];
+  if (!id || prefetched.has(hero)) return;
+  prefetched.add(hero);
+  for (const f of ['atlas.json', 'atlas.png']) fetch(`assets/characters/${id}/${f}`).catch(() => prefetched.delete(hero));
+}
+
 /** Already loaded (sync), for the render loop. */
 export const heroSpritesReady = (hero: number) => metas.get(hero) ?? null;
 
