@@ -136,3 +136,11 @@ def portraits(name, first, count, w=240, h=320):
 
 portraits('portraits-1', 0, 8)
 portraits('portraits-2', 8, 6)
+
+# The lore pass (2026-10-31, docs/lore/kit-changes.md): AFTER the older sheets, so its icons replace the old ones.
+# (Portraits regenerated per hero by tools/sprites/install_portrait.py are newer than portraits-1/2: re-install them
+# after running this script.)
+square_icons('icons-lore', ['g-gate', 'g-chains', 'g-claws', 'g-knives', 'g-kopis', 'k-11', 'a-frenzy', 'a-fog', 'a-hunt',
+                            'a-fang', 'a-hail', 'k-01', 'k-03', 'd-09', 'a-bulwark'])
+grid('relics', 2, 4, ['r-gold-sword', 'r-silver-sword', 'r-gold-spear', 'r-silver-axe', 'r-gold-halberd',
+                      'r-silver-greatsword', 'r-gold-shortsword', 'r-silver-glaive'])
