@@ -316,7 +316,7 @@ function startArt(s: FighterState, C: ClassDef, artId: ArtId): boolean {
     s.invuln = Math.max(s.invuln, 30); // the page turns: untouchable while it is written
   }
   if (artId === ArtId.GrimFog) {
-    s.veil = 300 + art.ticks;
+    s.veil = 360 + art.ticks;
     s.invuln = Math.max(s.invuln, art.ticks);
   }
   return true;

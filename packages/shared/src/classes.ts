@@ -87,8 +87,8 @@ export const ARTS: ArtDef[] = [
   { id: ArtId.VaultOfAges, name: 'Vault of Ages', blurb: 'Rift portals open behind him and fire a storm of legendary weapons.', ticks: 50 },
   { id: ArtId.ChainsOfGenesis, name: 'Chains of Genesis', blurb: 'Living chains burst from the ground under the opponent and bind them fast.', ticks: 30 },
   { id: ArtId.RewrittenFate, name: 'Rewritten Fate', blurb: 'Rewrites the chapter: heals over a quarter of health and empowers every blow for eight seconds.', ticks: 30 },
-  { id: ArtId.PhantomHand, name: 'Phantom Hand', blurb: 'A spectral claw races along the ground, seizes the opponent and crushes them, feeding its master.', ticks: 40 },
-  { id: ArtId.GrimFog, name: 'Grim Fog', blurb: 'Vanishes into fog: unseen by the opponent for five seconds, and the first blow from the fog crits.', ticks: 20 },
+  { id: ArtId.PhantomHand, name: 'Phantom Hand', blurb: 'A spectral claw races along the ground, snatches the opponent even out of a roll or a jump, and crushes them, feeding its master.', ticks: 28 },
+  { id: ArtId.GrimFog, name: 'Grim Fog', blurb: 'Vanishes into fog: unseen by the opponent for six seconds, and the first blow from the fog lands as a devastating crit.', ticks: 20 },
   { id: ArtId.Stampede, name: 'Stampede', blurb: 'A burning warhorse thunders across the arena, trampling and setting the opponent alight.', ticks: 36 },
   { id: ArtId.NightHunt, name: 'Night Hunt', blurb: 'Leaps onto the opponent with the shadow hound and slams down with it.', ticks: 50 },
 ];
@@ -97,13 +97,13 @@ export const CLASSES: ClassDef[] = [
   {
     id: ClassId.Saber, name: 'Saber', title: 'The knight of the blade', signature: WeaponId.Sword, art: ArtId.RadiantCleave,
     blurb: 'The balanced swordmaster. Sturdy, steady, dangerous at every range with Radiant Cleave.',
-    hp: 1050, dmg: 1.0, speed: 1, airJumps: 1, dashes: 1, rollCd: 1, recovery: 0.95, backstab: 1.5, chip: 0.8, skillCd: 1, arrowSpeed: 1,
+    hp: 1050, dmg: 1.12, speed: 1, airJumps: 1, dashes: 1, rollCd: 1, recovery: 0.95, backstab: 1.5, chip: 0.8, skillCd: 1, arrowSpeed: 1,
     bars: { power: 4, speed: 3, health: 4, reach: 3 },
   },
   {
     id: ClassId.Archer, name: 'Archer', title: 'Death from afar', signature: WeaponId.Bow, art: ArtId.HailOfArrows,
     blurb: 'Light on its feet, arrows fly faster and further. Keep your distance and make them come to you.',
-    hp: 1020, dmg: 1.12, speed: 1.12, airJumps: 1, dashes: 1, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 0.9, arrowSpeed: 1.3,
+    hp: 1020, dmg: 1.0, speed: 1.12, airJumps: 1, dashes: 1, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 0.9, arrowSpeed: 1.3,
     bars: { power: 3, speed: 4, health: 2, reach: 5 },
   },
   {
@@ -115,13 +115,13 @@ export const CLASSES: ClassDef[] = [
   {
     id: ClassId.Caster, name: 'Caster', title: 'Weaver of the rift', signature: WeaponId.Staff, art: ArtId.ThunderCall,
     blurb: 'A mage: arcane bolts from the staff, skills recharge twice as fast. Frail if caught.',
-    hp: 1000, dmg: 1, speed: 1, airJumps: 1, dashes: 1, rollCd: 1, recovery: 1, backstab: 1.5, chip: 1.1, skillCd: 0.5, arrowSpeed: 1,
+    hp: 1000, dmg: 0.85, speed: 1, airJumps: 1, dashes: 1, rollCd: 1, recovery: 1, backstab: 1.5, chip: 1.1, skillCd: 0.5, arrowSpeed: 1,
     bars: { power: 4, speed: 3, health: 2, reach: 4 },
   },
   {
     id: ClassId.Assassin, name: 'Assassin', title: 'Gone before the blade lands', signature: WeaponId.Daggers, art: ArtId.FlashStep,
     blurb: 'Blindingly swift: triple jump, two air dashes, quick rolls and recoveries, brutal backstabs. Hits lighter and breaks easily.',
-    hp: 880, dmg: 0.88, speed: 1.3, airJumps: 2, dashes: 2, rollCd: 0.5, recovery: 0.75, backstab: 1.9, chip: 1.2, skillCd: 0.9, arrowSpeed: 1,
+    hp: 920, dmg: 0.92, speed: 1.3, airJumps: 2, dashes: 2, rollCd: 0.5, recovery: 0.75, backstab: 1.9, chip: 1.2, skillCd: 0.9, arrowSpeed: 1,
     bars: { power: 2, speed: 5, health: 1, reach: 1 },
   },
   {
@@ -139,7 +139,7 @@ export const CLASSES: ClassDef[] = [
   {
     id: ClassId.Rider, name: 'Rider', title: 'Master of the charge', signature: WeaponId.Scythe, art: ArtId.Stampede,
     blurb: 'Fast and far-reaching: rides the arena, sweeps wide with a war scythe and tramples with a summoned mount.',
-    hp: 980, dmg: 1, speed: 1.2, airJumps: 1, dashes: 2, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
+    hp: 980, dmg: 0.93, speed: 1.2, airJumps: 1, dashes: 2, rollCd: 0.8, recovery: 0.95, backstab: 1.5, chip: 1, skillCd: 1, arrowSpeed: 1,
     bars: { power: 3, speed: 4, health: 3, reach: 4 },
   },
 ];

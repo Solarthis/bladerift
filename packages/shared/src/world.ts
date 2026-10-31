@@ -450,7 +450,7 @@ export class World {
     // out of the Grim Fog: the first blow that lands crits and reveals (a blocked swing keeps the fog)
     const veiled = a.s.veil > 0;
     if (veiled) {
-      dmg = Math.round(dmg * 1.9);
+      dmg = Math.round(dmg * 2.2);
       crit = true;
     }
     void tip;
@@ -671,11 +671,15 @@ export class World {
       // hit a fighter (not its owner)
       for (const f of this.fighters.values()) {
         const bulwark = f.s.act === Act.Art && artIdOf(f.load) === ArtId.Bulwark;
-        if (dead || f.id === p.owner || f.s.act === Act.KO || (f.s.invuln > 0 && !bulwark)) continue;
+        // the Phantom Hand grasps: a dodge roll does not slip past it (only a real barrier or an Art's invulnerability does)
+        const grasp = p.kind === 'hand' && f.s.act === Act.Roll;
+        if (dead || f.id === p.owner || f.s.act === Act.KO || (f.s.invuln > 0 && !bulwark && !grasp)) continue;
         const bb = bodyBox(f.s.x, f.s.y, !!f.s.crouch);
         if (p.dmg <= 0 && p.kind === 'steed') continue;
-        const r = p.kind === 'wave' || p.kind === 'steed' ? 32 : p.kind === 'orb' ? 9 : p.kind === 'hand' ? 14 : 4;
-        const pb = { x: Math.min(px, p.x) - 4, y: Math.min(py, p.y) - r, w: Math.abs(p.x - px) + 8, h: Math.abs(p.y - py) + r * 2 };
+        const r = p.kind === 'wave' || p.kind === 'steed' ? 32 : p.kind === 'orb' ? 9 : p.kind === 'hand' ? 22 : 4;
+        // the hand reaches up as it passes: a fighter jumping over it is snatched out of the air
+        const reach = p.kind === 'hand' ? 90 : 0;
+        const pb = { x: Math.min(px, p.x) - 4, y: Math.min(py, p.y) - r - reach, w: Math.abs(p.x - px) + 8, h: Math.abs(p.y - py) + r * 2 + reach };
         if (!overlap(bb, pb)) continue;
         const owner = this.fighters.get(p.owner);
         // Bulwark sends projectiles back at whoever threw them
@@ -696,7 +700,7 @@ export class World {
           const kbY = p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40;
           const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable });
           // the Phantom Hand crushes the heart it grasps and feeds its master
-          if (landed && p.kind === 'hand' && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.4));
+          if (landed && p.kind === 'hand' && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.5));
           if (p.burn) f.s.burnT = Math.max(f.s.burnT, p.burn);
           if (p.pierce) {
             // trampled once: keeps running, harmless now
@@ -793,7 +797,7 @@ export class World {
           break;
         case ArtId.PhantomHand:
           if (t === 12) {
-            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 780, vy: 0, dmg: 180, kb: 0, stun: 84, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true });
+            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 1050, vy: 0, dmg: 260, kb: 0, stun: 100, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true });
             this.events.push({ t: 'shoot', p: f.id, kind: 8 });
           }
           break;

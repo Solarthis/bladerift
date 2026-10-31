@@ -133,7 +133,8 @@ export function botLoadout(seed: number): Loadout {
 /** The opponent's melee swing that can still reach us, with a margin for steps and lunges. */
 function swingAt(me: Fighter, foe: Fighter): Swing | null {
   const o = foe.s;
-  if (o.act !== Act.Attack) return null;
+  // a fighter in the Grim Fog is unseen: its swings give no warning, so the bot cannot dodge or parry them
+  if (o.act !== Act.Attack || o.veil > 0) return null;
   const m = currentMove(o, foe.load);
   if (!m || m.arrow) return null;
   const close = m.startup + m.active;
@@ -603,14 +604,24 @@ export class BotBrain {
       for (const i of order) {
         const wp = me.load.weapons[i];
         const btn = i === 0 ? Btn.A : Btn.B;
-        if (isBow(wp) || g.dist > reachOf(wp) + HALF + 2) continue;
+        // a bow fighter (no melee weapon in the kit) snaps off quick shots at close and middle range too
+        if (isBow(wp)) {
+          if (g.dist < 420 && g.facing && !(this.prev & btn) && this.rng.next() < (vuln ? T.punish : T.attack * 0.6)) {
+            cmd.buttons |= btn;
+            return true;
+          }
+          continue;
+        }
+        if (g.dist > reachOf(wp) + HALF + 2) continue;
         inReach = true;
         if (!g.facing) {
           cmd.moveX = g.dir * 0.4; // turn to face them
           return true;
         }
         if (this.prev & btn) continue;
-        if (isShield(wp)) {
+        // (the kit's B with a shield is the heavy bash: swing it like any weapon)
+        const heavyBash = i === 1 && me.load.weapons[0] === me.load.weapons[1];
+        if (isShield(wp) && !heavyBash) {
           if (s.ground && (vuln || this.rng.next() < T.attack * 0.5)) {
             this.startBlock(me, cmd, true);
             return true;

@@ -90,8 +90,8 @@ export const WEAPONS: WeaponDef[] = [
     short: 'Sword',
     blurb: 'Balanced three-hit combo. The third swing launches.',
     combo: [
-      { startup: 7, active: 5, recovery: 12, dmg: 70, box: b(4, -52, 48, 46), kbX: 170, kbY: 60, stun: 22, step: 90 },
-      { startup: 7, active: 5, recovery: 12, dmg: 75, box: b(4, -52, 48, 46), kbX: 180, kbY: 60, stun: 22, step: 90 },
+      { startup: 6, active: 5, recovery: 11, dmg: 76, box: b(4, -52, 60, 46), kbX: 170, kbY: 60, stun: 22, step: 90 },
+      { startup: 6, active: 5, recovery: 11, dmg: 80, box: b(4, -52, 60, 46), kbX: 180, kbY: 60, stun: 22, step: 90 },
       { startup: 12, active: 6, recovery: 22, dmg: 115, box: b(2, -66, 52, 64), kbX: 170, kbY: 520, stun: 34, step: 120, shake: 0.4 },
     ],
     air: { startup: 6, active: 8, recovery: 12, dmg: 70, box: b(-6, -56, 56, 54), kbX: 170, kbY: 140, stun: 22 },
