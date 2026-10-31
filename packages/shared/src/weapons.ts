@@ -15,13 +15,24 @@ export const enum WeaponId {
 }
 export const WEAPON_COUNT = 8;
 
+/** Every hero's own signature special (the Skill button): skill N belongs to hero N (heroes.ts). */
 export const enum SkillId {
-  Bomb = 0,
-  Frost = 1,
-  Trap = 2,
-  Blink = 3,
+  LionsRoar = 0,
+  NineLives = 1,
+  GateShot = 2,
+  RuneLeap = 3,
+  ChainLash = 4,
+  PhantomStars = 5,
+  InkBlot = 6,
+  ShadowDirk = 7,
+  FanOfKnives = 8,
+  TerrorRoar = 9,
+  ScalpelRain = 10,
+  BucephalusCharge = 11,
+  PlagueHound = 12,
+  ShieldRebound = 13,
 }
-export const SKILL_COUNT = 4;
+export const SKILL_COUNT = 14;
 
 export interface Box {
   x: number;
@@ -188,6 +199,13 @@ export const WEAPONS: WeaponDef[] = [
   },
 ];
 
+/**
+ * A hero's special. How it works:
+ *   shot  - projectiles (count fanned by spread rad, gravity for lobs, boomerang = flies back at half life)
+ *   aura  - an instant burst around the hero (radius) at the end of the startup
+ *   dash  - the hero lunges (vx, vy) and the body box hits once while active
+ * Hit effects: dmg, kb (knockback x), kbY, stun; slow / root / burn ticks; unblockable; pierce.
+ */
 export interface SkillDef {
   id: SkillId;
   name: string;
@@ -195,13 +213,63 @@ export interface SkillDef {
   cooldown: number;
   startup: number;
   recovery: number;
+  kind: 'shot' | 'aura' | 'dash';
+  dmg: number;
+  kb: number;
+  kbY?: number;
+  stun: number;
+  slow?: number;
+  root?: number;
+  burn?: number;
+  unblockable?: boolean;
+  pierce?: boolean;
+  // shot
+  proj?: 'arrow' | 'arcane' | 'relic' | 'hand' | 'frost' | 'wave' | 'orb';
+  count?: number;
+  spread?: number;
+  speed?: number;
+  life?: number;
+  gravity?: number;
+  /** Launch height above the feet. */
+  launchY?: number;
+  boomerang?: boolean;
+  // aura
+  radius?: number;
+  // dash
+  vx?: number;
+  vy?: number;
+  active?: number;
 }
 
 export const SKILLS: SkillDef[] = [
-  { id: SkillId.Bomb, name: 'Fire Bomb', blurb: 'Lobbed bomb. Explodes and sets the target burning.', cooldown: 420, startup: 10, recovery: 12 },
-  { id: SkillId.Frost, name: 'Frost Shard', blurb: 'Fast ice bolt. Slows the target for 2.5 s.', cooldown: 360, startup: 9, recovery: 12 },
-  { id: SkillId.Trap, name: 'Snare Trap', blurb: 'Set at your feet. Roots whoever steps in.', cooldown: 540, startup: 12, recovery: 10 },
-  { id: SkillId.Blink, name: 'Blink', blurb: 'Teleport forward, untouchable for a moment.', cooldown: 300, startup: 4, recovery: 10 },
+  { id: SkillId.LionsRoar, name: "Lion's Roar", blurb: 'A royal war cry: a golden shockwave throws everyone close away.', cooldown: 420, startup: 9, recovery: 14,
+    kind: 'aura', radius: 92, dmg: 70, kb: 420, kbY: 200, stun: 26 },
+  { id: SkillId.NineLives, name: 'Nine Lives', blurb: 'Three ember arrows loosed at once in a fan.', cooldown: 360, startup: 10, recovery: 12,
+    kind: 'shot', proj: 'arrow', count: 3, spread: 0.16, speed: 1100, life: 70, gravity: 160, dmg: 42, kb: 160, stun: 14 },
+  { id: SkillId.GateShot, name: 'Gate Shot', blurb: 'A golden gate opens and fires one treasured blade straight through.', cooldown: 380, startup: 8, recovery: 12,
+    kind: 'shot', proj: 'relic', speed: 1150, life: 60, launchY: 62, dmg: 88, kb: 260, stun: 22, pierce: true },
+  { id: SkillId.RuneLeap, name: 'Rune Leap', blurb: 'A rune-fired leap over the enemy, spear first.', cooldown: 360, startup: 5, recovery: 16,
+    kind: 'dash', vx: 620, vy: -620, active: 22, dmg: 78, kb: 300, kbY: 220, stun: 26 },
+  { id: SkillId.ChainLash, name: 'Chain Lash', blurb: 'A living chain lashes out and binds the target where it stands.', cooldown: 420, startup: 9, recovery: 14,
+    kind: 'shot', proj: 'hand', speed: 1000, life: 26, launchY: 34, dmg: 48, kb: 0, stun: 20, root: 72 },
+  { id: SkillId.PhantomStars, name: 'Phantom Stars', blurb: 'Three falling-star bolts that slow whatever they touch.', cooldown: 380, startup: 9, recovery: 13,
+    kind: 'shot', proj: 'arcane', count: 3, spread: 0.22, speed: 760, life: 60, dmg: 34, kb: 90, stun: 12, slow: 120 },
+  { id: SkillId.InkBlot, name: 'Ink Blot', blurb: 'A splash of golden ink: the target is slowed while the story catches up.', cooldown: 340, startup: 8, recovery: 12,
+    kind: 'shot', proj: 'orb', speed: 620, life: 70, gravity: 700, dmg: 52, kb: 140, stun: 18, slow: 170 },
+  { id: SkillId.ShadowDirk, name: 'Shadow Dirk', blurb: 'A blade thrown from the shadows: fast, and no guard stops it.', cooldown: 320, startup: 5, recovery: 10,
+    kind: 'shot', proj: 'arrow', speed: 1500, life: 40, gravity: 0, dmg: 58, kb: 120, stun: 22, unblockable: true },
+  { id: SkillId.FanOfKnives, name: 'Fan of Knives', blurb: 'Three knives flung in a spread, faster than the eye.', cooldown: 300, startup: 4, recovery: 10,
+    kind: 'shot', proj: 'arrow', count: 3, spread: 0.2, speed: 1350, life: 34, gravity: 0, dmg: 30, kb: 80, stun: 12 },
+  { id: SkillId.TerrorRoar, name: 'Terror Roar', blurb: 'The chimera roars: everyone near is frozen in fear.', cooldown: 480, startup: 12, recovery: 16,
+    kind: 'aura', radius: 120, dmg: 30, kb: 60, stun: 54 },
+  { id: SkillId.ScalpelRain, name: 'Scalpel Rain', blurb: 'Three scalpels arc through the fog; the wounds keep bleeding.', cooldown: 360, startup: 8, recovery: 12,
+    kind: 'shot', proj: 'arrow', count: 3, spread: 0.18, speed: 760, life: 70, gravity: 900, launchY: 50, dmg: 32, kb: 90, stun: 12, burn: 150 },
+  { id: SkillId.BucephalusCharge, name: 'Bucephalus Charge', blurb: 'A short, unstoppable charge on the great warhorse.', cooldown: 420, startup: 7, recovery: 14,
+    kind: 'dash', vx: 980, vy: 0, active: 16, dmg: 82, kb: 440, kbY: 180, stun: 28 },
+  { id: SkillId.PlagueHound, name: 'Plague Hound', blurb: 'A shadow hound races along the ground; its bite slows and sickens.', cooldown: 420, startup: 10, recovery: 14,
+    kind: 'shot', proj: 'hand', speed: 760, life: 60, launchY: 14, dmg: 56, kb: 160, stun: 18, slow: 100, burn: 120 },
+  { id: SkillId.ShieldRebound, name: 'Shield Rebound', blurb: 'The tower shield is hurled and comes spinning back.', cooldown: 360, startup: 9, recovery: 12,
+    kind: 'shot', proj: 'wave', speed: 820, life: 52, launchY: 32, dmg: 60, kb: 260, stun: 22, boomerang: true },
 ];
 
 export const SKILL_FX = {

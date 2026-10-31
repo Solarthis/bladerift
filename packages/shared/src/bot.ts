@@ -11,7 +11,7 @@ import { solidAt, surfaceBelow } from './arena';
 import { Act, currentMove } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
-import { Box, Loadout, Move, SKILL_FX, SKILLS, SkillId, WEAPONS, WeaponId } from './weapons';
+import { Box, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
 import { HEROES, HERO_COUNT, sanitizeLoadout } from './heroes';
 import { bodyBox, Fighter, moveBox, Projectile, ProjKind, World } from './world';
 
@@ -126,8 +126,8 @@ const slotOf = (load: Loadout, pred: (w: WeaponId) => boolean) => (pred(load.wea
 export function botLoadout(seed: number): Loadout {
   const rng = new Rng(seed * 2654435761);
   const hero = rng.int(HERO_COUNT);
-  const second = [WeaponId.Bow, WeaponId.Shield, WeaponId.Daggers, WeaponId.Lance, WeaponId.Scythe, WeaponId.Sword];
-  return sanitizeLoadout({ weapons: [0, second[rng.int(second.length)]], skill: rng.int(4) as SkillId, hero });
+  // (the hero fixes the whole kit: weapon and special)
+  return sanitizeLoadout({ hero });
 }
 
 /** The opponent's melee swing that can still reach us, with a margin for steps and lunges. */
@@ -550,44 +550,26 @@ export class BotBrain {
     return true;
   }
 
-  /** Fire the skill where it lands: bomb at mid range, frost along a level line, trap close, blink to close or escape. */
-  private skill(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
+  /** The hero's special, where it lands: shots along a level line in range, a roar when the foe is close, a dash in
+   * charging distance. */
+  private skill(_w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
     const s = me.s;
     if (s.skillCd > 0) return false;
-    const sk = me.load.skill;
-    if (sk !== SkillId.Blink && swingAt(me, foe)) return false;
-    let face = g.dir;
+    const sk = SKILLS[me.load.skill];
+    if (!sk || swingAt(me, foe)) return false;
     let ok = false;
-    switch (sk) {
-      case SkillId.Bomb:
-        // a lob lands about 340 units out on level ground and its blast is about 90 wide
-        ok = g.dist >= 250 && g.dist <= 430 && foe.s.act !== Act.Attack;
-        break;
-      case SkillId.Frost:
-        ok = Math.abs(g.dy) < 40 && g.dist >= 130 && g.dist <= 650;
-        break;
-      case SkillId.Trap:
-        // laid just in front of us: the opponent has to walk onto it
-        ok = g.dist >= 60 && g.dist <= 170;
-        break;
-      case SkillId.Blink: {
-        const sw = swingAt(me, foe);
-        const room = -g.dir > 0 ? w.arena.w - s.x : s.x;
-        if (g.dist >= this.gap(me, T) + 170 && g.dist <= 520) ok = true;
-        else if (sw && sw.at >= 5 && s.rollCd > 0 && room >= 180) {
-          ok = true;
-          face = -g.dir;
-        }
-        break;
-      }
+    if (sk.kind === 'aura') ok = g.dist <= (sk.radius ?? 90) * 0.9 && Math.abs(g.dy) < 70;
+    else if (sk.kind === 'dash') ok = g.dist >= 90 && g.dist <= ((sk.vx ?? 600) * (sk.active ?? 16)) / 60 + 40 && Math.abs(g.dy) < (sk.vy ? 120 : 40);
+    else {
+      const range = ((sk.speed ?? 900) * (sk.life ?? 60)) / 60;
+      ok = g.dist >= 80 && g.dist <= Math.min(range * 0.9, 700) && Math.abs(g.dy) < (sk.gravity ? 90 : 50);
     }
-    if (!ok || this.rng.next() >= T.skill) return false;
-    if (s.face !== face) {
-      cmd.moveX = face * 0.5; // turn to aim first
+    if (!ok || this.rng.next() >= T.skill * 1.6) return false;
+    if (s.face !== g.dir) {
+      cmd.moveX = g.dir * 0.5; // turn to aim first
       return true;
     }
     cmd.buttons |= Btn.Skill;
-    if (sk === SkillId.Trap) this.backT = 24;
     return true;
   }
 
@@ -694,9 +676,9 @@ export class BotBrain {
     if (this.mode === 'range') return 340;
     // a ready skill is worth a step back to where it lands
     if (this.level !== 'easy' && me.s.skillCd === 0) {
-      if (me.load.skill === SkillId.Bomb) return 320;
-      if (me.load.skill === SkillId.Frost) return 240;
-      if (me.load.skill === SkillId.Trap) return 120;
+      const sk = SKILLS[me.load.skill];
+      if (sk?.kind === 'shot') return 260;
+      if (sk?.kind === 'dash') return 170;
     }
     if (me.s.veil > 0 && this.mode === 'melee') return reachOf(me.load.weapons[this.slot]) * 0.7 + HALF;
     return reachOf(me.load.weapons[this.slot]) * T.spaceMul + HALF + T.spaceAdd;

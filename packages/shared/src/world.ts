@@ -10,7 +10,7 @@ import {
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
 import { artIdOf } from './heroes';
-import { Box, Loadout, Move, SKILL_FX, SkillId, WEAPONS, WeaponId } from './weapons';
+import { Box, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
 
 export interface MatchSettings {
   arenaId: string;
@@ -61,6 +61,15 @@ export interface Projectile {
   /** Tramples through: hits once, keeps going. */
   pierce?: boolean;
   burn?: number;
+  /** A hero special's projectile: the skill id + 1 (0 = none); the client draws the hero's own effect. */
+  skin?: number;
+  slow?: number;
+  root?: number;
+  /** Gravity (units/s^2) instead of the kind's default. */
+  gravity?: number;
+  kbY?: number;
+  /** Turns back toward its thrower at this life left (a thrown shield). */
+  boomerang?: number;
 }
 
 export interface Trap {
@@ -123,6 +132,8 @@ export interface Fighter {
   histFace: Int8Array;
   /** moveSeq of the opponent's move that last hit this fighter. */
   lastHitSeq: number;
+  /** A dash special has landed its hit (once per use). */
+  skillHit: boolean;
   /** x before this tick's step (Flash Step's blink trail). */
   blinkFrom: number;
   comboHits: number;
@@ -155,6 +166,10 @@ function solidBelow(arena: ArenaDef, x: number, y: number) {
   return best;
 }
 
+/** 'shoot' event kinds from SKILL_EVENT up are hero specials (kind - SKILL_EVENT = the skill id); hits from a special
+ * carry SKILL_WEAPON as their weapon. */
+export const SKILL_EVENT = 32;
+export const SKILL_WEAPON = 100;
 const overlap = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 export function bodyBox(x: number, y: number, crouch = false): Box {
@@ -202,7 +217,7 @@ export class World {
       owed: 0, carry: 0, lagTicks: -1, prevViewTick: 0,
       histTick: new Int32Array(HIST).fill(-1), histX: new Float32Array(HIST), histY: new Float32Array(HIST), histFlags: new Uint8Array(HIST),
       histBlockT: new Uint16Array(HIST), histFace: new Int8Array(HIST),
-      lastHitSeq: -1, comboHits: 0, comboAt: -999, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0, blinkFrom: 0,
+      lastHitSeq: -1, skillHit: false, comboHits: 0, comboAt: -999, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0, blinkFrom: 0,
     };
     f.s.lock = Math.max(0, this.phaseEnd - this.tick);
     this.fighters.set(id, f);
@@ -266,6 +281,7 @@ export class World {
     if (this.phase === 'over') return;
     for (const f of this.fighters.values()) this.spawnFrom(f);
     for (const f of this.fighters.values()) this.checkMelee(f);
+    for (const f of this.fighters.values()) this.checkSkillDash(f);
     this.stepArts();
     this.stepProjectiles();
     this.stepTraps();
@@ -622,33 +638,64 @@ export class World {
       return;
     }
     if (s.act !== Act.Skill) return;
-    switch (f.load.skill) {
-      case SkillId.Bomb: {
-        const B = SKILL_FX.bomb;
-        this.projectiles.push({ id: this.nextId++ % 65536, kind: 'bomb', owner: f.id, x: s.x + s.face * 14, y: s.y - 44, vx: s.face * B.speedX + s.vx * 0.3, vy: B.speedY, dmg: B.dmg, kb: 260, stun: 26, life: 3 * TICK_RATE, heavy: false });
-        this.events.push({ t: 'shoot', p: f.id, kind: 1 });
-        break;
+    this.useSkill(f);
+  }
+
+  /** A hero's signature special goes off (the end of its startup). */
+  private useSkill(f: Fighter) {
+    const s = f.s;
+    const sk = SKILLS[f.load.skill];
+    if (!sk) return;
+    this.events.push({ t: 'shoot', p: f.id, kind: SKILL_EVENT + sk.id });
+    if (sk.kind === 'shot') {
+      const n = sk.count ?? 1;
+      const speed = sk.speed ?? 900;
+      for (let i = 0; i < n; i++) {
+        // fanned around straight ahead (a little upward for lobs)
+        const a = (i - (n - 1) / 2) * (sk.spread ?? 0) - (sk.gravity ? 0.18 : 0);
+        this.projectiles.push({
+          id: this.nextId++ % 65536, kind: sk.proj ?? 'arrow', owner: f.id, x: s.x + s.face * 20, y: s.y - (sk.launchY ?? 40),
+          vx: s.face * speed * Math.cos(a), vy: speed * Math.sin(a), dmg: sk.dmg, kb: sk.kb, kbY: sk.kbY, stun: sk.stun,
+          life: sk.life ?? 60, heavy: false, skin: sk.id + 1, slow: sk.slow, root: sk.root, burn: sk.burn, pierce: sk.pierce,
+          unblockable: sk.unblockable, gravity: sk.gravity, boomerang: sk.boomerang ? Math.round((sk.life ?? 60) / 2) : undefined,
+        });
       }
-      case SkillId.Frost: {
-        const F = SKILL_FX.frost;
-        this.projectiles.push({ id: this.nextId++ % 65536, kind: 'frost', owner: f.id, x: s.x + s.face * 18, y: s.y - 38, vx: s.face * F.speed, vy: 0, dmg: F.dmg, kb: 120, stun: F.stun, life: Math.round(1.3 * TICK_RATE), heavy: false });
-        this.events.push({ t: 'shoot', p: f.id, kind: 2 });
-        break;
+    } else if (sk.kind === 'aura') {
+      // a burst around the hero: everyone close is hit and thrown away from them
+      const R = sk.radius ?? 90;
+      for (const o of this.fighters.values()) {
+        if (o.id === f.id || o.s.act === Act.KO || o.s.invuln > 0) continue;
+        const dx = o.s.x - s.x;
+        const dy = o.s.y - s.y;
+        if (dx * dx + dy * dy > R * R) continue;
+        const landed = this.applyHit(f, o, {
+          dmg: sk.dmg, kbX: sk.kb, kbY: sk.kbY ?? 120, stun: sk.stun, crit: false, w: SKILL_WEAPON, x: o.s.x, y: o.s.y - FIGHTER.h / 2,
+          front: true, melee: false, breaksGuard: true,
+        });
+        if (landed && sk.slow) o.s.slowT = Math.max(o.s.slowT, sk.slow);
       }
-      case SkillId.Trap: {
-        const T = SKILL_FX.trap;
-        for (let i = this.traps.length - 1; i >= 0; i--) if (this.traps[i].owner === f.id) this.traps.splice(i, 1);
-        const tx = Math.max(20, Math.min(this.arena.w - 20, s.x + s.face * 26));
-        this.traps.push({ id: this.nextId++ % 65536, owner: f.id, x: tx, y: surfaceBelow(this.arena, tx, s.y), armAt: this.tick + T.arm, until: this.tick + T.life });
-        this.events.push({ t: 'shoot', p: f.id, kind: 3 });
-        break;
-      }
-      case SkillId.Blink: {
-        const x1 = s.x;
-        this.events.push({ t: 'blink', p: f.id, x0: x1 - s.face * SKILL_FX.blink.dist, x1, y: s.y });
-        break;
-      }
+    } else {
+      f.skillHit = false;
     }
+  }
+
+  /** A dash special's body hits the opponent once while it is active. */
+  private checkSkillDash(f: Fighter) {
+    const s = f.s;
+    if (s.act !== Act.Skill || f.skillHit) return;
+    const sk = SKILLS[f.load.skill];
+    if (!sk || sk.kind !== 'dash' || s.actT < sk.startup || s.actT >= sk.startup + (sk.active ?? 0)) return;
+    const o = this.opponent(f);
+    if (!o || o.s.act === Act.KO || o.s.invuln > 0) return;
+    const hb = bodyBox(s.x + s.face * 14, s.y);
+    hb.w += 18;
+    if (!overlap(hb, bodyBox(o.s.x, o.s.y, !!o.s.crouch))) return;
+    f.skillHit = true;
+    const front = (o.s.face > 0) !== (s.x > o.s.x);
+    this.applyHit(f, o, {
+      dmg: sk.dmg, kbX: sk.kb, kbY: sk.kbY ?? 160, stun: sk.stun, crit: true, w: SKILL_WEAPON, x: o.s.x, y: o.s.y - FIGHTER.h / 2,
+      front, melee: true, breaksGuard: !!sk.unblockable,
+    });
   }
 
   private stepProjectiles() {
@@ -660,7 +707,12 @@ export class World {
         out.push(p);
         continue;
       }
-      const g = p.kind === 'bomb' ? SKILL_FX.bomb.gravity : p.kind === 'arrow' ? (p.heavy ? 120 : 330) : 0;
+      const g = p.gravity ?? (p.kind === 'bomb' ? SKILL_FX.bomb.gravity : p.kind === 'arrow' ? (p.heavy ? 120 : 330) : 0);
+      // a thrown shield turns back once, halfway through its flight
+      if (p.boomerang && p.life === p.boomerang) {
+        p.vx = -p.vx;
+        p.boomerang = 0;
+      }
       p.vy += g * DT;
       const px = p.x;
       const py = p.y;
@@ -697,10 +749,10 @@ export class World {
           const front = (p.vx < 0) === (f.s.face > 0);
           const guardOk = isBlocking(f.s) && front;
           const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' || p.kind === 'relic' || p.kind === 'hand' || p.kind === 'steed' ? 106 : 101;
-          const kbY = p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40;
+          const kbY = p.kbY ?? (p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40);
           const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable });
           // the Phantom Hand crushes the heart it grasps and feeds its master
-          if (landed && p.kind === 'hand' && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.5));
+          if (landed && p.kind === 'hand' && !p.skin && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.5));
           if (p.burn) f.s.burnT = Math.max(f.s.burnT, p.burn);
           if (p.pierce) {
             // trampled once: keeps running, harmless now
@@ -710,6 +762,8 @@ export class World {
             continue;
           }
           if (p.kind === 'frost' && !guardOk) f.s.slowT = SKILL_FX.frost.slowTicks;
+          if (landed && p.slow) f.s.slowT = Math.max(f.s.slowT, p.slow);
+          if (landed && p.root) f.s.rootT = Math.max(f.s.rootT, p.root);
         }
         dead = true;
       }

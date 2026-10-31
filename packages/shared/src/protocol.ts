@@ -174,7 +174,7 @@ export interface NetFighter {
 /** A Thunder Call strike that has locked on (the marker), ticks until it lands. */
 export interface NetStrike { id: number; x: number; y: number; left: number; kind: number }
 
-export interface NetProjectile { id: number; kind: ProjKind; x: number; y: number; vx: number; vy: number; heavy: boolean }
+export interface NetProjectile { id: number; kind: ProjKind; x: number; y: number; vx: number; vy: number; heavy: boolean; /** hero special: skill id + 1 (0 none) */ skin: number }
 export interface NetTrap { id: number; owner: number; x: number; y: number; armed: boolean }
 
 export interface Snapshot {
@@ -216,7 +216,7 @@ export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Arra
   const shown = world.projectiles.filter((p) => !p.wait).slice(0, 255);
   w.u8(shown.length);
   for (const p of shown) {
-    w.u16(p.id).u8(PROJ_KINDS.indexOf(p.kind) | (p.heavy ? 128 : 0)).u16(encX(p.x)).u16(encY(p.y)).i16(i16c(p.vx)).i16(i16c(p.vy));
+    w.u16(p.id).u8(PROJ_KINDS.indexOf(p.kind) | (p.heavy ? 128 : 0)).u16(encX(p.x)).u16(encY(p.y)).i16(i16c(p.vx)).i16(i16c(p.vy)).u8(p.skin ?? 0);
   }
   w.u8(Math.min(255, world.traps.length));
   for (const t of world.traps.slice(0, 255)) w.u16(t.id).u8(t.owner).u16(encX(t.x)).u16(encY(t.y)).u8(world.tick >= t.armAt ? 1 : 0);
@@ -293,7 +293,7 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
   const projectiles: NetProjectile[] = [];
   for (let i = 0; i < np; i++) {
     const id = r.u16(), k = r.u8();
-    projectiles.push({ id, kind: PROJ_KINDS[k & 127] ?? 'arrow', heavy: !!(k & 128), x: decX(r.u16()), y: decY(r.u16()), vx: r.i16(), vy: r.i16() });
+    projectiles.push({ id, kind: PROJ_KINDS[k & 127] ?? 'arrow', heavy: !!(k & 128), x: decX(r.u16()), y: decY(r.u16()), vx: r.i16(), vy: r.i16(), skin: r.u8() });
   }
   const nt = r.u8();
   const traps: NetTrap[] = [];

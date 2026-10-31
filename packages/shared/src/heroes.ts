@@ -4,7 +4,7 @@
  * second weapon and skill stay the player's choice.
  */
 import { ArtId, ClassId } from './classes';
-import { isSkill, isWeapon, Loadout, SkillId, WeaponId } from './weapons';
+import { isWeapon, Loadout, SkillId, WeaponId } from './weapons';
 
 export interface HeroDef {
   id: number;
@@ -62,7 +62,7 @@ export const artIdOf = (load: { hero?: number; cls: number }) => heroOf(load.her
 /** Signature weapon per class (ClassId order). */
 const SIGNATURE: WeaponId[] = [WeaponId.Sword, WeaponId.Bow, WeaponId.Lance, WeaponId.Staff, WeaponId.Daggers, WeaponId.Hammer, WeaponId.Shield, WeaponId.Scythe];
 
-export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Sword], skill: SkillId.Bomb, cls: ClassId.Saber, hero: 0 };
+export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Sword], skill: 0, cls: ClassId.Saber, hero: 0 };
 
 /** Validate an untrusted loadout: the hero fixes the class and the kit (the signature weapon in both slots: A light, B heavy). */
 export function sanitizeLoadout(v: unknown): Loadout {
@@ -75,5 +75,6 @@ export function sanitizeLoadout(v: unknown): Loadout {
   }
   const cls = HEROES[hero].cls;
   const w0 = SIGNATURE[cls];
-  return { weapons: [w0, w0], skill: isSkill(o.skill) ? o.skill : DEFAULT_LOADOUT.skill, cls, hero };
+  // the kit: the hero's own weapon and its own signature special (skill N belongs to hero N)
+  return { weapons: [w0, w0], skill: hero as SkillId, cls, hero };
 }

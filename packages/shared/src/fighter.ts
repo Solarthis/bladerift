@@ -7,8 +7,8 @@
 import { ArenaDef, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS } from './constants';
 import { Btn, InputCmd } from './input';
-import { Loadout, Move, SKILL_FX, SKILLS, SkillId, WEAPONS } from './weapons';
-import { ArtId, ARTS, classOf, ClassDef, RIFT } from './classes';
+import { Loadout, Move, SKILLS, WEAPONS } from './weapons';
+import { ArtId, ARTS, ClassId, classOf, ClassDef, RIFT } from './classes';
 import { artIdOf } from './heroes';
 
 export const enum Act {
@@ -261,6 +261,42 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     s.skillCd = Math.round(sk.cooldown * C.skillCd);
     s.spawn = 0;
     s.crouch = 0;
+  } else if (b === Buf.Roll && isFlashStepper(load)) {
+    // Flash Step: the assassin is simply somewhere else - along the stick (up and diagonals too), or, with no direction
+    // and the opponent close, right behind them for the backstab
+    if (s.ground ? s.rollCd > 0 : s.dash >= C.dashes) return false;
+    let dx = cmd.moveX;
+    let dy = cmd.moveY;
+    const still = Math.abs(dx) < 0.3 && Math.abs(dy) < 0.3;
+    let vx: number;
+    let vy: number;
+    const T = FLASH.ticks * DT;
+    if (still && FOE && Math.abs(FOE.x - s.x) < FLASH.behindRange && Math.abs(FOE.y - s.y) < 90) {
+      const half = FIGHTER.w / 2;
+      let tx = FOE.x - FOE.face * 30;
+      if (tx < half || tx > arena.w - half) tx = FOE.x + FOE.face * 30;
+      vx = (tx - s.x) / T;
+      vy = (FOE.y - s.y) / T;
+      s.face = FOE.x >= tx ? 1 : -1;
+    } else {
+      if (still) dx = s.face;
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len;
+      dy /= len;
+      vx = (dx * FLASH.dist) / T;
+      vy = (dy * FLASH.dist) / T;
+      if (Math.abs(dx) > 0.2) s.face = dx > 0 ? 1 : -1;
+    }
+    s.act = Act.Roll;
+    s.actT = 0;
+    s.rollAir = 2;
+    s.vx = vx;
+    s.vy = vy;
+    if (!s.ground || vy < 0) s.dash++;
+    if (vy < 0) s.ground = 0;
+    s.fast = 0;
+    s.crouch = 0;
+    s.invuln = Math.max(s.invuln, FLASH.invuln);
   } else if (b === Buf.Roll) {
     // on the ground a roll (cooldown); in the air a dash, once per airtime
     if (s.ground ? s.rollCd > 0 : s.dash >= C.dashes) return false;
@@ -394,7 +430,15 @@ function flashStepMove(s: FighterState, foe: FoeView, t: number, arena: ArenaDef
   if (t >= 14 && t <= 44 && (t - 14) % 6 === 0 && Math.abs(foe.x - s.x) < 90 && Math.abs(foe.y - s.y) < 90) behind();
 }
 
+/** The opponent this step (set by stepFighter; read by tryBuffered's Flash Step). */
+let FOE: FoeView | undefined;
+
+/** Flash Step (the Assassins' dodge): a near-instant step in any direction, or behind the opponent. */
+export const FLASH = { ticks: 4, settle: 4, dist: 150, behindRange: 230, invuln: 9 } as const;
+export const isFlashStepper = (load: Loadout) => load.cls === ClassId.Assassin;
+
 export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, load: Loadout, foe?: FoeView) {
+  FOE = foe;
   const locked = s.lock > 0 || s.act === Act.KO || s.act === Act.Win;
   const cmd = locked ? { ...cmdIn, moveX: 0, moveY: 0, buttons: 0 } : cmdIn;
   const btn = cmd.buttons;
@@ -447,6 +491,21 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       break;
     }
     case Act.Roll: {
+      if (s.rollAir === 2) {
+        // Flash Step: the step itself (gravity-free, the velocity set at the start), then a short settle
+        gravity = false;
+        if (s.actT > FLASH.ticks) {
+          s.vx *= 0.35;
+          s.vy = Math.min(s.vy * 0.2, 0);
+        }
+        if (s.actT >= FLASH.ticks + FLASH.settle) {
+          s.act = Act.Free;
+          s.actT = 0;
+          s.rollAir = 0;
+          if (s.ground) s.rollCd = Math.round(FIGHTER.rollCooldown * C.rollCd);
+        }
+        break;
+      }
       if (s.rollAir) {
         // air dash: a straight, gravity-free burst, then normal falling
         s.vx = s.face * PHYS.dashSpeed * speedK * (s.actT > PHYS.dashFloat ? 0.6 : 1);
@@ -525,17 +584,23 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       break;
     }
     case Act.Skill: {
-      const sk = SKILLS[load.skill];
-      s.vx = approach(s.vx, 0, (s.ground ? PHYS.groundDecel : PHYS.airDecel) * DT);
-      if (s.actT === sk.startup) {
-        s.spawn = 1;
-        if (load.skill === SkillId.Blink) {
-          s.x = blinkTarget(s, arena);
-          s.invuln = Math.max(s.invuln, SKILL_FX.blink.invuln);
-          s.vy = Math.min(s.vy, 0);
+      const sk = SKILLS[load.skill] ?? SKILLS[0];
+      const dashing = sk.kind === 'dash' && s.actT >= sk.startup && s.actT < sk.startup + (sk.active ?? 0);
+      if (sk.kind === 'dash' && s.actT === sk.startup) {
+        // the lunge: the leap or the charge carries the hero
+        s.vx = s.face * (sk.vx ?? 0) * speedK;
+        if (sk.vy) {
+          s.vy = sk.vy;
+          s.ground = 0;
         }
-      }
-      if (s.actT >= sk.startup + sk.recovery) {
+      } else if (dashing) {
+        if (!sk.vy) s.vx = s.face * (sk.vx ?? 0) * speedK;
+      } else s.vx = approach(s.vx, 0, (s.ground ? PHYS.groundDecel : PHYS.airDecel) * DT);
+      if (s.actT === sk.startup) s.spawn = 1;
+      const len = sk.startup + (sk.kind === 'dash' ? (sk.active ?? 0) : 0) + sk.recovery;
+      // a leap ends when it lands
+      const landed = sk.kind === 'dash' && !!sk.vy && s.ground && s.actT > sk.startup + 4;
+      if (s.actT >= len || landed) {
         s.act = Act.Free;
         s.actT = 0;
       }
@@ -598,6 +663,13 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       if (s.buf === Buf.Special && s.move !== MOVE_ART && startArt(s, C, ART)) {
         s.buf = 0;
         break;
+      }
+      // an Assassin can Flash Step out of (or through) any attack
+      if (s.buf === Buf.Roll && isFlashStepper(load) && s.move !== MOVE_ART) {
+        const act = s.act;
+        s.act = Act.Free;
+        if (tryBuffered(s, cmd, arena, load)) break;
+        s.act = act;
       }
       const jumpCancel = s.buf === Buf.Jump && s.confirm > 0 && s.actT >= end;
       if (jumpCancel || (s.actT >= chainAt && (s.buf === Buf.A || s.buf === Buf.B || s.buf === Buf.Roll || s.buf === Buf.Skill))) {
@@ -706,18 +778,6 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   }
   if (!s.ground) s.crouch = 0;
   grabLedge(s, cmd, arena, C);
-}
-
-/** Where a blink lands: up to its distance ahead, stopping short of a block in the way. */
-function blinkTarget(s: FighterState, arena: ArenaDef) {
-  const half = FIGHTER.w / 2;
-  let x = Math.max(half, Math.min(arena.w - half, s.x + s.face * SKILL_FX.blink.dist));
-  for (const b of arena.blocks) {
-    if (!(s.y > b.y + 0.5 && s.y - FIGHTER.h < b.y + b.h)) continue;
-    if (s.face > 0 && s.x < b.x && x + half > b.x) x = Math.min(x, b.x - half);
-    if (s.face < 0 && s.x > b.x + b.w && x - half < b.x + b.w) x = Math.max(x, b.x + b.w + half);
-  }
-  return x;
 }
 
 /** Move by the velocity against the arena: side walls, block sides, floors, platform and block tops, block undersides. */

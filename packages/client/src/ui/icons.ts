@@ -1,4 +1,4 @@
-import { heroOf, SkillId, WeaponId } from '@bladerift/shared';
+import { heroOf, WeaponId } from '@bladerift/shared';
 
 // Square framed icons (tools/art-gen: icons-gear / icons-abilities sheets, sliced by slice.py).
 const W: Record<number, string> = {
@@ -11,19 +11,15 @@ const W: Record<number, string> = {
   [WeaponId.Shield]: 'g-shield',
   [WeaponId.Staff]: 'g-staff',
 };
-const S: Record<number, string> = {
-  [SkillId.Bomb]: 'k-bomb',
-  [SkillId.Frost]: 'k-frost',
-  [SkillId.Trap]: 'k-trap',
-  [SkillId.Blink]: 'k-blink',
-};
+/** Each hero's special has its own painted icon (k-00.jpg .. k-13.jpg, by skill id = hero id); i-art until it exists. */
+const S: Record<number, string> = Object.fromEntries(Array.from({ length: 14 }, (_, i) => [i, `k-${String(i).padStart(2, '0')}`]));
 // every Rift Art, in ArtId order (icons-abilities + icons-arts2 sheets)
 const ARTS = ['a-cleave', 'a-hail', 'a-fang', 'a-thunder', 'a-flash', 'a-frenzy', 'a-bulwark', 'a-vault', 'a-chains', 'a-fate', 'a-hand', 'a-fog', 'a-stampede', 'a-hunt'];
 const CRESTS = ['c-saber', 'c-archer', 'c-lancer', 'c-caster', 'c-assassin', 'c-berserker', 'c-shielder'];
 
 const art = (n: string) => `assets/art/${n}.jpg`;
 export const weaponIcon = (w: number) => art(W[w] ?? 'g-sword');
-export const skillIcon = (s: number) => art(S[s] ?? 'k-bomb');
+export const skillIcon = (s: number) => art(S[s] ?? 'i-art');
 /** A Rift Art's own icon (by ArtId). */
 export const artIconOf = (id: number) => art(ARTS[id] ?? 'i-art');
 /** The icon of a hero's signature Rift Art. */
