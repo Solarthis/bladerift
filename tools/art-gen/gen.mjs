@@ -230,6 +230,59 @@ Fully transparent background around the strips, NO text, NO labels, NO character
   },
 };
 
+// Super cut-in busts (MUGEN-style slanted panel during a super flash): one job per hero, cut-NN = hero index.
+// Reference = the hero's own approved design (character.json refs[0]) plus its portrait card; description = its bible.
+// Post-processing (keying, crop, 640 px) is tools/art-gen/cutin.py.
+const CUT_HEROES = [
+  { id: 'h00-leon', expr: 'a regal battle roar, sword raised high, lion-like defiance', glow: 'blue-white sword light with gold sparks' },
+  { id: 'h01-kharon', expr: 'a grim, pained snarl of hunter fury, the curse chains flaring', glow: 'amber-orange fire-arrow light' },
+  { id: 'h02-aurelion', expr: 'a cold, superior smirk with blazing crimson eyes and the chin lifted', glow: 'gold light with crimson sparks', weapon: 'He has NO bow anywhere. Behind his shoulders two or three glowing golden rift PORTALS open, and gold and silver swords thrust out of them with their blade tips toward the viewer; one open hand is raised in an imperious gesture of command.' },
+  { id: 'h03-nyx', expr: 'a fierce, wild battle cry with glowing ice-blue eyes', glow: 'icy cyan spectral light and pale ghostly jellyfish spirits' },
+  { id: 'h04-verdan', expr: 'a serene, unsettling calm with a faint knowing smile and narrowed gold-green eyes', glow: 'gold and jade-green chain light', weapon: 'Living GOLDEN CHAINS coil around the bust and one raised hand. There is NO lance and no spear.' },
+  { id: 'h05-lumi', expr: 'a sly, playful grin with a fierce sparkle in the violet eyes', glow: 'soft pink and violet arcane light and floating sigils' },
+  { id: 'h06-quill', expr: 'a booming laugh, a wide roguish grin, eyes bright with mischief and power', glow: 'orange ink-and-ember light, golden ink lines' },
+  { id: 'h07-hollowmask', expr: 'a cold, eerie stillness: the bone skull mask, teal light blazing inside the eye sockets', glow: 'mint-teal spectral light' },
+  { id: 'h08-sable', expr: 'an intense focused stare, the veil taut, a cyan blade flash across the face', glow: 'cyan shadow light and a slash of cyan light' },
+  { id: 'h09-gorvax', expr: 'a monstrous roaring snarl, fangs bared, steam venting from the jaw', glow: 'blood-red rage light and red steam', weapon: 'Beast CLAWS and FANGS only: no hammer, no weapon in hand. Clawed hands may be shown at the bottom edge.' },
+  { id: 'h10-gray', expr: 'a polite, chilling half-smile with grey fog pouring off the face', glow: 'pale silver mist light', weapon: 'He holds SURGICAL KNIVES / SCALPELS, glinting steel, in his gloved hands. There is NO baton and no cudgel. Fog surrounds him.' },
+  { id: 'h11-ignis', expr: 'an exhilarated fierce battle cry, a fiery grin, eyes burning amber', glow: 'fiery orange-red light and flames', weapon: 'Alexander carries a short Greek SWORD (a kopis) with a curved blade, and wears a flowing CRIMSON cloak. There is NO scythe.' },
+  { id: 'h12-thornmaw', expr: 'a quiet, grim, unsmiling stare with the lips set, violet eyes glowing', glow: 'violet spectral light and shadow wolf-hound glow' },
+  { id: 'h13-aegis', expr: 'a stoic, unbreakable clenched-jaw resolve, teal eyes glowing', glow: 'pale silver and teal shield light' },
+];
+
+function cutPrompt(i, ch) {
+  const h = CUT_HEROES[i];
+  return `ONE CUT-IN BUST for the 2D anime fighting game BLADERIFT: the super-move cut-in of ${ch.name} (${ch.epithet}), an ORIGINAL character
+(it must NOT resemble any existing anime, manga, game or film character).
+
+REFERENCES: the FIRST attached image is ${ch.name}'s approved character design. Match the face, hair, colours, armour and costume EXACTLY:
+it is the same character. The SECOND attached image is the same character's portrait card: use it to confirm the face and hair.
+
+THE CHARACTER:
+${ch.bible}
+
+SHOT: portrait orientation, image 1024x1536. A head-and-shoulders, chest-up BUST, cropped at the bottom edge just below the chest.
+The head sits in the upper third and is large (the face about a quarter of the image height). The bust faces RIGHT: head and shoulders
+turned in three-quarter profile toward the right edge, the gaze sharp toward the right. The shoulders may run off the left and right edges.
+EXPRESSION: an intense super-move expression: ${h.expr}. Eyes focused and blazing, brows hard down, hair and cloth whipped back by the
+wind of the energy.
+ENERGY: the hero's energy glow streams around the bust: ${h.glow}. Bright rim light on one side, sparks and speed streaks, painted (not
+blurred), strong and clearly readable.${h.weapon ? `\nWEAPON AND PROPS (overrides the bible and the references where they differ): ${h.weapon}` : ''}
+STYLE: the same premium high-detail anime fighting-game art as the approved design: crisp clean linework, cel shading, metal highlights,
+dramatic lighting, sharp focus, rich colour.
+BACKGROUND: a flat, seamless, solid pure #FF00FF magenta backdrop filling the entire image: no gradient, no vignette, no haze, no floor,
+no shadow, no text. It is keyed out to transparency afterwards, so the figure, its armour and its glow must contain no #FF00FF magenta.
+NO text, NO letters, NO border, NO frame, NO logo.`;
+}
+
+CUT_HEROES.forEach((h, i) => {
+  const ch = JSON.parse(readFileSync(join(root, 'art', 'characters', h.id, 'character.json'), 'utf8'));
+  JOBS[`cut-${String(i).padStart(2, '0')}`] = {
+    ref: [`../../../art/characters/${h.id}/${ch.refs[0]}`, `../../../art/characters/${h.id}/references/portrait.jpg`],
+    prompt: cutPrompt(i, ch),
+  };
+});
+
 function run(name) {
   return new Promise((resolve) => {
     const job = JOBS[name];
@@ -240,7 +293,8 @@ and print the source path and the final path. Do not create or modify any other 
 
 ${job.prompt}`;
     const t0 = Date.now();
-    const imgs = job.ref ? ['-i', join(CP_REF, job.ref)] : [];
+    const refs = job.ref ? [job.ref].flat() : [];
+    const imgs = refs.flatMap((r) => ['-i', join(CP_REF, r)]);
     const p = spawn(CODEX, ['exec', '--skip-git-repo-check', '-m', 'gpt-6.1-sol', ...imgs, '--', instr], { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let buf = '';
     p.stdout.on('data', (d) => (buf += d));
