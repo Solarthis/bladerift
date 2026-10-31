@@ -196,12 +196,18 @@ function markHintSeen() {
 }
 
 const STICK_R = 46;
-const STICK_DEAD = 0.22;
+/** The stick's dead zone, with hysteresis: a resting thumb never creeps the hero along (it must pass STICK_ON to start
+ * moving and fall under STICK_OFF to stop), and past it the push is rescaled so a firm push is a full run. */
+const STICK_ON = 0.34;
+const STICK_OFF = 0.24;
+const STICK_FULL = 0.8;
 
 /** On-screen controls: a floating joystick on the left half, the thumb cluster on the right. */
 export class TouchSource implements InputSource {
   readonly root: HTMLElement;
   private stick = { id: -1, ox: 0, oy: 0, x: 0, y: 0 };
+  /** The stick is past its dead zone (see STICK_ON / STICK_OFF). */
+  private moving = false;
   private pressed = new Map<number, number>();
   private knob: HTMLElement;
   private base: HTMLElement;
@@ -290,8 +296,8 @@ export class TouchSource implements InputSource {
     this.arrow.style.transform = `rotate(${deg}deg)`;
     this.base.style.setProperty('--mag', mag.toFixed(2));
     const { x, y } = this.stick;
-    this.base.classList.toggle('lit-l', x < -STICK_DEAD);
-    this.base.classList.toggle('lit-r', x > STICK_DEAD);
+    this.base.classList.toggle('lit-l', x < -STICK_ON);
+    this.base.classList.toggle('lit-r', x > STICK_ON);
     this.base.classList.toggle('lit-d', y > 0.6);
   }
 
@@ -317,7 +323,10 @@ export class TouchSource implements InputSource {
   read(): Intent {
     let b = 0;
     for (const bit of this.pressed.values()) b |= bit;
-    const x = Math.abs(this.stick.x) < STICK_DEAD ? 0 : this.stick.x;
+    const ax = Math.abs(this.stick.x);
+    this.moving = ax >= (this.moving ? STICK_OFF : STICK_ON);
+    // past the dead zone: from a walk at the edge of it to a full run at STICK_FULL (never under the fighter's turn threshold)
+    const x = this.moving ? Math.sign(this.stick.x) * Math.min(1, 0.35 + (0.65 * Math.max(0, ax - STICK_OFF)) / (STICK_FULL - STICK_OFF)) : 0;
     return { moveX: x, moveY: this.stick.y > 0.6 ? 1 : 0, buttons: b };
   }
 
