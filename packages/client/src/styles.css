@@ -184,6 +184,9 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 .title-hero { position: absolute; bottom: 0; z-index: 1; width: 34vw; height: 82%; pointer-events: none; filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.6)); }
 .title-hero.left { left: 0; }
 .title-hero.right { right: 0; }
+/* a swing that reaches past the canvas fades out toward the menu instead of stopping at a hard edge */
+.title-hero.left { -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent); mask-image: linear-gradient(90deg, #000 72%, transparent); }
+.title-hero.right { -webkit-mask-image: linear-gradient(270deg, #000 72%, transparent); mask-image: linear-gradient(270deg, #000 72%, transparent); }
 .screen-title .title-wrap { position: relative; z-index: 2; }
 .screen-title .menu button.big {
   min-width: 290px; background: linear-gradient(180deg, rgba(42, 30, 58, 0.88), rgba(22, 15, 32, 0.92));
