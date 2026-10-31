@@ -71,14 +71,14 @@
   "art:3": {
    "h": 386,
    "feetDrift": 1,
-   "spill": 29094,
-   "anchorX": 346
+   "spill": 26649,
+   "anchorX": 342
   },
   "art:4": {
-   "h": 330,
+   "h": 365,
    "feetDrift": -5,
-   "spill": 16,
-   "anchorX": 264
+   "spill": 1121,
+   "anchorX": 271
   },
   "art:5": {
    "h": 362,
@@ -221,14 +221,14 @@
   "dash:4": {
    "h": 318,
    "feetDrift": -65,
-   "spill": 2219,
+   "spill": 2198,
    "anchorX": 83
   },
   "dash:5": {
    "h": 309,
    "feetDrift": null,
-   "spill": 4817,
-   "anchorX": 239
+   "spill": 8789,
+   "anchorX": 244
   },
   "dash:6": {
    "h": 444,

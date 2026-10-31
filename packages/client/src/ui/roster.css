@@ -138,6 +138,14 @@
 
 .hs-portrait { display: flex; flex-direction: column; align-items: center; gap: 8px; overflow: hidden; }
 .hs-frame { flex: 1; min-height: 0; width: 100%; position: relative; }
+/* the live sprite stands in front of the portrait's lower corner, over a soft floor shadow */
+/* with a live sprite the portrait moves left and the sprite gets its own stage on the right */
+.hs-frame:has(.hs-sprite:not([hidden])) img { left: 0; transform: none; max-width: 56%; }
+.hs-sprite {
+  position: absolute; right: 0; bottom: 0; width: 46%; height: 100%; pointer-events: none;
+  background: radial-gradient(ellipse 40% 6% at 42% 96%, rgba(0, 0, 0, 0.55), transparent 70%);
+  filter: drop-shadow(0 0 6px rgba(10, 6, 20, 0.85));
+}
 .hs-frame img {
   position: absolute;
   top: 0;

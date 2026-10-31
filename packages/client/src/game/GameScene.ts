@@ -216,6 +216,8 @@ interface FighterView {
   wasGround: boolean;
   /** Clock time of the last touchdown (the landing squash). */
   landAt: number;
+  /** Clock time the fighter last left the ground (a sprite's jump take-off frame). */
+  airAt: number;
   status: Partial<Record<StatusKind, FxSprite>>;
   stunnedUntil: number;
   koT: number;
@@ -563,6 +565,9 @@ export class GameScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ fighters
 
+  /** Clock time the current round intro started (null outside an intro). */
+  private introAt: number | null = null;
+
   private viewFor(v: ViewFighter): FighterView {
     let fv = this.views.get(v.id);
     // a fighter that changed hero (a rematch) gets a fresh view
@@ -584,7 +589,7 @@ export class GameScene extends Phaser.Scene {
       .setDepth(30);
     fv = {
       id: v.id, hero: v.hero, canvas, img, rigImg: img, sprite: null, tag, ghosts: [], ghostI: 0, ghostAt: 0, frozenT: 0, freezeUntil: 0, flashUntil: 0, lastSeq: -1, runPhase: 0,
-      lastX: v.x, wasGround: true, landAt: -10, status: {}, stunnedUntil: 0, koT: 0, color, shown: null,
+      lastX: v.x, wasGround: true, landAt: -10, airAt: -10, status: {}, stunnedUntil: 0, koT: 0, color, shown: null,
       gfxB: this.add.graphics().setDepth(9), gfx: this.add.graphics().setDepth(11), hist: [], hound: null, veilOn: false,
     };
     for (let i = 0; i < 4; i++) {
@@ -633,6 +638,7 @@ export class GameScene extends Phaser.Scene {
     const speed = Math.abs(v.vx);
     if (v.ground && speed > 25) fv.runPhase += dt * (6 + speed / 28);
     if (v.ground && !fv.wasGround) fv.landAt = this.clock;
+    if (!v.ground && fv.wasGround) fv.airAt = this.clock;
     const pose = poseFor({ ...v, actTf: t }, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt });
     const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : 0;
     const tint = v.slowed ? 0xffffd2a8 : 0;
@@ -646,7 +652,14 @@ export class GameScene extends Phaser.Scene {
       }
     }
     if (fv.sprite) {
-      fv.sprite.draw({ ...v, actTf: t }, v.x, v.y, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt }, flash, tint);
+      // the round intro: each fighter plays its entrance while the round is being announced
+      const g = this.game0;
+      if (g?.phase === 'intro') this.introAt ??= this.clock;
+      else this.introAt = null;
+      fv.sprite.draw({ ...v, actTf: t }, v.x, v.y, {
+        time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt, air: this.clock - fv.airAt,
+        introT: this.introAt === null ? undefined : this.clock - this.introAt,
+      }, flash, tint);
     } else {
       fv.canvas.draw(stripXY(pose), flash, tint);
       fv.img.setPosition(v.x, v.y).setFlipX(v.face < 0);

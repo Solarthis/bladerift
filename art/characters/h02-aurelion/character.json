@@ -7,11 +7,10 @@
     "references/design.png"
   ],
   "designRefs": [
-    "../h00-leon/references/approved-sheet.png",
-    "references/portrait.jpg"
+    "../h00-leon/references/approved-sheet.png"
   ],
-  "bible": "A slender, regal golden king, tall and straight-backed, chin lifted in arrogance. Fair flawless face with sharp cheekbones, a disdainful half-smile and heavy half-lidded CRIMSON eyes that glow faintly. Long pale GOLDEN hair, slicked straight back from the brow with no fringe, falling smoothly to the waist. Full armour of polished GILT GOLD plate with ivory-cream enamel panels: a high gilded gorget rising behind the neck with two spikes, sharp swept-back gold pauldrons ending in points, a fitted cuirass with a crimson enamel centre plate, gold gauntlets, a skirt of gold lames over plum-black trousers and polished gold greaves with pointed toes. A black velvet mantle hangs from his shoulders, its inside lined in CRIMSON silk that flashes as it swings. WEAPON: an ornate golden recurve BOW of gilded bronze, slimmer than a greatbow and about as tall as his head and shoulders, with sun-disc finials on both tips and a pale gold cord. He holds it extended forward in his LEFT hand at the wrapped grip and draws the cord with his RIGHT hand to the cheek. Energy and trails: molten GOLD light with a white-hot core, gold rift rings and gold sparks.",
-  "design": "- top row: full-body neutral stance facing right, chin lifted, the golden bow extended forward in the left hand; a three-quarter close-up of the head with golden hair slicked back and crimson eyes; a close view of the bow's sun-disc finials and gold grip\n- second row: a combat stance with the bow held low; the full draw with the cord at the cheek; a stepping pose with the black mantle and crimson lining swinging; a jump with the bow raised\n- third row: an arrow release with a molten-gold trail; a plunge with the bow pointed down and a golden arrow nocked; a fully drawn power shot inside a golden rift ring; a regal crouched guard\n- bottom row: a hit reaction, a knocked-down pose, a victory pose with arms spread and a golden rift ring behind him, the Vault of Ages with golden portals firing a storm of golden weapons",
+  "bible": "A tall, lean, regal golden king with a proud straight back and lifted chin. A NEAT, refined, handsome face drawn with clean precise lines: smooth fair skin, a sharp elegant jaw, high cheekbones, thin straight brows, narrow almond CRIMSON eyes with a cool, superior gaze, and a small composed smirk - no stubble, no scars, no clutter. SHORT golden-blond hair swept UP and BACK off the forehead in sharp, stiff, upward spikes, short at the nape, with two thin strands falling at the temples (never long, never past the ears). Full armour of polished GOLD plate, sleek and close-fitting: rounded layered pauldrons, a sculpted cuirass with engraved sunburst filigree and small inlaid RUBY studs, articulated gold gauntlets, a black fitted undersuit visible at the elbows and neck, gold greaves with pointed sabatons. A long CRIMSON silk waist drape hangs from a gold fauld to the shins, front and back, splitting as he moves. No cape. A slim gold torc at the throat. WEAPON: an ornate golden recurve BOW of gilded bronze about as tall as his head and shoulders, sun-disc finials on both tips, a pale gold cord; held in his LEFT hand, drawn with the RIGHT to the cheek. Energy and trails: molten GOLD light with a white-hot core, golden rift rings and sparks.",
+  "design": "- top row: full-body neutral stance facing right, chin lifted, the golden bow extended forward in the left hand; a three-quarter close-up of the head with short golden hair swept up and back in spikes, a neat refined face and crimson eyes; a close view of the bow's sun-disc finials and gold grip\n- second row: a combat stance with the bow held low; the full draw with the cord at the cheek; a stepping pose with the crimson waist drape swinging; a jump with the bow raised\n- third row: an arrow release with a molten-gold trail; a plunge with the bow pointed down and a golden arrow nocked; a fully drawn power shot inside a golden rift ring; a regal crouched guard\n- bottom row: a hit reaction, a knocked-down pose, a victory pose with arms spread and a golden rift ring behind him, the Vault of Ages with golden portals firing a storm of golden weapons",
   "sheets": {
     "atk-a": {
       "title": "Basic combo strikes 1 and 2: golden arrow shots (3 frames each)",
@@ -23,10 +22,10 @@
       "frames": [
         "combo strike 1, anticipation: he draws a golden arrow from the glowing quiver at his hip and nocks it, the bow extended forward in the left hand, the right hand pulling the cord back",
         "combo strike 1, strike: the golden arrow released forward in a fast, clean line with a molten-gold trail, kept inside this cell",
-        "combo strike 1, recovery: the bow lowered with disdain, the chin lifted, the black mantle settling",
+        "combo strike 1, recovery: the bow lowered with disdain, the chin lifted, the crimson waist drape settling",
         "combo strike 2, anticipation: a precise, measured draw with the bow raised high, a gold arrowhead glowing in the rift light",
         "combo strike 2, strike: a second golden arrow shot in a diagonal downward arc with a bright gold arc trail kept inside this cell",
-        "combo strike 2, recovery: follow-through with the bow swept back, the mantle flaring to show its crimson lining"
+        "combo strike 2, recovery: follow-through with the bow swept back, the crimson waist drape flaring"
       ]
     },
     "atk-b": {
@@ -39,7 +38,7 @@
       "frames": [
         "combo finisher, anticipation: the bow drawn back past his ear, a golden rift ring opening at the arrowhead, the front foot stepping in",
         "combo finisher, strike: a volley of three golden arrows fired in a fan, each trailing a gold streak kept inside this cell, the strongest pose",
-        "combo finisher, recovery: full extension relaxing, the mantle flaring, settling back toward stance",
+        "combo finisher, recovery: full extension relaxing, the crimson waist drape flaring, settling back toward stance",
         "aerial attack, anticipation: in mid-air, the bow raised in one arm and a golden arrow nocked",
         "aerial attack, strike: a sweeping shot across the front of the body in mid-air, a gold arc trail kept inside this cell",
         "aerial attack, recovery: airborne, body tucked, the bow returning to a ready pose"
@@ -53,7 +52,7 @@
       ],
       "standFrac": 0.66,
       "frames": [
-        "plunge, dive: in mid-air diving straight down, the bow pointed toward the ground with a golden arrow nocked, gold speed lines and the mantle flying upward",
+        "plunge, dive: in mid-air diving straight down, the bow pointed toward the ground with a golden arrow nocked, gold speed lines and the crimson waist drape flying upward",
         "plunge, impact: landing in a low crouch, a golden arrow driven into the ground in front, a ring of gold light and dust bursting outward",
         "plunge, recovery: rising from the impact back toward stance",
         "heavy attack, charge: the bow drawn to full draw, a golden rift circle forming at the arrowhead, body coiled",
@@ -63,11 +62,11 @@
     }
   },
   "sheetNotes": {
-    "idle": "The bow stays in the LEFT hand, extended forward, its cord slack. The black velvet mantle billows gently in the breath and the crimson lining at its edge shows now and then. The chin stays lifted in every loop frame.",
-    "run": "He glides with a regal, unhurried stride, the bow carried extended in the left hand. The mantle streams back and the crimson lining flashes as it swings.",
-    "air": "Airborne, the bow stays in the left hand. In the rising and falling frames the black mantle flares upward with its crimson lining showing and gold sparks trail behind him.",
-    "art": "Vault of Ages, Aurelion's Rift Art. Anticipation 1: he raises the bow and the first tall oval golden rift frame, with a castle-spire silhouette inside, appears at his back. Anticipation 2: several golden portals blaze behind him and the bow is drawn full, power at its peak. Execution 3: legendary golden weapons (swords, spears, a halberd, a greatshield) burst out of the portals and point toward the opponent's side of the cell. Execution 4: a storm of the golden weapons flies forward across the right side of the cell. Keep every portal and every weapon inside the cell. Recovery 5: the portals dim and close, gold sparks falling. Recovery 6: back to stance, the bow in the left hand, the mantle settling.",
-    "misc": "Skill throw: he flicks a gold coin from his free right hand, and it bursts into a small shimmer of gold light as it flies forward. Taunt: he lifts one gauntleted finger, flicks it, and a tiny gold rift shimmers open in front of his palm, then he tilts his head back with an arrogant half-smile. Victory: he spreads both arms wide with the bow in one hand, a golden rift ring turning behind him with a few golden blades circling it, chin high, the mantle swept back to show its crimson lining.",
+    "idle": "The bow stays in the LEFT hand, extended forward, its cord slack. The crimson waist drape sways gently with the breath; the short swept-up hair stays crisp. The chin stays lifted in every loop frame.",
+    "run": "He glides with a regal, unhurried stride, the bow carried extended in the left hand. The crimson waist drape streams back as he moves.",
+    "air": "Airborne, the bow stays in the left hand. In the rising and falling frames the crimson waist drape flares upward and gold sparks trail behind him.",
+    "art": "Vault of Ages, Aurelion's Rift Art. Anticipation 1: he raises the bow and the first tall oval golden rift frame, with a castle-spire silhouette inside, appears at his back. Anticipation 2: several golden portals blaze behind him and the bow is drawn full, power at its peak. Execution 3: legendary golden weapons (swords, spears, a halberd, a greatshield) burst out of the portals and point toward the opponent's side of the cell. Execution 4: a storm of the golden weapons flies forward across the right side of the cell. Keep every portal and every weapon inside the cell. Recovery 5: the portals dim and close, gold sparks falling. Recovery 6: back to stance, the bow in the left hand, the waist drape settling.",
+    "misc": "Skill throw: he flicks a gold coin from his free right hand, and it bursts into a small shimmer of gold light as it flies forward. Taunt: he lifts one gauntleted finger, flicks it, and a tiny gold rift shimmers open in front of his palm, then he tilts his head back with an arrogant half-smile. Victory: he spreads both arms wide with the bow in one hand, a golden rift ring turning behind him with a few golden blades circling it, chin high, the crimson waist drape swept back.",
     "ko": "Intro: he strides in with chin high and the bow extended in the left hand while a golden rift ring snaps open behind him. He lifts the bow over his head in a regal salute, draws a golden arrow in one motion, flourishes the bow in a wide arc, then settles into the stance. Defeat: he staggers, drops to one knee with the bow slipping from his hand, then collapses forward."
   },
   "nativeHeight": 180

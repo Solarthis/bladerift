@@ -37,10 +37,11 @@ describe('kit: A light, B heavy', () => {
     expect(s.move).toBe(MOVE_PLUNGE);
   });
 
-  it('a charged weapon charges its power shot on B, and a quick tap still fires it', () => {
+  it('a charged weapon charges its power shot on B: held it fires the charged move, a tap the light shot', () => {
     const { s, step } = fighter(1); // Kharon: bow
     step(c(Btn.B));
     expect(s.act).toBe(Act.Charge);
+    for (let i = 0; i < 40; i++) step(c(Btn.B));
     step(c());
     expect(s.act).toBe(Act.Attack);
     expect(s.move).toBe(MOVE_CHARGED);

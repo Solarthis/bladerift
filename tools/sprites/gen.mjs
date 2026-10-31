@@ -36,8 +36,8 @@ indie fighting game. It must NOT resemble any existing anime, manga, game or fil
 
 The FIRST attached image is the approved HOUSE STYLE (another character of this game): copy its rendering exactly - the same
 premium high-detail anime fighting-game sprite style, line work, cel shading, metal highlights, proportions, scale and the
-same kind of sheet layout - but draw ${ch.name}, NOT the character shown there. The SECOND attached image is ${ch.name}'s portrait:
-match the face, hair, colours and costume from it.
+same kind of sheet layout - but draw ${ch.name}, NOT the character shown there.${(ch.designRefs ?? []).length > 1 ? ` The SECOND attached image is ${ch.name}'s portrait:
+match the face, hair, colours and costume from it.` : ' Follow the character description below exactly (it is a new design).'}
 
 THE CHARACTER:
 ${ch.bible}

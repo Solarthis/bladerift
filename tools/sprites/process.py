@@ -108,11 +108,45 @@ def split_cells(im, cols, rows):
         best = int(counts.argmax())
         if counts[best] >= 0.8 * area:
             assign[y:y + h, x:x + w][sub] = best
+        else:
+            # two frames touch: split the merged blob at its narrowest neck (watershed from each frame's core, the part
+            # of the blob well inside that frame's cell), not along a straight line through one of the figures
+            roi_owner = owner[y:y + h, x:x + w]
+            dist = cv2.distanceTransform(sub.astype(np.uint8), cv2.DIST_L2, 5)
+            markers = np.zeros(sub.shape, np.int32)
+            core = dist > max(2.0, float(dist.max()) * 0.25)
+            for cidx in np.unique(roi_owner[sub]):
+                seed = sub & core & (roi_owner == cidx)
+                # stay away from the cut band so a seed never starts inside the other figure
+                band = cv2.erode((roi_owner == cidx).astype(np.uint8), np.ones((1, 61), np.uint8)) > 0
+                seed &= band
+                if seed.any():
+                    markers[seed] = int(cidx) + 1
+            if len(np.unique(markers)) > 2:
+                elev = (255 - np.clip(dist / max(1e-3, dist.max()) * 255, 0, 255)).astype(np.uint8)
+                ws = cv2.watershed(cv2.cvtColor(elev, cv2.COLOR_GRAY2BGR), markers.copy())
+                lab_ws = np.where(ws > 0, ws - 1, roi_owner)
+                assign[y:y + h, x:x + w][sub] = lab_ws[sub]
     cells, spill = [], []
+    kernel = np.ones((5, 5), np.uint8)
     for k in range(cols * rows):
         r, c = divmod(k, cols)
         ox, oy = c * cw - pad, r * chh - pad
         can = np.zeros((chh + 2 * pad, cw + 2 * pad, 4), np.uint8)
+        mine = (assign == k) & solid
+        # small pieces that were cut off a NEIGHBOUR's frame touch that neighbour's pixels across the cut: drop them
+        # (the frame's own detached sparks never touch another frame)
+        others = cv2.dilate((solid & (assign != k) & (assign >= 0)).astype(np.uint8), kernel) > 0
+        n2, lab2, st2, _ = cv2.connectedComponentsWithStats(mine.astype(np.uint8), connectivity=8)
+        if n2 > 2:
+            main = 1 + int(np.argmax(st2[1:, 4]))
+            for j in range(1, n2):
+                if j == main or st2[j, 4] >= 0.4 * st2[main, 4]:
+                    continue
+                x2, y2, w2, h2, _a = st2[j]
+                sub = lab2[y2:y2 + h2, x2:x2 + w2] == j
+                if (others[y2:y2 + h2, x2:x2 + w2] & sub).any():
+                    assign[y2:y2 + h2, x2:x2 + w2][sub] = -1
         ys, xs = np.nonzero((assign == k) & solid | ((assign == k) & (im[:, :, 3] > 0)))
         ok = (xs - ox >= 0) & (xs - ox < cw + 2 * pad) & (ys - oy >= 0) & (ys - oy < chh + 2 * pad)
         can[ys[ok] - oy, xs[ok] - ox] = im[ys[ok], xs[ok]]

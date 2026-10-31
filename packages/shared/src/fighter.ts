@@ -225,7 +225,7 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     const w = WEAPONS[load.weapons[slot]];
     if (!w) return false;
     // the heavy button: B with the same weapon in both hands (every hero's kit) is the heavy attack on the ground (a charged
-    // weapon charges it, released at any time) and the plunge in the air
+    // weapon charges it: hold for the power move, a tap is the light move) and the plunge in the air
     const heavy = slot === 1 && load.weapons[1] === load.weapons[0];
     if (heavy && !s.ground) {
       startAttack(s, slot, w.plunge ? MOVE_PLUNGE : MOVE_AIR);
@@ -548,7 +548,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       s.vx = approach(s.vx, ax * PHYS.runSpeed * 0.3 * speedK, PHYS.groundAccel * DT);
       if (Math.abs(ax) > 0.3) s.face = ax > 0 ? 1 : -1;
       if (held) s.charge = Math.min(c.max, s.charge + 1);
-      else if (s.charge < c.min && !(s.slot === 1 && load.weapons[1] === load.weapons[0])) {
+      else if (s.charge < c.min) {
         const step = s.comboWin > 0 ? s.combo : 0;
         startAttack(s, s.slot, s.ground ? step : MOVE_AIR);
         s.combo = (step + 1) % w.combo.length;

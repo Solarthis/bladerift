@@ -45,8 +45,10 @@ export interface SpriteCtx {
   runPhase: number;
   /** Seconds since the last touchdown. */
   land: number;
-  /** The round intro is playing. */
-  intro?: boolean;
+  /** Seconds since the fighter left the ground. */
+  air?: number;
+  /** Seconds into the round intro (undefined outside it): the entrance plays, then holds its last frame (the stance). */
+  introT?: number;
 }
 
 /** Frame index within an attack-timed animation of 4 frames: anticipation, strike, extension, recovery. */
@@ -137,11 +139,12 @@ export function spriteFrameFor(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlas
     case Act.Win:
       return timed('victory', t / 60, false, 'idle');
     default: {
-      if (ctx.intro && A.intro) return timed('intro', ctx.time % 99, false);
+      if (ctx.introT !== undefined && A.intro) return timed('intro', ctx.introT, false);
       if (v.slide) return pick('wallSlide', 0, 'fall');
       if (v.crouch) return pick('crouch', 0, 'idle');
       if (!v.ground && v.fast) return pick('fastFall', 0, 'fall');
       if (!v.ground) {
+        if (ctx.air !== undefined && ctx.air < 0.07 && v.vy < 0) return pick('jumpStart', 0, 'rise');
         if (v.vy < -160) return pick('rise', 0, 'apex', 'fall');
         if (v.vy < 140) return pick('apex', 0, 'rise', 'fall');
         return pick('fall', 0, 'apex');

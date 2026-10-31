@@ -17,6 +17,7 @@ import { prefs, setPref } from './prefs';
 import { Hud } from './Hud';
 import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
 import { crestIcon, heroArtIcon, skillIcon, weaponIcon } from './icons';
+import { animatePreview } from './spritePreview';
 import { measureViewport, setViewport, viewH, viewW } from './viewport';
 
 type Screen = 'title' | 'fighter' | 'online' | 'lobby' | 'game' | 'results' | 'settings' | 'howto' | 'connecting';
@@ -167,6 +168,8 @@ export class App {
     this.ui.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => keep.set(el.dataset.keep!, [el.scrollLeft, el.scrollTop]));
     this.ui.innerHTML = `<div class="screen screen-${s}">${this.render(s)}</div>`;
     this.bind(this.ui.firstElementChild as HTMLElement);
+    // the hero select's live sprite preview
+    this.ui.querySelectorAll<HTMLCanvasElement>('canvas.hs-sprite').forEach((cv) => void animatePreview(cv, Number(cv.dataset.hero)));
     this.ui.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => {
       const v = keep.get(el.dataset.keep!);
       if (v) [el.scrollLeft, el.scrollTop] = v;
@@ -258,7 +261,7 @@ export class App {
         <div class="card hs-roster" data-keep="roster" aria-label="Roster">${columns}</div>
         <div class="hs-detail">
           <div class="card hs-portrait">
-            <div class="hs-frame"><img src="${heroPortrait(h)}" alt="${esc(h.name)}"></div>
+            <div class="hs-frame"><img src="${heroPortrait(h)}" alt="${esc(h.name)}"><canvas class="hs-sprite" data-hero="${h.id}" hidden aria-hidden="true"></canvas></div>
             <div class="hs-id">
               <small>${slot(h)} champion</small>
               <h2>${esc(h.name)}</h2>
@@ -276,9 +279,8 @@ export class App {
           <div class="card hs-gear" data-keep="gear">
             <div class="hs-gear-a">
               <input id="fname" maxlength="16" value="${esc(p.name)}" placeholder="Name" aria-label="Name">
-              <div class="hs-lbl">Armour</div>
+              <div class="hs-lbl">Player colour <small>name tag and effects</small></div>
               <div class="sws">${sw('color', COLORS, p.color)}</div>
-              <div class="hs-inline"><div class="hs-lbl">Accent</div><div class="sws small">${sw('accent', ACCENTS, p.look?.accent ?? 0)}</div></div>
             </div>
             <div class="hs-gear-b">
               <div class="hs-lbl">Weapon <small>${esc(wa.name)}</small></div>
