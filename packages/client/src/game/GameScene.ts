@@ -1975,7 +1975,9 @@ export class GameScene extends Phaser.Scene {
     } else if (p.kind === 'frost') {
       pv.fx = new FxSprite(this, FX.iceLance, p.x, p.y, p.vx < 0, {}, 14, 14, 10);
     } else if (p.kind === 'arcane') {
-      pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.violet }, 14, 14, 10);
+      // Prelati's bolts are violet starlight; Dumas' quill writes in golden ink
+      const ink = this.lastList.find((f) => f.id === pv.spawnNear)?.hero === 6;
+      pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: ink ? PAL.gold : PAL.violet }, 14, 14, 10);
     } else if (p.kind === 'orb') {
       pv.fx = new FxSprite(this, FX.arcaneOrb, p.x, p.y + 30, false, {}, 14, 14, 10);
     } else if (p.kind === 'wave' && !p.heavy) {
@@ -3040,6 +3042,7 @@ export class GameScene extends Phaser.Scene {
     pv.fx?.destroy();
     pv.img?.destroy();
     pv.gfx?.destroy();
+    pv.sun?.destroy();
     pv.tex?.destroy();
   }
 }

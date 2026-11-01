@@ -293,6 +293,20 @@ describe('online netcode: hit-stop prediction', () => {
   });
 });
 
+describe('online netcode: push boxes', () => {
+  // two players pressing into each other: each predicts its own share of the push against where the opponent will be
+  // when the server runs the command (the snapshot's position moved on at its speed), so close range does not jitter
+  it('pressing into each other at 160 ms each way: few, small corrections', () => {
+    const press: Policy = (_seat, _frame, me, opp) => (me && opp ? { moveX: Math.sign(opp.x - me.x) || 1, buttons: 0 } : { moveX: 0, buttons: 0 });
+    const r = duel(0, 1, { latency: 160, jitter: 0, seconds: 10, seed: 5, fillAt: 999, policy: [press, press] });
+    for (const seat of r.seats) {
+      // (before the look-ahead and the start-of-tick push this was ~20 corrections of up to 9 px; the client smooths these)
+      expect(seat.corrections, `${seat.name} (max ${seat.correctionMax.toFixed(1)} px)`).toBeLessThanOrEqual(12);
+      expect(seat.correctionMax).toBeLessThan(12);
+    }
+  });
+});
+
 describe('online netcode: every hero and Rift Art, end to end', () => {
   it('plays every hero with no frozen opponent and no snap in the fight, at zero latency', () => {
     for (const [a, b] of PAIRS) {

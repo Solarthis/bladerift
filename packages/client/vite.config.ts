@@ -1,10 +1,15 @@
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-/** The direct-play handshake (public/p2p.php) for the dev server, in memory: the same four operations. */
+/** The direct-play handshake (public/p2p.php) for the dev server, in memory: the same operations and key rules. */
 function p2pDev(): Plugin {
   const offers = new Map<string, { gid: string; sdp: string }>();
   const answers = new Map<string, string>();
+  const owners = new Map<string, { key: string; at: number }>();
+  const owner = (code: string) => {
+    const o = owners.get(code);
+    return o && Date.now() - o.at < 12000 ? o.key : '';
+  };
   return {
     name: 'p2p-dev',
     configureServer(server) {
@@ -16,14 +21,28 @@ function p2pDev(): Plugin {
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify(v));
           };
-          const i = JSON.parse(body || '{}') as { op: string; code: string; gid?: string; sdp?: string };
-          if (i.op === 'offer') offers.set(i.code, { gid: i.gid!, sdp: i.sdp! });
+          const i = JSON.parse(body || '{}') as { op: string; code: string; gid?: string; sdp?: string; key?: string };
+          const fail = (status: number) => {
+            res.statusCode = status;
+            send({ error: status });
+          };
+          if (i.op === 'probe') return send({ host: owner(i.code) !== '' });
+          if (i.op === 'offer') {
+            if (!owner(i.code)) return fail(404);
+            offers.set(i.code, { gid: i.gid!, sdp: i.sdp! });
+          }
           if (i.op === 'poll-offer') {
+            const own = owner(i.code);
+            if (own && own !== i.key) return fail(403);
+            owners.set(i.code, { key: i.key!, at: Date.now() });
             const o = offers.get(i.code);
             offers.delete(i.code);
             return send(o ?? { ok: true });
           }
-          if (i.op === 'answer') answers.set(`${i.code}.${i.gid}`, i.sdp!);
+          if (i.op === 'answer') {
+            if (owner(i.code) !== i.key) return fail(403);
+            answers.set(`${i.code}.${i.gid}`, i.sdp!);
+          }
           if (i.op === 'poll-answer') {
             const k = `${i.code}.${i.gid}`;
             const a = answers.get(k);

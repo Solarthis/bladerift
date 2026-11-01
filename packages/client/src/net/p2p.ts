@@ -75,6 +75,12 @@ const supported = () => typeof RTCPeerConnection === 'function' && typeof crypto
  */
 export async function dialHost(code: string, budgetMs = 11000): Promise<DirectLink | null> {
   if (!supported()) return null;
+  // nobody listening on this code (an older game, or a host already in a server match): no handshake to wait for
+  try {
+    if (!(await signal<{ host?: boolean }>({ op: 'probe', code })).host) return null;
+  } catch {
+    return null;
+  }
   const t0 = performance.now();
   const pc = new RTCPeerConnection({ iceServers: ICE });
   const fast = pc.createDataChannel('fast', { ordered: false, maxRetransmits: 2 });
@@ -114,6 +120,7 @@ export class RtcTransport implements Transport {
   private lastTick = -1;
   private prevInputs: Uint8Array | null = null;
   private closed = false;
+  private lostTimer = 0;
 
   constructor(private link: DirectLink) {
     const { pc, fast, rel } = link;
@@ -123,10 +130,13 @@ export class RtcTransport implements Transport {
         const code = d[1] | (d[2] << 8);
         return this.end(code, new TextDecoder().decode(d.subarray(3)));
       }
-      // (the fast channel is unordered: a snapshot older than one already shown is dropped)
+      // a new match (or the lobby) starts its world's clock again from 0: forget the last match's ticks
+      if (d[0] === Msg.MatchStart || d[0] === Msg.LobbyState) this.lastTick = -1;
+      // (the fast channel is unordered: a snapshot a little older than one already shown is dropped; a big jump back is
+      // a new world, never a late packet)
       if (d[0] === Msg.Snapshot && d.length >= 5) {
-        const tick = d[1] | (d[2] << 8) | (d[3] << 16) | (d[4] << 24);
-        if (tick <= this.lastTick) return;
+        const tick = (d[1] | (d[2] << 8) | (d[3] << 16) | (d[4] << 24)) >>> 0;
+        if (tick <= this.lastTick && this.lastTick - tick < 120) return;
         this.lastTick = tick;
       }
       this.onMessage(d);
@@ -137,8 +147,16 @@ export class RtcTransport implements Transport {
     rel.onclose = lost;
     pc.addEventListener('connectionstatechange', () => {
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') lost();
+      // a path that went quiet: give it a few seconds to come back before calling it lost
+      clearTimeout(this.lostTimer);
+      if (pc.connectionState === 'disconnected') this.lostTimer = window.setTimeout(lost, 3500);
     });
     queueMicrotask(() => this.onOpen());
+  }
+
+  /** Treat the link as dead now (the Session heard nothing for seconds). */
+  drop() {
+    this.end(1006, 'The direct link to the host went silent.');
   }
 
   send(data: Uint8Array) {
@@ -171,6 +189,7 @@ export class RtcTransport implements Transport {
 
   private end(code: number, reason: string) {
     if (this.closed) return;
+    clearTimeout(this.lostTimer);
     this.close();
     this.onClose(code, reason);
   }
@@ -179,12 +198,14 @@ export class RtcTransport implements Transport {
 // ---------------------------------------------------------------- host
 
 /**
- * The host listens for a guest who dials its code: answers the offer, and once the link is open hands it over (the
- * caller then runs the match in this page). Stops on `stop()` or once a guest is connected.
+ * The host listens for a guest who dials its code: answers the offer and, once the link is open, hands it over (the
+ * caller seats it in the match this page runs). It keeps listening after that (a dropped guest links again) until
+ * `stop()`. Its random key owns the code at the signalling script, so nobody else can take the guests' offers.
  */
 export class HostListener {
   private stopped = false;
   private busy = false;
+  private readonly key = randomId() + randomId();
 
   constructor(
     private code: string,
@@ -202,7 +223,7 @@ export class HostListener {
   private async loop() {
     while (!this.stopped) {
       try {
-        const r = await signal<{ gid?: string; sdp?: string }>({ op: 'poll-offer', code: this.code });
+        const r = await signal<{ gid?: string; sdp?: string }>({ op: 'poll-offer', code: this.code, key: this.key });
         if (r.gid && r.sdp && !this.stopped) await this.answer(r.gid, r.sdp);
       } catch {
         /* the signalling script is not reachable: keep trying slowly */
@@ -223,21 +244,24 @@ export class HostListener {
         chans[e.channel.label] = e.channel;
         // (the guest says Hello the moment its side is open, before this page has its room ready)
         e.channel.onmessage = (m) => early.length < 32 && early.push(new Uint8Array(m.data as ArrayBuffer));
-        e.channel.onopen = () => {
+        const check = () => {
           if (chans.fast?.readyState === 'open' && chans.rel?.readyState === 'open') {
             clearTimeout(t);
             done(true);
           }
         };
+        e.channel.onopen = check;
+        // (some engines hand the channel over already open)
+        check();
       };
     });
     try {
       await pc.setRemoteDescription({ type: 'offer', sdp });
       await pc.setLocalDescription(await pc.createAnswer());
       const ans = await gathered(pc);
-      await signal({ op: 'answer', code: this.code, gid, sdp: ans.sdp });
+      await signal({ op: 'answer', code: this.code, key: this.key, gid, sdp: ans.sdp });
       if ((await ready) && !this.stopped) {
-        this.stopped = true;
+        this.busy = false;
         this.onGuest({ pc, fast: chans.fast, rel: chans.rel, early });
         return;
       }
@@ -294,8 +318,11 @@ export function attachGuest(room: Room, link: DirectLink) {
     h.close();
   };
   rel.onclose = gone;
+  let quiet = 0;
   pc.addEventListener('connectionstatechange', () => {
     if (pc.connectionState === 'failed' || pc.connectionState === 'closed') gone();
+    clearTimeout(quiet);
+    if (pc.connectionState === 'disconnected') quiet = window.setTimeout(gone, 3500);
   });
 }
 

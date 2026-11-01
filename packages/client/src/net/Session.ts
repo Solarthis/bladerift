@@ -68,6 +68,14 @@ export class Session extends Emitter<SessionEvents> {
     return this.target.kind === 'local';
   }
 
+  /** The seat-reclaim token the host gave this player (a re-linked direct guest presents it to get its fighter back). */
+  get resumeToken() {
+    return this.resume;
+  }
+  set resumeToken(t: string) {
+    this.resume = t;
+  }
+
   connect() {
     this.closedByUser = false;
     this.emit('status', this.retries ? 'reconnecting' : 'connecting');
@@ -83,7 +91,7 @@ export class Session extends Emitter<SessionEvents> {
       clearInterval(this.pingTimer);
       this.lastMsgAt = performance.now();
       this.pingTimer = window.setInterval(() => {
-        if (t instanceof WsTransport && performance.now() - this.lastMsgAt > 6000) return t.drop();
+        if ((t instanceof WsTransport || t instanceof RtcTransport) && performance.now() - this.lastMsgAt > 6000) return t.drop();
         t.send(encodePing(performance.now()));
       }, 1000);
     };

@@ -88,6 +88,9 @@ export class NetGame {
   private pending: InputCmd[] = [];
   /** The opponent as the newest snapshot has it: a Rift Art of yours can move you toward or behind them (World.stepArts). */
   private foe: FoeView | undefined = undefined;
+  /** The opponent's horizontal speed in the latest snapshot (units/s): the push boxes are predicted against where the
+   * opponent will be when the server runs each pending command, not where the snapshot (a trip old) shows it. */
+  private foeVx = 0;
   private seq = 0;
   private snaps: Snapshot[] = [];
   private tickOffset = NaN;
@@ -174,6 +177,7 @@ export class NetGame {
     this.snaps.push(s);
     const other = s.fighters.find((f) => f.id !== this.selfId && f.id !== s.selfId);
     this.foe = other && other.act !== Act.KO ? { x: other.x, y: other.y, face: other.face, solid: bodySolid(other), yields: bodyYields(other) } : undefined;
+    this.foeVx = other ? other.vx : 0;
     while (this.snaps.length > 40) this.snaps.shift();
     this.phase = s.phase;
     this.phaseLeft = s.phaseLeft;
@@ -225,12 +229,22 @@ export class NetGame {
     if (err > 2) this.mispredicts++;
   }
 
+  /** The opponent as the server will see it `k` ticks after the latest snapshot (moving on at its snapshot speed, at
+   * most a quarter second ahead). */
+  private foeAhead(k: number): FoeView | undefined {
+    const f = this.foe;
+    if (!f || !this.foeVx || this.local) return f;
+    const x = f.x + (this.foeVx * Math.min(k, TICK_RATE / 4)) / TICK_RATE;
+    return { ...f, x: Math.max(0, Math.min(this.arena.w, x)) };
+  }
+
   /** Step the pending commands over a state from the server, with your predicted hit (if the server has not run it). */
   private replay(st: FighterState) {
     const ph = this.predHit;
+    let k = 0;
     for (const c of this.pending) {
       const frozen = isFrozen(st);
-      stepFighter(st, c, this.arena, this.load!, this.foe);
+      stepFighter(st, c, this.arena, this.load!, this.foeAhead(++k));
       if (ph && c.seq === ph.seq && !frozen && st.moveSeq === ph.moveSeq) {
         const m = currentMove(st, this.load!);
         if (m) meleeConnect(st, this.load!, m, ph.hs);
@@ -312,7 +326,7 @@ export class NetGame {
     if (this.pred && this.load) {
       this.prev = { x: this.pred.x, y: this.pred.y };
       const frozen = isFrozen(this.pred);
-      stepFighter(this.pred, cmd, this.arena, this.load, this.foe);
+      stepFighter(this.pred, cmd, this.arena, this.load, this.foeAhead(this.pending.length + 1));
       if (!frozen) this.predictConnect(cmd);
       this.predTick++;
     }

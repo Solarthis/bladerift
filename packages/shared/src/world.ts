@@ -117,6 +117,9 @@ export interface Fighter {
   bot: boolean;
   s: FighterState;
   load: Loadout;
+  /** Where this fighter stood when the tick began (the opponent pushes against this, so the push never depends on which
+   * fighter the server happened to step first; the client predicts against the same snapshot state). */
+  start?: FoeView;
   // input queue (see runCommands)
   inputs: InputCmd[];
   lastSeq: number;
@@ -284,7 +287,8 @@ export class World {
   /** The opponent as a Rift Art sees them (no view when they are down). */
   foeView(f: Fighter): FoeView | undefined {
     const o = this.opponent(f);
-    return o && o.s.act !== Act.KO ? { x: o.s.x, y: o.s.y, face: o.s.face, solid: bodySolid(o.s), yields: bodyYields(o.s) } : undefined;
+    if (!o || o.s.act === Act.KO) return undefined;
+    return o.start ?? { x: o.s.x, y: o.s.y, face: o.s.face, solid: bodySolid(o.s), yields: bodyYields(o.s) };
   }
 
   opponent(f: Fighter): Fighter | undefined {
@@ -325,8 +329,12 @@ export class World {
     // a superpause started last tick or earlier freezes the world this tick
     const paused = this.pause > 0;
     if (paused) this.pause--;
-    for (const f of this.fighters.values()) f.held = isFrozen(f.s);
+    for (const f of this.fighters.values()) {
+      f.held = isFrozen(f.s);
+      f.start = { x: f.s.x, y: f.s.y, face: f.s.face, solid: bodySolid(f.s), yields: bodyYields(f.s) };
+    }
     for (const f of this.fighters.values()) this.runCommands(f);
+    for (const f of this.fighters.values()) f.start = undefined;
     this.startSuperpause();
     if (this.phase === 'over') return;
     for (const f of this.fighters.values()) this.spawnFrom(f);

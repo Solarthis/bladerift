@@ -637,24 +637,44 @@ export class App {
   }
 
   /** The guest's side of a direct match: the host's page runs it, this session talks to it over the link. */
-  private connectDirectGuest(code: string, link: DirectLink) {
+  private connectDirectGuest(code: string, link: DirectLink, resume = '', tries = 0) {
+    const wasGame = this.screen === 'game';
     this.leave(true);
     this.mode = 'online';
     this.code = code;
     this.direct = true;
     const s = new Session({ kind: 'rtc', link }, this.profiles[0]);
+    // (a re-link presents the seat token, so the host gives this player its fighter back)
+    if (resume) s.resumeToken = resume;
     this.sessions = [s];
     this.wire(s);
     s.on('status', (st) => {
-      if (st === 'closed' && this.screen !== 'title') {
-        this.onlineMsg = this.onlineMsg || 'The direct link to the host was lost.';
-        this.leave(true);
-        this.show('online');
+      if (st !== 'closed' || this.screen === 'title' || this.sessions[0] !== s) return;
+      // the link dropped: dial the host again (it keeps listening and keeps the seat for a while)
+      if (tries < 3 && s.resumeToken) {
+        const token = s.resumeToken;
+        this.onlineMsg = 'Link lost: reconnecting to your friend…';
+        this.show('connecting');
+        void dialHost(code).then((l) => {
+          if (l) return this.connectDirectGuest(code, l, token, tries + 1);
+          this.onlineMsg = 'The direct link to the host was lost.';
+          this.leave(true);
+          this.show('online');
+        });
+        return;
       }
+      this.onlineMsg = 'The direct link to the host was lost.';
+      this.leave(true);
+      this.show('online');
     });
     s.connect();
     history.replaceState(null, '', inviteLink(code));
-    this.toast('Direct link: no server in between');
+    if (!resume) this.toast('Direct link: no server in between');
+    else {
+      this.onlineMsg = '';
+      this.toast('Reconnected to your friend');
+    }
+    void wasGame;
   }
 
   /**
@@ -662,6 +682,7 @@ export class App {
    * room is left. The listener stays on, so the guest (or anyone with the code) can link again after a drop.
    */
   private goDirectHost(code: string, link: DirectLink) {
+    // already running the direct match: a re-link (or a spectator) joins it; the listener keeps going
     if (this.room && this.direct) {
       attachGuest(this.room, link);
       return;
@@ -700,8 +721,21 @@ export class App {
     });
     s.connect();
     history.replaceState(null, '', inviteLink(code));
-    // the host also listens for a guest who can link straight to this device
-    if (hostKey) this.listener = new HostListener(code, (l) => this.goDirectHost(code, l));
+    // the host also listens for a guest who can link straight to this device, but only while it waits alone in the
+    // lobby: once a guest sits down through the server (or a match runs) nobody may pull it out by dialling the code
+    if (hostKey) {
+      const listen = (l: LobbyStateMsg | null) => {
+        if (this.direct || this.sessions[0] !== s) return;
+        const alone = !l || (l.phase === 'lobby' && l.roster.length <= 1);
+        if (alone && !this.listener) this.listener = new HostListener(code, (link) => this.goDirectHost(code, link));
+        else if (!alone && this.listener) {
+          this.listener.stop();
+          this.listener = null;
+        }
+      };
+      listen(null);
+      s.on('lobby', listen);
+    }
   }
 
   private wire(s: Session) {
