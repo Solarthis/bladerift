@@ -199,7 +199,7 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         return pick('art', Math.min(n - 1, (n >= 6 ? 2 : 0) + (ph.stance ? 3 : ph.idx)), 'heavy');
       }
       const m = moveOf(w, v.move);
-      const name = v.move === MOVE_AIR ? 'airAttack' : isAirMove(v.move) ? comboAnim(w, lookMove(w, v.move) === MOVE_AIR ? 0 : lookMove(w, v.move)) : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : comboAnim(w, v.move);
+      const name = v.move === MOVE_AIR ? 'airAttack' : isAirMove(v.move) ? comboAnim(w, lookMove(w, v.move) === MOVE_AIR ? 0 : lookMove(w, v.move)) : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : comboAnim(w, lookMove(w, v.move));
       if (!m) return pick(name, 0, 'combo0');
       const n = A[name]?.frames.length ?? 4;
       if (v.move === MOVE_PLUNGE) {

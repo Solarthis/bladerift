@@ -2,7 +2,7 @@
 // the fall, a fighter juggled by one floats down with it, and the finisher knocks them down.
 import { describe, expect, it } from 'vitest';
 import {
-  Act, airString, Btn, FIGHTER, getArena, InputCmd, isAirMove, Loadout, MOVE_AIR, MOVE_AIR2, MOVE_AIR3, moveOf, newFighterState, sanitizeLoadout,
+  Act, airString, Btn, FIGHTER, getArena, InputCmd, isAirMove, Loadout, MOVE_AIR, MOVE_AIR2, MOVE_AIR3, MOVE_LAUNCH, moveOf, newFighterState, sanitizeLoadout,
   ROUND, SkillId, stepFighter, WEAPONS, World,
 } from '../src/index';
 
@@ -101,6 +101,49 @@ describe('air string', () => {
     }
     expect(floated).toBe(true);
     expect(finisher).toBe(true);
+    expect(downed).toBe(true);
+  });
+
+  it('down + light on the ground launches: the foe floats up without a knockdown, a jump chases, the air string lays them down', () => {
+    const w = new World({ arenaId: 'bridge', wins: 2, roundTime: 90 });
+    const load = sanitizeLoadout({ hero: 0, skill: SkillId.LionsRoar });
+    const fa = w.addFighter(1, 0, 'A', load);
+    const fb = w.addFighter(2, 1, 'B', load);
+    w.start();
+    for (let i = 0; i < ROUND.introTicks + 1; i++) w.step();
+    Object.assign(fa.s, { x: 600, face: 1 });
+    Object.assign(fb.s, { x: 645, face: -1 });
+    const push = (buttons: number, moveY = 0) => {
+      fa.inputs.push({ seq: fa.lastSeq + 1, moveX: 0, moveY, buttons, viewTick: 0 });
+      fb.inputs.push({ seq: fb.lastSeq + 1, moveX: 0, moveY: 0, buttons: 0, viewTick: 0 });
+      w.step();
+    };
+    push(Btn.A, 1);
+    expect(fa.s.move).toBe(MOVE_LAUNCH);
+    let popped = false;
+    for (let i = 0; i < 30 && !popped; i++) {
+      push(0, 1);
+      if (fb.s.act === Act.Stun && !fb.s.ground) popped = true;
+    }
+    expect(popped).toBe(true);
+    expect(fb.s.fall).toBe(0);
+    // chase: press jump (the hit lets the launcher be cancelled into it), then mash light in the air
+    // (a tap: the chase is a full jump all the same)
+    for (let i = 0; i < 20 && fa.s.ground; i++) push(i % 2 ? 0 : Btn.Jump);
+    expect(fa.s.ground).toBe(0);
+    expect(fa.s.vy).toBeLessThan(-400);
+    let airHit = false;
+    let downed = false;
+    const hp0 = fb.s.hp;
+    for (let i = 0; i < 200; i++) {
+      push(i % 2 ? 0 : Btn.A);
+      if (!fb.s.ground && fb.s.act === Act.Stun && isAirMove(fa.s.move) && fb.s.hp < hp0) airHit = true;
+      if (fb.s.act === Act.Down) {
+        downed = true;
+        break;
+      }
+    }
+    expect(airHit).toBe(true);
     expect(downed).toBe(true);
   });
 });

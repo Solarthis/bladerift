@@ -74,6 +74,8 @@ export interface Move {
   tipCrit?: boolean;
   /** Hits from behind the defender crit (x1.5). */
   backCrit?: boolean;
+  /** Pops the one it hits up to float in hit-stun without a knockdown (the launcher). */
+  launcher?: boolean;
   /** Falls fast while active and ends on landing (air only). */
   plunge?: boolean;
   /** Dashes forward at this speed while active (lance lunge). */

@@ -456,6 +456,7 @@ export class App {
         <ul>
           <li><b>Combos:</b> keep pressing a weapon button to chain its strikes.</li>
           <li><b>Hold</b> the Lance to charge a lunge, the Bow for a heavy shot, the Shield to block. Block just before a hit to <b>parry</b>.</li>
+          <li><b>Launcher:</b> down + light on the ground pops them high into the air; jump after them and keep hitting.</li>
           <li><b>Air combo:</b> tap light attack while jumping or falling: two quick swings and a finisher that knocks them down. Your swings slow your fall, and a foe you juggle floats with you; land to start a new one.</li>
           <li><b>Down + attack</b> in the air: a plunging strike that bounces you off a hit. <b>Down + jump</b>: drop through a ledge. <b>Down</b> in the air falls fast; on the ground it crouches under high swings.</li>
           <li><b>Walls and ledges:</b> slide down a wall and jump off it; grab a ledge and jump to climb. <b>Roll in the air</b> to dash. A hit that lands can be cancelled into a jump.</li>

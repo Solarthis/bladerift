@@ -8,7 +8,7 @@
 import { DT, FIGHTER } from './constants';
 import { ArtId, classOf, RIFT } from './classes';
 import { solidAt, surfaceBelow } from './arena';
-import { Act, currentMove, FLASH, hasCrescent } from './fighter';
+import { Act, currentMove, FLASH, hasCrescent, MOVE_LAUNCH } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
 import { Box, dodgeOf, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
@@ -598,6 +598,11 @@ export class BotBrain {
   private attack(me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
     const s = me.s;
     const o = foe.s;
+    // a launcher that connected: jump after them into the air string
+    if (s.act === Act.Attack && s.move === MOVE_LAUNCH && s.confirm > 0 && !(this.prev & Btn.Jump)) {
+      cmd.buttons |= Btn.Jump;
+      return true;
+    }
     const vuln = this.vulnerable(foe);
     // a guard that has only just gone up still parries: do not walk into it
     const guardFresh = o.act === Act.Block && o.blockT < 14 && !vuln && !this.bored;
@@ -640,6 +645,8 @@ export class BotBrain {
         }
         if (this.rng.next() >= (vuln ? T.punish : T.attack)) return false;
         this.windT = -1;
+        // now and then open with the launcher (down + light) to juggle them
+        if (s.ground && i === 0 && !isBow(wp) && this.rng.next() < (vuln ? 0.3 : 0.12)) cmd.moveY = 1;
         if (!s.ground && WEAPONS[wp].plunge && g.dy > -10 && o.ground > 0) cmd.moveY = 1; // plunge onto them (one in the air is juggled with the air string)
         cmd.buttons |= btn;
         return true;

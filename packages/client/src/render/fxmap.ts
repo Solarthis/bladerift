@@ -2,12 +2,12 @@
  * Which PixelFX effect plays for each move, impact and skill, with its palette and playback rate. The effect's time 0
  * is lined up with the move's first hitting tick (PixelFX: "t = 0 is the effect's first frame" = the strike).
  */
-import { lookWeapon, MOVE_AIR, MOVE_AIR2, MOVE_AIR3, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, WEAPONS, WeaponId } from '@bladerift/shared';
+import { lookWeapon, MOVE_AIR, MOVE_AIR2, MOVE_AIR3, MOVE_CHARGED, MOVE_LAUNCH, MOVE_CRESCENT, MOVE_PLUNGE, WEAPONS, WeaponId } from '@bladerift/shared';
 
-/** The look of a move: the air string's second swing draws like the combo's second, its finisher like the combo's last
+/** The look of a move: the launcher and the air string's second swing draw like the combo's second, its finisher like the combo's last
  * (or the air slash for a two-hit combo). */
 export function lookMove(weapon: number, move: number) {
-  if (move === MOVE_AIR2) return 1;
+  if (move === MOVE_AIR2 || move === MOVE_LAUNCH) return 1;
   if (move === MOVE_AIR3) return (WEAPONS[weapon]?.combo.length ?? 0) >= 3 ? 2 : MOVE_AIR;
   return move;
 }
@@ -240,7 +240,7 @@ const stepCache = new Map<number, HeroEnergy>();
 export function energyForMove(hero: number, move: number, comboLen = 3): HeroEnergy {
   const e = heroEnergy(hero);
   const fin = move < 10 && move === comboLen - 1 && comboLen >= 2;
-  const col = fin || move === MOVE_AIR3 ? e.fin : (move >= 1 && move < 10) || move === MOVE_AIR2 ? e.alt : move === MOVE_CHARGED || move === MOVE_PLUNGE || move === MOVE_CRESCENT ? e.fin : undefined;
+  const col = fin || move === MOVE_AIR3 || move === MOVE_LAUNCH ? e.fin : (move >= 1 && move < 10) || move === MOVE_AIR2 ? e.alt : move === MOVE_CHARGED || move === MOVE_PLUNGE || move === MOVE_CRESCENT ? e.fin : undefined;
   if (col === undefined) return e;
   const key = hero * 64 + move;
   let c = stepCache.get(key);
@@ -289,7 +289,7 @@ export function arcFor(weapon: number, move: number): ArcShape | null {
     case WeaponId.Kopis:
       // fast forward chops alternating down and up, a rising cut, then the flaming finisher
       if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
-      if (move === MOVE_AIR) return S(-110, 200, 42, 11, { cx: 0, cy: 28, sy: 0.9, dur: 0.08, life: 0.24 });
+      if (move === MOVE_AIR) return S(-135, 90, 46, 11, { cx: 0, cy: 30, sy: 0.9, dur: 0.07, life: 0.24 });
       if (move === 0) return S(-115, 30, 46, 11, { sy: 0.62, dur: 0.045, life: 0.19 });
       if (move === 1) return S(45, -100, 46, 11, { sy: 0.62, dur: 0.045, life: 0.19 });
       if (move === 2) return S(140, -75, 54, 13, { cy: 36, sy: 1, dur: 0.07, life: 0.26 });
@@ -329,7 +329,7 @@ export function arcFor(weapon: number, move: number): ArcShape | null {
       return { kind: 'rake', a0: move === 1 ? 40 : -140, a1: move === 1 ? -120 : 40, r: 56, w: 8, cx: 2, cy: 38, sy: 0.95, dur: 0.08, life: 0.32, heavy: true };
     case WeaponId.Sword:
       if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
-      if (move === MOVE_AIR) return S(-100, 250, 40, 10, { cx: 0, cy: 28, sy: 0.9, dur: 0.1, life: 0.26 });
+      if (move === MOVE_AIR) return S(-140, 95, 48, 12, { cx: 0, cy: 30, sy: 0.92, dur: 0.08, life: 0.26 });
       if (move === 1) return S(55, -115, 46, 11, { sy: 0.7 });
       if (move === 2) return S(-150, 60, 58, 15, { cy: 34, sy: 0.95, dur: 0.09, life: 0.32, heavy: true });
       // the Sun Crescent: a wide overhead cleave, the arc that flies off it (World: the crescent projectile)
@@ -352,7 +352,7 @@ export function arcFor(weapon: number, move: number): ArcShape | null {
     }
     case WeaponId.Daggers:
       if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
-      if (move === MOVE_AIR) return S(-80, 260, 34, 7, { cx: 0, cy: 28, dur: 0.08, life: 0.2 });
+      if (move === MOVE_AIR) return S(-100, 95, 36, 7, { cx: 0, cy: 28, dur: 0.07, life: 0.2 });
       if (move === 3) return S(-60, 50, 38, 9, { cy: 30, sy: 0.9, life: 0.26, cross: true, heavy: true });
       if (move === 1) return S(45, -55, 32, 7, { cy: 30, sy: 0.75, dur: 0.05, life: 0.17 });
       if (move === 2) return S(-20, 25, 36, 6, { cy: 27, sy: 0.4, dur: 0.05, life: 0.17 });

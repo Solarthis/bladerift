@@ -573,7 +573,8 @@ export class World {
     const landed = this.applyHit(a, d, {
       dmg, hsDmg: base, art: a.s.move === MOVE_ART, kbX: m.kbX, kbY: m.kbY, stun: m.stun, pull: !!m.pull, breaksGuard: !!m.breaksGuard, crit: mc.crit,
       w: a.load.weapons[a.s.slot], x: ix, y: iy, front: mc.front, guard: seen,
-      juggle: isAirMove(a.s.move) && a.s.move !== MOVE_AIR3,
+      juggle: (isAirMove(a.s.move) && a.s.move !== MOVE_AIR3) || !!m.launcher,
+      lift: !!m.launcher,
     });
     if (veiled && landed) a.s.veil = 0;
     // the attacker freezes with the defender (melee hit-stop), a lunge brakes, a landed hit can be cancelled into a jump
@@ -605,6 +606,8 @@ export class World {
       guard?: { blocking: boolean; blockT: number }; melee?: boolean;
       /** An air string's swing (not its finisher): the one it hits floats while juggled. */
       juggle?: boolean;
+      /** A launcher: the launch never knocks down (the one it pops floats instead). */
+      lift?: boolean;
       /** The damage the hit-stop is sized from (default dmg): the move's own, before crits and scaling. */
       hsDmg?: number;
       /** A Rift Art hit (when unset: any w in 104..199): Art hit-stop, no combo scaling, never trips the combo break. */
@@ -692,7 +695,7 @@ export class World {
       // knocked off the feet: a launch that is heavy (or a finisher's, or an Art's), or any hit on a fighter already
       // falling, lands in a knockdown
       const launch = h.kbY > 150;
-      const fall = (launch && (h.kbY >= FIGHTER.knockdownKbY || h.stun >= FIGHTER.knockdownStun || art)) || (!!ds.fall && !ds.ground);
+      const fall = !h.lift && (launch && (h.kbY >= FIGHTER.knockdownKbY || h.stun >= FIGHTER.knockdownStun || art)) || (!!ds.fall && !ds.ground);
       ds.act = Act.Stun;
       ds.actT = 0;
       ds.stun = h.stun;

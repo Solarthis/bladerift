@@ -46,6 +46,8 @@ export const MOVE_AIR2 = 15;
 export const MOVE_AIR3 = 16;
 export const AIR_STRING = [MOVE_AIR, MOVE_AIR2, MOVE_AIR3];
 export const isAirMove = (move: number) => move === MOVE_AIR || move === MOVE_AIR2 || move === MOVE_AIR3;
+/** The launcher: down + light on the ground, a rising swing that pops the opponent up to float (launcherOf()). */
+export const MOVE_LAUNCH = 17;
 
 /**
  * The Sun Crescent: a big overhead cleave whose arc flies off as a crescent of gold light (World: CRESCENT), on a cooldown
@@ -273,6 +275,7 @@ export function moveOf(weapon: number, move: number): Move | null {
   const w = WEAPONS[weapon];
   if (!w) return null;
   if (isAirMove(move)) return airString(weapon)[AIR_STRING.indexOf(move)];
+  if (move === MOVE_LAUNCH) return launcherOf(weapon);
   if (move === MOVE_PLUNGE) return w.plunge ?? w.air;
   if (move === MOVE_CHARGED) return heavyOf(weapon);
   if (move === MOVE_ART) return ART_FANG;
@@ -301,6 +304,24 @@ export function airString(weapon: number): Move[] {
     airStrings.set(weapon, a);
   }
   return a;
+}
+
+const launchers = new Map<number, Move>();
+/**
+ * A weapon's launcher, built from its first combo swing: a little slower, reaching higher, and popping the one it hits
+ * high into the air to float there (no knockdown), so the attacker can jump after them into the air string.
+ */
+export function launcherOf(weapon: number): Move {
+  let l = launchers.get(weapon);
+  if (!l) {
+    const c = WEAPONS[weapon].combo[0];
+    l = {
+      ...c, startup: c.startup + 3, recovery: c.recovery + 10, dmg: Math.round(c.dmg * 1.05), box: { ...c.box, y: c.box.y - 28, h: c.box.h + 28 },
+      kbX: 30, kbY: 560, stun: 50, step: Math.min(c.step ?? 0, 40), launcher: true, shake: Math.max(c.shake ?? 0, 0.35),
+    };
+    launchers.set(weapon, l);
+  }
+  return l;
 }
 
 /** Start the next swing of the air string (the first after a pause, a landing or a finisher). */
@@ -367,7 +388,10 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     // the heavy button: B with the same weapon in both hands (every hero's kit) is the heavy attack on the ground (a charged
     // weapon charges it: hold for the power move, a tap is the light move) and the plunge in the air
     const heavy = slot === 1 && load.weapons[1] === load.weapons[0];
-    if (heavy && !s.ground) {
+    if (!heavy && s.ground && cmd.moveY > 0.5 && !isRanged(w)) {
+      startAttack(s, slot, MOVE_LAUNCH);
+      s.combo = 0;
+    } else if (heavy && !s.ground) {
       if (w.plunge) startAttack(s, slot, MOVE_PLUNGE);
       else airAttack(s, slot);
     } else if (heavy && hasCrescent(load) && !s.reload) {
@@ -928,10 +952,13 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       // a jump cancels a swing that connected once its hit window is over, and a whiff from the chain point on
       const jumpCancel = s.buf === Buf.Jump && s.actT >= (s.confirm > 0 ? end : chainAt);
       if (jumpCancel || (s.actT >= chainAt && (s.buf === Buf.A || s.buf === Buf.B || s.buf === Buf.Roll || s.buf === Buf.Skill))) {
+        // (a jump out of a launcher that connected is the chase: always a full jump, however short the press)
+        const chase = jumpCancel && s.move === MOVE_LAUNCH && s.confirm > 0;
         s.act = Act.Free;
         s.actT = 0;
         s.comboWin = 18;
         tryBuffered(s, cmd, arena, load);
+        if (chase && s.vy < 0) s.jumpHeld = 0;
         break;
       }
       // the last quarter of the recovery: pushing the stick walks out of it (the swing never feels like it holds you)
