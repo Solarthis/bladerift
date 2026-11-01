@@ -303,11 +303,14 @@ export class Hud {
     const fs = g.fighters();
     const att = fs.find((x) => x.id === e.a);
     const vic = fs.find((x) => x.id === e.v);
+    // (burning ticks are not combo hits: the sim numbers them 0)
+    if (e.n === 0) return;
     if (vic) this.combo[vic.seat as 0 | 1].n = 0;
     if (!att || !vic || att.id === vic.id) return;
     const now = performance.now();
     const c = this.combo[att.seat as 0 | 1];
-    c.n = now - c.t < COMBO_GAP_MS ? c.n + 1 : 1;
+    // the sim's own count of the victim's combo (it knows when a fighter recovered in between)
+    c.n = e.n > 0 ? e.n : now - c.t < COMBO_GAP_MS ? c.n + 1 : 1;
     c.t = now;
     if (c.n >= COMBO_MIN) this.popCombo(att.seat as 0 | 1, c.n);
   }

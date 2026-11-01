@@ -77,11 +77,11 @@ export const FIGHTER = {
   /** A hit that lands while the defender is still in hit-stun (Act.Stun) continues the combo; any other hit starts a new
    * one. The comboBreak-th hit of a combo grants breakInvuln ticks of invulnerability (the anti-infinite safeguard; Rift
    * Art hits count toward the combo but never trip it). */
-  comboBreak: 15,
+  comboBreak: 10,
   breakInvuln: 45,
   /** Combo damage scaling: hit n of a combo deals max(comboScaleMin, 1 - comboScaleStep * (n - 1)) of its damage
-   * (100%, 94%, 88% ... down to 40% from the 11th hit). Rift Art hits land in full. */
-  comboScaleStep: 0.06,
+   * (100%, 93%, 86% ... down to 40% by the 10th hit, the last before the break). Rift Art hits land in full. */
+  comboScaleStep: 0.07,
   comboScaleMin: 0.4,
   /** Knockdown: a hit that launches the defender (kbY > 150) with kbY >= knockdownKbY, stun >= knockdownStun, or from a
    * Rift Art sets `fall`: the defender stays in hit-stun until it lands, then lies in Act.Down for downTicks and rises in

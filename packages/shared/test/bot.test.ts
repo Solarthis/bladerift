@@ -90,11 +90,11 @@ describe('bot vs bot', () => {
   });
 
   it('uses every one of its buttons over a match, for several loadouts', () => {
-    // the buttons seen across three matches on each arena (12 per loadout) must cover all of them
+    // the buttons seen across four matches on each arena (16 per loadout) must cover all of them
     for (const load of LOADOUTS) {
       let used = 0;
       for (const arena of ARENAS) {
-        for (const seed of [3, 5, 7]) {
+        for (const seed of [3, 5, 7, 9]) {
           playMatch(arena, { level: 'hard', seed, load }, { level: 'hard', seed: seed + 1, load: DEFAULT }, (_f, c) => {
             used |= c.buttons;
           });

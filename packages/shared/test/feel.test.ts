@@ -208,11 +208,11 @@ describe('superpause', () => {
 });
 
 describe('combos', () => {
-  it('scales damage hit by hit: 100%, -6% per hit, down to 40%', () => {
+  it('scales damage hit by hit: 100%, -7% per hit, down to 40%', () => {
     expect(comboScale(1)).toBe(1);
-    expect(comboScale(2)).toBeCloseTo(0.94, 6);
-    expect(comboScale(5)).toBeCloseTo(0.76, 6);
-    expect(comboScale(11)).toBeCloseTo(0.4, 6);
+    expect(comboScale(2)).toBeCloseTo(0.93, 6);
+    expect(comboScale(5)).toBeCloseTo(0.72, 6);
+    expect(comboScale(10)).toBeCloseTo(0.4, 6);
     expect(comboScale(30)).toBeCloseTo(0.4, 6);
   });
 
@@ -241,7 +241,8 @@ describe('combos', () => {
         expect(fb.comboHits).toBe(n);
       }
     }
-    expect(FIGHTER.comboBreak).toBeGreaterThanOrEqual(12);
+    // real strings, but not so long that the player on the receiving end watches for seconds (owner: "a hot mess")
+    expect(FIGHTER.comboBreak).toBeGreaterThanOrEqual(8);
     expect(events.map((e) => e.n)).toEqual(Array.from({ length: FIGHTER.comboBreak }, (_, i) => i + 1));
     events.forEach((e, i) => expect(e.amt).toBe(Math.round(Math.round(50 * C.dmg) * comboScale(i + 1))));
     expect(events[events.length - 1].amt).toBe(Math.round(Math.round(50 * C.dmg) * FIGHTER.comboScaleMin));
