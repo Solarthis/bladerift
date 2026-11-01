@@ -162,7 +162,7 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 .screen-title { overflow: hidden; }
 .title-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: #0b0812; }
 .title-art {
-  position: absolute; inset: -4%; background: url('assets/art/title-key.jpg') center 35% / cover no-repeat;
+  position: absolute; inset: -4%; background: url('/assets/art/title-key.jpg') center 35% / cover no-repeat;
   animation: title-drift 38s ease-in-out infinite alternate; filter: saturate(1.08);
 }
 @keyframes title-drift { from { transform: scale(1.02) translate(-1%, 0); } to { transform: scale(1.1) translate(1.2%, -1%); } }
