@@ -160,4 +160,33 @@ describe('Gilgamesh: the Gate of Treasures', () => {
     expect(range).toBeLessThan(450);
     expect(moveOf(WeaponId.Sword, MOVE_CRESCENT)).toBe(SUN_CRESCENT);
   });
+
+  it("Gilgamesh's blades shatter on a bridge between him and the target instead of flying through the stone", () => {
+    const shoot = (onBridge: boolean) => {
+      const w = new World({ arenaId: 'bridge', wins: 2, roundTime: 90 });
+      const fa = w.addFighter(1, 0, 'A', sanitizeLoadout({ hero: 2 }));
+      const fb = w.addFighter(2, 1, 'B', sanitizeLoadout({ hero: 11 }));
+      w.start();
+      for (let i = 0; i < ROUND.introTicks + 1; i++) w.step();
+      // the bridge at x 170..400, top y 470: the target stands on it (or on the floor), Gilgamesh on the floor beneath
+      const pl = w.arena.platforms[0];
+      fa.s.x = pl.x + 40;
+      fa.s.face = 1;
+      fb.s.x = pl.x + 170;
+      fb.s.y = onBridge ? pl.y : w.arena.floor;
+      fb.s.face = -1;
+      const hp0 = fb.s.hp;
+      let seq = 1;
+      for (let i = 0; i < 70; i++) {
+        fa.inputs.push({ seq: seq++, moveX: 0, moveY: 0, buttons: i === 0 ? Btn.A : 0, viewTick: w.tick });
+        fb.inputs.push({ seq: i + 1, moveX: 0, moveY: 0, buttons: 0, viewTick: w.tick });
+        w.step();
+        w.events.length = 0;
+      }
+      return hp0 - fb.s.hp;
+    };
+    expect(shoot(false)).toBeGreaterThan(0);
+    expect(shoot(true)).toBe(0);
+  });
 });
+

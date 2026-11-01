@@ -175,6 +175,19 @@ function solidBelow(arena: ArenaDef, x: number, y: number) {
   return best;
 }
 
+/** How deep a platform's stone is drawn under its top surface (the client's platform strip: ~55 world units). */
+export const PLATFORM_DEPTH = 46;
+/** Does the path from (x0, y0) to (x1, y1) meet a platform's stone (its top surface down to PLATFORM_DEPTH)? */
+export function throughPlatform(arena: ArenaDef, x0: number, y0: number, x1: number, y1: number) {
+  const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6));
+  for (let i = 1; i <= n; i++) {
+    const x = x0 + ((x1 - x0) * i) / n;
+    const y = y0 + ((y1 - y0) * i) / n;
+    for (const p of arena.platforms) if (x > p.x && x < p.x + p.w && y > p.y - 2 && y < p.y + PLATFORM_DEPTH) return true;
+  }
+  return false;
+}
+
 /** 'shoot' event kinds from SKILL_EVENT up are hero specials (kind - SKILL_EVENT = the skill id); hits from a special
  * carry SKILL_WEAPON as their weapon. */
 export const SKILL_EVENT = 32;
@@ -919,7 +932,11 @@ export class World {
         const lands = p.kind === 'bomb' || p.kind === 'orb';
         const floorHit = p.y >= (lands ? surfaceBelow(A, p.x, py) : solidBelow(A, p.x, py)) && p.vy >= 0;
         const wallHit = solidAt(A, p.x, p.y) && p.y < A.floor;
-        if (floorHit || wallHit || p.y > A.floor) {
+        // the bridges and ledges are solid stone to a thrown blade, an arrow or a bolt (fighters jump up through them; shots
+        // do not pass through them from either side; a Rift Art's rain and swarm still come down through everything)
+        const thin = !p.art && (p.kind === 'relic' || p.kind === 'arrow' || p.kind === 'arcane' || p.kind === 'frost');
+        if (thin && throughPlatform(A, px, py, p.x, p.y)) dead = true;
+        else if (floorHit || wallHit || p.y > A.floor) {
           if (p.kind === 'bomb' || p.kind === 'orb') {
             p.y = Math.min(p.y, surfaceBelow(A, p.x, py));
             this.explode(p, this.fighters.get(p.owner));
@@ -978,7 +995,7 @@ export class World {
             const top = (o ? o.s.y : s.y) - 440;
             for (let i = 0; i < 11; i++) {
               const x = cx + (i - 5) * 9 + (((i * 37) % 7) - 3);
-              this.projectiles.push({ id: this.nextId++ % 65536, kind: 'arrow', owner: f.id, x, y: top - (i % 3) * 30, vx: ((i % 2) * 2 - 1) * 16, vy: 980, dmg: 40, kb: 30, stun: 10, life: 90, heavy: false, wait: i * 3 });
+              this.projectiles.push({ id: this.nextId++ % 65536, kind: 'arrow', owner: f.id, x, y: top - (i % 3) * 30, vx: ((i % 2) * 2 - 1) * 16, vy: 980, dmg: 40, kb: 30, stun: 10, life: 90, heavy: false, wait: i * 3, art: true });
             }
             this.events.push({ t: 'shoot', p: f.id, kind: 0 });
           }
