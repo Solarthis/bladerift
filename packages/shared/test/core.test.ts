@@ -172,7 +172,7 @@ describe('combat', () => {
 
 describe('rounds and matches', () => {
   it('bots finish a best-of-3 match on every arena', () => {
-    for (const arenaId of ['bridge', 'embers', 'crypt', 'grove']) {
+    for (const arenaId of ['hall', 'bridge', 'embers', 'crypt', 'grove']) {
       const w = new World({ arenaId, wins: 2, roundTime: 60 });
       const loads: Loadout[] = [
         { weapons: [WeaponId.Scythe, WeaponId.Bow], skill: SkillId.InkBlot, cls: 0, hero: 0 },

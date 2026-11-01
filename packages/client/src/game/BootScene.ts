@@ -8,9 +8,12 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     const base = 'assets/art/';
-    for (const t of ['bridge', 'embers', 'crypt', 'grove']) {
-      this.load.image(`bg-${t}`, `${base}bg-${t}.jpg`);
-      this.load.image(`p-${t}`, `${base}p-${t}.png`);
+    for (const t of ['hall', 'bridge', 'embers', 'crypt', 'grove']) this.load.image(`p-${t}`, `${base}p-${t}.png`);
+    this.load.image('pillar-hall', `${base}pillar-hall.png`);
+    // each arena's back wall and its seamless floor (render/arena.ts lays the floor in perspective)
+    for (const t of ['hall', 'bridge', 'embers', 'crypt', 'grove']) {
+      this.load.image(`wall-${t}`, `${base}wall-${t}.jpg`);
+      this.load.image(`floor-${t}`, `${base}floor-${t}.jpg`);
     }
     for (const n of ['s-bomb', 's-frost', 's-trap', 's-trap-shut', 's-blink', 'w-arrow']) this.load.image(n, `${base}${n}.png`);
   }

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, ArtId, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, type ArenaDef, ArtId, surfaceBelow, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
@@ -12,7 +12,8 @@ import { heroHasSprites, heroSpritesReady, loadHeroSprites, spritesPending, Spri
 import { arcFor, ArcShape, energyForMove, FX, heroEnergy, HeroEnergy, PAL, shadeColor, swingFx, whiten } from '../render/fxmap';
 import { DODGE_SOUNDS, sfx, SKILL_SOUNDS } from '../audio/Sfx';
 import { prefs } from '../ui/prefs';
-import { buildArena } from '../render/arena';
+import { buildArena, type ArenaView } from '../render/arena';
+import { StageLights, type LitBody } from '../render/lighting';
 import { colorOf, accentOf } from '../ui/colors';
 import { koCinematic, playSuperCinematic, superConnect } from './cinematic';
 
@@ -547,6 +548,14 @@ export class GameScene extends Phaser.Scene {
   private floor = 600;
   /** The arena's world-space Graphics and their bounds, hidden while off-camera (see cullArena). */
   private arenaCull: { g: Phaser.GameObjects.Graphics; x0: number; y0: number; x1: number; y1: number }[] = [];
+  /** The arena's perspective floor (laid under the camera every frame) and the stage lighting. */
+  private arenaView: ArenaView | null = null;
+  private stage: StageLights | null = null;
+  private litBodies: LitBody[] = [];
+  /** Every fighter's contact shadow on the surface under it (one Graphics, under the bodies). */
+  private shadowG!: Phaser.GameObjects.Graphics;
+  /** The name tags show through the round intro and a moment after, then fade (the clip has no labels over heads). */
+  private tagsUntil = 0;
   private camX = 640;
   private camY = 400;
   private camZoom = 1;
@@ -599,8 +608,9 @@ export class GameScene extends Phaser.Scene {
     this.floor = arena.floor;
     this.cameras.main.setBackgroundColor('#0d0a14');
     const before = new Set<Phaser.GameObjects.GameObject>(this.children.list);
-    buildArena(this, this.game0!.arena);
+    this.arenaView = buildArena(this, this.game0!.arena);
     this.arenaCull = arenaCullables(this, before);
+    this.stage = new StageLights(this, this.arenaView.ambient, this.arenaView.lights);
     // the hits and swings of every weapon, baked in the background from the start of the match
     prewarmEffects(this, [
       [FX.hitSpark, {}], [FX.critHit, {}], [FX.bluntHit, {}], [FX.parry, {}], [FX.shieldBlock, {}], [FX.heavyLanding, {}], [FX.heal, {}], [FX.poof, {}],
@@ -616,6 +626,7 @@ export class GameScene extends Phaser.Scene {
     this.arcN = this.add.graphics().setDepth(14.9);
     this.arcG = this.add.graphics().setDepth(15).setBlendMode(Phaser.BlendModes.ADD);
     this.addG = this.add.graphics().setDepth(27).setBlendMode(Phaser.BlendModes.ADD);
+    this.shadowG = this.add.graphics().setDepth(7.5);
     this.events.once('shutdown', () => this.teardown());
     if (import.meta.env.DEV) (globalThis as unknown as { __gameScene: GameScene }).__gameScene = this; // (dev tooling: frame capture)
   }
@@ -668,6 +679,8 @@ export class GameScene extends Phaser.Scene {
     const shown = this.delayed(list, now);
     this.lastList = shown;
     const seen = new Set<number>();
+    if (g.phase !== 'fight') this.tagsUntil = this.clock + 2.5;
+    this.drawShadows(shown, g.arena);
     for (const v of shown) {
       seen.add(v.id);
       this.drawFighter(v, now, dt, shown);
@@ -703,7 +716,13 @@ export class GameScene extends Phaser.Scene {
     this.drawAdds(dt);
     this.drawParts(dt);
     this.updateCamera(shown, rdt);
+    this.arenaView?.update();
     this.cullArena();
+    // the stage lights follow the fighters (a pool of light on each; a veiled one carries none on the foe's screen)
+    const bodies = this.litBodies;
+    bodies.length = 0;
+    for (const v of shown) if (!(v.veil && !v.self)) bodies.push({ x: v.x, y: v.y, k: v.act === Act.KO ? 0.6 : 1 });
+    this.stage?.update(rdt, bodies, this.floor);
     bakeFrames(3);
   }
 
@@ -786,6 +805,8 @@ export class GameScene extends Phaser.Scene {
 
   /** A full-screen colour wash that fades in a fraction of a second (the Art's flash). */
   private flash(color: number, alpha: number, ms: number) {
+    const cam = this.cameras.main;
+    this.stage?.flash(cam.midPoint.x, cam.midPoint.y, color, 900, Math.min(1, alpha * 1.6), (ms / 1000) * 2.2, this.floor, 0.2);
     const r = this.add.rectangle(0, 0, this.scale.width, this.scale.height, color, alpha).setOrigin(0).setScrollFactor(0).setDepth(300);
     this.tweens.add({ targets: r, alpha: 0, duration: ms, onComplete: () => r.destroy() });
   }
@@ -1051,9 +1072,25 @@ export class GameScene extends Phaser.Scene {
     if (look.tint && !v.veil) fv.img.setTint(look.tint);
     fv.img.y += look.dy;
     fv.img.setAlpha(alpha);
-    fv.tag.setAlpha(v.veil && !v.self ? 0.2 : 1);
+    fv.tag.setAlpha((v.veil && !v.self ? 0.2 : 1) * Phaser.Math.Clamp((this.tagsUntil - this.clock) / 0.5, 0, 1));
     fv.lastX = v.x;
     fv.lastY = v.y;
+  }
+
+  /** Contact shadows: a soft dark ellipse on whatever each fighter stands over, smaller and fainter the higher it is. */
+  private drawShadows(list: ViewFighter[], arena: ArenaDef) {
+    const g = this.shadowG;
+    g.clear();
+    for (const v of list) {
+      if (v.veil && !v.self) continue;
+      const sy = surfaceBelow(arena, v.x, v.y);
+      const h = Math.max(0, sy - v.y);
+      const k = Math.max(0, 1 - h / 260);
+      if (k <= 0) continue;
+      const w = 54 * (0.55 + 0.45 * k);
+      g.fillStyle(0x000000, 0.22 * k).fillEllipse(v.x, sy, w * 1.5, w * 0.28);
+      g.fillStyle(0x000000, 0.38 * k).fillEllipse(v.x, sy, w, w * 0.18);
+    }
   }
 
   private statusLoop(fv: FighterView, kind: StatusKind, on: boolean, v: ViewFighter, palette?: string[]) {
@@ -1211,8 +1248,11 @@ export class GameScene extends Phaser.Scene {
   /** A swing arc over a sprite fighter (the oldest gives way past the cap). */
   private spawnArc(v: ViewFighter, shape: ArcShape) {
     if (this.arcs.length >= MAX_ARCS) this.arcs.shift();
+    // slashes drawn bigger than the body (the reference clip's crescents tower over the swordsman), thicker too
+    if (shape.kind === 'slash') shape = { ...shape, r: shape.r * 1.3, w: shape.w * 1.3, cx: shape.cx * 1.3 };
     const c = energyForMove(v.hero, v.move, WEAPONS[v.weapons[v.slot]]?.combo.length ?? 3);
     this.arcs.push({ owner: v.id, shape, face: v.face, x: v.x, y: v.y, age: 0, c, sparkAt: 0, seed: (Math.random() * 0x7fffffff) | 0 });
+    this.stage?.flash(v.x + v.face * 40, v.y - 40, c.arc, 170, 0.55, 0.26, this.floor, 0.35);
     // the blow's colour, remembered for its victim's flash and the light it throws on the floor
     const fv = this.views.get(v.id);
     if (fv) {
@@ -1429,16 +1469,17 @@ export class GameScene extends Phaser.Scene {
    * green round every strike): a flat ellipse on the ground line that flares and fades.
    */
   private floorLight(x: number, floorY: number, color: number, k: number, hold: number) {
-    const life = Math.max(0.28, hold + 0.18);
-    this.addAdd(life, (g, p) => {
-      const a = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
-      const rx = 92 * k * (0.85 + 0.3 * p);
-      const ry = 16 * k * (0.85 + 0.3 * p);
-      g.fillStyle(color, 0.16 * a).fillEllipse(x, floorY - 2, rx * 2.2, ry * 2.4);
-      g.fillStyle(color, 0.28 * a).fillEllipse(x, floorY - 2, rx * 1.3, ry * 1.5);
-      g.fillStyle(whiten(color, 0.5), 0.3 * a).fillEllipse(x, floorY - 2, rx * 0.6, ry * 0.7);
-    });
+    // soft glows (the light map's round falloff, added on top): a wide pool of the blow's colour flat on the floor and a
+    // hot core under the contact; the stage lighting (render/lighting.ts) lights the room round it
+    if (!this.textures.exists('light-blob')) return;
+    const life = Math.max(0.3, hold + 0.24) * 1000;
+    const pool = this.add.image(x, floorY - 1, 'light-blob').setBlendMode(Phaser.BlendModes.ADD).setDepth(7.6).setTint(color);
+    pool.setDisplaySize(300 * k, 54 * k).setAlpha(0.75);
+    const core = this.add.image(x, floorY - 1, 'light-blob').setBlendMode(Phaser.BlendModes.ADD).setDepth(7.6).setTint(whiten(color, 0.55));
+    core.setDisplaySize(130 * k, 22 * k).setAlpha(0.8);
+    this.tweens.add({ targets: [pool, core], alpha: 0, scaleX: '*=1.25', duration: life, delay: hold * 600, ease: 'Quad.easeIn', onComplete: () => { pool.destroy(); core.destroy(); } });
   }
+
 
   /**
    * The Sun Crescent in flight: a tall crescent of gold light opening toward its target, grown out of the swing over its
@@ -1865,6 +1906,8 @@ export class GameScene extends Phaser.Scene {
           fv.flashUntil = fv.flashAt + hold;
           fv.flashColor = col;
           if (v) this.floorLight(e.x, v.y, col, heavy || e.crit ? 1.35 : 1, hold / 1000);
+          const big = heavy || e.crit;
+          this.stage?.flash(e.x, e.y, whiten(col, 0.25), big ? 300 : 220, 1, (hold / 1000) + (big ? 0.5 : 0.34), this.floor, 0.3);
         }
         // (no damage numbers: the owner had them removed; the health bars and the combo counter tell the story)
         break;
@@ -3058,7 +3101,7 @@ export class GameScene extends Phaser.Scene {
     const wantH = Phaser.Math.Clamp(vh * 0.5, 220, 275);
     let zoom = vh / wantH;
     zoom = Math.min(zoom, useW / (maxX - minX + 190), vh / (maxY - minY + 200));
-    zoom = Math.max(zoom, vw / (this.arenaW + 240));
+    zoom = Math.max(zoom, vw / (this.arenaW + 100));
     if (!this.camInit) {
       // the first frame of a match frames the fighters at once
       this.camInit = true;
@@ -3108,13 +3151,13 @@ export class GameScene extends Phaser.Scene {
     }
     const halfW = vw / z / 2;
     const halfH = vh / z / 2;
-    x = Phaser.Math.Clamp(x, halfW - 120, this.arenaW + 120 - halfW);
+    x = Phaser.Math.Clamp(x, halfW - 50, this.arenaW + 50 - halfW);
     // (touch: a little more floor shows below the fighters, lifting them above the button cluster's lower rows)
     y = Math.min(y, this.floor + (pad.right ? 135 : 70) - halfH);
     // the shake is an offset after the clamp (vertical only)
     const sy = this.shakeOffset(dt, vh / z);
     cam.setZoom(z);
-    cam.centerOn(halfW * 2 > this.arenaW + 240 ? this.arenaW / 2 : x, y + sy);
+    cam.centerOn(halfW * 2 > this.arenaW + 100 ? this.arenaW / 2 : x, y + sy);
     const me = list.find((f) => f.self);
     if (me) sfx.setListener(me.x, me.y);
   }
@@ -3153,6 +3196,10 @@ export class GameScene extends Phaser.Scene {
     this.arcN?.destroy();
     this.arcG?.destroy();
     this.addG?.destroy();
+    this.shadowG?.destroy();
+    this.stage?.destroy();
+    this.stage = null;
+    this.arenaView = null;
     for (const g of this.gfxPool) g.destroy();
     this.gfxPool = [];
   }

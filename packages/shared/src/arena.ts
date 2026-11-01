@@ -1,5 +1,5 @@
 /** Duel arenas: a floor, two side walls and a few one-way platforms (world units, y grows downward). */
-export type ArenaTheme = 'bridge' | 'embers' | 'crypt' | 'grove';
+export type ArenaTheme = 'hall' | 'bridge' | 'embers' | 'crypt' | 'grove';
 
 export interface Platform {
   /** Left edge, top surface, width. */
@@ -31,6 +31,25 @@ export interface ArenaDef {
 }
 
 export const ARENAS: ArenaDef[] = [
+  {
+    id: 'hall',
+    name: 'Throne Hall',
+    theme: 'hall',
+    w: 1240,
+    floor: 600,
+    platforms: [
+      { x: 150, y: 470, w: 220 },
+      { x: 870, y: 470, w: 220 },
+      { x: 510, y: 350, w: 220 },
+    ],
+    // two great pillars at the ends of the hall to climb and wall-jump off
+    blocks: [
+      { x: 50, y: 330, w: 58, h: 270 },
+      { x: 1132, y: 330, w: 58, h: 270 },
+    ],
+    spawns: [420, 820],
+    description: 'A candlelit hall under the banners. Two balconies and a high gallery.',
+  },
   {
     id: 'bridge',
     name: 'Moonlit Bridge',

@@ -393,7 +393,7 @@ export class App {
         </div></div>`;
     };
     const watchers = [...s.roster.values()].filter((r) => r.seat < 0);
-    const arenaCards = ARENAS.map((a) => `<button class="arena ${l.settings.arenaId === a.id ? 'on' : ''}" ${host ? `data-arena="${a.id}"` : 'disabled'}><img src="assets/art/bg-${a.theme}.jpg" alt=""><span>${a.name}</span></button>`).join('');
+    const arenaCards = ARENAS.map((a) => `<button class="arena ${l.settings.arenaId === a.id ? 'on' : ''}" ${host ? `data-arena="${a.id}"` : 'disabled'}><img src="assets/art/wall-${a.theme}.jpg" alt=""><span>${a.name}</span></button>`).join('');
     const opt = (k: string, v: number, label: string, cur: number) => `<button class="seg ${cur === v ? 'on' : ''}" ${host ? `data-set="${k}" data-v="${v}"` : 'disabled'}>${label}</button>`;
     // the current arena's name (the chips only show a thumbnail and a short label)
     const arenaName = ARENAS.find((a) => a.id === l.settings.arenaId)?.name ?? '';

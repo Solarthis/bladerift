@@ -20,7 +20,7 @@ export interface MatchSettings {
   roundTime: number;
 }
 
-export const DEFAULT_SETTINGS: MatchSettings = { arenaId: 'bridge', wins: ROUND.defaultWins, roundTime: ROUND.defaultTime };
+export const DEFAULT_SETTINGS: MatchSettings = { arenaId: 'hall', wins: ROUND.defaultWins, roundTime: ROUND.defaultTime };
 
 export type Phase = 'intro' | 'fight' | 'ko' | 'over';
 export const PHASES: Phase[] = ['intro', 'fight', 'ko', 'over'];

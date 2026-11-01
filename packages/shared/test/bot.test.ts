@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Act, BotBrain, BotDifficulty, botLoadout, Btn, Fighter, InputCmd, Loadout, SkillId, World, WeaponId } from '../src/index';
 import { sanitizeLoadout } from '../src/heroes';
 
-const ARENAS = ['bridge', 'embers', 'crypt', 'grove'];
+const ARENAS = ['hall', 'bridge', 'embers', 'crypt', 'grove'];
 /** Upper bound on a match in ticks: three 60 s rounds plus intros and KO pauses fit well inside it. */
 const CAP = 60 * 60 * 8;
 const DEFAULT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Shield], skill: SkillId.LionsRoar };
