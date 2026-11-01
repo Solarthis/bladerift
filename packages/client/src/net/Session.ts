@@ -4,6 +4,7 @@ import {
 } from '@bladerift/shared';
 import { NetGame } from './NetGame';
 import { LocalTransport, Transport, WsTransport } from './transport';
+import { DirectLink, RtcTransport } from './p2p';
 
 type Listener<T> = (v: T) => void;
 
@@ -36,7 +37,7 @@ export interface Profile {
   load: Loadout;
 }
 
-export type Target = { kind: 'local'; room: Room; owns: boolean } | { kind: 'ws'; url: string };
+export type Target = { kind: 'local'; room: Room; owns: boolean } | { kind: 'ws'; url: string } | { kind: 'rtc'; link: DirectLink };
 
 /** One connection to a game host (online / LAN WebSocket, or a room in this page). */
 export class Session extends Emitter<SessionEvents> {
@@ -70,7 +71,8 @@ export class Session extends Emitter<SessionEvents> {
   connect() {
     this.closedByUser = false;
     this.emit('status', this.retries ? 'reconnecting' : 'connecting');
-    const t = this.target.kind === 'local' ? new LocalTransport(this.target.room, this.target.owns) : new WsTransport(this.target.url);
+    const tg = this.target;
+    const t = tg.kind === 'local' ? new LocalTransport(tg.room, tg.owns) : tg.kind === 'rtc' ? new RtcTransport(tg.link) : new WsTransport(tg.url);
     if (this.target.kind === 'local') this.hostKey = 'local';
     this.transport = t;
     t.onOpen = () => {
@@ -183,7 +185,7 @@ export class Session extends Emitter<SessionEvents> {
       case Msg.MatchStart: {
         const m = decodeJson<MatchStartMsg>(d);
         this.setRoster(m.roster);
-        this.game = new NetGame(m.settings, this.selfId, !!this.matchExists, this.local);
+        this.game = new NetGame(m.settings, this.selfId, !!this.matchExists || this.target.kind === 'rtc', this.local);
         this.game.load = this.roster.get(this.selfId)?.seat !== undefined && this.roster.get(this.selfId)!.seat >= 0 ? this.roster.get(this.selfId)!.load : null;
         this.emit('match', this.game);
         break;

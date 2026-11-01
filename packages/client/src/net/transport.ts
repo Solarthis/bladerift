@@ -6,7 +6,7 @@ export interface Transport {
   onMessage: (data: Uint8Array) => void;
   onClose: (code: number, reason: string) => void;
   onOpen: () => void;
-  readonly kind: 'ws' | 'local';
+  readonly kind: 'ws' | 'local' | 'rtc';
 }
 
 export class WsTransport implements Transport {

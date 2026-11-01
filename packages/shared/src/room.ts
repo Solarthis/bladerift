@@ -83,6 +83,8 @@ export interface RoomOptions {
   handOffHost?: boolean;
   /** Snapshot every N ticks (1 for rooms running in the browser itself). */
   snapshotInterval?: number;
+  /** Input commands a client may send per second (a direct link sends each twice: every packet repeats the last). */
+  maxInputsPerSec?: number;
 }
 
 export interface RoomStats {
@@ -291,8 +293,9 @@ export class Room {
         const f = this.world.fighters.get(c.id);
         if (!f) return;
         c.inputBudget += Math.max(1, data[1] ?? 1);
-        if (c.inputBudget > MAX_INPUTS_PER_SEC) {
-          if (c.inputBudget > MAX_INPUTS_PER_SEC * 3) c.ws?.close(4004, 'input flood');
+        const cap = this.opts.maxInputsPerSec ?? MAX_INPUTS_PER_SEC;
+        if (c.inputBudget > cap) {
+          if (c.inputBudget > cap * 3) c.ws?.close(4004, 'input flood');
           return;
         }
         for (const cmd of decodeInputs(data)) {

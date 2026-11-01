@@ -1,5 +1,41 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+/** The direct-play handshake (public/p2p.php) for the dev server, in memory: the same four operations. */
+function p2pDev(): Plugin {
+  const offers = new Map<string, { gid: string; sdp: string }>();
+  const answers = new Map<string, string>();
+  return {
+    name: 'p2p-dev',
+    configureServer(server) {
+      server.middlewares.use('/p2p.php', (req, res) => {
+        let body = '';
+        req.on('data', (c) => (body += c));
+        req.on('end', () => {
+          const send = (v: unknown) => {
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(v));
+          };
+          const i = JSON.parse(body || '{}') as { op: string; code: string; gid?: string; sdp?: string };
+          if (i.op === 'offer') offers.set(i.code, { gid: i.gid!, sdp: i.sdp! });
+          if (i.op === 'poll-offer') {
+            const o = offers.get(i.code);
+            offers.delete(i.code);
+            return send(o ?? { ok: true });
+          }
+          if (i.op === 'answer') answers.set(`${i.code}.${i.gid}`, i.sdp!);
+          if (i.op === 'poll-answer') {
+            const k = `${i.code}.${i.gid}`;
+            const a = answers.get(k);
+            answers.delete(k);
+            return send(a ? { sdp: a } : { ok: true });
+          }
+          send({ ok: true });
+        });
+      });
+    },
+  };
+}
 
 export default defineConfig({
   // relative paths: the same build runs at games.matsolutions.gy/bladerift/ and at the root of a LAN host
@@ -7,6 +43,7 @@ export default defineConfig({
   server: { port: 5173, host: true },
   build: { target: 'es2022', chunkSizeWarningLimit: 2000, assetsInlineLimit: 0 },
   plugins: [
+    p2pDev(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,

@@ -9,6 +9,7 @@ import { GameScene, LocalPlayer } from '../game/GameScene';
 import { GamepadSource, isTouchDevice, KEY_LABEL, KeyboardSource, KeyScheme, MergedSource, TouchSource } from '../input/Controls';
 import { Profile, Session } from '../net/Session';
 import { localRoom } from '../net/transport';
+import { attachGuest, dialHost, DirectLink, directRoom, HostListener } from '../net/p2p';
 import {
   checkOnlineRoom, createOnlineRoom, hostedMatch, inviteLink, normalizeCode, onlineAvailable, onlineRoomExists, rememberHostedMatch, wsUrlFor,
 } from '../net/online';
@@ -77,6 +78,9 @@ export class App {
   private touch: TouchSource | null = null;
   private inputs: LocalPlayer[] = [];
   private code = '';
+  /** In a direct (peer-to-peer) match, and the host's listener for guests who link straight here. */
+  private direct = false;
+  private listener: HostListener | null = null;
   private lastEnd: MatchEndMsg | null = null;
   private onlineMsg = '';
   private toastTimer = 0;
@@ -614,14 +618,71 @@ export class App {
   private async joinOnline(code: string) {
     this.onlineMsg = 'Finding the match…';
     this.show('connecting');
+    const mine = hostedMatch();
+    if (mine?.code !== code) {
+      // a direct link to the host first: no server in between (a host already in a direct match is only reachable so)
+      this.onlineMsg = 'Linking straight to your friend…';
+      this.show('connecting');
+      const link = await dialHost(code);
+      if (link) return this.connectDirectGuest(code, link);
+    }
+    this.onlineMsg = 'Joining through the online server…';
+    this.show('connecting');
     try {
       await checkOnlineRoom(code);
-      const mine = hostedMatch();
       this.connectOnline(code, mine?.code === code ? mine.hostKey : undefined);
     } catch (e) {
       this.onlineMsg = (e as { status?: number }).status === 404 ? `No match with the code ${code}.` : (e as Error).message;
       this.show('online');
     }
+  }
+
+  /** The guest's side of a direct match: the host's page runs it, this session talks to it over the link. */
+  private connectDirectGuest(code: string, link: DirectLink) {
+    this.leave(true);
+    this.mode = 'online';
+    this.code = code;
+    this.direct = true;
+    const s = new Session({ kind: 'rtc', link }, this.profiles[0]);
+    this.sessions = [s];
+    this.wire(s);
+    s.on('status', (st) => {
+      if (st === 'closed' && this.screen !== 'title') {
+        this.onlineMsg = this.onlineMsg || 'The direct link to the host was lost.';
+        this.leave(true);
+        this.show('online');
+      }
+    });
+    s.connect();
+    history.replaceState(null, '', inviteLink(code));
+    this.toast('Direct link: no server in between');
+  }
+
+  /**
+   * A guest reached this host directly: the match moves into this page (the same Room the server runs) and the server
+   * room is left. The listener stays on, so the guest (or anyone with the code) can link again after a drop.
+   */
+  private goDirectHost(code: string, link: DirectLink) {
+    if (this.room && this.direct) {
+      attachGuest(this.room, link);
+      return;
+    }
+    const profile = this.profiles[0];
+    this.leave(true);
+    this.mode = 'online';
+    this.code = code;
+    this.direct = true;
+    const room = directRoom(code);
+    this.room = room;
+    const s = new Session({ kind: 'local', room, owns: true }, profile);
+    this.sessions = [s];
+    this.wire(s);
+    s.connect();
+    // (the host's own Hello first, so it takes the first seat and host rights)
+    setTimeout(() => attachGuest(room, link), 60);
+    this.listener = new HostListener(code, (l) => this.goDirectHost(code, l));
+    this.toast('Your friend linked straight to you: no server lag');
+    this.show('lobby');
   }
 
   private connectOnline(code: string, hostKey?: string) {
@@ -640,6 +701,8 @@ export class App {
     });
     s.connect();
     history.replaceState(null, '', inviteLink(code));
+    // the host also listens for a guest who can link straight to this device
+    if (hostKey) this.listener = new HostListener(code, (l) => this.goDirectHost(code, l));
   }
 
   private wire(s: Session) {
@@ -784,6 +847,9 @@ export class App {
 
   private leave(silent = false) {
     if (this.screen === 'game') this.endGameView();
+    this.listener?.stop();
+    this.listener = null;
+    this.direct = false;
     for (const s of this.sessions) s.close();
     this.sessions = [];
     this.room = null;
