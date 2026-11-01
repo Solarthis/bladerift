@@ -854,7 +854,9 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       // once: chain on hit); a hit that landed can also be cancelled into a jump (air combos)
       const rec = m.recovery * (s.move === MOVE_ART ? 1 : C.recovery * (s.frenzy > 0 ? 0.75 : 1));
       const total = end + Math.round(rec);
-      const chainAt = end + (s.confirm > 0 ? 0 : Math.ceil(rec * 0.35));
+      // (a swing that connected cancels into the next one two ticks into its hit window, so a string runs hit, freeze,
+      // a couple of frames of motion, hit: the MUGEN rhythm; a whiff waits out a third of its recovery)
+      const chainAt = s.confirm > 0 ? Math.min(end, m.startup + 2) : end + Math.ceil(rec * 0.35);
       // any attack can be cancelled into the Rift Art
       if (s.buf === Buf.Special && s.move !== MOVE_ART && startArt(s, C, ART)) {
         s.buf = 0;
@@ -946,6 +948,9 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       const accel = s.ground ? (target === 0 ? PHYS.groundDecel : turning ? PHYS.groundDecel : PHYS.groundAccel) : target === 0 ? PHYS.airDecel : PHYS.airAccel;
       s.vx = approach(s.vx, target, accel * DT);
       if (Math.abs(ax) > 0.3 && !s.slide) s.face = ax > 0 ? 1 : -1;
+      // standing still on the ground, a fighter squares up to the opponent (after a cross-up the next swing goes the
+      // right way without a turn press)
+      else if (s.ground && FOE && Math.abs(FOE.x - s.x) > 4 && Math.abs(FOE.x - s.x) < 520) s.face = FOE.x > s.x ? 1 : -1;
     }
   }
 

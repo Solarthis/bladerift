@@ -334,6 +334,13 @@ interface Arc {
 }
 
 const easeOut3 = (p: number) => 1 - (1 - p) * (1 - p) * (1 - p);
+/** A colour darkened to `k` of its brightness (a spark's rim). */
+const shade = (c: number, k: number) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
+/** A colour mixed toward white by `k` (a spark's hot middle). */
+const mixWhite = (c: number, k: number) => {
+  const m = (v: number) => Math.round(v + (255 - v) * k);
+  return (m((c >> 16) & 255) << 16) | (m((c >> 8) & 255) << 8) | m(c & 255);
+};
 
 interface FighterView {
   id: number;
@@ -1430,58 +1437,94 @@ export class GameScene extends Phaser.Scene {
    * colour, directional streaks along the blow, and particles. `str` scales it (light ~0.8, heavy ~1.5); heavies and crits
    * add a long white streak through the victim and an X slash. None of it freezes in hit-stop.
    */
-  private impact(x: number, y: number, dir: number, str: number, c: HeroEnergy, heavy: boolean, crit: boolean) {
-    const R = BODY_H * 0.2 * str;
+  /**
+   * The hit spark, drawn like a fighting game's (MUGEN reference, docs/feel/mugen-reference.md): an OPAQUE starburst in
+   * the attacker's colour with a dark rim and a white-hot core, about half a body across (bigger for heavier blows),
+   * that grows in two frames, holds through the whole hit-stop and breaks up as it ends. Its jagged rays are redrawn
+   * every two frames like a hand-drawn spark's flipbook. A soft additive bloom sits behind it, speed lines fly out
+   * along the blow, and heavies add the white streak through the victim, an X slash and a smoky burst of the
+   * attacker's energy around the contact. `hold` is the freeze in seconds.
+   */
+  private impact(x: number, y: number, dir: number, str: number, c: HeroEnergy, heavy: boolean, crit: boolean, hold = 0.13) {
+    const R = BODY_H * 0.36 * str;
     const big = heavy || crit;
-    // core flash
-    this.addAdd(0.075, (g, p) => {
-      const k = 0.7 + 0.6 * p;
-      g.fillStyle(c.spark, 0.55 * (1 - p)).fillCircle(x, y, R * 1.25 * k);
-      g.fillStyle(0xffffff, 0.95 * (1 - p * 0.7)).fillCircle(x, y, R * 0.62 * k);
+    // saturated like a sprite spark: the arc colour's darkest rim, its body, and the pale spark colour as the hot middle
+    const rim = shade(c.rim, 0.5);
+    const mid = c.arc;
+    const hot = mixWhite(c.spark, 0.35);
+    const life = Phaser.Math.Clamp(hold + 0.1, 0.18, 0.38);
+    const n = crit ? 12 : big ? 10 : 8;
+    const rot0 = dir > 0 ? -0.1 : Math.PI + 0.1;
+    // five drawings of the spark: each its own jagged outline (the long ray always along the blow)
+    const drawings = Array.from({ length: 5 }, (_, d) => ({
+      rot: rot0 + (Math.random() - 0.5) * 0.35,
+      lens: Array.from({ length: n }, (_, i) => (i === 0 ? 1.5 : 0.45 + Math.random() * 0.6) * (d === 4 ? 0.85 : 1)),
+    }));
+    // the bloom behind it
+    this.addAdd(life * 0.8, (g, p) => {
+      const a = 1 - p;
+      g.fillStyle(mid, 0.28 * a).fillCircle(x, y, R * (1.5 + 0.5 * p));
+      g.fillStyle(0xffffff, 0.3 * a * a).fillCircle(x, y, R * 0.45);
     });
-    // starburst: a hot disc that grows into jagged rays, the long one along the blow
-    const n = crit ? 12 : 9;
-    const rot = dir > 0 ? -0.12 : Math.PI + 0.12;
-    const lens = Array.from({ length: n }, (_, i) => (i === 0 ? 1.45 : 0.5 + Math.random() * 0.5));
-    const life = crit ? 0.26 : big ? 0.22 : 0.18;
-    this.addAdd(life, (g, p) => {
-      const grow = easeOut3(Math.min(1, p * 2.4));
-      const a = p < 0.45 ? 1 : 1 - (p - 0.45) / 0.55;
-      this.star(g, x, y, R * 1.7 * grow, R * 0.32 * grow + 1, rot, lens, c.spark, 0.85 * a);
-      this.star(g, x, y, R * 0.95 * grow, R * 0.2 * grow + 0.5, rot, lens, 0xffffff, 0.9 * a);
+    this.addVec(life, (g, p) => {
+      const t = p * life;
+      // a new drawing every two frames (33 ms), the last one held as it breaks up
+      const d = Math.min(4, Math.floor(t / 0.033));
+      const dr = drawings[d];
+      const size = d === 0 ? 0.5 : d === 1 ? 0.88 : 1 + 0.06 * Math.sin(t * 40);
+      const fade = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3;
+      const thin = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.6;
+      this.star(g, x, y, R * 1.12 * size, R * 0.36 * size * thin + 1, dr.rot, dr.lens, rim, 0.95 * fade);
+      this.star(g, x, y, R * 0.98 * size, R * 0.3 * size * thin + 0.8, dr.rot, dr.lens, mid, fade);
+      this.star(g, x, y, R * 0.64 * size, R * 0.22 * size * thin + 0.5, dr.rot + 0.2, dr.lens, hot, fade);
+      g.fillStyle(0xffffff, fade).fillCircle(x, y, R * 0.24 * size);
     });
-    // directional streaks (speed lines out of the contact, along the blow)
-    const k = big ? 5 : 3;
-    const streaks = Array.from({ length: k }, () => ({ a: (dir > 0 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.8, L: R * (2.2 + Math.random() * 1.6), w: 2 + Math.random() * 2 }));
-    this.addAdd(0.13, (g, p) => {
+    // speed lines out of the contact, along the blow
+    const k = big ? 6 : 4;
+    const streaks = Array.from({ length: k }, () => ({ a: (dir > 0 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.9, L: R * (2 + Math.random() * 1.6), w: 2 + Math.random() * 2.5 }));
+    this.addAdd(0.14, (g, p) => {
       for (const st of streaks) {
         const cs = Math.cos(st.a);
         const sn = Math.sin(st.a);
-        const d0 = st.L * (0.15 + 0.6 * p);
-        const d1 = st.L * (0.45 + 0.55 * easeOut3(p));
+        const d0 = st.L * (0.2 + 0.6 * p);
+        const d1 = st.L * (0.5 + 0.5 * easeOut3(p));
         this.sliver(g, x + cs * d0, y + sn * d0, x + cs * d1, y + sn * d1, st.w * (1 - p) + 0.6, 0xffffff, 0.95 * (1 - p));
       }
     });
     if (big) {
-      // a long white line through the victim (two frames), and the X slash
+      // a long white line through the victim (two frames), and the X slash with a dark edge
       const tilt = (Math.random() - 0.5) * 0.3;
       this.addAdd(0.09, (g, p) => {
-        const L = R * 4.2;
-        this.sliver(g, x - dir * L, y - tilt * L, x + dir * L, y + tilt * L, 7 * (1 - p) + 1, 0xffffff, 1 - p);
+        const L = R * 3.8;
+        this.sliver(g, x - dir * L, y - tilt * L, x + dir * L, y + tilt * L, 8 * (1 - p) + 1, 0xffffff, 1 - p);
       });
-      this.addAdd(0.2, (g, p) => {
-        const L = R * 1.9 * easeOut3(Math.min(1, p * 3));
+      this.addVec(0.22, (g, p) => {
+        const L = R * 1.7 * easeOut3(Math.min(1, p * 3));
         const a = 1 - p * p;
         for (const sg of [1, -1]) {
-          this.sliver(g, x - L, y - sg * L, x + L, y + sg * L, 9 * (1 - p * 0.6), c.spark, 0.7 * a);
-          this.sliver(g, x - L, y - sg * L, x + L, y + sg * L, 3.5 * (1 - p * 0.6), 0xffffff, a);
+          this.sliver(g, x - L, y - sg * L, x + L, y + sg * L, 11 * (1 - p * 0.6), rim, 0.9 * a);
+          this.sliver(g, x - L, y - sg * L, x + L, y + sg * L, 7 * (1 - p * 0.6), mid, a);
+          this.sliver(g, x - L, y - sg * L, x + L, y + sg * L, 2.5 * (1 - p * 0.6), 0xffffff, a);
+        }
+      });
+      // the attacker's energy bursting round the contact: dark smoky blobs with a coloured edge, flung out and fading
+      const blobs = Array.from({ length: 7 }, () => ({ a: Math.random() * Math.PI * 2, d: R * (0.5 + Math.random() * 0.9), r: R * (0.35 + Math.random() * 0.3) }));
+      this.addVec(0.38, (g, p) => {
+        const a = (1 - p) * (1 - p);
+        const out = easeOut3(p);
+        for (const b of blobs) {
+          const bx = x + Math.cos(b.a) * b.d * (0.6 + out);
+          const by = y + Math.sin(b.a) * b.d * (0.6 + out) * 0.8;
+          const r = b.r * (0.7 + 0.6 * out);
+          g.fillStyle(mid, 0.55 * a).fillCircle(bx, by, r * 1.18);
+          g.fillStyle(rim, 0.85 * a).fillCircle(bx, by, r);
         }
       });
     }
     // particles, thrown along the blow
-    const np = big ? 9 : 5;
+    const np = big ? 10 : 6;
     for (let i = 0; i < np; i++) {
-      this.spark(x, y, dir * (90 + Math.random() * 260) + (Math.random() - 0.5) * 90, -40 - Math.random() * 200, 0.22 + Math.random() * 0.22, Math.random() < 0.5 ? c.spark : 0xffffff, 2 + Math.random() * 1.5, 520);
+      this.spark(x, y, dir * (90 + Math.random() * 280) + (Math.random() - 0.5) * 100, -40 - Math.random() * 220, 0.22 + Math.random() * 0.24, Math.random() < 0.5 ? mid : 0xffffff, 2 + Math.random() * 1.5, 520);
     }
   }
 
@@ -1672,11 +1715,12 @@ export class GameScene extends Phaser.Scene {
         const heavy = e.w === WeaponId.Hammer || e.amt >= 140;
         if (!burn) {
           const flip = a ? a.x > e.x : false;
-          this.addFx(e.crit ? FX.critHit : heavy ? FX.bluntHit : FX.hitSpark, e.x, e.y + 14, flip, 1.3, {}, 16, 26);
-          // the layered spark over it, in the attacker's energy colour, sized by the blow
+          // the spark, in the attacker's energy colour, sized by the blow (drawn here, not a stock effect: the stock hit
+          // effects' grey disc and ring washed the contact out)
           const dir = a ? (e.x >= a.x ? 1 : -1) : v ? -v.face : 1;
           const str = Phaser.Math.Clamp(0.6 + e.amt / 180, 0.75, 1.6) * (e.crit ? 1.25 : 1);
-          this.impact(e.x, e.y, dir, str, heroEnergy(a?.hero ?? 0), heavy, e.crit);
+          const hsTicks = (e as { hs?: number }).hs;
+          this.impact(e.x, e.y, dir, str, heroEnergy(a?.hero ?? 0), heavy, e.crit, typeof hsTicks === 'number' ? hsTicks / TICK_RATE : 0.13);
           // a big Art's first connect gets its beat (zoom, speed-line takeover); a no-op otherwise
           superConnect(this, { attackerId: e.a, x: e.x, y: e.y });
           // Flash Step's cuts: a cyan slash on every strike of the flurry
@@ -1712,12 +1756,7 @@ export class GameScene extends Phaser.Scene {
         const fv = this.views.get(e.v);
         // (a short white flash: three frames, so the hurt drawing shows through the rest of the freeze)
         if (fv && !burn) fv.flashUntil = performance.now() + 50;
-        if (prefs().damageNumbers && v) {
-          const pal = burn ? ['#1a0a04', '#4a1a06', '#8c3a08', '#d46a10', '#ff9a2a', '#ffc46a', '#ffe8b0', '#ffffff'] : undefined;
-          const mod = e.crit ? FX.critNumber : FX.damageNumber;
-          // (sized for the close duel camera: a number about a body tall, a crit burst about two)
-          this.addFx(mod, v.x + (Math.random() * 16 - 8), v.y - FIGHTER.h - 6, false, 1.1, { text: e.crit ? `${e.amt}!` : `-${e.amt}`, ...(pal ? { palette: pal } : {}) }, 31, 32, e.crit ? 0.5 : 0.62);
-        }
+        // (no damage numbers: the owner had them removed; the health bars and the combo counter tell the story)
         break;
       }
       case 'block': {

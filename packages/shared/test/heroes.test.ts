@@ -236,7 +236,7 @@ describe('new Rift Arts', () => {
     const hits = hitsBy(log, fa.id, fb.id).filter((e) => e.w === 106);
     expect(hits).toHaveLength(1);
     expect(log.some((e) => e.t === 'block' || e.t === 'parry')).toBe(false);
-    expect(hp0 - fb.s.hp).toBe(Math.round(260 * CLASSES[ClassId.Assassin].dmg));
+    expect(hp0 - fb.s.hp).toBe(Math.round(260 * heroClass(loadOf(HOLLOWMASK)).dmg));
     // the claw skims the ground: every frame it flew at the same height, a little above the floor
     expect([...handY]).toEqual([Math.round(w.arena.floor - 14)]);
     // held: stunned for most of the stun after the hit

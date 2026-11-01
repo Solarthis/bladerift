@@ -269,7 +269,7 @@ describe('combos', () => {
     expect((w.events.find((e) => e.t === 'hit') as HitEvent).n).toBe(1);
   });
 
-  it('chain on hit: a connected swing takes the next press as soon as its hit window ends (a whiff waits)', () => {
+  it('chain on hit: a connected swing takes the next press two ticks into its hit window (a whiff waits)', () => {
     const arena = getArena('bridge');
     const chainTick = (connect: boolean) => {
       const s = newFighterState(400, arena.floor, 1, LEON.cls);
@@ -288,7 +288,7 @@ describe('combos', () => {
     const whiff = chainTick(false);
     expect(hit).toBeGreaterThan(0);
     expect(whiff).toBeGreaterThan(hit);
-    expect(hit).toBe(m.startup + m.active);
+    expect(hit).toBe(Math.min(m.startup + m.active, m.startup + 2));
   });
 });
 

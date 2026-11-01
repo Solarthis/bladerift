@@ -13,7 +13,7 @@ import WebSocket from 'ws';
 const MSG_HELLO = 1;
 const MSG_WELCOME = 101;
 const MSG_LOBBY_STATE = 102;
-const PROTOCOL_VERSION = 6;
+const PROTOCOL_VERSION = 7;
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SERVER = join(here, '..', 'packages', 'server', 'dist', 'online.mjs');

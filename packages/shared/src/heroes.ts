@@ -74,13 +74,14 @@ export const heroWeapon = (hero: number) => HERO_WEAPON[hero] ?? SIGNATURE[HEROE
  * a dodge than Humbaba, and each cut a little deeper. */
 export type HeroTune = Partial<Pick<ClassDef, 'dmg' | 'speed' | 'recovery' | 'rollCd'>>;
 export const HERO_TUNE: Partial<Record<number, HeroTune>> = {
-  0: { dmg: 0.85 },
+  0: { dmg: 0.82 },
   2: { dmg: 0.92 },
   4: { dmg: 1.12 },
   5: { dmg: 1.12, recovery: 0.92 },
-  6: { dmg: 1.08 },
+  6: { dmg: 1.0 },
+  7: { dmg: 1.1 },
   8: { dmg: 1.1 },
-  9: { dmg: 1.32, speed: 1.15, recovery: 0.82 },
+  9: { dmg: 1.4, speed: 1.15, recovery: 0.82 },
   10: { dmg: 0.85, speed: 1.3, recovery: 0.9, rollCd: 0.7 },
   12: { dmg: 0.85, recovery: 1.08 },
   13: { dmg: 0.82 },

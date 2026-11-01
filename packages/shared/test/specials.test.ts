@@ -217,7 +217,7 @@ describe('specials: shots', () => {
     const dirkLog = cast(dirk.w, 90, BTN_GUARD);
     expect(guardEvents(dirkLog), 'no guard event').toHaveLength(0);
     expect(directHits(dirkLog).length).toBeGreaterThan(0);
-    expect(directHits(dirkLog)[0].amt).toBe(Math.round(sk.dmg * classOf(HEROES[SkillId.ShadowDirk].cls).dmg));
+    expect(directHits(dirkLog)[0].amt).toBe(Math.round(sk.dmg * heroClass({ cls: HEROES[SkillId.ShadowDirk].cls, hero: SkillId.ShadowDirk }).dmg));
 
     // control: a shot that can be blocked is blocked by the same raised shield
     const arrows = setup(SkillId.NineLives, rangeFor(SKILLS[SkillId.NineLives]));

@@ -235,7 +235,6 @@ export class App {
         return `${this.header('Settings')}<div class="card settings">
           <label>Sound <input type="range" min="0" max="1" step="0.05" value="${p.volume}" data-pref="volume"></label>
           <label>Screen shake <input type="range" min="0" max="1" step="0.1" value="${p.shake}" data-pref="shake"></label>
-          <label class="check"><input type="checkbox" ${p.damageNumbers ? 'checked' : ''} data-pref="damageNumbers"> Damage numbers</label>
           <label class="check"><input type="checkbox" ${p.haptics ? 'checked' : ''} data-pref="haptics"> Vibration</label>
           <div class="update-row"><span>Version <b>${esc(CURRENT_RELEASE)}</b></span><button class="update-btn inline${updateReady() ? ' ready' : ''}" data-act="update">${updateReady() ? 'Update ready' : 'Update game'}</button></div>
         </div>`;
