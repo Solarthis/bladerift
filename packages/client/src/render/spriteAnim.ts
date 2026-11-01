@@ -4,7 +4,8 @@
  * frame inside it follows the move's own timing: startup = anticipation, the first active ticks = the strike, then the
  * extension and the recovery. Time-driven animations (idle, run, KO, victory) play at their own frame rates.
  */
-import { Act, ARTS, artIdOf, DODGES, FIGHTER, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, moveOf, SKILLS, WEAPONS } from '@bladerift/shared';
+import { lookMove } from './fxmap';
+import { Act, ARTS, artIdOf, DODGES, FIGHTER, isAirMove, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, moveOf, SKILLS, WEAPONS } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
 
 export interface SpriteFrame {
@@ -198,7 +199,7 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         return pick('art', Math.min(n - 1, (n >= 6 ? 2 : 0) + (ph.stance ? 3 : ph.idx)), 'heavy');
       }
       const m = moveOf(w, v.move);
-      const name = v.move === MOVE_AIR ? 'airAttack' : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : comboAnim(w, v.move);
+      const name = v.move === MOVE_AIR ? 'airAttack' : isAirMove(v.move) ? comboAnim(w, lookMove(w, v.move) === MOVE_AIR ? 0 : lookMove(w, v.move)) : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : comboAnim(w, v.move);
       if (!m) return pick(name, 0, 'combo0');
       const n = A[name]?.frames.length ?? 4;
       if (v.move === MOVE_PLUNGE) {
@@ -225,7 +226,7 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         pose.rot = (heavy ? 4 : 2) * k;
       }
       // the early return to the stance (on the ground; in the air the recovery drawing holds)
-      if (ph.stance && v.move !== MOVE_AIR && v.ground) return pick('idle', 0);
+      if (ph.stance && !isAirMove(v.move) && v.ground) return pick('idle', 0);
       // a charged release: the charge itself showed the first frame, so the release starts at the wind-up
       if (v.move === MOVE_CHARGED) return pick(name, Math.max(1, ph.idx), 'combo2');
       return pick(name, ph.idx, 'combo0');

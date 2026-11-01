@@ -3,6 +3,7 @@
  * The attack tracks are PixelFX's own acted moves (wind-up, a snap to the strike, follow-through, recovery), re-timed
  * onto Bladerift's startup / active / recovery ticks so what you see is exactly when the hit can land.
  */
+import { lookMove } from './fxmap';
 import { Act, ArtId, FIGHTER, heroOf, heroWeapon, lookWeapon, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, TICK_RATE, WEAPONS, WeaponId } from '@bladerift/shared';
 // @ts-expect-error - plain JS vendor module
 import { lerpPose } from '../vendor/pixelfx/core/act.js';
@@ -193,7 +194,8 @@ function plunge(w: number): Key[] {
 
 /** The track for one weapon move. Cached. */
 const TRACKS = new Map<string, Key[]>();
-function trackFor(wIn: number, move: number): Key[] {
+function trackFor(wIn: number, mIn: number): Key[] {
+  const move = lookMove(wIn, mIn);
   // (a hero's own weapon without rig poses of its own moves like the weapon it is based on)
   const w = lookWeapon(wIn);
   const k = w + ':' + move;

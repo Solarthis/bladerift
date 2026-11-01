@@ -41,6 +41,11 @@ export const MOVE_CHARGED = 12;
 export const MOVE_ART = 13;
 /** Richard's heavy: the Sun Crescent (SUN_CRESCENT), a golden slash that flies on toward the opponent. */
 export const MOVE_CRESCENT = 14;
+/** The air string: light presses in the air chain MOVE_AIR, MOVE_AIR2 and the finisher MOVE_AIR3 (airString()). */
+export const MOVE_AIR2 = 15;
+export const MOVE_AIR3 = 16;
+export const AIR_STRING = [MOVE_AIR, MOVE_AIR2, MOVE_AIR3];
+export const isAirMove = (move: number) => move === MOVE_AIR || move === MOVE_AIR2 || move === MOVE_AIR3;
 
 /**
  * The Sun Crescent: a big overhead cleave whose arc flies off as a crescent of gold light (World: CRESCENT), on a cooldown
@@ -151,6 +156,10 @@ export interface FighterState {
   pause: number;
   /** Knocked off the feet by a knockdown hit: stays in hit-stun until it lands, then Act.Down. */
   fall: number;
+  /** Air attacks started this airtime (the first FIGHTER.airHover of them check the fall). */
+  air: number;
+  /** Juggled by an air string: floats down slowly while in hit-stun, for this many ticks. */
+  float: number;
 }
 
 /** Every state field, in wire order (protocol.ts sends the whole state to its owner for prediction). */
@@ -159,6 +168,7 @@ export const STATE_KEYS: (keyof FighterState)[] = [
   'charge', 'rollCd', 'skillCd', 'invuln', 'stun', 'slowT', 'rootT', 'burnT', 'flask', 'hp', 'prevBtn', 'moveSeq', 'blockT',
   'lock', 'jumpHeld', 'spawn', 'wall', 'slide', 'wallT', 'wallSide', 'wlock', 'dash', 'rollAir', 'fast', 'crouch', 'coyote',
   'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil', 'hitstop', 'pause', 'fall', 'heat', 'reload',
+  'air', 'float',
 ];
 
 export function newFighterState(x: number, y: number, face: number, load: { cls: number; hero?: number } = { cls: 0 }): FighterState {
@@ -168,7 +178,7 @@ export function newFighterState(x: number, y: number, face: number, load: { cls:
     comboWin: 0, buf: 0, bufT: 0, charge: 0, rollCd: 0, skillCd: 0, invuln: 0, stun: 0, slowT: 0, rootT: 0, burnT: 0,
     flask: FIGHTER.flasks, hp: C.hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
     wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
-    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0, heat: 0, reload: 0,
+    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0, heat: 0, reload: 0, air: 0, float: 0,
   };
 }
 
@@ -202,6 +212,12 @@ export function meleeConnect(s: FighterState, load: Loadout, m: Move, hitstop: n
   if (hitstop > 0) s.hitstop = Math.max(s.hitstop, hitstop);
   if (s.move === MOVE_CHARGED && m.dash) s.vx *= 0.2;
   s.confirm = PHYS.confirmTicks;
+  // an air string that connects carries the attacker along with the one it hit, with a little lift, so the next swing
+  // of the string reaches them on the way down
+  if (isAirMove(s.move) && !s.ground) {
+    s.vx = s.face * m.kbX * FIGHTER.juggleCarry;
+    if (s.air <= FIGHTER.airHover) s.vy = Math.min(s.vy, -70);
+  }
   // a plunge that connects bounces the attacker back up (pogo) instead of slamming into the floor
   if (s.move === MOVE_PLUNGE && !s.ground) {
     s.act = Act.Free;
@@ -256,12 +272,45 @@ export function heavyOf(weapon: number): Move | null {
 export function moveOf(weapon: number, move: number): Move | null {
   const w = WEAPONS[weapon];
   if (!w) return null;
-  if (move === MOVE_AIR) return w.air;
+  if (isAirMove(move)) return airString(weapon)[AIR_STRING.indexOf(move)];
   if (move === MOVE_PLUNGE) return w.plunge ?? w.air;
   if (move === MOVE_CHARGED) return heavyOf(weapon);
   if (move === MOVE_ART) return ART_FANG;
   if (move === MOVE_CRESCENT) return SUN_CRESCENT;
   return w.combo[move] ?? w.combo[0];
+}
+
+const airStrings = new Map<number, Move[]>();
+/**
+ * A weapon's air string, built from its air move: two quick swings that pop the one they hit up a little and keep them
+ * close (they float while juggled), then a finisher that knocks them down.
+ */
+export function airString(weapon: number): Move[] {
+  let a = airStrings.get(weapon);
+  if (!a) {
+    const air = WEAPONS[weapon].air;
+    const pop = { ...air, kbX: Math.min(air.kbX, 150), kbY: Math.max(air.kbY, 170) };
+    a = [
+      pop,
+      { ...pop, startup: Math.max(3, air.startup - 1), dmg: Math.round(air.dmg * 0.85), stun: air.stun + 2 },
+      {
+        ...air, startup: air.startup + 2, recovery: air.recovery + 6, dmg: Math.round(air.dmg * 1.3), kbX: Math.round(air.kbX * 1.4),
+        kbY: 300, stun: air.stun + 14, shake: Math.max(air.shake ?? 0, 0.5),
+      },
+    ];
+    airStrings.set(weapon, a);
+  }
+  return a;
+}
+
+/** Start the next swing of the air string (the first after a pause, a landing or a finisher). */
+function airAttack(s: FighterState, slot: number) {
+  const prev = AIR_STRING.indexOf(s.move);
+  const k = s.comboWin > 0 && s.slot === slot && prev >= 0 && prev < AIR_STRING.length - 1 ? prev + 1 : 0;
+  startAttack(s, slot, AIR_STRING[k]);
+  s.air++;
+  // the first swings of an airtime check the fall, so a string can be strung together on the way down
+  if (s.air <= FIGHTER.airHover && s.vy > 0) s.vy *= 0.2;
 }
 
 /** Is the move in its hitting window this tick? (Plunges hit until they land.) */
@@ -319,14 +368,15 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     // weapon charges it: hold for the power move, a tap is the light move) and the plunge in the air
     const heavy = slot === 1 && load.weapons[1] === load.weapons[0];
     if (heavy && !s.ground) {
-      startAttack(s, slot, w.plunge ? MOVE_PLUNGE : MOVE_AIR);
+      if (w.plunge) startAttack(s, slot, MOVE_PLUNGE);
+      else airAttack(s, slot);
     } else if (heavy && hasCrescent(load) && !s.reload) {
       // the Sun Crescent while it is ready (cooling down, B is the plain heavy cleave below)
       startAttack(s, slot, MOVE_CRESCENT);
     } else if (heavy && !w.charged) {
       startAttack(s, slot, MOVE_CHARGED);
     } else if (w.block) {
-      if (!s.ground) startAttack(s, slot, MOVE_AIR);
+      if (!s.ground) airAttack(s, slot);
       else {
         s.act = Act.Block;
         s.actT = 0;
@@ -341,7 +391,8 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
       s.slot = slot;
       s.crouch = 0;
     } else if (!s.ground) {
-      startAttack(s, slot, cmd.moveY > 0.5 && w.plunge ? MOVE_PLUNGE : MOVE_AIR);
+      if (cmd.moveY > 0.5 && w.plunge) startAttack(s, slot, MOVE_PLUNGE);
+      else airAttack(s, slot);
     } else {
       const step = s.comboWin > 0 && s.slot === slot ? s.combo : 0;
       startAttack(s, slot, step);
@@ -481,6 +532,7 @@ function jump(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef): boo
     s.jumps = C.airJumps;
     s.dash = 0;
     s.fast = 0;
+    s.air = 0;
     s.jumpHeld = 1;
     return true;
   }
@@ -588,7 +640,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     return;
   }
 
-  for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm'] as const) if (s[k] > 0) s[k]--;
+  for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm', 'float'] as const) if (s[k] > 0) s[k]--;
   if (s.bufT > 0 && --s.bufT === 0) s.buf = 0;
   if (s.heat > 0) s.heat--;
   if (s.reload && s.heat <= FIGHTER.heatReady) s.reload = 0;
@@ -802,8 +854,10 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       if (held) s.charge = Math.min(c.max, s.charge + 1);
       else if (s.charge < c.min) {
         const step = s.comboWin > 0 ? s.combo : 0;
-        startAttack(s, s.slot, s.ground ? step : MOVE_AIR);
-        s.combo = (step + 1) % w.combo.length;
+        if (s.ground) {
+          startAttack(s, s.slot, step);
+          s.combo = (step + 1) % w.combo.length;
+        } else airAttack(s, s.slot);
       } else startAttack(s, s.slot, MOVE_CHARGED);
       break;
     }
@@ -839,7 +893,8 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       } else if (m.step && s.actT < end && s.ground) {
         s.vx = s.face * m.step * speedK * (s.actT < m.startup ? 0.6 : 1);
       } else if (s.ground) s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
-      else s.vx = approach(s.vx, ax * PHYS.runSpeed * speedK, PHYS.airAccel * 0.5 * DT);
+      // (an air string swing that connected keeps its carry: the attacker drifts on with the one it juggles)
+      else if (!(isAirMove(s.move) && s.confirm > 0)) s.vx = approach(s.vx, ax * PHYS.runSpeed * speedK, PHYS.airAccel * 0.5 * DT);
       if (m.arrow && s.actT === m.startup) {
         s.spawn = 1;
         if (m.crescent) {
@@ -968,6 +1023,9 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     s.vy = Math.min(s.fast ? PHYS.fastFallMax : PHYS.maxFall, s.vy + g * DT);
   }
   if (s.slide) s.vy = Math.min(s.vy, PHYS.wallSlide);
+  // the air string: its first swings of an airtime check the fall, and a fighter it juggles floats down with it
+  if (!s.ground && s.vy > FIGHTER.airFloat && ((s.act === Act.Stun && s.float > 0) || (s.act === Act.Attack && isAirMove(s.move) && s.air <= FIGHTER.airHover)))
+    s.vy = FIGHTER.airFloat;
   if (s.act !== Act.Climb && s.act !== Act.Ledge) collide(s, arena);
   else s.wall = 0;
   if (s.act === Act.Ledge || s.act === Act.Climb) s.ground = s.act === Act.Climb ? s.ground : 0;
@@ -976,6 +1034,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     s.jumps = C.airJumps;
     s.dash = 0;
     s.fast = 0;
+    s.air = 0;
     // (a plain air dash ends on landing; a hero's dodge runs its own course)
     if (s.rollAir === 1 && s.act === Act.Roll && s.actT > 2) {
       s.act = Act.Free;
@@ -1063,7 +1122,7 @@ function collide(s: FighterState, arena: ArenaDef) {
   }
   s.y = ny;
   pushOut();
-  if (s.ground && !wasGround && s.act === Act.Attack && s.move === MOVE_AIR) {
+  if (s.ground && !wasGround && s.act === Act.Attack && isAirMove(s.move)) {
     // landing out of an air attack ends it (no floating recovery on the floor)
     s.act = Act.Free;
     s.actT = 0;

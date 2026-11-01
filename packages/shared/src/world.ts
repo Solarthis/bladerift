@@ -5,7 +5,7 @@
 import { ArenaDef, getArena, solidAt, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS, ROUND, TICK_RATE } from './constants';
 import {
-  Act, bodySolid, bodyYields, copyState, currentMove, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isFrozen, meleeConnect, meleeCrit, moveDamage, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
+  Act, bodySolid, bodyYields, copyState, currentMove, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isAirMove, isFrozen, meleeConnect, meleeCrit, moveDamage, MOVE_AIR3, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
@@ -573,6 +573,7 @@ export class World {
     const landed = this.applyHit(a, d, {
       dmg, hsDmg: base, art: a.s.move === MOVE_ART, kbX: m.kbX, kbY: m.kbY, stun: m.stun, pull: !!m.pull, breaksGuard: !!m.breaksGuard, crit: mc.crit,
       w: a.load.weapons[a.s.slot], x: ix, y: iy, front: mc.front, guard: seen,
+      juggle: isAirMove(a.s.move) && a.s.move !== MOVE_AIR3,
     });
     if (veiled && landed) a.s.veil = 0;
     // the attacker freezes with the defender (melee hit-stop), a lunge brakes, a landed hit can be cancelled into a jump
@@ -602,6 +603,8 @@ export class World {
     h: {
       dmg: number; kbX: number; kbY: number; stun: number; pull?: boolean; breaksGuard?: boolean; crit: boolean; w: number; x: number; y: number; front: boolean;
       guard?: { blocking: boolean; blockT: number }; melee?: boolean;
+      /** An air string's swing (not its finisher): the one it hits floats while juggled. */
+      juggle?: boolean;
       /** The damage the hit-stop is sized from (default dmg): the move's own, before crits and scaling. */
       hsDmg?: number;
       /** A Rift Art hit (when unset: any w in 104..199): Art hit-stop, no combo scaling, never trips the combo break. */
@@ -694,12 +697,13 @@ export class World {
       ds.actT = 0;
       ds.stun = h.stun;
       ds.fall = fall ? 1 : 0;
+      ds.float = h.juggle && !fall ? h.stun + 8 : 0;
       ds.charge = 0;
       ds.blockT = 0;
       const push = h.pull && a ? -dirX : dirX;
       // a heavy hero is thrown less far, a light one further
       const wt = DC.weight ?? 1;
-      ds.vx = push * h.kbX * wt;
+      ds.vx = push * h.kbX * wt * (h.juggle ? FIGHTER.juggleCarry : 1);
       if (h.pull && a) {
         // the hook lands them in front of the reaper, not behind
         const want = a.s.x + a.s.face * 34;

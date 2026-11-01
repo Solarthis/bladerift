@@ -4,7 +4,7 @@
  * every held step, the Art, rolls, hits - in small slices that never take more than a few milliseconds of a frame.
  * After that, gameplay animation costs almost nothing, even on phones.
  */
-import { Act, ARTS, FIGHTER, heroOf, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, WEAPONS } from '@bladerift/shared';
+import { Act, ARTS, FIGHTER, heroOf, MOVE_AIR, MOVE_AIR2, MOVE_AIR3, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS, WEAPONS } from '@bladerift/shared';
 // @ts-expect-error - plain JS module
 import { renderHero } from './heroRig.js';
 import { modelOf } from './models/index';
@@ -50,12 +50,12 @@ function posesFor(hero: number, weapons: [number, number], skill: number) {
     for (let t = 0; t <= 30; t += 3) for (const time of [0, 0.03, 0.06, 0.09, 0.12]) push(view({ slot, act: Act.Stun, actTf: t }), { time, runPhase: 0 });
     for (let t = 0; t <= 24; t += 2) push(view({ slot, act: Act.KO, actTf: t }));
     // every move at every tick (held steps dedupe in the cache)
-    const moves = [...def.combo.map((_, i) => i), MOVE_AIR, ...(def.plunge ? [MOVE_PLUNGE] : []), ...(def.charged ? [MOVE_CHARGED] : [])];
+    const moves = [...def.combo.map((_, i) => i), MOVE_AIR, MOVE_AIR2, MOVE_AIR3, ...(def.plunge ? [MOVE_PLUNGE] : []), ...(def.charged ? [MOVE_CHARGED] : [])];
     for (const move of moves) {
       const m = moveOf(w, move);
       if (!m) continue;
       const len = m.startup + m.active + m.recovery;
-      for (let t = 0; t <= len; t++) push(view({ slot, act: Act.Attack, move, actTf: t, ground: move !== MOVE_AIR && move !== MOVE_PLUNGE }));
+      for (let t = 0; t <= len; t++) push(view({ slot, act: Act.Attack, move, actTf: t, ground: move < MOVE_AIR || move === MOVE_CHARGED }));
     }
     for (let t = 0; t <= FIGHTER.rollTicks; t += 2) push(view({ slot, act: Act.Roll, actTf: t }));
     push(view({ slot, act: Act.Stun }));

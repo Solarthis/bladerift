@@ -640,7 +640,7 @@ export class BotBrain {
         }
         if (this.rng.next() >= (vuln ? T.punish : T.attack)) return false;
         this.windT = -1;
-        if (!s.ground && WEAPONS[wp].plunge && g.dy > -10) cmd.moveY = 1; // plunge onto them
+        if (!s.ground && WEAPONS[wp].plunge && g.dy > -10 && o.ground > 0) cmd.moveY = 1; // plunge onto them (one in the air is juggled with the air string)
         cmd.buttons |= btn;
         return true;
       }

@@ -444,7 +444,7 @@ export class App {
       <div class="card howto-keys">
         <h3>Controls</h3>
         <table><tr><th></th><th>Keyboard</th><th>Player 1</th><th>Player 2</th></tr>
-          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
+          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo; an air combo in the air)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
         </table>
         <p class="howto-pad">Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
       </div>
@@ -456,6 +456,7 @@ export class App {
         <ul>
           <li><b>Combos:</b> keep pressing a weapon button to chain its strikes.</li>
           <li><b>Hold</b> the Lance to charge a lunge, the Bow for a heavy shot, the Shield to block. Block just before a hit to <b>parry</b>.</li>
+          <li><b>Air combo:</b> tap light attack while jumping or falling: two quick swings and a finisher that knocks them down. Your swings slow your fall, and a foe you juggle floats with you; land to start a new one.</li>
           <li><b>Down + attack</b> in the air: a plunging strike that bounces you off a hit. <b>Down + jump</b>: drop through a ledge. <b>Down</b> in the air falls fast; on the ground it crouches under high swings.</li>
           <li><b>Walls and ledges:</b> slide down a wall and jump off it; grab a ledge and jump to climb. <b>Roll in the air</b> to dash. A hit that lands can be cancelled into a jump.</li>
           <li>Rolling makes you untouchable for a moment. One heal flask per round, and a hit while drinking spills it.</li>

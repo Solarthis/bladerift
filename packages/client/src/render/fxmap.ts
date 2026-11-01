@@ -2,7 +2,15 @@
  * Which PixelFX effect plays for each move, impact and skill, with its palette and playback rate. The effect's time 0
  * is lined up with the move's first hitting tick (PixelFX: "t = 0 is the effect's first frame" = the strike).
  */
-import { lookWeapon, MOVE_AIR, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, WeaponId } from '@bladerift/shared';
+import { lookWeapon, MOVE_AIR, MOVE_AIR2, MOVE_AIR3, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, WEAPONS, WeaponId } from '@bladerift/shared';
+
+/** The look of a move: the air string's second swing draws like the combo's second, its finisher like the combo's last
+ * (or the air slash for a two-hit combo). */
+export function lookMove(weapon: number, move: number) {
+  if (move === MOVE_AIR2) return 1;
+  if (move === MOVE_AIR3) return (WEAPONS[weapon]?.combo.length ?? 0) >= 3 ? 2 : MOVE_AIR;
+  return move;
+}
 import type { FxModule } from './pixel';
 // @ts-expect-error - plain JS vendor modules
 import * as swordSlash from '../vendor/pixelfx/fx/melee/sword-slash.js';
@@ -162,6 +170,7 @@ const SCYTHE_DARK = undefined;
 
 /** The swing effect for a move (null = none). */
 export function swingFx(weapon: number, move: number): SwingFx | null {
+  move = lookMove(weapon, move);
   const s = (mod: FxModule, rate = 1.4, opts?: Record<string, unknown>): SwingFx => ({ mod, rate, opts, stop: mod.act?.hits?.[0]?.stop ?? 0.1 });
   switch (lookWeapon(weapon)) {
     case WeaponId.Sword:
@@ -231,7 +240,7 @@ const stepCache = new Map<number, HeroEnergy>();
 export function energyForMove(hero: number, move: number, comboLen = 3): HeroEnergy {
   const e = heroEnergy(hero);
   const fin = move < 10 && move === comboLen - 1 && comboLen >= 2;
-  const col = fin ? e.fin : move >= 1 && move < 10 ? e.alt : move === MOVE_CHARGED || move === MOVE_PLUNGE || move === MOVE_CRESCENT ? e.fin : undefined;
+  const col = fin || move === MOVE_AIR3 ? e.fin : (move >= 1 && move < 10) || move === MOVE_AIR2 ? e.alt : move === MOVE_CHARGED || move === MOVE_PLUNGE || move === MOVE_CRESCENT ? e.fin : undefined;
   if (col === undefined) return e;
   const key = hero * 64 + move;
   let c = stepCache.get(key);
@@ -268,6 +277,7 @@ export interface ArcShape {
 
 /** The arc a sprite fighter's move draws (null = none: projectiles, plunges). */
 export function arcFor(weapon: number, move: number): ArcShape | null {
+  move = lookMove(weapon, move);
   const S = (a0: number, a1: number, r: number, w: number, o: Partial<ArcShape> = {}): ArcShape => ({
     kind: 'slash', a0, a1, r, w, cx: 4, cy: 30, sy: 0.8, dur: 0.07, life: 0.24, ...o,
   });

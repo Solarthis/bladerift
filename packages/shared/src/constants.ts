@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 9;
+export const PROTOCOL_VERSION = 10;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -87,6 +87,12 @@ export const FIGHTER = {
    * Rift Art sets `fall`: the defender stays in hit-stun until it lands, then lies in Act.Down for downTicks and rises in
    * Act.GetUp for getUpTicks, invulnerable all along and for wakeInvuln ticks after it is up. */
   knockdownKbY: 240,
+  /** The air string: the first airHover air attacks of an airtime hold the fall to airFloat (units/s), and so does a
+   * fighter juggled by one while in hit-stun. */
+  airHover: 4,
+  airFloat: 80,
+  /** An air string's swing carries the one it juggles, and the attacker with them, at this share of its knockback. */
+  juggleCarry: 0.5,
   knockdownStun: 34,
   downTicks: 32,
   getUpTicks: 12,
