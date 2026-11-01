@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 // Smoke test for the built online server (packages/server/dist/online.mjs). Starts it on a free local port, creates
 // a room over HTTP, joins over WebSocket with a Hello, and checks the Welcome and LobbyState replies. It also checks
 // that a wrong protocol version is refused and an unknown code is a 404. Exit code 0 = PASS.
@@ -13,7 +14,8 @@ import WebSocket from 'ws';
 const MSG_HELLO = 1;
 const MSG_WELCOME = 101;
 const MSG_LOBBY_STATE = 102;
-const PROTOCOL_VERSION = 7;
+// (read from the shared source, so the check never goes stale on a protocol bump)
+const PROTOCOL_VERSION = Number(readFileSync(new URL('../packages/shared/src/constants.ts', import.meta.url), 'utf8').match(/PROTOCOL_VERSION = (\d+)/)[1]);
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SERVER = join(here, '..', 'packages', 'server', 'dist', 'online.mjs');
