@@ -86,5 +86,8 @@ export class LocalTransport implements Transport {
 
 /** A room in this page (practice / same device): every tick snapshotted, the first to join is host. */
 export function localRoom(name = 'Practice') {
-  return new Room('local', name, true, { snapshotInterval: 1 });
+  const room = new Room('local', name, true, { snapshotInterval: 1 });
+  // (dev builds: capture scripts reach the sim through window.__room)
+  if (import.meta.env.DEV) (window as unknown as { __room: Room }).__room = room;
+  return room;
 }

@@ -1,4 +1,4 @@
-import { ARTS, classOf, GameEvent, heroOf, RIFT, RosterEntry, SKILLS, WEAPONS } from '@bladerift/shared';
+import { ARTS, classOf, FIGHTER, GameEvent, heroOf, isRanged, RIFT, RosterEntry, SKILLS, WEAPONS } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import { colorOf, css } from './colors';
 import { artIconOf, skillIcon, weaponIcon } from './icons';
@@ -56,6 +56,11 @@ interface Side {
   combo: HTMLElement;
   comboN: HTMLElement;
   trailHp: number;
+  /** The ranged heat strip under the health bar (bow, staff and Gate heroes only). */
+  heat: HTMLElement;
+  heatFill: HTMLElement;
+  /** Health last frame: a drop flashes the bar. */
+  lastHp: number;
   key: string;
 }
 
@@ -97,7 +102,8 @@ export class Hud {
         <div class="hp-id"><b class="hp-name"></b><small class="hp-hero"><span></span><i></i></small></div>
         <span class="hp-pips"></span>
       </div>
-      <div class="hp-bar"><div class="hp-trail"></div><div class="hp-fill"></div><span class="hp-num"></span></div>
+      <div class="hp-bar"><div class="hp-trail"></div><div class="hp-fill"></div><i class="hp-sheen"></i><span class="hp-num"></span></div>
+      <div class="hp-heat"><i></i><span>OVERHEAT</span></div>
       <div class="rift-row">
         <span class="rift-art"><img alt=""></span>
         <div class="rift"><div class="rift-fill"></div><span class="rift-pct"></span></div>
@@ -137,6 +143,9 @@ export class Hud {
         combo,
         comboN: combo.querySelector<HTMLElement>('.cb-n')!,
         trailHp: 1000,
+        heat: q('.hp-heat'),
+        heatFill: q('.hp-heat i'),
+        lastHp: 0,
         key: '',
       };
     };
@@ -193,6 +202,21 @@ export class Hud {
       s.trail.style.width = (s.trailHp / max) * 100 + '%';
       setText(s.hpText, String(Math.ceil(hp)));
       s.root.classList.toggle('low', hp < max * 0.25);
+      s.root.classList.toggle('mid', hp >= max * 0.25 && hp < max * 0.5);
+      // a hit flashes the bar (the animation restarts on every drop)
+      if (hp < s.lastHp - 0.5) {
+        s.root.classList.remove('hit');
+        void s.root.offsetWidth;
+        s.root.classList.add('hit');
+      }
+      s.lastHp = hp;
+      // ranged heroes: the heat their shots build, red while the weapon cools from an overheat
+      const ranged = !!f && !!WEAPONS[f.weapons[0]] && isRanged(WEAPONS[f.weapons[0]]);
+      s.root.classList.toggle('ranged', ranged);
+      if (ranged && f) {
+        s.heatFill.style.width = Math.min(1, f.heat / FIGHTER.heatMax) * 100 + '%';
+        s.heat.classList.toggle('over', f.reload);
+      }
 
       const rift = f ? Math.min(1, f.rift / RIFT.max) : 0;
       const ready = rift >= 1;

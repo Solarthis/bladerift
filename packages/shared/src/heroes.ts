@@ -72,7 +72,13 @@ export const heroWeapon = (hero: number) => HERO_WEAPON[hero] ?? SIGNATURE[HEROE
  * a dodge than Humbaba, and each cut a little deeper. */
 export type HeroTune = Partial<Pick<ClassDef, 'dmg' | 'speed' | 'recovery' | 'rollCd'>>;
 export const HERO_TUNE: Partial<Record<number, HeroTune>> = {
+  2: { dmg: 0.92 },
+  5: { dmg: 1.12, recovery: 0.92 },
+  6: { dmg: 1.08 },
+  9: { dmg: 1.2, speed: 1.1, recovery: 0.9 },
   10: { dmg: 1.15, speed: 1.3, recovery: 0.85, rollCd: 0.7 },
+  12: { dmg: 0.85, recovery: 1.08 },
+  13: { dmg: 0.9 },
 };
 const tunedClasses = new Map<number, ClassDef>();
 /** The class stats a loadout fights with: its class's, with its hero's tune (HERO_TUNE) applied. */

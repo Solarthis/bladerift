@@ -158,6 +158,8 @@ export interface TouchButtonState {
   /** Cooldowns 0..1 (1 = just used). */
   skillCd: number;
   rollCd: number;
+  /** An overheated ranged weapon cooling (1 = just overheated, 0 = ready): sweeps the attack buttons. */
+  reload: number;
   flask: number;
   /** Rift gauge 0..1 (1 = the Art is ready). */
   rift: number;
@@ -209,6 +211,8 @@ export class TouchSource implements InputSource {
   /** The stick is past its dead zone (see STICK_ON / STICK_OFF). */
   private moving = false;
   private pressed = new Map<number, number>();
+  /** Buttons pressed since the last read: a tap quicker than a frame (down and up between two reads) still counts once. */
+  private tapped = 0;
   private knob: HTMLElement;
   private base: HTMLElement;
   private arrow: HTMLElement;
@@ -274,6 +278,7 @@ export class TouchSource implements InputSource {
       el.addEventListener('pointerdown', (e) => {
         el.setPointerCapture(e.pointerId);
         this.pressed.set(e.pointerId, b.bit);
+        this.tapped |= b.bit;
         el.classList.add('down');
         this.ripple(el, e);
         navigator.vibrate?.(8);
@@ -321,7 +326,8 @@ export class TouchSource implements InputSource {
   }
 
   read(): Intent {
-    let b = 0;
+    let b = this.tapped;
+    this.tapped = 0;
     for (const bit of this.pressed.values()) b |= bit;
     const ax = Math.abs(this.stick.x);
     this.moving = ax >= (this.moving ? STICK_OFF : STICK_ON);
@@ -349,6 +355,8 @@ export class TouchSource implements InputSource {
     const cd = (id: string, v: number) => this.btnEls.get(id)!.style.setProperty('--cd', String(Math.max(0, Math.min(1, v))));
     cd('skill', s.skillCd);
     cd('roll', s.rollCd);
+    cd('a', s.reload);
+    cd('b', s.reload);
     // the Art tile fills from the bottom with the gauge and glows when ready
     const art = this.btnEls.get('art')!;
     art.style.setProperty('--fill', String(Math.max(0, Math.min(1, s.rift))));

@@ -47,7 +47,7 @@ export const ARENAS: ArenaDef[] = [
       { x: 60, y: 330, w: 56, h: 270 },
       { x: 1164, y: 330, w: 56, h: 270 },
     ],
-    spawns: [330, 950],
+    spawns: [430, 850],
     description: 'Open deck under the moon. Two side ledges and a high centre perch.',
   },
   {
@@ -64,7 +64,7 @@ export const ARENAS: ArenaDef[] = [
     ],
     // a battlement block in the middle of the yard: fight on it, around it, over it
     blocks: [{ x: 545, y: 530, w: 90, h: 70 }],
-    spawns: [300, 880],
+    spawns: [380, 800],
     description: 'Burning battlements. A long middle wall and a lookout to fight over.',
   },
   {
@@ -82,7 +82,7 @@ export const ARENAS: ArenaDef[] = [
       { x: 486, y: 440, w: 68, h: 160 },
       { x: 430, y: 250, w: 180, h: 34 },
     ],
-    spawns: [300, 740],
+    spawns: [330, 710],
     description: 'Tight and close. Little room to run - every roll counts.',
   },
   {
@@ -103,7 +103,7 @@ export const ARENAS: ArenaDef[] = [
       { x: 250, y: 520, w: 80, h: 80 },
       { x: 1070, y: 520, w: 80, h: 80 },
     ],
-    spawns: [380, 1020],
+    spawns: [490, 910],
     description: 'Wide and tall. Rangers and lancers love the space.',
   },
 ];

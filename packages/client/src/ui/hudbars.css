@@ -1,0 +1,197 @@
+/* Fighting-game health bars (loads after hud.css): a shaded band behind the top HUD, bars slanted toward the clock with
+   ten ticks and a travelling sheen, a colour that turns green -> amber -> red as health falls, a white flash on every hit,
+   a slanted Rift gauge with a flowing fill, and a heat strip under the bar for the ranged heroes (bow, staff, Gate). */
+
+.hud { isolation: isolate; }
+.hud::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(var(--u) * 24);
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(6, 4, 12, 0.7), rgba(6, 4, 12, 0.32) 55%, transparent);
+}
+
+/* ------------------------------------------------------------------ health */
+.hud .hp-bar {
+  --slant: clamp(9px, calc(var(--u) * 2.6), 18px);
+  height: clamp(16px, calc(var(--u) * 4.8), 30px);
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, #07050d, #1c1428 70%, #120c1c);
+  box-shadow: none;
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%);
+}
+.hud .hp-side.right .hp-bar { clip-path: polygon(0 0, 100% 0, 100% 100%, var(--slant) 100%, 0 0); }
+/* a gold rim along the top, a dark lip along the bottom, and a tick every 10% */
+.hud .hp-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 228, 170, 0.75) 0 1.5px, transparent 1.5px calc(100% - 2px), rgba(0, 0, 0, 0.6) calc(100% - 2px)),
+    repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(6, 4, 12, 0.5) calc(10% - 1px) 10%);
+}
+.hud .hp-fill {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.08) 46%, rgba(0, 0, 0, 0.12) 54%, rgba(0, 0, 0, 0.32) 100%),
+    linear-gradient(180deg, #c9ff9a, #4ccf4e 45%, #1d8a3a);
+  box-shadow: 0 0 10px rgba(110, 255, 120, 0.35);
+  transition: width 0.08s linear;
+}
+.hud .hp-side.mid .hp-fill {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.08) 46%, rgba(0, 0, 0, 0.12) 54%, rgba(0, 0, 0, 0.32) 100%),
+    linear-gradient(180deg, #fff1a0, #f2c43a 45%, #b9790f);
+  box-shadow: 0 0 10px rgba(255, 210, 90, 0.4);
+}
+.hud .hp-side.low .hp-fill {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.06) 46%, rgba(0, 0, 0, 0.14) 54%, rgba(0, 0, 0, 0.34) 100%),
+    linear-gradient(180deg, #ffb38a, #ef4b2c 45%, #9c1a14);
+  box-shadow: 0 0 12px rgba(255, 80, 50, 0.55);
+}
+/* the damage just taken, draining after the fill */
+.hud .hp-trail {
+  background: linear-gradient(180deg, #fff0d0, #ff9a5a 40%, #e0321e);
+  box-shadow: none;
+}
+.hud .hp-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 0 40%, rgba(255, 255, 255, 0.28) 48%, transparent 56% 100%);
+  background-size: 250% 100%;
+  animation: hp-sheen 3.6s linear infinite;
+}
+.hud .hp-side.right .hp-sheen { animation-direction: reverse; }
+@keyframes hp-sheen {
+  from { background-position: 130% 0; }
+  to { background-position: -30% 0; }
+}
+.hud .hp-num {
+  z-index: 4;
+  justify-content: flex-start;
+  padding-left: calc(var(--slant) * 0.6);
+  font-family: var(--display);
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 0 #000, 0 0 4px #000, 0 0 2px #000;
+}
+.hud .hp-side.right .hp-num { justify-content: flex-end; padding: 0 calc(var(--slant) * 0.6) 0 0; }
+/* a hit: the bar flashes white and kicks */
+.hud .hp-side.hit .hp-bar { animation: hp-hit 0.3s ease-out; }
+@keyframes hp-hit {
+  0% { filter: brightness(2.4) saturate(0.2); transform: translateX(-3px); }
+  35% { transform: translateX(2px); }
+  100% { filter: none; transform: none; }
+}
+.hud .hp-side.right.hit .hp-bar { animation-name: hp-hit-r; }
+@keyframes hp-hit-r {
+  0% { filter: brightness(2.4) saturate(0.2); transform: translateX(3px); }
+  35% { transform: translateX(-2px); }
+  100% { filter: none; transform: none; }
+}
+
+/* ------------------------------------------------------------------ Rift gauge */
+.hud .rift {
+  --slant: clamp(6px, calc(var(--u) * 1.8), 12px);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: linear-gradient(180deg, #05040a, #1a1428);
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%);
+}
+.hud .hp-side.right .rift { clip-path: polygon(0 0, 100% 0, 100% 100%, var(--slant) 100%); }
+.hud .rift-fill {
+  background: linear-gradient(90deg, #5a2fb0, #b88aff 30%, #ecdcff 45%, #9a6ae6 60%, #5a2fb0);
+  background-size: 220% 100%;
+  animation: rift-flow 2.4s linear infinite;
+  box-shadow: 0 0 10px rgba(176, 122, 255, 0.7);
+}
+.hud .hp-side.right .rift-fill { left: auto; right: 0; animation-direction: reverse; }
+@keyframes rift-flow {
+  from { background-position: 0 0; }
+  to { background-position: -220% 0; }
+}
+.hud .rift.ready { animation: none; }
+.hud .rift.ready .rift-fill {
+  background: linear-gradient(90deg, #d88a1e, #ffd25a 30%, #fff8d8 45%, #ffd25a 60%, #d88a1e);
+  background-size: 220% 100%;
+  animation: rift-flow 1s linear infinite;
+  box-shadow: 0 0 14px #ffd98a;
+}
+.hud .rift-art.ready { animation: art-light 0.9s ease-in-out infinite alternate; }
+
+/* ------------------------------------------------------------------ ranged heat */
+.hud .hp-heat {
+  display: none;
+  position: relative;
+  width: 58%;
+  height: clamp(4px, calc(var(--u) * 1.2), 7px);
+  margin-top: 3px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(10, 7, 18, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(255, 200, 140, 0.2);
+  transition: height 0.12s;
+}
+.hud .hp-side.right .hp-heat { margin-left: auto; }
+.hud .hp-side.ranged .hp-heat { display: block; }
+.hud .hp-heat i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, #ffe08a, #ff9a2a);
+  transition: width 0.1s linear;
+}
+.hud .hp-side.right .hp-heat i { left: auto; right: 0; }
+.hud .hp-heat span { display: none; }
+.hud .hp-heat.over { height: clamp(11px, calc(var(--u) * 2.8), 16px); }
+.hud .hp-heat.over i { background: linear-gradient(90deg, #ff7a4a, #d61f1f); animation: heat-blink 0.35s steps(2) infinite; }
+.hud .hp-heat.over span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: clamp(7px, calc(var(--u) * 2), 11px);
+  line-height: 1;
+  letter-spacing: 1.5px;
+  color: #fff;
+  text-shadow: 0 1px 1px #000;
+}
+@keyframes heat-blink { 50% { filter: brightness(1.5); } }
+
+/* ------------------------------------------------------------------ clock */
+.hud .hud-mid {
+  padding: 3px 18px 6px;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(20, 14, 30, 0.92), rgba(12, 9, 20, 0.7));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 12px 100%);
+  box-shadow: none;
+}
+.hud .hud-mid::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-hi, #ffd98a), transparent);
+}
+.hud .hud-clock { text-shadow: 0 2px 0 #000, 0 0 14px rgba(255, 210, 120, 0.45); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hud .hp-sheen, .hud .rift-fill, .hud .rift.ready .rift-fill { animation: none; }
+}

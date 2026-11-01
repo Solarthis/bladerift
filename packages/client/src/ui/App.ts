@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
-  ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, dodgeOf, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout,
+  ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, dodgeOf, FIGHTER, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout,
   heroWeapon, SKILLS, weaponLookOf, WeaponId, WEAPONS, WEAPON_COUNT,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
@@ -295,7 +295,7 @@ export class App {
       list.map((c, i) => `<button class="sw ${cur === i ? 'on' : ''}" data-pick="${kind}" data-i="${i}" style="--c:${css(c.rgb)}" title="${c.name}" aria-label="${c.name}"></button>`).join('');
     const title = this.editing ? 'Player 2 hero' : 'Your hero';
     return `<div class="hdr hs-hdr"><button class="back" data-act="back" aria-label="Back">‹</button><h2>${esc(title)}</h2>
-        <span class="hs-grow"></span><button class="primary hs-done" data-act="back">Done</button></div>
+        <span class="hs-grow"></span><input id="fname" maxlength="16" value="${esc(p.name)}" placeholder="Name" aria-label="Name"><button class="primary hs-done" data-act="back">Done</button></div>
       <div class="hs">
         <div class="card hs-roster" data-keep="roster" aria-label="Roster">${columns}</div>
         <div class="hs-detail">
@@ -317,13 +317,12 @@ export class App {
           </div>
           <div class="card hs-gear" data-keep="gear">
             <div class="hs-gear-a">
-              <input id="fname" maxlength="16" value="${esc(p.name)}" placeholder="Name" aria-label="Name">
               <div class="hs-lbl">Player colour <small>name tag and effects</small></div>
               <div class="sws">${sw('color', COLORS, p.color)}</div>
             </div>
             <div class="hs-gear-b">
               <div class="hs-item hs-art"><img src="${heroArtIcon(h.id)}" alt=""><div><small>Rift Art</small><b>${esc(A.name)}</b><p>${esc(A.blurb)}</p></div></div>
-              <div class="hs-item hs-sig"><img src="${heroWeaponIcon(h.id)}" alt=""><div><small>Signature weapon, locked to the hero</small><b>${esc(wa.name)}</b><p>${esc(wa.blurb)}</p></div></div>
+              <div class="hs-item hs-sig"><img src="${heroWeaponIcon(h.id)}" alt=""><div><small>Signature weapon<span class="hs-lock">, locked to the hero</span></small><b>${esc(wa.name)}</b><p>${esc(wa.blurb)}</p></div></div>
               <p class="hs-note">${esc(h.name)} fights with the ${esc(wa.name)} alone: light ${WEAPONS[hw].arrowSpeed ? 'shots' : 'combo'} on one button, ${hw === WeaponId.Gate ? 'a held volley' : WEAPONS[hw].arrowSpeed ? 'a held shot' : 'a heavy strike'} on the other${WEAPONS[hw].arrowSpeed ? '' : ' (a plunge in the air)'}.</p>
             </div>
           </div>
@@ -348,10 +347,12 @@ export class App {
         if (l.bot) {
           const lvl = l.botLevel.charAt(0).toUpperCase() + l.botLevel.slice(1);
           return `<div class="seat bot-seat" style="--c:#7a6a96">
-            <div class="bot-mystery" aria-hidden="true"><span>?</span></div>
-            <b>Bot</b>
-            <div class="seat-hero"><span class="seat-hname">Mystery hero</span><small>drawn when the duel starts</small></div>
-            <div class="seat-class"><span class="bot-lvl">${esc(lvl)} bot</span></div>${takeSide}</div>`;
+            <div class="seat-art"><div class="bot-mystery" aria-hidden="true"><span>?</span></div><span class="seat-no">CPU</span></div>
+            <div class="seat-info">
+              <b class="seat-name">Bot</b>
+              <div class="seat-hero"><span class="seat-hname">Mystery hero</span><small>drawn when the duel starts</small></div>
+              <div class="seat-meta"><span class="bot-lvl">${esc(lvl)} bot</span></div>${takeSide}
+            </div></div>`;
         }
         return `<div class="seat empty"><div class="seat-empty">Waiting for a challenger…</div>${takeSide}</div>`;
       }
@@ -359,31 +360,38 @@ export class App {
       const which = this.sessions.findIndex((x) => x.selfId === r.id);
       const hero = heroOf(r.load.hero);
       return `<div class="seat" style="--c:${css(colorOf(r.color))}">
-        <img class="seat-port" src="${heroPortrait(hero)}" alt="${esc(hero.name)}">
-        <b>${esc(r.name)}${r.host ? ' <i class="crown" title="Host">★</i>' : ''}</b>
-        <div class="seat-hero"><span class="seat-hname">${esc(hero.name)}</span><small>${esc(hero.epithet)}</small></div>
-        <div class="seat-class"><img src="${crestIcon(classOf(r.load.cls).id)}" alt="">${esc(classOf(r.load.cls).name)}</div><div class="gear">${gear}</div>
-        ${isMe ? `<button class="small" data-act="gear" data-who="${which}">Change gear</button>` : r.ping ? `<span class="ping">${r.ping} ms</span>` : ''}</div>`;
+        <div class="seat-art"><img class="seat-port" src="${heroPortrait(hero)}" alt="${esc(hero.name)}"><span class="seat-no">P${seat + 1}</span></div>
+        <div class="seat-info">
+          <b class="seat-name">${esc(r.name)}${r.host ? ' <i class="crown" title="Host">★</i>' : ''}</b>
+          <div class="seat-hero"><span class="seat-hname">${esc(hero.name)}</span><small>${esc(hero.epithet)}</small></div>
+          <div class="seat-meta"><div class="seat-class"><img src="${crestIcon(classOf(r.load.cls).id)}" alt="">${esc(classOf(r.load.cls).name)}</div><div class="gear">${gear}</div></div>
+          ${isMe ? `<button class="small" data-act="gear" data-who="${which}">Change gear</button>` : r.ping ? `<span class="ping">${r.ping} ms</span>` : ''}
+        </div></div>`;
     };
     const watchers = [...s.roster.values()].filter((r) => r.seat < 0);
     const arenaCards = ARENAS.map((a) => `<button class="arena ${l.settings.arenaId === a.id ? 'on' : ''}" ${host ? `data-arena="${a.id}"` : 'disabled'}><img src="assets/art/bg-${a.theme}.jpg" alt=""><span>${a.name}</span></button>`).join('');
     const opt = (k: string, v: number, label: string, cur: number) => `<button class="seg ${cur === v ? 'on' : ''}" ${host ? `data-set="${k}" data-v="${v}"` : 'disabled'}>${label}</button>`;
+    // the current arena's name (the chips only show a thumbnail and a short label)
+    const arenaName = ARENAS.find((a) => a.id === l.settings.arenaId)?.name ?? '';
     const codeBox = this.mode === 'online' ? `<div class="code-box"><div><small>Match code</small><b>${esc(this.code)}</b></div><img id="qr" alt="QR code"><button class="small" data-act="share">Share link</button></div>` : '';
     const lanBox = this.mode === 'lan' && this.lan ? `<div class="code-box"><div><small>Join on this Wi&#8209;Fi</small><b class="lan-addr">${esc(this.lan.join.replace(/^https?:\/\//, ''))}</b></div></div>` : '';
     const title = this.mode === 'online' ? 'Duel lobby' : this.mode === 'lan' ? 'Wi‑Fi duel' : this.mode === 'local' ? 'Two players' : 'Practice';
-    const botRow = this.mode !== 'local' ? `<div class="opt"><span>Bot</span>${host ? `<button class="seg ${l.bot ? 'on' : ''}" data-act="bot">${l.bot ? 'On' : 'Off'}</button>` : `<span>${l.bot ? 'On' : 'Off'}</span>`}
-      ${(['easy', 'normal', 'hard'] as const).map((lv) => `<button class="seg ${l.botLevel === lv ? 'on' : ''}" ${host ? `data-level="${lv}"` : 'disabled'}>${lv}</button>`).join('')}</div>` : '';
+    const botRow = this.mode !== 'local' ? `<div class="opt opt-bot"><span>Bot</span>${host ? `<button class="seg tog ${l.bot ? 'on' : ''}" data-act="bot">${l.bot ? 'On' : 'Off'}</button>` : `<span class="seg-val">${l.bot ? 'On' : 'Off'}</span>`}
+      <div class="segs ${l.bot ? '' : 'off'}">${(['easy', 'normal', 'hard'] as const).map((lv) => `<button class="seg ${l.botLevel === lv ? 'on' : ''}" ${host ? `data-level="${lv}"` : 'disabled'}>${lv}</button>`).join('')}</div></div>` : '';
     return `${this.header(title, 'leave')}
       <div class="lobby">
-        <div class="seats">${seatCard(0)}<div class="vs">VS</div>${seatCard(1)}</div>
-        ${watchers.length ? `<div class="watchers">Watching: ${watchers.map((w) => esc(w.name)).join(', ')}</div>` : ''}
-        <div class="card lobby-opts">
+        <div class="lobby-stage">
+          <div class="seats">${seatCard(0)}<div class="vs"><span>VS</span></div>${seatCard(1)}</div>
+          ${watchers.length ? `<div class="watchers">Watching: ${watchers.map((w) => esc(w.name)).join(', ')}</div>` : ''}
           ${codeBox}${lanBox}
+        </div>
+        <div class="card lobby-opts">
+          <div class="opt-h">Arena <b>${esc(arenaName)}</b></div>
           <div class="arenas">${arenaCards}</div>
-          <div class="opt"><span>Rounds to win</span>${opt('wins', 1, '1', l.settings.wins)}${opt('wins', 2, '2', l.settings.wins)}${opt('wins', 3, '3', l.settings.wins)}</div>
-          <div class="opt"><span>Round time</span>${opt('roundTime', 60, '60s', l.settings.roundTime)}${opt('roundTime', 90, '90s', l.settings.roundTime)}${opt('roundTime', 120, '120s', l.settings.roundTime)}</div>
+          <div class="opt"><span>Rounds to win</span><div class="segs">${opt('wins', 1, '1', l.settings.wins)}${opt('wins', 2, '2', l.settings.wins)}${opt('wins', 3, '3', l.settings.wins)}</div></div>
+          <div class="opt"><span>Round time</span><div class="segs">${opt('roundTime', 90, '90s', l.settings.roundTime)}${opt('roundTime', 120, '120s', l.settings.roundTime)}${opt('roundTime', 180, '180s', l.settings.roundTime)}</div></div>
           ${botRow}
-          ${host ? `<button class="big primary" data-act="start">Fight!</button>` : `<div class="wait">The host starts the duel.</div>`}
+          <div class="lobby-go">${host ? `<button class="big primary" data-act="start">Fight!</button>` : `<div class="wait">The host starts the duel.</div>`}</div>
         </div>
       </div>`;
   }
@@ -395,24 +403,30 @@ export class App {
     const row = (seat: number) => {
       const r = m.rows.find((x) => x.seat === seat);
       const e = r ? s.roster.get(r.id) : undefined;
-      return `<div class="res-side ${m.winner === seat ? 'won' : ''}" style="--c:${css(colorOf(e?.color ?? 0))}"><b>${esc(e?.name ?? '—')}</b>
-        <div class="big-num">${m.wins[seat]}</div><small>rounds</small><div>${r?.dealt ?? 0} damage · ${r?.hits ?? 0} hits</div></div>`;
+      const port = e ? `<img class="res-port" src="${heroPortrait(heroOf(e.load.hero))}" alt="">` : '';
+      return `<div class="res-side ${m.winner === seat ? 'won' : ''}" style="--c:${css(colorOf(e?.color ?? 0))}">${port}<div class="res-body"><b>${esc(e?.name ?? '—')}</b>
+        <div class="big-num">${m.wins[seat]}</div><small>rounds</small><div>${r?.dealt ?? 0} damage · ${r?.hits ?? 0} hits</div></div></div>`;
     };
     const winner = s.roster.get(m.winnerId)?.name ?? 'Winner';
-    return `<div class="results"><h1>${esc(winner)} wins!</h1><div class="res-row">${row(0)}${row(1)}</div>
-      <div class="row">${this.sessions.some((x) => x.isHost) ? `<button class="big primary" data-act="rematch">Rematch</button>` : ''}<button class="big" data-act="toLobby">Lobby</button><button class="big" data-act="leave">Main menu</button></div></div>`;
+    return `<div class="results"><div class="res-kicker">Match over</div><h1>${esc(winner)} wins!</h1><div class="res-row">${row(0)}<div class="vs"><span>VS</span></div>${row(1)}</div>
+      <div class="row res-acts">${this.sessions.some((x) => x.isHost) ? `<button class="big primary" data-act="rematch">Rematch</button>` : ''}<button class="big" data-act="toLobby">Lobby</button><button class="big" data-act="leave">Main menu</button></div></div>`;
   }
 
   private renderHowto() {
     const k = KEY_LABEL;
     const row = (label: string, key: keyof (typeof k)['solo']) => `<tr><td>${label}</td><td>${k.solo[key]}</td><td>${k.p1[key]}</td><td>${k.p2[key]}</td></tr>`;
     return `${this.header('How to play')}
-      <div class="card howto">
-        <p>Knock your opponent out to win the round. Win the number of rounds set in the lobby (1, 2 or 3) to take the match. If time runs out, more health wins.</p>
+      <div class="howto">
+      <div class="card howto-keys">
+        <h3>Controls</h3>
         <table><tr><th></th><th>Keyboard</th><th>Player 1</th><th>Player 2</th></tr>
           ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
         </table>
-        <p>Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
+        <p class="howto-pad">Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
+      </div>
+      <div class="card howto-rules" data-keep="howto">
+        <h3>How to win</h3>
+        <p>Knock your opponent out to win the round. Win the number of rounds set in the lobby (1, 2 or 3) to take the match. If time runs out, more health wins.</p>
         <p><b>Guard and parry:</b> hold <b>down</b> on the ground to guard against hits from the side you face (you take a little chip damage; heavy attacks break it). Press down <b>just before</b> a hit lands to <b>parry</b>: a melee attacker is staggered, and a shot flies straight back at whoever fired it. Swinging a melee weapon into a shot cuts it out of the air, so you can fight your way in against archers and casters.</p>
         <p><b>Classes and Rift Arts:</b> every hero fights with its own weapon, special, dodge and Rift Art. The Rift gauge under your health fills slowly on its own and fast when you hit or get hit; when it glows, unleash the Art. The Assassin's <b>Flash Step</b> even works while you are being comboed.</p>
         <ul>
@@ -421,7 +435,9 @@ export class App {
           <li><b>Down + attack</b> in the air: a plunging strike that bounces you off a hit. <b>Down + jump</b>: drop through a ledge. <b>Down</b> in the air falls fast; on the ground it crouches under high swings.</li>
           <li><b>Walls and ledges:</b> slide down a wall and jump off it; grab a ledge and jump to climb. <b>Roll in the air</b> to dash. A hit that lands can be cancelled into a jump.</li>
           <li>Rolling makes you untouchable for a moment. One heal flask per round, and a hit while drinking spills it.</li>
+          <li><b>Heat:</b> ranged heroes (bow, staff, Gilgamesh's Gate) build heat with every shot. About five quick shots overheat the weapon, which then needs about 1.5 s to cool (the strip under your health bar shows it).</li>
         </ul>
+      </div>
       </div>`;
   }
 
@@ -696,6 +712,7 @@ export class App {
               this.touch.show({
                 aIcon: heroWeaponIcon(f.hero), bIcon: heroWeaponIcon(f.hero), skillIcon: skillIcon(f.skill), artIcon: heroArtIcon(f.hero),
                 skillCd: f.skillCd / ((SKILLS[f.skill]?.cooldown ?? 1) * classOf(f.cls).skillCd), rollCd: f.rollCd / 40, flask: f.flask, rift: f.rift / RIFT.max,
+                reload: f.reload ? (f.heat - FIGHTER.heatReady) / (FIGHTER.heatMax - FIGHTER.heatReady) : 0,
               });
             }
           }

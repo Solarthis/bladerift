@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -64,7 +64,7 @@ export const FIGHTER = {
   crouchH: 34,
   /** Shoulder height above the feet (the rig root). */
   shoulder: 38,
-  maxHp: 1000,
+  maxHp: 1800,
   /** Roll: duration, invulnerable part, speed, cooldown after it ends (ticks / units per second). */
   rollTicks: 22,
   rollInvuln: 16,
@@ -72,7 +72,7 @@ export const FIGHTER = {
   rollCooldown: 40,
   /** Health flask: one per round, drunk over healTicks, heals healAmount (a hit while drinking spends it). */
   healTicks: 48,
-  healAmount: 300,
+  healAmount: 540,
   flasks: 1,
   /** A hit that lands while the defender is still in hit-stun (Act.Stun) continues the combo; any other hit starts a new
    * one. The comboBreak-th hit of a combo grants breakInvuln ticks of invulnerability (the anti-infinite safeguard; Rift
@@ -103,6 +103,12 @@ export const FIGHTER = {
   guardChip: 1.6,
   /** A melee swing cuts enemy projectiles out of the air from a tick before its hit window to `deflectLate` ticks after. */
   deflectLate: 4,
+  /** Ranged heat (ticks of cooling): a shot adds heatShot (a charged shot heatCharged); reaching heatMax overheats the
+   * weapon, which fires again once it has cooled to heatReady. About five quick shots in a row, then 1.5 s to cool. */
+  heatShot: 45,
+  heatCharged: 80,
+  heatMax: 120,
+  heatReady: 30,
   /** Damage taken through a block, and the blocker's slide back. */
   chip: 0.15,
   blockPush: 170,
@@ -131,6 +137,6 @@ export const HITSTOP = {
 export const ROUND = {
   introTicks: 150,
   koTicks: 150,
-  defaultTime: 90,
+  defaultTime: 120,
   defaultWins: 2,
 } as const;

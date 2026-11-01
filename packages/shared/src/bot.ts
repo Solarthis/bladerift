@@ -195,6 +195,8 @@ export class BotBrain {
   private hold = 0;
   private holdKind: 'none' | 'block' | 'charge' = 'none';
   private holdTarget = 0;
+  /** Ticks the current hold has been sent (hit-stop freezes blockT and charge, not this): no hold outlasts a second. */
+  private holdTicks = 0;
   /** A guard tapped to bash: it is released on the next tick. */
   private bash = false;
   /** A reaction to the opponent's swing that has been decided but not yet carried out. */
@@ -239,6 +241,8 @@ export class BotBrain {
     this.fullT = me && me.s.rift >= RIFT.max ? this.fullT + 1 : 0;
     if (me && foe && w.phase === 'fight' && me.s.lock === 0) {
       this.act(w, me, foe, cmd);
+      // taps are taps: a jump, skill, roll or flask press is never sent two ticks running (a held button would be ignored)
+      cmd.buttons &= ~(this.prev & (Btn.Jump | Btn.Skill | Btn.Roll | Btn.Heal));
       if (me.s.rift >= RIFT.max && !(this.prev & Btn.Special) && this.wantArt(w, me, foe)) cmd.buttons |= Btn.Special;
     } else this.reset();
     this.idleT = cmd.moveX === 0 && cmd.buttons === 0 ? this.idleT + 1 : 0;
@@ -405,7 +409,7 @@ export class BotBrain {
       }
       const c = WEAPONS[me.load.weapons[s.slot]].charged;
       const max = c ? c.max : 0;
-      if (s.charge >= this.holdTarget || s.charge >= max - 2 || g.dist < 90) this.clearHold();
+      if (s.charge >= this.holdTarget || s.charge >= max - 2 || g.dist < 90 || ++this.holdTicks > 58) this.clearHold();
       else cmd.buttons |= this.hold;
       return true;
     }
@@ -540,6 +544,7 @@ export class BotBrain {
   private startBlock(me: Fighter, cmd: InputCmd, bash: boolean) {
     this.hold = slotOf(me.load, isShield) === 0 ? Btn.A : Btn.B;
     this.holdKind = 'block';
+    this.holdTicks = 1;
     this.bash = bash;
     cmd.buttons |= this.hold;
   }
@@ -547,6 +552,7 @@ export class BotBrain {
   private startCharge(btn: number, target: number, cmd: InputCmd) {
     this.hold = btn;
     this.holdKind = 'charge';
+    this.holdTicks = 1;
     this.holdTarget = target;
     this.bash = false;
     cmd.buttons |= btn;
@@ -569,7 +575,7 @@ export class BotBrain {
    * charging distance. */
   private skill(_w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
     const s = me.s;
-    if (s.skillCd > 0) return false;
+    if (s.skillCd > 0 || this.prev & Btn.Skill) return false;
     const sk = SKILLS[me.load.skill];
     if (!sk || swingAt(me, foe)) return false;
     let ok = false;

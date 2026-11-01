@@ -2786,11 +2786,11 @@ export class GameScene extends Phaser.Scene {
     // cluster (right), with the floor raised above the cluster's lower rows
     const pad = this.touchInsets(vw);
     const useW = vw - pad.left - pad.right;
-    // how much world fits: 290-360 units of height (a standing fighter is 16-20% of the view, like the reference),
+    // how much world fits: 220-275 units of height (a standing fighter is about a fifth to a quarter of the view),
     // zoomed out to keep both fighters in view
-    const wantH = Phaser.Math.Clamp(vh * 0.62, 290, 360);
+    const wantH = Phaser.Math.Clamp(vh * 0.5, 220, 275);
     let zoom = vh / wantH;
-    zoom = Math.min(zoom, useW / (maxX - minX + 300), vh / (maxY - minY + 260));
+    zoom = Math.min(zoom, useW / (maxX - minX + 190), vh / (maxY - minY + 200));
     zoom = Math.max(zoom, vw / (this.arenaW + 240));
     if (!this.camInit) {
       // the first frame of a match frames the fighters at once

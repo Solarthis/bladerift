@@ -155,6 +155,9 @@ export interface NetFighter {
   skillCd: number;
   rollCd: number;
   blockT: number;
+  /** Ranged heat and whether the weapon is overheated (fighter.ts heat / reload). */
+  heat: number;
+  reload: boolean;
   weapons: [number, number];
   skill: number;
   crouch: boolean;
@@ -212,12 +215,12 @@ export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Arra
   w.u8(world.fighters.size);
   for (const f of world.fighters.values()) {
     const s = f.s;
-    const fl = (s.face > 0 ? 1 : 0) | (s.ground ? 2 : 0) | (s.invuln > 0 ? 4 : 0) | (s.burnT > 0 ? 8 : 0) | (s.slowT > 0 ? 16 : 0) | (s.rootT > 0 ? 32 : 0) | (s.slot ? 64 : 0);
+    const fl = (s.face > 0 ? 1 : 0) | (s.ground ? 2 : 0) | (s.invuln > 0 ? 4 : 0) | (s.burnT > 0 ? 8 : 0) | (s.slowT > 0 ? 16 : 0) | (s.rootT > 0 ? 32 : 0) | (s.slot ? 64 : 0) | (s.reload ? 128 : 0);
     w.u8(f.id).u8(f.seat).u16(encX(s.x)).u16(encY(s.y)).i16(i16c(s.vx)).i16(i16c(s.vy)).u8(fl).u8(s.act).u8(Math.min(255, s.actT)).u8(s.move);
     w.u16(Math.max(0, Math.ceil(s.hp))).u8(Math.min(255, s.charge)).u8(s.flask).u16(Math.min(65535, s.skillCd)).u8(Math.min(255, s.rollCd)).u8(Math.min(255, s.blockT));
     w.u8((f.load.weapons[0] << 4) | f.load.weapons[1]).u8(f.load.skill);
     w.u8((s.crouch ? 1 : 0) | (s.slide ? 2 : 0) | (s.rollAir ? 4 : 0) | (s.fast ? 8 : 0) | (s.frenzy > 0 ? 16 : 0) | (s.buff > 0 ? 32 : 0) | (s.veil > 0 ? 64 : 0) | (s.fall ? 128 : 0));
-    w.u16(Math.max(0, Math.min(65535, Math.floor(s.rift)))).u8(f.load.cls).u8(f.load.hero ?? 0).u8(Math.min(255, s.hitstop)).u8(Math.min(255, s.pause));
+    w.u16(Math.max(0, Math.min(65535, Math.floor(s.rift)))).u8(f.load.cls).u8(f.load.hero ?? 0).u8(Math.min(255, s.hitstop)).u8(Math.min(255, s.pause)).u8(Math.min(255, s.heat));
   }
   const shown = world.projectiles.filter((p) => !p.wait).slice(0, 255);
   w.u8(shown.length);
@@ -288,11 +291,11 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
   const fighters: NetFighter[] = [];
   for (let i = 0; i < nf; i++) {
     const id = r.u8(), seat = r.u8(), x = decX(r.u16()), y = decY(r.u16()), vx = r.i16(), vy = r.i16(), fl = r.u8(), act = r.u8(), actT = r.u8(), move = r.u8();
-    const hp = r.u16(), charge = r.u8(), flask = r.u8(), skillCd = r.u16(), rollCd = r.u8(), blockT = r.u8(), wp = r.u8(), skill = r.u8(), mv = r.u8(), rift = r.u16(), cls = r.u8(), hero = r.u8(), hitstop = r.u8(), pause = r.u8();
+    const hp = r.u16(), charge = r.u8(), flask = r.u8(), skillCd = r.u16(), rollCd = r.u8(), blockT = r.u8(), wp = r.u8(), skill = r.u8(), mv = r.u8(), rift = r.u16(), cls = r.u8(), hero = r.u8(), hitstop = r.u8(), pause = r.u8(), heat = r.u8();
     fighters.push({
       id, seat, x, y, vx, vy, face: fl & 1 ? 1 : -1, ground: !!(fl & 2), invuln: !!(fl & 4), burning: !!(fl & 8), slowed: !!(fl & 16), rooted: !!(fl & 32),
       slot: fl & 64 ? 1 : 0, act, actT, move, hp, charge, flask, skillCd, rollCd, blockT, weapons: [wp >> 4, wp & 15], skill,
-      crouch: !!(mv & 1), slide: !!(mv & 2), rollAir: !!(mv & 4), fast: !!(mv & 8), frenzy: !!(mv & 16), buff: !!(mv & 32), veil: !!(mv & 64), fall: !!(mv & 128), rift, cls, hero, hitstop, pause,
+      crouch: !!(mv & 1), slide: !!(mv & 2), rollAir: !!(mv & 4), fast: !!(mv & 8), frenzy: !!(mv & 16), buff: !!(mv & 32), veil: !!(mv & 64), fall: !!(mv & 128), rift, cls, hero, hitstop, pause, heat, reload: !!(fl & 128),
     });
   }
   const np = r.u8();

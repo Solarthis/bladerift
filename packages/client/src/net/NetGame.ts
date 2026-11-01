@@ -45,6 +45,9 @@ export interface ViewFighter {
   skillCd: number;
   rollCd: number;
   blockT: number;
+  /** Ranged heat and overheat (see FighterState heat / reload). */
+  heat: number;
+  reload: boolean;
   weapons: [number, number];
   skill: number;
   crouch: boolean;
@@ -410,6 +413,8 @@ export class NetGame {
     o.skillCd = s.skillCd;
     o.rollCd = s.rollCd;
     o.blockT = s.blockT;
+    o.heat = s.heat;
+    o.reload = !!s.reload;
     o.moveSeq = s.moveSeq;
     o.crouch = !!s.crouch;
     o.slide = !!s.slide;

@@ -195,6 +195,11 @@ export function moveBox(m: Move, x: number, y: number, face: number): Box {
   return { x: bx, y: y + m.box.y, w: m.box.w, h: m.box.h };
 }
 
+/** Vault of Ages: where each of the 11 portals opens around the opponent (degrees; 0 = right, -90 = above), on the ground
+ * and in the air (where they also open below). */
+const VAULT_GROUND = [-90, -150, -30, 180, 0, -120, -60, -170, -10, -105, -75];
+const VAULT_AIR = [-90, 90, 180, 0, -135, 135, -45, 45, -160, 160, -90];
+
 export class World {
   tick = 0;
   readonly arena: ArenaDef;
@@ -893,7 +898,8 @@ export class World {
         }
         dead = true;
       }
-      if (!dead) {
+      // (Vault of Ages relics fly out of portals anywhere, through floors and walls)
+      if (!dead && !(p.kind === 'relic' && p.art)) {
         // bombs and orbs land on ledges; arrows, bolts and waves fly through one-way platforms
         const lands = p.kind === 'bomb' || p.kind === 'orb';
         const floorHit = p.y >= (lands ? surfaceBelow(A, p.x, py) : solidBelow(A, p.x, py)) && p.vy >= 0;
@@ -968,15 +974,33 @@ export class World {
         case ArtId.ChainsOfGenesis:
           if (t === 8) this.strikes.push({ id: this.nextId++ % 65536, owner: f.id, x: o ? o.s.x : s.x, y: o ? o.s.y : s.y, at: this.tick + 22, aimed: false, kind: 1 });
           break;
-        case ArtId.VaultOfAges:
-          // rift portals behind him fire a stream of relic weapons at staggered heights
-          if (t >= 10 && t <= 40 && (t - 10) % 3 === 0) {
-            const k = (t - 10) / 3;
-            const y = s.y - 22 - ((k * 7) % 4) * 14;
-            this.projectiles.push({ id: this.nextId++ % 65536, kind: 'relic', owner: f.id, x: s.x - s.face * (24 + (k % 3) * 18), y, vx: s.face * 820, vy: 0, dmg: 30, kb: 60, stun: 10, life: Math.round(1.3 * TICK_RATE), heavy: k % 4 === 3, art: true });
+        case ArtId.VaultOfAges: {
+          // the Gate opens all around the opponent: portals above, beside and (in the air) below fire relics inward, one
+          // every 3 ticks, then a ring of heavy spears fires at once from every side
+          if (!o || o.s.act === Act.KO) break;
+          const air = !o.s.ground;
+          const fire = (deg: number, r: number, sp: number, dmg: number, heavy: boolean) => {
+            const tx = o.s.x;
+            const ty = o.s.y - 26;
+            const a = (deg * Math.PI) / 180;
+            const px = tx + Math.cos(a) * r;
+            const py = ty + Math.sin(a) * r;
+            this.projectiles.push({
+              id: this.nextId++ % 65536, kind: 'relic', owner: f.id, x: px, y: py, vx: -Math.cos(a) * sp, vy: -Math.sin(a) * sp,
+              dmg, kb: heavy ? 300 : 20, kbY: heavy ? 320 : 0, stun: heavy ? 40 : 12, life: Math.round(((r * 2) / sp) * TICK_RATE), heavy, gravity: 0, art: true,
+            });
+          };
+          if (t >= 8 && t <= 38 && (t - 8) % 3 === 0) {
+            const k = (t - 8) / 3;
+            fire((air ? VAULT_AIR : VAULT_GROUND)[k], 200, 900, 22, false);
+            this.events.push({ t: 'shoot', p: f.id, kind: 7 });
+          }
+          if (t === 44) {
+            for (let i = 0; i < 6; i++) fire((air ? 30 : -15) + i * (air ? 60 : -30), 230, 1000, 24, true);
             this.events.push({ t: 'shoot', p: f.id, kind: 7 });
           }
           break;
+        }
         case ArtId.PhantomHand:
           if (t === 12) {
             this.projectiles.push({ id: this.nextId++ % 65536, kind: 'hand', owner: f.id, x: s.x + s.face * 24, y: s.y - 14, vx: s.face * 1050, vy: 0, dmg: 260, kb: 0, stun: 72, life: Math.round(0.8 * TICK_RATE), heavy: true, unblockable: true, art: true });

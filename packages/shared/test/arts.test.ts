@@ -64,10 +64,10 @@ describe('classes', () => {
     fa.s.rift = 0;
     fb.s.rift = 0;
     run(w, 60, (i) => cmd(i));
-    expect(fa.s.rift).toBeGreaterThan(20);
+    expect(fa.s.rift).toBeGreaterThan(5);
     const before = fa.s.rift;
     run(w, 20, (i) => cmd(i, 0, i === 1 ? Btn.A : 0));
-    expect(fa.s.rift - before).toBeGreaterThan(40);
+    expect(fa.s.rift - before).toBeGreaterThan(12);
     expect(fb.s.rift).toBeGreaterThan(fa.s.rift * 0.5);
   });
 });

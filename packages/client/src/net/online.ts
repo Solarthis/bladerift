@@ -28,7 +28,7 @@ export function onlineBase(): string {
   try {
     const q = new URL(location.href).searchParams.get('online');
     if (q === 'default') session.set(OVERRIDE, '');
-    else if (q && /^https?:\/\/[^\s/]+$/.test(q.replace(/\/+$/, ''))) session.set(OVERRIDE, q.replace(/\/+$/, ''));
+    else if (q && /^https?:\/\/[^\s/]+(\/[\w.-]+)*$/.test(q.replace(/\/+$/, ''))) session.set(OVERRIDE, q.replace(/\/+$/, ''));
   } catch {
     /* no URL */
   }

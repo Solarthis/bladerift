@@ -401,7 +401,7 @@ describe('room: lobby commands and host control', () => {
     connect(room, 'Ann', { hostKey: KEY });
     const b = connect(room, 'Ben');
     lobby(b, { op: 'settings', settings: { arenaId: 'crypt', wins: 3, roundTime: 60 } });
-    expect(room.settings).toEqual({ arenaId: 'bridge', wins: 2, roundTime: 90 });
+    expect(room.settings).toEqual({ arenaId: 'bridge', wins: 2, roundTime: 120 });
   });
 
   it('settings: a known arena is applied and an unknown arena is ignored', () => {
@@ -434,7 +434,7 @@ describe('room: lobby commands and host control', () => {
     const room = makeRoom();
     const a = connect(room, 'Ann', { hostKey: KEY });
     lobby(a, { op: 'settings', settings: { wins: '3' as never, roundTime: '60' as never } });
-    expect(room.settings).toEqual({ arenaId: 'bridge', wins: 2, roundTime: 90 });
+    expect(room.settings).toEqual({ arenaId: 'bridge', wins: 2, roundTime: 120 });
   });
 
   it('settings cannot change while a match is running', () => {

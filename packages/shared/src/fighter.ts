@@ -98,6 +98,10 @@ export interface FighterState {
   jumpHeld: number;
   /** Set on the tick a skill or arrow should spawn (the World reads and clears it). */
   spawn: number;
+  /** Ranged heat: every shot adds to it and it cools a tick at a time; at FIGHTER.heatMax the weapon overheats (reload) and
+   * fires nothing until it has cooled to FIGHTER.heatReady. */
+  heat: number;
+  reload: number;
   /** Side of a wall touching the body this tick (-1 left, 1 right, 0 none) and whether it is sliding down it. */
   wall: number;
   slide: number;
@@ -140,7 +144,7 @@ export const STATE_KEYS: (keyof FighterState)[] = [
   'x', 'y', 'vx', 'vy', 'face', 'ground', 'jumps', 'drop', 'act', 'actT', 'slot', 'move', 'combo', 'comboWin', 'buf', 'bufT',
   'charge', 'rollCd', 'skillCd', 'invuln', 'stun', 'slowT', 'rootT', 'burnT', 'flask', 'hp', 'prevBtn', 'moveSeq', 'blockT',
   'lock', 'jumpHeld', 'spawn', 'wall', 'slide', 'wallT', 'wallSide', 'wlock', 'dash', 'rollAir', 'fast', 'crouch', 'coyote',
-  'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil', 'hitstop', 'pause', 'fall',
+  'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil', 'hitstop', 'pause', 'fall', 'heat', 'reload',
 ];
 
 export function newFighterState(x: number, y: number, face: number, cls = 0): FighterState {
@@ -149,7 +153,7 @@ export function newFighterState(x: number, y: number, face: number, cls = 0): Fi
     comboWin: 0, buf: 0, bufT: 0, charge: 0, rollCd: 0, skillCd: 0, invuln: 0, stun: 0, slowT: 0, rootT: 0, burnT: 0,
     flask: FIGHTER.flasks, hp: classOf(cls).hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
     wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
-    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0,
+    ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0, heat: 0, reload: 0,
   };
 }
 
@@ -261,6 +265,9 @@ export function moveDamage(s: FighterState, load: Loadout, m: Move) {
 
 const approach = (v: number, t: number, step: number) => (v < t ? Math.min(v + step, t) : Math.max(v - step, t));
 
+/** A weapon whose attacks are shots (the bow, the staff, the Gate): its shots build heat. */
+export const isRanged = (w: { combo: { arrow?: boolean }[] }) => !!w.combo[0]?.arrow;
+
 function startAttack(s: FighterState, slot: number, move: number) {
   s.act = Act.Attack;
   s.actT = 0;
@@ -288,6 +295,8 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     const slot = b === Buf.A ? 0 : 1;
     const w = WEAPONS[load.weapons[slot]];
     if (!w) return false;
+    // an overheated ranged weapon fires nothing until it cools
+    if (s.reload && isRanged(w)) return false;
     // the heavy button: B with the same weapon in both hands (every hero's kit) is the heavy attack on the ground (a charged
     // weapon charges it: hold for the power move, a tap is the light move) and the plunge in the air
     const heavy = slot === 1 && load.weapons[1] === load.weapons[0];
@@ -526,6 +535,8 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
 
   for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm'] as const) if (s[k] > 0) s[k]--;
   if (s.bufT > 0 && --s.bufT === 0) s.buf = 0;
+  if (s.heat > 0) s.heat--;
+  if (s.reload && s.heat <= FIGHTER.heatReady) s.reload = 0;
 
   bufferPresses(s, press);
   const C = heroClass(load);
@@ -774,7 +785,11 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         s.vx = s.face * m.step * speedK * (s.actT < m.startup ? 0.6 : 1);
       } else if (s.ground) s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
       else s.vx = approach(s.vx, ax * PHYS.runSpeed * speedK, PHYS.airAccel * 0.5 * DT);
-      if (m.arrow && s.actT === m.startup) s.spawn = 1;
+      if (m.arrow && s.actT === m.startup) {
+        s.spawn = 1;
+        s.heat += s.move === MOVE_CHARGED ? FIGHTER.heatCharged : FIGHTER.heatShot;
+        if (s.heat >= FIGHTER.heatMax) s.reload = 1;
+      }
       // chain: the next press is honoured once the hit window has passed and a little recovery is done (on a hit, at
       // once: chain on hit); a hit that landed can also be cancelled into a jump (air combos)
       const rec = m.recovery * (s.move === MOVE_ART ? 1 : C.recovery * (s.frenzy > 0 ? 0.75 : 1));

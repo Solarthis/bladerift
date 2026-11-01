@@ -133,20 +133,24 @@ describe('roster', () => {
 });
 
 describe('new Rift Arts', () => {
-  it('Vault of Ages (Aurelion): relic weapons fly from rift portals and hit at range', () => {
+  it('Vault of Ages (Aurelion): portals open all around the opponent and relics swarm in from every side', () => {
     const { w, fa, fb } = duel(AURELION, LEON, 420);
     const log: GameEvent[] = [];
-    const kinds = new Set<string>();
     const hp0 = fb.s.hp;
+    const dirs = new Set<string>();
     play(w, 1, special, nothing, log);
-    play(w, 110, nothing, nothing, log, (w) => w.projectiles.forEach((p) => kinds.add(p.kind)));
-    expect(kinds.has('relic')).toBe(true);
-    // eleven relics: one every third tick of the ten-to-forty window
-    expect(log.filter((e) => e.t === 'shoot' && e.p === fa.id && e.kind === 7)).toHaveLength(11);
+    play(w, 110, nothing, nothing, log, (w) =>
+      w.projectiles.forEach((p) => {
+        if (p.kind === 'relic' && p.owner === fa.id) dirs.add(`${Math.sign(Math.round(p.vx))},${Math.sign(Math.round(p.vy))}`);
+      }),
+    );
+    // eleven single relics, one every third tick, then the ring of spears
+    expect(log.filter((e) => e.t === 'shoot' && e.p === fa.id && e.kind === 7)).toHaveLength(12);
+    // from above and from both sides, not just a stream from behind the caster
+    expect(dirs.has('0,1')).toBe(true);
+    expect(dirs.has('1,0') && dirs.has('-1,0')).toBe(true);
     const hits = hitsBy(log, fa.id, fb.id).filter((e) => e.w === 106);
-    expect(hits.length).toBeGreaterThanOrEqual(3);
-    // at range: the fighters start 420 apart and the relics fly away from the archer
-    for (const h of hits) expect(h.x).toBeGreaterThan(600 + 200);
+    expect(hits.length).toBeGreaterThanOrEqual(8);
     expect(hp0 - fb.s.hp).toBe(hits.reduce((n, h) => n + h.amt, 0));
   });
 
@@ -313,8 +317,8 @@ describe('new Rift Arts', () => {
     play(w, 110, nothing, nothing, log);
     const slams = hitsBy(log, fa.id, fb.id).filter((e) => e.w === 106);
     expect(slams).toHaveLength(1);
-    expect(slams[0].amt).toBe(185); // 165 x Rider dmg 1.12 (classes.ts)
-    expect(hp0 - fb.s.hp).toBe(185);
+    expect(slams[0].amt).toBe(157); // 165 x Rider dmg 1.12 x Pale Rider's tune 0.85 (heroes.ts HERO_TUNE)
+    expect(hp0 - fb.s.hp).toBe(157);
     // the slam lands on the opponent's spot (where it stood when the hound came down), not short or past it
     const boom = log.find((e) => e.t === 'boom') as { x: number } | undefined;
     expect(boom).toBeDefined();

@@ -4,6 +4,7 @@ import '@fontsource/nunito/800.css';
 import './styles.css';
 import './ui/roster.css';
 import './ui/hud.css';
+import './ui/hudbars.css';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './ui/App';
 import { checkForUpdate, CURRENT_RELEASE, markUpdateReady, setUpdater } from './update';
