@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
   ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, dodgeOf, FIGHTER, hasCrescent, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout,
-  heroWeapon, SKILLS, weaponLookOf, WeaponId, WEAPONS, WEAPON_COUNT,
+  heroClass, heroWeapon, SKILLS, weaponLookOf, WeaponId, WEAPONS, WEAPON_COUNT,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
 import { GameScene, LocalPlayer } from '../game/GameScene';
@@ -23,6 +23,7 @@ import { crestIcon, dodgeIcon, heroArtIcon, heroWeaponIcon, skillIcon } from './
 import { animatePreview } from './spritePreview';
 import { startTitleShowcase } from './titleShowcase';
 import { prefetchHeroSprites } from '../render/spriteFighter';
+import { warmAllAtlases } from '../render/atlasStore';
 import { measureViewport, setViewport, viewH, viewW } from './viewport';
 
 type Screen = 'title' | 'fighter' | 'online' | 'lobby' | 'game' | 'results' | 'settings' | 'howto' | 'connecting';
@@ -65,6 +66,8 @@ export class App {
   private screen: Screen = 'title';
   private game: Phaser.Game | null = null;
   private booted = false;
+  /** The background download of every hero atlas has been started (once per page). */
+  private warmed = false;
   private profiles: [Profile, Profile] = [loadProfile(0), loadProfile(1)];
   /** Which profile the fighter screen edits, and where it returns. */
   private editing = 0;
@@ -187,6 +190,12 @@ export class App {
     const tl = this.ui.querySelector<HTMLCanvasElement>('canvas.title-hero.left');
     const tr = this.ui.querySelector<HTMLCanvasElement>('canvas.title-hero.right');
     if (tl && tr) startTitleShowcase(tl, tr);
+    // once the title is up and quiet, every hero's atlas downloads to the device in the background (your own hero first),
+    // so hero select and the match never wait for one
+    if (tl && tr && !this.warmed) {
+      this.warmed = true;
+      setTimeout(() => void warmAllAtlases(this.profiles.map((p) => p.load.hero)), 2500);
+    }
     // the hero select's live sprite preview
     this.ui.querySelectorAll<HTMLCanvasElement>('canvas.hs-sprite').forEach((cv) => void animatePreview(cv, Number(cv.dataset.hero)));
     this.ui.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => {
@@ -275,7 +284,18 @@ export class App {
     const wa = weaponLookOf(h.id);
     // a hero with a weapon of its own (not the class's) reaches as far as that weapon does
     const hw = heroWeapon(h.id);
-    const reach = hw === C.signature ? C.bars.reach : ({ [WeaponId.Daggers]: 1, [WeaponId.Sword]: 3, [WeaponId.Gate]: 5 } as Record<number, number>)[hw] ?? C.bars.reach;
+    const reach = hw === C.signature ? C.bars.reach : ({ [WeaponId.Daggers]: 1, [WeaponId.Sword]: 3, [WeaponId.Gate]: 5, [WeaponId.Chains]: 5 } as Record<number, number>)[hw] ?? C.bars.reach;
+    // the bars and traits are the hero's own (its class's numbers with the hero's tune: HERO_TUNE)
+    const T = heroClass({ cls: h.cls, hero: h.id });
+    const nudge = (b: number, k: number) => Math.max(1, Math.min(5, Math.round(b + k)));
+    const power = nudge(C.bars.power, (T.dmg / C.dmg - 1) * 6);
+    const speedBar = nudge(C.bars.speed, (T.speed / C.speed - 1) * 7);
+    const health = nudge(C.bars.health, (T.hp / C.hp - 1) * 12);
+    const traits = [
+      T.airJumps > C.airJumps ? 'Triple jump' : '',
+      (T.jump ?? 1) >= 1.08 ? 'High leap' : (T.jump ?? 1) <= 0.92 ? 'Low jump' : '',
+      (T.weight ?? 1) <= 0.86 ? 'Heavy: hard to launch' : (T.weight ?? 1) >= 1.1 ? 'Light: thrown far' : '',
+    ].filter(Boolean);
     // the hero's own special and dodge (skill N and DODGES[N] belong to hero N): nothing to pick, the hero fixes them
     const sp = SKILLS[h.id];
     const dg = dodgeOf({ hero: h.id });
@@ -313,7 +333,8 @@ export class App {
           </div>
           <div class="card hs-info" data-keep="info">
             <p class="hs-lore">${esc(h.lore)}</p>
-            <div class="hs-bars">${bar('Power', C.bars.power)}${bar('Speed', C.bars.speed)}${bar('Health', C.bars.health)}${bar('Reach', reach)}</div>
+            <div class="hs-bars">${bar('Power', power)}${bar('Speed', speedBar)}${bar('Health', health)}${bar('Reach', reach)}</div>
+            ${traits.length ? `<div class="hs-traits">${traits.map((t) => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
             <p class="hs-blurb">${esc(C.blurb)}</p>
             <div class="hs-item hs-special"><img src="${skillIcon(h.id)}" alt=""><div><small>Special</small><b>${esc(sp.name)}</b><p>${esc(sp.blurb)}</p></div></div>
             <div class="hs-item hs-dodge"><img src="${dodgeIcon(h.id)}" alt=""><div><small>Dodge</small><b>${esc(dg.name)}</b><p>${esc(dg.blurb)}</p></div></div>
@@ -340,7 +361,7 @@ export class App {
     // (two players on one device: either local session may hold host)
     const host = this.sessions.some((x) => x.isHost);
     // the seated heroes' sprite atlases download while the lobby is open, so the duel starts with them
-    for (const r of s.roster.values()) if (r.seat >= 0) prefetchHeroSprites(r.load.hero);
+    for (const r of s.roster.values()) if (r.seat >= 0) prefetchHeroSprites(r.load.hero, this.game?.textures);
     const seatCard = (seat: number) => {
       const r = [...s.roster.values()].find((x) => x.seat === seat);
       const isMe = this.sessions.some((x) => x.selfId === r?.id);
@@ -771,6 +792,9 @@ export class App {
   private startGameView() {
     if (!this.game) return;
     const go = () => {
+      // both fighters' atlases onto the GPU now: they finish while the VS card is up
+      const g0 = this.sessions[0]?.game;
+      if (g0) for (const f of g0.fighters(performance.now())) prefetchHeroSprites(f.hero, this.game!.textures);
       this.show('game');
       const inputs: LocalPlayer[] = [];
       const pads = (n: number) => new GamepadSource(n);
@@ -807,7 +831,7 @@ export class App {
             if (f) {
               this.touch.show({
                 aIcon: heroWeaponIcon(f.hero), bIcon: heroWeaponIcon(f.hero), skillIcon: skillIcon(f.skill), artIcon: heroArtIcon(f.hero),
-                skillCd: f.skillCd / ((SKILLS[f.skill]?.cooldown ?? 1) * classOf(f.cls).skillCd), rollCd: f.rollCd / 40, flask: f.flask, rift: f.rift / RIFT.max,
+                skillCd: f.skillCd / ((SKILLS[f.skill]?.cooldown ?? 1) * heroClass({ cls: f.cls, hero: f.hero }).skillCd), rollCd: f.rollCd / 40, flask: f.flask, rift: f.rift / RIFT.max,
                 // (the Sun Crescent's cooldown sweeps the heavy button only: B still cleaves meanwhile)
                 reload: f.reload && !hasCrescent(f) ? (f.heat - FIGHTER.heatReady) / (FIGHTER.heatMax - FIGHTER.heatReady) : 0,
                 crescent: f.reload && hasCrescent(f) ? (f.heat - FIGHTER.heatReady) / (FIGHTER.crescentHeat - FIGHTER.heatReady) : 0,

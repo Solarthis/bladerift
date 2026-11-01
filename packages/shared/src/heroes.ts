@@ -72,19 +72,42 @@ export const heroWeapon = (hero: number) => HERO_WEAPON[hero] ?? SIGNATURE[HEROE
 /** Per-hero balance on top of the class: multipliers on the class's own numbers, for a hero who fights unlike its
  * class-mates. Jack the Ripper is a Berserker with knives, not a hammer: quicker on his feet, out of a swing and out of
  * a dodge than Humbaba, and each cut a little deeper. */
-export type HeroTune = Partial<Pick<ClassDef, 'dmg' | 'speed' | 'recovery' | 'rollCd'>>;
+export type HeroTune = Partial<Pick<ClassDef, 'dmg' | 'speed' | 'recovery' | 'rollCd' | 'hp' | 'jump' | 'weight' | 'skillCd' | 'chip'>> & {
+  /** Extra air jumps and air dashes, set outright (not multiplied). */
+  airJumps?: number;
+  dashes?: number;
+};
+const SET_OUTRIGHT = new Set<keyof HeroTune>(['airJumps', 'dashes']);
 export const HERO_TUNE: Partial<Record<number, HeroTune>> = {
+  // jump: jump height; weight: knockback taken (below 1 = heavy, hard to launch); hp: health
+  // Richard: the all-rounder every other hero is measured against
   0: { dmg: 0.82 },
-  2: { dmg: 0.92 },
-  4: { dmg: 1.12 },
-  5: { dmg: 1.12, recovery: 0.92 },
-  6: { dmg: 1.0 },
-  7: { dmg: 1.1 },
-  8: { dmg: 1.1 },
-  9: { dmg: 1.4, speed: 1.15, recovery: 0.82 },
-  10: { dmg: 0.85, speed: 1.3, recovery: 0.9, rollCd: 0.7 },
-  12: { dmg: 0.85, recovery: 1.08 },
-  13: { dmg: 0.82 },
+  // Alcides: a demigod's frame: the toughest archer, heavy on his feet, every arrow hits like a hammer
+  1: { hp: 1.04, dmg: 1.0, speed: 0.94, jump: 0.94, weight: 0.85 },
+  // Gilgamesh: the king never hurries: a stately walk, the Gate does his fighting
+  2: { dmg: 0.92, speed: 0.92, weight: 0.95 },
+  // Cú Chulainn: the hound: the highest leap and the quickest feet of the spearmen
+  3: { speed: 1.08, jump: 1.12, rollCd: 0.85, weight: 1.05 },
+  // Enkidu: clay given life: light, springy (a triple jump), holds foes at the end of the longest reach in the game
+  4: { hp: 0.95, dmg: 0.98, jump: 1.06, airJumps: 2, weight: 1.12 },
+  // Prelati: frail and slippery: thrown far, but floats out of trouble
+  5: { dmg: 1.12, recovery: 0.92, jump: 1.05, weight: 1.1 },
+  // Dumas: a big man with a big book: sturdier than a mage should be, slower to get going
+  6: { hp: 1.06, speed: 0.94, jump: 0.95, weight: 0.92 },
+  // Hassan: the old man of the mountain: grounded and patient
+  7: { dmg: 1.1, jump: 0.96 },
+  // Hashashin: a ghost: the lightest body in the game
+  8: { dmg: 1.1, hp: 0.95, jump: 1.08, weight: 1.15 },
+  // Humbaba: the forest's guardian: a giant that barely leaves the ground and barely flinches backwards
+  9: { dmg: 1.4, speed: 1.15, recovery: 0.82, hp: 1.12, jump: 0.9, weight: 0.68 },
+  // Jack: wiry and quick, springs high
+  10: { dmg: 0.9, speed: 1.3, recovery: 0.9, rollCd: 0.7, jump: 1.1 },
+  // Alexander: the conqueror: broad and planted
+  11: { hp: 1.05, jump: 0.95, weight: 0.88 },
+  // the Pale Rider: death rides light
+  12: { dmg: 0.85, recovery: 1.08, jump: 1.05, weight: 1.05 },
+  // Brynhildr: armoured head to toe: the hardest to throw, the lowest jump
+  13: { dmg: 0.82, jump: 0.9, weight: 0.78 },
 };
 const tunedClasses = new Map<number, ClassDef>();
 /** The class stats a loadout fights with: its class's, with its hero's tune (HERO_TUNE) applied. */
@@ -96,7 +119,8 @@ export function heroClass(load: { cls: number; hero?: number }): ClassDef {
   let T = tunedClasses.get(key);
   if (!T) {
     T = { ...C };
-    for (const k of Object.keys(t) as (keyof HeroTune)[]) T[k] = C[k] * (t[k] ?? 1);
+    for (const k of Object.keys(t) as (keyof HeroTune)[]) T[k] = SET_OUTRIGHT.has(k) ? (t[k] ?? C[k] ?? 0) : (C[k] ?? 1) * (t[k] ?? 1);
+    T.hp = Math.round(T.hp);
     tunedClasses.set(key, T);
   }
   return T;

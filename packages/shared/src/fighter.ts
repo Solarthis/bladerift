@@ -161,11 +161,12 @@ export const STATE_KEYS: (keyof FighterState)[] = [
   'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil', 'hitstop', 'pause', 'fall', 'heat', 'reload',
 ];
 
-export function newFighterState(x: number, y: number, face: number, cls = 0): FighterState {
+export function newFighterState(x: number, y: number, face: number, load: { cls: number; hero?: number } = { cls: 0 }): FighterState {
+  const C = heroClass(load);
   return {
-    x, y, vx: 0, vy: 0, face, ground: 1, jumps: classOf(cls).airJumps, drop: 0, act: Act.Free, actT: 0, slot: 0, move: 0, combo: 0,
+    x, y, vx: 0, vy: 0, face, ground: 1, jumps: C.airJumps, drop: 0, act: Act.Free, actT: 0, slot: 0, move: 0, combo: 0,
     comboWin: 0, buf: 0, bufT: 0, charge: 0, rollCd: 0, skillCd: 0, invuln: 0, stun: 0, slowT: 0, rootT: 0, burnT: 0,
-    flask: FIGHTER.flasks, hp: classOf(cls).hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
+    flask: FIGHTER.flasks, hp: C.hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
     wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
     ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0, heat: 0, reload: 0,
   };
@@ -207,7 +208,7 @@ export function meleeConnect(s: FighterState, load: Loadout, m: Move, hitstop: n
     s.actT = 0;
     s.vy = -PHYS.pogo;
     s.dash = 0;
-    s.jumps = classOf(load.cls).airJumps;
+    s.jumps = heroClass(load).airJumps;
   }
 }
 
@@ -463,7 +464,7 @@ function jump(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef): boo
     return true;
   }
   if (s.ground || s.coyote > 0) {
-    s.vy = -PHYS.jumpSpeed;
+    s.vy = -PHYS.jumpSpeed * (C.jump ?? 1);
     s.ground = 0;
     s.coyote = 0;
     s.jumpHeld = 1;
@@ -484,7 +485,7 @@ function jump(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef): boo
     return true;
   }
   if (s.jumps > 0) {
-    s.vy = -PHYS.airJumpSpeed;
+    s.vy = -PHYS.airJumpSpeed * (C.jump ?? 1);
     s.jumps--;
     s.fast = 0;
     s.jumpHeld = 1;

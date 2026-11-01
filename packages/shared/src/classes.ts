@@ -72,6 +72,10 @@ export interface ClassDef {
   skillCd: number;
   /** Arrow speed multiplier. */
   arrowSpeed: number;
+  /** Jump strength multiplier (ground and air jumps; 1 when unset). */
+  jump?: number;
+  /** Knockback taken multiplier: a heavy hero is thrown less far (below 1), a light one further (1 when unset). */
+  weight?: number;
   /** Stat bars for the menus, 1-5. */
   bars: { power: number; speed: number; health: number; reach: number };
 }

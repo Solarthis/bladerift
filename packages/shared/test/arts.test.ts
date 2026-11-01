@@ -1,3 +1,4 @@
+import { heroClass } from '../src/heroes';
 import { describe, expect, it } from 'vitest';
 import { Act, ArtId, Btn, CLASSES, ClassId, FIGHTER, HEROES, heroWeapon, InputCmd, Loadout, RIFT, ROUND, sanitizeLoadout, SkillId, World, WeaponId } from '../src/index';
 
@@ -52,8 +53,9 @@ describe('classes', () => {
     for (const h of HEROES) (byClass.get(h.cls) ?? byClass.set(h.cls, new Set()).get(h.cls)!).add(heroWeapon(h.id));
     for (const h of HEROES) expect(byClass.get(h.cls)!.size, h.name).toBe(HEROES.filter((x) => x.cls === h.cls).length);
     const { fa, fb } = duel(ClassId.Assassin, ClassId.Berserker);
-    expect(fa.s.hp).toBe(CLASSES[ClassId.Assassin].hp);
-    expect(fb.s.hp).toBe(CLASSES[ClassId.Berserker].hp);
+    // (each hero's health is its class's with its own tune)
+    expect(fa.s.hp).toBe(heroClass(fa.load).hp);
+    expect(fb.s.hp).toBe(heroClass(fb.load).hp);
   });
 
   it('the assassin outruns the berserker and has a triple jump', () => {

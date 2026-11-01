@@ -188,7 +188,7 @@ describe('new Rift Arts', () => {
     fa.s.hp = 400;
     play(w, 1, special);
     play(w, 60 + SP);
-    const C = CLASSES[ClassId.Caster];
+    const C = heroClass(fa.load);
     expect(fa.s.hp).toBeCloseTo(400 + 0.28 * C.hp, 0);
     expect(fa.s.buff).toBeGreaterThan(340); // granted at cast: 420 minus the ticks since
     expect(fa.s.buff).toBeLessThanOrEqual(420);

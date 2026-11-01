@@ -478,6 +478,9 @@ for name, a in ANIMS.items():
 meta = {'id': CID, 'hero': CH['hero'], 'native': NATIVE, 'base': STD['nativeHeight'], 'size': [W, H2], 'frames': meta_frames, 'anims': anims_out,
         'missing': sorted(set(ANIMS) - set(anims_out))}
 json.dump(meta, open(os.path.join(OUT, 'atlas.json'), 'w'), separators=(',', ':'))
+# the client's cache-busting table (an unchanged hero never downloads again)
+import revs as _revs
+_revs.main()
 json.dump({'scale': scale, 'standHeight': stand_h, 'frames': qa}, open(os.path.join(CDIR, 'qa.json'), 'w'), indent=1)
 print(f'atlas {W}x{H2}, {len(meta_frames)} frames, {len(anims_out)}/{len(ANIMS)} animations'
       + (f'; missing: {", ".join(meta["missing"])}' if meta['missing'] else ''))

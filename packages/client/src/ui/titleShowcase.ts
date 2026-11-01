@@ -4,33 +4,11 @@
  * Every few bouts a new pair steps in. Stops by itself when its canvases leave the page.
  */
 import { HERO_COUNT } from '@bladerift/shared';
-import type { SpriteAtlasMeta } from '../render/spriteAnim';
-import { SPRITE_IDS } from '../render/spriteFighter';
+import { heroAtlas, type HeroAtlas } from '../render/atlasStore';
 
-type Atlas = { meta: SpriteAtlasMeta; img: HTMLImageElement };
-const cache = new Map<number, Promise<Atlas | null>>();
-const V = `?v=${encodeURIComponent(String(import.meta.env.VITE_RELEASE ?? 'dev'))}`;
+type Atlas = HeroAtlas;
 
-function atlas(hero: number): Promise<Atlas | null> {
-  let p = cache.get(hero);
-  if (!p) {
-    p = (async () => {
-      try {
-        const r = await fetch(`assets/characters/${SPRITE_IDS[hero]}/atlas.json${V}`);
-        if (!r.ok || !r.headers.get('content-type')?.includes('json')) return null;
-        const meta = (await r.json()) as SpriteAtlasMeta;
-        const img = new Image();
-        img.src = `assets/characters/${SPRITE_IDS[hero]}/atlas.png${V}`;
-        await img.decode();
-        return { meta, img };
-      } catch {
-        return null;
-      }
-    })();
-    cache.set(hero, p);
-  }
-  return p;
-}
+const atlas = heroAtlas;
 
 const MOVES = ['combo0', 'combo1', 'combo2', 'heavy', 'art', 'taunt'];
 

@@ -223,6 +223,8 @@
 .hs-info { display: flex; flex-direction: column; gap: clamp(5px, 1.4vh, 10px); }
 .hs-lore { margin: 0; color: var(--ink); font-size: clamp(11.5px, 3.1vh, 14px); font-style: italic; line-height: 1.35; opacity: 0.92; }
 .hs-bars { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2px, 0.8vh, 6px) 14px; }
+.hs-traits { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: clamp(2px, 0.6vh, 6px); }
+.hs-traits span { font-size: 11px; line-height: 1; padding: 3px 7px; border-radius: 4px; background: rgba(255, 216, 120, 0.12); color: #f0d890; border: 1px solid rgba(255, 216, 120, 0.25); white-space: nowrap; }
 .hs-bar { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: clamp(10px, 2.7vh, 12px); font-weight: 800; }
 .hs-bar span { width: clamp(38px, 10vh, 50px); }
 .hs-bar i { display: flex; gap: 3px; }

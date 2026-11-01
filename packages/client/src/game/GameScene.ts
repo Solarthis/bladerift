@@ -8,8 +8,8 @@ import type { InputSource } from '../input/Controls';
 import { bakeFrames, FighterCanvas, fighterLut, FxModule, FxSprite, paintLive, PIX, Pose, prewarmEffects } from '../render/pixel';
 import { poseFor } from '../render/poses';
 import { warmFighter } from '../render/warm';
-import { heroSpritesReady, loadHeroSprites, spritesPending, SpriteFighterView } from '../render/spriteFighter';
-import { arcFor, ArcShape, FX, heroEnergy, HeroEnergy, PAL, swingFx } from '../render/fxmap';
+import { heroHasSprites, heroSpritesReady, loadHeroSprites, spritesPending, SpriteFighterView } from '../render/spriteFighter';
+import { arcFor, ArcShape, energyForMove, FX, heroEnergy, HeroEnergy, PAL, shadeColor, swingFx, whiten } from '../render/fxmap';
 import { DODGE_SOUNDS, sfx, SKILL_SOUNDS } from '../audio/Sfx';
 import { prefs } from '../ui/prefs';
 import { buildArena } from '../render/arena';
@@ -331,9 +331,13 @@ interface Arc {
   c: HeroEnergy;
   /** Heavy arcs throw sparks off their head (spawn clock). */
   sparkAt: number;
+  /** Fixes which pixel blocks drop out as the arc fades. */
+  seed: number;
 }
 
 const easeOut3 = (p: number) => 1 - (1 - p) * (1 - p) * (1 - p);
+/** The white of a dodge's swoosh (pixelCrescent tones). */
+const SWOOSH: HeroEnergy = { arc: 0xeaf4ff, rim: 0x6a7aa0, spark: 0xffffff };
 /** A colour darkened to `k` of its brightness (a spark's rim). */
 const shade = (c: number, k: number) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
 /** How saturated a colour is (0 grey .. 1 pure). */
@@ -360,6 +364,14 @@ interface FighterView {
   sprite: SpriteFighterView | null;
   /** Scene clock when the view was made (a loading atlas hides the rig for a moment). */
   createdAt?: number;
+  /** Scene clock before which a failed atlas download is not asked for again. */
+  retryAt?: number;
+  /** The colour of this fighter's latest blow and when it was thrown (its victim flashes in it). */
+  blowColor?: number;
+  blowAt?: number;
+  /** A hit's flash: white for its first frames, then a flat wash of the blow's colour through the freeze. */
+  flashAt?: number;
+  flashColor?: number;
   tag: Phaser.GameObjects.Text;
   ghosts: { img: Phaser.GameObjects.Image; tex: Phaser.Textures.CanvasTexture; life: number; max: number; a0: number }[];
   ghostI: number;
@@ -511,6 +523,8 @@ export class GameScene extends Phaser.Scene {
   /** Scratch points for the arc polygons (reused every frame: no garbage). */
   private ptPool: { x: number; y: number }[] = Array.from({ length: 40 }, () => ({ x: 0, y: 0 }));
   private pts: { x: number; y: number }[] = [];
+  /** Scratch for pixelCrescent: block -> tone (reused every frame). */
+  private pixCells = new Map<number, number>();
   /** The rig's PixelFX swing effects (the only effects a hit-stop freezes; the hit sparks keep playing). */
   private swingFxs = new Set<FxSprite>();
   /** Screen shake: a vertical damped sine (peak as a fraction of the view height, seconds since it started, length). */
@@ -826,11 +840,10 @@ export class GameScene extends Phaser.Scene {
     const color = colorOf(r?.color ?? v.seat * 5);
     const lut = fighterLut(color, accentOf(r?.look?.accent ?? 0));
     const canvas = new FighterCanvas(this, `fighter${v.id}`, lut, v.hero);
-    // the hero's sprite atlas loads on demand; the rig draws the fighter until it is there (or if the hero has none)
-    void loadHeroSprites(this, v.hero).then((meta) => {
-      // no sprites for this hero: render the rig's whole move set into its frame cache in the background instead
-      if (!meta) warmFighter(v.hero, v.weapons, v.skill);
-    });
+    // the hero's sprite atlas (usually fetched already by the title screen, hero select or lobby); the rig draws a hero
+    // that has none
+    if (heroHasSprites(v.hero)) void loadHeroSprites(this, v.hero);
+    else warmFighter(v.hero, v.weapons, v.skill);
     const img = this.add.image(v.x, v.y, canvas.key).setOrigin(canvas.originX, canvas.originY).setScale(canvas.worldScale).setDepth(10);
     const tag = this.add
       .text(v.x, v.y - 70, r?.name ?? '', { fontFamily: 'Lilita One, sans-serif', fontSize: '12px', color: '#' + color.toString(16).padStart(6, '0'), stroke: '#0b0814', strokeThickness: 3 })
@@ -908,6 +921,8 @@ export class GameScene extends Phaser.Scene {
     if (!v.ground && fv.wasGround) fv.airAt = this.clock;
     const pose = poseFor({ ...v, actTf: t }, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt });
     const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : 0;
+    // (two frames of white, then the blow's colour)
+    if (fv.sprite) fv.sprite.flashColor = now - (fv.flashAt ?? 0) < 34 || fv.flashColor === undefined ? 0xffffff : fv.flashColor;
     const tint = v.slowed ? 0xffffd2a8 : 0;
     // dodges (each hero's own, the Roll button): started by the Roll, followed while it runs; the special's flight too
     if (v.act === Act.Roll && !fv.dodge) this.startDodge(fv, v, now);
@@ -925,8 +940,15 @@ export class GameScene extends Phaser.Scene {
       }
     }
     if (!fv.sprite) {
-      const waiting = spritesPending(v.hero) && this.clock - (fv.createdAt ??= this.clock) < 2.5;
-      fv.rigImg.setVisible(!waiting);
+      // still downloading: keep the old rig hidden (it is a different-looking fighter) for as long as a slow phone needs;
+      // a download that failed is asked for again (atlasStore paces the retries) and the rig stands in meanwhile
+      const since = this.clock - (fv.createdAt ??= this.clock);
+      const sprites = heroHasSprites(v.hero);
+      if (sprites && !spritesPending(v.hero) && this.clock > (fv.retryAt ?? 0)) {
+        fv.retryAt = this.clock + 2;
+        void loadHeroSprites(this, v.hero);
+      }
+      fv.rigImg.setVisible(!sprites || (!spritesPending(v.hero) && since > 1) || since > 12);
     }
     if (fv.sprite) {
       // the round intro: each fighter plays its entrance while the round is being announced
@@ -1189,7 +1211,14 @@ export class GameScene extends Phaser.Scene {
   /** A swing arc over a sprite fighter (the oldest gives way past the cap). */
   private spawnArc(v: ViewFighter, shape: ArcShape) {
     if (this.arcs.length >= MAX_ARCS) this.arcs.shift();
-    this.arcs.push({ owner: v.id, shape, face: v.face, x: v.x, y: v.y, age: 0, c: heroEnergy(v.hero), sparkAt: 0 });
+    const c = energyForMove(v.hero, v.move, WEAPONS[v.weapons[v.slot]]?.combo.length ?? 3);
+    this.arcs.push({ owner: v.id, shape, face: v.face, x: v.x, y: v.y, age: 0, c, sparkAt: 0, seed: (Math.random() * 0x7fffffff) | 0 });
+    // the blow's colour, remembered for its victim's flash and the light it throws on the floor
+    const fv = this.views.get(v.id);
+    if (fv) {
+      fv.blowColor = c.arc;
+      fv.blowAt = performance.now();
+    }
   }
 
   /** The arcs: each sweeps, holds through its owner's hit-stop (the strike freezes with the bodies), then closes and fades. */
@@ -1294,12 +1323,10 @@ export class GameScene extends Phaser.Scene {
     const layers = (mirror: number) => {
       const t0 = tail * mirror;
       const h0 = head * mirror;
-      // the coloured glow and body in normal blend, a thin additive bloom over the body, and the white-hot core edge
-      const n = this.arcN;
-      this.crescent(n, cx, cy, s.r + 3, s.sy, f, t0, h0, s.w * 1.75 * thin, a.c.rim, (s.heavy ? 0.5 : 0.38) * alpha);
-      this.crescent(n, cx, cy, s.r, s.sy, f, t0, h0, s.w * thin, a.c.arc, 0.85 * alpha);
-      this.crescent(g, cx, cy, s.r, s.sy, f, t0, h0, s.w * 0.7 * thin, a.c.arc, 0.35 * alpha);
-      this.crescent(g, cx, cy, s.r - 0.5, s.sy, f, t0, h0, s.w * 0.36 * thin, 0xffffff, alpha);
+      // a soft additive bloom behind, then the crescent itself drawn in solid pixel blocks: dark rim outside, the blow's
+      // colour, a hot band and a white-hot inner edge (the owner's reference clip); it breaks into dashes as it fades
+      this.crescent(g, cx, cy, s.r + 4, s.sy, f, t0, h0, s.w * 2.4 * thin, a.c.arc, (s.heavy ? 0.3 : 0.2) * alpha);
+      this.pixelCrescent(this.arcN, cx, cy, s.r, s.sy, f, t0, h0, s.w * (s.heavy ? 1.75 : 1.55) * thin, a.c, alpha, q, a.seed);
     };
     layers(1);
     if (s.cross) layers(-1);
@@ -1346,6 +1373,71 @@ export class GameScene extends Phaser.Scene {
     }
     g.fillStyle(color, alpha);
     g.fillPoints(P as Phaser.Math.Vector2[], true);
+  }
+
+  /**
+   * A crescent in solid pixel blocks (PIX world units square), like a hand-drawn sprite effect rather than a smooth vector
+   * stroke: the band is cut into four tones by depth (dark rim on the outside, the blow's colour, a hot band, a white-hot
+   * inner edge). `q` (0..1) is the fade: blocks drop out by a fixed hash, so the tail breaks into dashes and motes.
+   */
+  private pixelCrescent(g: Phaser.GameObjects.Graphics, cx: number, cy: number, r: number, sy: number, f: number, aT: number, aH: number, w: number, c: HeroEnergy, alpha: number, q: number, seed: number) {
+    if (alpha <= 0.02 || w <= 0.5 || Math.abs(aH - aT) < 1) return;
+    const PIX = 2;
+    const cells = this.pixCells;
+    cells.clear();
+    const span = ((aH - aT) * Math.PI) / 180;
+    const steps = Math.min(220, Math.ceil((Math.abs(span) * r) / (PIX * 0.55)));
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const ang = (aT * Math.PI) / 180 + span * u;
+      const co = Math.cos(ang) * f;
+      const sn = Math.sin(ang);
+      // thickest just ahead of the middle, a point at both ends (the head is blunter than the tail)
+      const wd = w * Math.pow(Math.sin(Math.PI * (0.03 + u * 0.94)), 0.7) * (0.3 + 0.7 * u);
+      const n = Math.max(1, Math.ceil(wd / (PIX * 0.55)));
+      for (let k = 0; k <= n; k++) {
+        const d = (k / n) * wd;
+        const ix = Math.floor((cx + co * (r - d)) / PIX);
+        const iy = Math.floor((cy + sn * (r - d) * sy) / PIX);
+        const depth = k / n;
+        const tone = depth < 0.2 ? 0 : depth < 0.55 ? 1 : depth < 0.82 ? 2 : 3;
+        // (block coordinates packed into one number: both are well inside +-4096 blocks)
+        const key = (ix + 4096) * 8192 + (iy + 4096);
+        const was = cells.get(key);
+        if (was === undefined || tone > (was & 7)) cells.set(key, tone + (u < 0.5 ? 8 : 0));
+      }
+    }
+    const tones = [shadeColor(c.rim, 0.7), c.arc, whiten(c.arc, 0.45), 0xffffff];
+    for (let t = 0; t < 4; t++) {
+      g.fillStyle(tones[t], alpha);
+      for (const [key, v] of cells) {
+        if ((v & 7) !== t) continue;
+        const ix = Math.floor(key / 8192) - 4096;
+        const iy = (key % 8192) - 4096;
+        if (q > 0) {
+          // the fade: a fixed per-block hash drops blocks out, sooner along the tail (the half nearer the start)
+          const h = ((ix * 73856093) ^ (iy * 19349663) ^ seed) >>> 0;
+          if ((h % 1000) / 1000 < q * (v & 8 ? 1.5 : 1.1)) continue;
+        }
+        g.fillRect(ix * PIX, iy * PIX, PIX, PIX);
+      }
+    }
+  }
+
+  /**
+   * A pool of the blow's colour thrown on the floor under a hit (the reference clip lights the flagstones orange, red or
+   * green round every strike): a flat ellipse on the ground line that flares and fades.
+   */
+  private floorLight(x: number, floorY: number, color: number, k: number, hold: number) {
+    const life = Math.max(0.28, hold + 0.18);
+    this.addAdd(life, (g, p) => {
+      const a = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
+      const rx = 92 * k * (0.85 + 0.3 * p);
+      const ry = 16 * k * (0.85 + 0.3 * p);
+      g.fillStyle(color, 0.16 * a).fillEllipse(x, floorY - 2, rx * 2.2, ry * 2.4);
+      g.fillStyle(color, 0.28 * a).fillEllipse(x, floorY - 2, rx * 1.3, ry * 1.5);
+      g.fillStyle(whiten(color, 0.5), 0.3 * a).fillEllipse(x, floorY - 2, rx * 0.6, ry * 0.7);
+    });
   }
 
   /**
@@ -1762,8 +1854,18 @@ export class GameScene extends Phaser.Scene {
           if (isLocal(e.v)) navigator.vibrate?.(e.amt > 120 ? 40 : 18);
         }
         const fv = this.views.get(e.v);
-        // (a short white flash: three frames, so the hurt drawing shows through the rest of the freeze)
-        if (fv && !burn) fv.flashUntil = performance.now() + 50;
+        if (fv && !burn) {
+          // the victim flashes white, then turns the blow's colour for the rest of the freeze (the owner's reference clip:
+          // the whole body goes flat orange, red or green with the slash that hit it)
+          const av = this.views.get(e.a);
+          const col = av?.blowColor !== undefined && performance.now() - (av.blowAt ?? 0) < 700 ? av.blowColor : heroEnergy(a?.hero ?? 0).arc;
+          const hs = (e as { hs?: number }).hs;
+          const hold = Phaser.Math.Clamp((typeof hs === 'number' ? hs / TICK_RATE : 0.1) * 1000, 70, 220);
+          fv.flashAt = performance.now();
+          fv.flashUntil = fv.flashAt + hold;
+          fv.flashColor = col;
+          if (v) this.floorLight(e.x, v.y, col, heavy || e.crit ? 1.35 : 1, hold / 1000);
+        }
         // (no damage numbers: the owner had them removed; the health bars and the combo counter tell the story)
         break;
       }
@@ -2238,6 +2340,16 @@ export class GameScene extends Phaser.Scene {
     const x = d.x0;
     const y = d.y0;
     const f = v.face;
+    // every dodge leaves a white pixel swoosh where it pushed off (a hook round the feet and a streak behind), as in the
+    // owner's reference clip
+    const back = v.vx !== 0 ? -Math.sign(v.vx) : -f;
+    this.addVec(0.3, (g, p) => {
+      const a = 1 - p * p;
+      this.pixelCrescent(g, x + back * 4, y - 13, 15, 0.85, -back, 40, 250, 6, SWOOSH, a, p * 0.9, 7);
+      g.fillStyle(0xffffff, 0.85 * a);
+      const L = 26 * (0.6 + p);
+      for (let k = 0; k < 3; k++) g.fillRect(Math.min(x + back * 8, x + back * (8 + L - k * 8)), y - 4 - k * 6, Math.max(2, L - k * 8), 2);
+    });
     switch (v.hero) {
       case 0: // Lion's Step: a gold kick
         this.ring(x, y, 4, 40, 0.35, 0xffd84a, 2.5);

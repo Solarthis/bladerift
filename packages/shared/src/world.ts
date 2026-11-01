@@ -259,7 +259,7 @@ export class World {
     const sx = this.arena.spawns[seat] ?? this.arena.w / 2;
     const f: Fighter = {
       id, seat, name, bot, load,
-      s: newFighterState(sx, this.arena.floor, seat === 0 ? 1 : -1, load.cls),
+      s: newFighterState(sx, this.arena.floor, seat === 0 ? 1 : -1, load),
       inputs: [], lastSeq: 0, lastCmd: emptyInput(), starved: STALE_TICKS + 1, deepTicks: 0, cushion: CUSHION_START, lateAt: 0, credit: 0,
       owed: 0, carry: 0, lagTicks: -1, prevViewTick: 0,
       histTick: new Int32Array(HIST).fill(-1), histX: new Float32Array(HIST), histY: new Float32Array(HIST), histFlags: new Uint8Array(HIST),
@@ -309,7 +309,7 @@ export class World {
       const prevBtn = f.s.prevBtn;
       // the Rift gauge carries over between rounds
       const rift = f.s.rift;
-      f.s = newFighterState(this.arena.spawns[f.seat], this.arena.floor, f.seat === 0 ? 1 : -1, f.load.cls);
+      f.s = newFighterState(this.arena.spawns[f.seat], this.arena.floor, f.seat === 0 ? 1 : -1, f.load);
       f.s.moveSeq = seq;
       f.s.prevBtn = prevBtn;
       f.s.rift = rift;
@@ -612,7 +612,7 @@ export class World {
     this.lastStop = 0;
     this.lastParry = false;
     if (d.s.act === Act.KO) return false;
-    const DC = classOf(d.load.cls);
+    const DC = heroClass(d.load);
     const dirX = a ? (a.s.x <= ds.x ? 1 : -1) : h.x <= ds.x ? 1 : -1;
     // Bulwark: nothing gets through; a swing into it staggers the attacker
     if (ds.act === Act.Art && artIdOf(d.load) === ArtId.Bulwark) {
@@ -697,14 +697,16 @@ export class World {
       ds.charge = 0;
       ds.blockT = 0;
       const push = h.pull && a ? -dirX : dirX;
-      ds.vx = push * h.kbX;
+      // a heavy hero is thrown less far, a light one further
+      const wt = DC.weight ?? 1;
+      ds.vx = push * h.kbX * wt;
       if (h.pull && a) {
         // the hook lands them in front of the reaper, not behind
         const want = a.s.x + a.s.face * 34;
         ds.vx = (want - ds.x) * 6;
       }
       if (h.kbY > 0) {
-        ds.vy = -h.kbY;
+        ds.vy = -h.kbY * (wt < 1 ? 0.5 + wt * 0.5 : wt);
         if (launch) ds.ground = 0;
       }
       ds.face = a ? (a.s.x < ds.x ? -1 : 1) : ds.face;
@@ -754,7 +756,7 @@ export class World {
       }
       if (!m || !m.arrow || !w.arrowSpeed) return;
       const heavy = s.move === MOVE_CHARGED;
-      const C = classOf(f.load.cls);
+      const C = heroClass(f.load);
       if (m.gate) {
         // the Gate of Treasures: portals open behind and above the hero and fire blades at the opponent, staggered;
         // held, more gates open (2 blades at the threshold, up to 9 at a full hold)
@@ -919,7 +921,7 @@ export class World {
             continue;
           }
           // the Phantom Hand crushes the heart it grasps and feeds its master
-          if (landed && p.kind === 'hand' && !p.skin && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(classOf(owner.load.cls).hp, owner.s.hp + Math.round(p.dmg * 0.5));
+          if (landed && p.kind === 'hand' && !p.skin && owner && owner.s.act !== Act.KO) owner.s.hp = Math.min(heroClass(owner.load).hp, owner.s.hp + Math.round(p.dmg * 0.5));
           if (p.burn && (landed || p.kind === 'steed')) f.s.burnT = Math.max(f.s.burnT, p.burn);
           if (p.pierce) {
             // trampled once: keeps running, harmless now
@@ -987,7 +989,7 @@ export class World {
       const s = f.s;
       // (a frozen caster's timeline waits: the superpause before the Art, or a hit-stop during it)
       if (s.act !== Act.Art || f.held) continue;
-      const C = classOf(f.load.cls);
+      const C = heroClass(f.load);
       const o = this.opponent(f);
       const t = s.actT;
       switch (artIdOf(f.load)) {

@@ -8,84 +8,64 @@ import { Act, FIGHTER } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
 import { hurtLevel, spritePoseFor, type SpriteAtlasMeta, type SpriteCtx, type SpritePose } from './spriteAnim';
 import { heroEnergy } from './fxmap';
+import { atlasLoading, hasAtlas, heroAtlas } from './atlasStore';
 
 /** How long the motion smear of a swing lingers (seconds). */
 const SMEAR_LIFE = 0.11;
 
-/** Atlas folder per hero id (the same names as the art sources in art/characters/). */
-export const SPRITE_IDS = [
-  'h00-leon', 'h01-kharon', 'h02-aurelion', 'h03-nyx', 'h04-verdan', 'h05-lumi', 'h06-quill',
-  'h07-hollowmask', 'h08-sable', 'h09-gorvax', 'h10-gray', 'h11-ignis', 'h12-thornmaw', 'h13-aegis',
-];
+export { SPRITE_IDS } from './atlasStore';
 
 /** World units from the feet to the crown of a reference-height standing sprite (the body box is FIGHTER.h; hair and
  * helmets sit above it). Taller or smaller heroes keep the same pixels-per-unit, so their size differences show. */
 const STAND_WORLD = FIGHTER.h * 1.12;
 
-const metas = new Map<number, SpriteAtlasMeta | null>();
+const metas = new Map<number, SpriteAtlasMeta>();
 const pending = new Map<number, Promise<SpriteAtlasMeta | null>>();
 
 const texKey = (hero: number) => `hero-sprites-${hero}`;
-/** The release stamp versions the atlas URLs, so a cached atlas.json is never paired with another release's atlas.png. */
-const V = `?v=${encodeURIComponent(String(import.meta.env.VITE_RELEASE ?? 'dev'))}`;
 
-/** The hero's atlas, loading it into the scene's texture manager the first time (null: the hero has no sprites yet). */
+/**
+ * The hero's atlas as a Phaser texture, adding it to the game's texture manager the first time (null: the hero has no
+ * sprites, or the download failed just now; asking again later retries). The download itself is shared (atlasStore.ts),
+ * so the title screen or hero select usually fetched it already.
+ */
 export function loadHeroSprites(scene: Phaser.Scene, hero: number): Promise<SpriteAtlasMeta | null> {
-  if (metas.has(hero) && (metas.get(hero) === null || scene.textures.exists(texKey(hero)))) return Promise.resolve(metas.get(hero)!);
-  const busy = pending.get(hero);
-  if (busy) return busy;
-  const id = SPRITE_IDS[hero];
-  const p = (async () => {
-    if (!id) return null;
-    try {
-      const r = await fetch(`assets/characters/${id}/atlas.json${V}`);
-      if (!r.ok || !r.headers.get('content-type')?.includes('json')) return null;
-      const meta = (await r.json()) as SpriteAtlasMeta;
-      await new Promise<void>((resolve, reject) => {
-        const key = texKey(hero);
-        if (scene.textures.exists(key)) return resolve();
-        scene.load.image(key, `assets/characters/${id}/atlas.png${V}`);
-        // listen for THIS file's error only (an unrelated loader error must not use the listener up)
-        const onError = (f: { key: string }) => {
-          if (f.key !== key) return;
-          scene.load.off('loaderror', onError);
-          reject(new Error('atlas'));
-        };
-        scene.load.on('loaderror', onError);
-        scene.load.once(`filecomplete-image-${key}`, () => {
-          scene.load.off('loaderror', onError);
-          resolve();
-        });
-        scene.load.start();
-      });
-      const tex = scene.textures.get(texKey(hero));
-      for (const [name, f] of Object.entries(meta.frames)) if (!tex.has(name)) tex.add(name, 0, f.x, f.y, f.w, f.h);
-      // painted sprites shown at fractional camera zoom: smooth sampling keeps them steady (nearest would shimmer)
-      tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      return meta;
-    } catch {
-      return null;
-    }
-  })();
-  pending.set(hero, p);
-  p.then((m) => {
-    metas.set(hero, m);
-    pending.delete(hero);
+  return loadHeroTexture(scene.textures, hero);
+}
+
+export function loadHeroTexture(textures: Phaser.Textures.TextureManager, hero: number): Promise<SpriteAtlasMeta | null> {
+  const have = metas.get(hero);
+  if (have && textures.exists(texKey(hero))) return Promise.resolve(have);
+  const running = pending.get(hero);
+  if (running) return running;
+  if (!hasAtlas(hero)) return Promise.resolve(null);
+  const p = heroAtlas(hero).then((a) => {
+    if (!a) return null;
+    const key = texKey(hero);
+    if (!textures.exists(key)) textures.addImage(key, a.img);
+    const tex = textures.get(key);
+    for (const [name, f] of Object.entries(a.meta.frames)) if (!tex.has(name)) tex.add(name, 0, f.x, f.y, f.w, f.h);
+    // painted sprites shown at fractional camera zoom: smooth sampling keeps them steady (nearest would shimmer)
+    tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    metas.set(hero, a.meta);
+    return a.meta;
   });
+  pending.set(hero, p);
+  void p.finally(() => pending.delete(hero));
   return p;
 }
 
-const prefetched = new Set<number>();
-/** Warm the HTTP cache with a hero's atlas (the lobby calls this for the seated heroes, so the match starts with sprites). */
-export function prefetchHeroSprites(hero: number) {
-  const id = SPRITE_IDS[hero];
-  if (!id || prefetched.has(hero)) return;
-  prefetched.add(hero);
-  for (const f of ['atlas.json', 'atlas.png']) fetch(`assets/characters/${id}/${f}${V}`).catch(() => prefetched.delete(hero));
+/** Start getting a hero's atlas onto the GPU before the match needs it (the lobby, hero select, the VS card). */
+export function prefetchHeroSprites(hero: number, textures?: Phaser.Textures.TextureManager) {
+  if (textures) void loadHeroTexture(textures, hero);
+  else void heroAtlas(hero);
 }
 
 /** The hero's atlas is still on its way (the scene hides the rig meanwhile). */
-export const spritesPending = (hero: number) => pending.has(hero);
+export const spritesPending = (hero: number) => pending.has(hero) || atlasLoading(hero);
+
+/** The hero has an atlas at all (the rig is only for heroes without one, or one whose download failed). */
+export const heroHasSprites = hasAtlas;
 
 /** Already loaded (sync), for the render loop. */
 export const heroSpritesReady = (hero: number) => metas.get(hero) ?? null;
@@ -97,6 +77,8 @@ export class SpriteFighterView {
   private readonly scale: number;
   /** A colour wash for the second fighter of a mirror match (0 = none), like a fighting game's alternate palette. */
   altTint = 0;
+  /** The colour a hit flashes the figure (white, or the blow's own colour through the freeze). */
+  flashColor = 0xffffff;
   /** The hit strength of the current hit-stun, judged at its start (the hit-stop the blow froze it for, the knockback). */
   private hurt: 0 | 1 | 2 = 0;
   private hurtStop = 0;
@@ -206,7 +188,7 @@ export class SpriteFighterView {
     if (flash > 0.5) {
       // a hit: the figure flashes white (fill); the weaker invulnerability flicker is an alpha blink (GameScene)
       this.img.tintMode = Phaser.TintModes.FILL;
-      this.img.setTint(0xffffff);
+      this.img.setTint(this.flashColor);
     } else {
       this.img.tintMode = Phaser.TintModes.MULTIPLY;
       const t = tint || this.altTint;

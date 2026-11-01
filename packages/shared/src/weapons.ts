@@ -201,7 +201,11 @@ export const WEAPONS: WeaponDef[] = [
     name: 'Tower Shield',
     short: 'Shield',
     blurb: 'Hold to block. Block at the last moment to parry; tap to bash.',
-    combo: [{ startup: 5, active: 5, recovery: 16, dmg: 36, box: b(2, -52, 32, 48), kbX: 300, kbY: 60, stun: 40, step: 140, shake: 0.3 }],
+    // a jab with the rim that holds them close, then the full-body shove that throws them off
+    combo: [
+      { startup: 5, active: 4, recovery: 12, dmg: 40, box: b(2, -52, 36, 48), kbX: 110, kbY: 20, stun: 24, step: 110 },
+      { startup: 7, active: 5, recovery: 18, dmg: 62, box: b(2, -54, 40, 52), kbX: 320, kbY: 90, stun: 36, step: 150, shake: 0.3 },
+    ],
     air: { startup: 5, active: 6, recovery: 12, dmg: 45, box: b(2, -52, 32, 48), kbX: 260, kbY: 80, stun: 30 },
     block: true,
   },
@@ -282,14 +286,15 @@ export const WEAPONS: WeaponDef[] = [
     id: WeaponId.Chains,
     name: 'Living Chains',
     short: 'Chains',
-    blurb: 'The longest lashes in the game; the third whips the target up off its feet. Hold to lock the chains into a spear and lunge.',
+    blurb: 'The longest reach in the game: the chains hold a target at a distance, the third lash whips it into the air. Hold to lock them into a spear and lunge.',
     base: WeaponId.Lance,
     combo: [
-      { startup: 10, active: 4, recovery: 16, dmg: 63, box: b(14, -46, 82, 18), kbX: 150, kbY: 30, stun: 18, step: 30 },
-      { startup: 10, active: 4, recovery: 16, dmg: 65, box: b(10, -72, 84, 32), kbX: 150, kbY: 120, stun: 18, step: 30 },
-      { startup: 13, active: 6, recovery: 24, dmg: 84, box: b(14, -52, 94, 28), kbX: 200, kbY: 260, stun: 30, shake: 0.35 },
+      // (the hit reaches as far as the chain is drawn: render/fxmap.ts chain arcs)
+      { startup: 8, active: 4, recovery: 15, dmg: 56, box: b(16, -46, 118, 20), kbX: 80, kbY: 20, stun: 22, step: 20 },
+      { startup: 8, active: 4, recovery: 15, dmg: 58, box: b(12, -72, 120, 34), kbX: 80, kbY: 60, stun: 22, step: 20 },
+      { startup: 12, active: 6, recovery: 24, dmg: 80, box: b(16, -52, 130, 28), kbX: 190, kbY: 280, stun: 30, shake: 0.35 },
     ],
-    air: { startup: 7, active: 8, recovery: 14, dmg: 70, box: b(4, -40, 96, 30), kbX: 200, kbY: 80, stun: 22 },
+    air: { startup: 7, active: 8, recovery: 14, dmg: 62, box: b(4, -40, 124, 30), kbX: 180, kbY: 80, stun: 22 },
     charged: {
       startup: 4, active: 18, recovery: 22, dmg: 105, dmgMax: 190, box: b(4, -46, 66, 24), kbX: 420, kbY: 160, stun: 38,
       dash: 640, min: 14, max: 50, shake: 0.6,

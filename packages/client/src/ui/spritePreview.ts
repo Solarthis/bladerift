@@ -3,33 +3,9 @@
  * Rift Art now and then, drawn from the same atlas the match uses (assets/characters/<id>/atlas.*). Stops by itself when
  * its canvas leaves the page.
  */
-import type { SpriteAtlasMeta } from '../render/spriteAnim';
-import { SPRITE_IDS } from '../render/spriteFighter';
+import { heroAtlas } from '../render/atlasStore';
 
-const cache = new Map<number, Promise<{ meta: SpriteAtlasMeta; img: HTMLImageElement } | null>>();
-
-function atlas(hero: number) {
-  let p = cache.get(hero);
-  if (!p) {
-    const id = SPRITE_IDS[hero];
-    p = (async () => {
-      try {
-        const v = `?v=${encodeURIComponent(String(import.meta.env.VITE_RELEASE ?? 'dev'))}`;
-        const r = await fetch(`assets/characters/${id}/atlas.json${v}`);
-        if (!r.ok || !r.headers.get('content-type')?.includes('json')) return null;
-        const meta = (await r.json()) as SpriteAtlasMeta;
-        const img = new Image();
-        img.src = `assets/characters/${id}/atlas.png${v}`;
-        await img.decode();
-        return { meta, img };
-      } catch {
-        return null;
-      }
-    })();
-    cache.set(hero, p);
-  }
-  return p;
-}
+const atlas = heroAtlas;
 
 /** The showcase: idle for a while, then one of the moves, back to idle. */
 const SHOW = ['combo0', 'combo1', 'combo2', 'heavy', 'art', 'victory'];

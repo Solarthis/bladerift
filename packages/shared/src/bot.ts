@@ -12,7 +12,7 @@ import { Act, currentMove, FLASH, hasCrescent } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
 import { Box, dodgeOf, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
-import { HEROES, HERO_COUNT, sanitizeLoadout } from './heroes';
+import { heroClass, HEROES, HERO_COUNT, sanitizeLoadout } from './heroes';
 import { bodyBox, Fighter, moveBox, Projectile, ProjKind, World } from './world';
 
 export type BotDifficulty = 'easy' | 'normal' | 'hard';
@@ -260,7 +260,7 @@ export class BotBrain {
     const o = foe.s;
     if (o.act === Act.KO || o.invuln > 0) return false;
     if (this.level === 'easy' && this.rng.next() > 0.02) return false;
-    const C = classOf(me.load.cls);
+    const C = heroClass(me.load);
     const dx = o.x - s.x;
     const dist = Math.abs(dx);
     const aligned = Math.abs(o.y - s.y) < 40;
@@ -300,7 +300,7 @@ export class BotBrain {
 
   /** Can the fighter roll now: a ground roll off cooldown, or another air dash this airtime. */
   private canRoll(me: Fighter): boolean {
-    return me.s.ground ? me.s.rollCd === 0 : me.s.dash < classOf(me.load.cls).dashes;
+    return me.s.ground ? me.s.rollCd === 0 : me.s.dash < heroClass(me.load).dashes;
   }
 
   private reset() {

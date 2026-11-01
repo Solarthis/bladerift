@@ -196,24 +196,48 @@ export interface HeroEnergy {
   arc: number;
   rim: number;
   spark: number;
+  /** The second cut of a combo and the finisher (or heavy) are drawn in their own colours: a string of hits reads as
+   * gold, then crimson, then emerald, each blow its own flash (the owner's reference clip). */
+  alt?: number;
+  fin?: number;
 }
 export const HERO_ENERGY: HeroEnergy[] = [
-  { arc: 0xffd86a, rim: 0xd8901a, spark: 0xfff2b0 }, // 0 Richard: the sun's gold, white-hot sparks
-  { arc: 0x9cff3a, rim: 0x2a7a1a, spark: 0xe0ff8a }, // 1 Alcides: Hydra venom green
-  { arc: 0xffd060, rim: 0xd88a10, spark: 0xfff0a0 }, // 2 Gilgamesh: molten gold, white-hot core
-  { arc: 0x5af0e0, rim: 0x108a9a, spark: 0xd0fbff }, // 3 Cu Chulainn: cyan-teal, pale motes
-  { arc: 0xffd84a, rim: 0x2aa86a, spark: 0x9affc0 }, // 4 Enkidu: gold with jade glints
-  { arc: 0xc08aff, rim: 0x6a2ad0, spark: 0xffc0f0 }, // 5 Prelati: violet starlight, pink-white
-  { arc: 0xffb848, rim: 0xb86a10, spark: 0xfff0c0 }, // 6 Dumas: golden ink
-  { arc: 0x6affc8, rim: 0x109a70, spark: 0xe0fff4 }, // 7 Hassan: mint-teal, white cores
-  { arc: 0x3ce0f5, rim: 0x1a6ad0, spark: 0xd8fbff }, // 8 Hashashin: cyan #3ce0f5
-  { arc: 0xff3a2a, rim: 0x9a0a14, spark: 0xffae35 }, // 9 Humbaba: crimson claw rakes, fire-breath sparks
-  { arc: 0xd0dcf0, rim: 0x6a7490, spark: 0xff4a5a }, // 10 Jack: steel and fog, a red cut
-  { arc: 0xff8a1a, rim: 0xd8300a, spark: 0xffe27a }, // 11 Alexander: orange-gold flame
-  { arc: 0xa86aff, rim: 0x5a1ab0, spark: 0xd8b8ff }, // 12 Pale Rider: violet-purple
-  { arc: 0x8af0f8, rim: 0x1a8a90, spark: 0xffd84a }, // 13 Brynhildr: teal-white, gold stars
+  { arc: 0xffd86a, rim: 0xd8901a, spark: 0xfff2b0, alt: 0xff4a32, fin: 0x5aff7a }, // 0 Richard: sun gold, crimson, emerald
+  { arc: 0x9cff3a, rim: 0x2a7a1a, spark: 0xe0ff8a, alt: 0xffb02a, fin: 0xff3a3a }, // 1 Alcides: Hydra venom, amber, blood
+  { arc: 0xffd060, rim: 0xd88a10, spark: 0xfff0a0, alt: 0xff3a3a, fin: 0xfff4d0 }, // 2 Gilgamesh: molten gold, royal red, white gold
+  { arc: 0x5af0e0, rim: 0x108a9a, spark: 0xd0fbff, alt: 0xff3a5a, fin: 0x3a8aff }, // 3 Cu Chulainn: sea teal, the red spear, deep blue
+  { arc: 0xffd84a, rim: 0x2aa86a, spark: 0x9affc0, alt: 0x3aff9a, fin: 0x9affff }, // 4 Enkidu: gold chains, jade, sky
+  { arc: 0xc08aff, rim: 0x6a2ad0, spark: 0xffc0f0, alt: 0xff6ad0, fin: 0x6affe8 }, // 5 Prelati: violet, pink, spectral teal
+  { arc: 0xffb848, rim: 0xb86a10, spark: 0xfff0c0, alt: 0x4ad0ff, fin: 0xff5a3a }, // 6 Dumas: gold ink, blue ink, red ink
+  { arc: 0x6affc8, rim: 0x109a70, spark: 0xe0fff4, alt: 0xb06aff, fin: 0xf0fff8 }, // 7 Hassan: mint, violet, bone white
+  { arc: 0x3ce0f5, rim: 0x1a6ad0, spark: 0xd8fbff, alt: 0xc050ff, fin: 0xf0fcff }, // 8 Hashashin: cyan, violet, white
+  { arc: 0xff3a2a, rim: 0x9a0a14, spark: 0xffae35, alt: 0xff9a1a, fin: 0xffe060 }, // 9 Humbaba: crimson, fire, white flame
+  { arc: 0xd0dcf0, rim: 0x6a7490, spark: 0xff4a5a, alt: 0xff3a4a, fin: 0x8a4aff }, // 10 Jack: steel, blood, fog violet
+  { arc: 0xff8a1a, rim: 0xd8300a, spark: 0xffe27a, alt: 0xffd84a, fin: 0xff3a1a }, // 11 Alexander: flame, gold, red fire
+  { arc: 0xa86aff, rim: 0x5a1ab0, spark: 0xd8b8ff, alt: 0x7aff8a, fin: 0xff4aa0 }, // 12 Pale Rider: violet, plague green, rose
+  { arc: 0x8af0f8, rim: 0x1a8a90, spark: 0xffd84a, alt: 0xffd84a, fin: 0xf4fcff }, // 13 Brynhildr: teal-white, gold, white
 ];
 export const heroEnergy = (hero: number): HeroEnergy => HERO_ENERGY[hero] ?? HERO_ENERGY[0];
+
+/** A colour darkened to `k` of its brightness. */
+export const shadeColor = (c: number, k: number) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
+/** A colour mixed toward white by `k`. */
+export const whiten = (c: number, k: number) => {
+  const m = (v: number) => Math.round(v + (255 - v) * k);
+  return (m((c >> 16) & 255) << 16) | (m((c >> 8) & 255) << 8) | m(c & 255);
+};
+const stepCache = new Map<number, HeroEnergy>();
+/** The colours of one blow: combo step 0 the hero's own, step 1 its second colour, the finisher / heavy / plunge its third. */
+export function energyForMove(hero: number, move: number, comboLen = 3): HeroEnergy {
+  const e = heroEnergy(hero);
+  const fin = move < 10 && move === comboLen - 1 && comboLen >= 2;
+  const col = fin ? e.fin : move >= 1 && move < 10 ? e.alt : move === MOVE_CHARGED || move === MOVE_PLUNGE || move === MOVE_CRESCENT ? e.fin : undefined;
+  if (col === undefined) return e;
+  const key = hero * 64 + move;
+  let c = stepCache.get(key);
+  if (!c) stepCache.set(key, (c = { arc: col, rim: shadeColor(col, 0.55), spark: whiten(col, 0.6) }));
+  return c;
+}
 
 /**
  * A procedural swing arc for a sprite fighter (layered over the painted frames with additive blending). Angles are in
@@ -277,10 +301,11 @@ export function arcFor(weapon: number, move: number): ArcShape | null {
       // living chains whipping out (low, high), then the yank
       if (move === MOVE_CHARGED) return T(96, 9, { life: 0.34, heavy: true });
       if (move === MOVE_PLUNGE) return null;
-      if (move === MOVE_AIR) return { kind: 'chain', a0: 0, a1: 0, r: 96, w: 6, cx: 4, cy: 26, sy: 1, dur: 0.09, life: 0.3 };
-      if (move === 1) return { kind: 'chain', a0: 0, a1: 0, r: 104, w: 6, cx: 6, cy: 56, sy: 1, dur: 0.1, life: 0.3 };
-      if (move === 2) return { kind: 'chain', a0: 0, a1: 0, r: 124, w: 8, cx: 6, cy: 40, sy: 1, dur: 0.11, life: 0.4, heavy: true };
-      return { kind: 'chain', a0: 0, a1: 0, r: 114, w: 6, cx: 6, cy: 38, sy: 1, dur: 0.1, life: 0.3 };
+      // (each lash is drawn as long as its hit box reaches: weapons.ts Chains)
+      if (move === MOVE_AIR) return { kind: 'chain', a0: 0, a1: 0, r: 128, w: 6, cx: 4, cy: 26, sy: 1, dur: 0.09, life: 0.3 };
+      if (move === 1) return { kind: 'chain', a0: 0, a1: 0, r: 132, w: 6, cx: 6, cy: 56, sy: 1, dur: 0.1, life: 0.3 };
+      if (move === 2) return { kind: 'chain', a0: 0, a1: 0, r: 146, w: 8, cx: 6, cy: 40, sy: 1, dur: 0.11, life: 0.4, heavy: true };
+      return { kind: 'chain', a0: 0, a1: 0, r: 134, w: 6, cx: 6, cy: 38, sy: 1, dur: 0.1, life: 0.3 };
     case WeaponId.Quill:
     case WeaponId.Staff:
     case WeaponId.Bow:

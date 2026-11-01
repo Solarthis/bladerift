@@ -1,4 +1,4 @@
-import { ARTS, classOf, FIGHTER, GameEvent, hasCrescent, heroOf, isRanged, RIFT, RosterEntry, SKILLS, WEAPONS } from '@bladerift/shared';
+import { ARTS, classOf, FIGHTER, GameEvent, hasCrescent, heroClass, heroOf, isRanged, RIFT, RosterEntry, SKILLS, WEAPONS } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import { colorOf, css } from './colors';
 import { artIconOf, skillIcon, weaponIcon } from './icons';
@@ -194,7 +194,7 @@ export class Hud {
         }
       }
       const hp = f ? Math.max(0, f.hp) : 0;
-      const max = f ? classOf(f.cls).hp : 1000;
+      const max = f ? heroClass({ cls: f.cls, hero: f.hero }).hp : 1000;
       // the red trail catches up a moment after a hit
       if (s.trailHp < hp) s.trailHp = hp;
       else s.trailHp = Math.max(hp, s.trailHp - max * 0.5 * dt);
