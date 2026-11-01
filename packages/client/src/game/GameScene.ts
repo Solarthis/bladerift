@@ -611,6 +611,7 @@ export class GameScene extends Phaser.Scene {
     this.arenaView = buildArena(this, this.game0!.arena);
     this.arenaCull = arenaCullables(this, before);
     this.stage = new StageLights(this, this.arenaView.ambient, this.arenaView.lights);
+    this.stage.shapes = this.arenaView.shapes;
     // the hits and swings of every weapon, baked in the background from the start of the match
     prewarmEffects(this, [
       [FX.hitSpark, {}], [FX.critHit, {}], [FX.bluntHit, {}], [FX.parry, {}], [FX.shieldBlock, {}], [FX.heavyLanding, {}], [FX.heal, {}], [FX.poof, {}],
@@ -3098,7 +3099,7 @@ export class GameScene extends Phaser.Scene {
     const useW = vw - pad.left - pad.right;
     // how much world fits: 220-275 units of height (a standing fighter is about a fifth to a quarter of the view),
     // zoomed out to keep both fighters in view
-    const wantH = Phaser.Math.Clamp(vh * 0.5, 220, 275);
+    const wantH = Phaser.Math.Clamp(vh * 0.55, 235, 295);
     let zoom = vh / wantH;
     zoom = Math.min(zoom, useW / (maxX - minX + 190), vh / (maxY - minY + 200));
     zoom = Math.max(zoom, vw / (this.arenaW + 100));
@@ -3127,7 +3128,7 @@ export class GameScene extends Phaser.Scene {
     else if (minX < fc - dz) fc = minX + dz;
     else if (maxX > fc + dz) fc = maxX - dz;
     this.camFc += (fc - this.camFc) * (1 - Math.exp(-dt * 10));
-    const cy = Math.min(this.floor - (vh / this.camZoom) * (pad.right ? 0.24 : 0.36), (minY + maxY) / 2 - 40);
+    const cy = Math.min(this.floor - (vh / this.camZoom) * (pad.right ? 0.24 : 0.25), (minY + maxY) / 2 - 40);
     this.camY += (cy - this.camY) * (1 - Math.exp(-dt * 6));
     this.camX = this.camFc + off;
     // a camera shot (zoomTo) blends in over the follow camera
@@ -3153,7 +3154,7 @@ export class GameScene extends Phaser.Scene {
     const halfH = vh / z / 2;
     x = Phaser.Math.Clamp(x, halfW - 50, this.arenaW + 50 - halfW);
     // (touch: a little more floor shows below the fighters, lifting them above the button cluster's lower rows)
-    y = Math.min(y, this.floor + (pad.right ? 135 : 70) - halfH);
+    y = Math.min(y, this.floor + Math.min(300, pad.right ? Math.max(135, 0.27 * halfH * 2) : 0.25 * halfH * 2) - halfH);
     // the shake is an offset after the clamp (vertical only)
     const sy = this.shakeOffset(dt, vh / z);
     cam.setZoom(z);

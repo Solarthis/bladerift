@@ -41,6 +41,21 @@ interface Flash {
   hold: number;
 }
 
+/** A shaped light the arena lays on the map each frame (a window's shaft, its patch on the floor), in screen pixels. */
+export interface LightStamp {
+  key: string;
+  x: number;
+  y: number;
+  sx: number;
+  sy: number;
+  rot: number;
+  ox: number;
+  oy: number;
+  color: number;
+  k: number;
+  on: boolean;
+}
+
 export interface LitBody {
   x: number;
   y: number;
@@ -49,6 +64,7 @@ export interface LitBody {
 }
 
 const BLOB = 'light-blob';
+const VIGNETTE = 'light-vignette';
 /** The light map's resolution relative to the canvas (it is smooth, so half is plenty). */
 const RES = 0.5;
 
@@ -69,6 +85,20 @@ function blobTexture(scene: Phaser.Scene) {
   tex.refresh();
 }
 
+function vignetteTexture(scene: Phaser.Scene) {
+  if (scene.textures.exists(VIGNETTE)) return;
+  // the frame's edges sink into the dark (multiplied over the map)
+  const v = scene.textures.createCanvas(VIGNETTE, 128, 72)!;
+  const vg = v.context;
+  const rad = vg.createRadialGradient(64, 36, 10, 64, 36, 78);
+  rad.addColorStop(0, '#ffffff');
+  rad.addColorStop(0.55, '#f2f2f2');
+  rad.addColorStop(1, '#9a9a9a');
+  vg.fillStyle = rad;
+  vg.fillRect(0, 0, 128, 72);
+  v.refresh();
+}
+
 export class StageLights {
   private readonly rt: Phaser.GameObjects.RenderTexture;
   private readonly flashes: Flash[] = [];
@@ -76,9 +106,12 @@ export class StageLights {
   /** Lights out for this long (seconds): a K.O. or a super's dimming takes the lamps down with it. */
   private dim = 0;
   private dimTo = 0;
+  /** Shaped lights laid by the arena this frame (render/arena.ts: window shafts and their patches on the floor). */
+  shapes: LightStamp[] = [];
 
   constructor(private readonly scene: Phaser.Scene, readonly ambient: number, private readonly statics: StaticLight[], depth = 12.5) {
     blobTexture(scene);
+    vignetteTexture(scene);
     const w = Math.max(2, Math.ceil(scene.scale.width * RES));
     const h = Math.max(2, Math.ceil(scene.scale.height * RES));
     this.rt = scene.add.renderTexture(0, 0, w, h).setScrollFactor(0).setDepth(depth).setBlendMode(Phaser.BlendModes.MULTIPLY).setOrigin(0.5);
@@ -137,6 +170,11 @@ export class StageLights {
       stamp(px(l.x, l.sf), py(l.y), l.r, l.color, l.k * f);
       if (l.floorY !== undefined) stamp(px(l.x, l.sf), py(l.floorY), l.r * 1.3, l.color, l.k * 0.45 * f, 0.22);
     }
+    // the arena's shaped lights: shafts from the windows and the patches they throw on the floor
+    for (const s of this.shapes) {
+      if (!s.on || s.k <= 0.01) continue;
+      this.rt.stamp(s.key, undefined, s.x * RES, s.y * RES, { tint: s.color, alpha: Math.min(1, s.k * lightK), scaleX: s.sx * RES, scaleY: s.sy * RES, rotation: s.rot, originX: s.ox, originY: s.oy, blendMode: Phaser.BlendModes.ADD });
+    }
     // each fighter's key light: a soft pool round the body and a brighter ellipse at the feet
     for (const b of bodies) {
       stamp(px(b.x), py(b.y - 40), 190, 0xfff2e0, 0.62 * b.k);
@@ -156,8 +194,9 @@ export class StageLights {
       const k = f.k * a * a;
       const r = f.r * (0.85 + 0.25 * p);
       stamp(px(f.x), py(f.y), r, f.color, k);
-      if (f.floorY !== undefined) stamp(px(f.x), py(f.floorY), r * 1.35, f.color, k * 0.9, 0.24);
+      if (f.floorY !== undefined) stamp(px(f.x), py(f.floorY), r * 1.8, f.color, k * 0.9, 0.3);
     }
+    this.rt.stamp(VIGNETTE, undefined, rw / 2, rh / 2, { scaleX: rw / 128, scaleY: rh / 72, blendMode: Phaser.BlendModes.MULTIPLY });
     this.rt.render();
   }
 

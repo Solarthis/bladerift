@@ -75,6 +75,8 @@ def main():
             print('missing', t)
             continue
         wall = Image.open(w).convert('RGB')
+        # the wall stands far back (about 500 screen pixels a copy), so a smaller picture is sharper (no shimmer) and lighter
+        wall = wall.resize((1024, round(wall.height * 1024 / wall.width)), Image.LANCZOS)
         wall.save(os.path.join(OUT, f'wall-{t}.jpg'), quality=86, optimize=True, progressive=True)
         floor = Image.open(f).convert('RGB')
         # resized on a 3x3 tiling and cut from the middle, so the edges still meet seamlessly

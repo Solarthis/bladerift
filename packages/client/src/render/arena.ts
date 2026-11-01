@@ -10,34 +10,34 @@
 import Phaser from 'phaser';
 import type { ArenaDef } from '@bladerift/shared';
 import LIGHTS from './arenaLights.json';
-import type { StaticLight } from './lighting';
+import type { LightStamp, StaticLight } from './lighting';
 
-/** Per theme: the ambient light level (the light map's base colour) and the floor's colour grade. */
-type Beam = { u: number; v0: number; v1: number; w: number; slant: number; color: number; k: number };
-/** Shafts of light through the wall's windows (wall-picture coordinates), and the dust that drifts in them. */
+/**
+ * Shafts of light through the wall's windows, falling across the room onto the floor (the reference clip's strongest
+ * picture): `u`, `v` the window's centre on the wall picture, `w` its width (share of the picture), `dx` how far the patch
+ * lands from under the window (world units, + right), `p0`..`p1` the patch's depth on the floor (1 = the fighters' line),
+ * `k` its light (the shaft carries less), `haze` how much the air in it glows.
+ */
+type Beam = { u: number; v: number; w: number; dx: number; p0: number; p1: number; color: number; k: number; haze: number };
 const BEAMS: Record<string, Beam[]> = {
   hall: [
-    { u: 0.154, v0: 0.12, v1: 0.55, w: 0.05, slant: 150, color: 0x9ab8ff, k: 0.055 },
-    { u: 0.5, v0: 0.18, v1: 0.55, w: 0.05, slant: 150, color: 0x9ab8ff, k: 0.055 },
-    { u: 0.846, v0: 0.12, v1: 0.55, w: 0.05, slant: 150, color: 0x9ab8ff, k: 0.055 },
+    { u: 0.5, v: 0.36, w: 0.1, dx: 160, p0: 0.78, p1: 1.1, color: 0xdce2ff, k: 0.75, haze: 0.2 },
   ],
   bridge: [
-    { u: 0.86, v0: 0.05, v1: 0.6, w: 0.07, slant: -120, color: 0xb8ccff, k: 0.05 },
-    { u: 0.4, v0: 0.05, v1: 0.6, w: 0.07, slant: -120, color: 0xb8ccff, k: 0.045 },
+    { u: 0.48, v: 0.52, w: 0.12, dx: -150, p0: 0.78, p1: 1.06, color: 0xb8c8ff, k: 0.55, haze: 0.13 },
   ],
   embers: [
-    { u: 0.12, v0: 0.2, v1: 0.5, w: 0.05, slant: 110, color: 0xff7a3a, k: 0.06 },
-    { u: 0.67, v0: 0.25, v1: 0.55, w: 0.06, slant: 110, color: 0xff7a3a, k: 0.06 },
+    { u: 0.66, v: 0.44, w: 0.1, dx: 150, p0: 0.78, p1: 1.08, color: 0xff8a48, k: 0.7, haze: 0.18 },
   ],
-  crypt: [{ u: 0.5, v0: 0.0, v1: 0.3, w: 0.08, slant: 60, color: 0x8affd8, k: 0.04 }],
+  crypt: [{ u: 0.5, v: 0.02, w: 0.12, dx: 130, p0: 0.8, p1: 1.08, color: 0xa8ffe6, k: 0.6, haze: 0.15 }],
   grove: [
-    { u: 0.3, v0: 0.0, v1: 0.5, w: 0.06, slant: 140, color: 0xc8b8ff, k: 0.055 },
-    { u: 0.72, v0: 0.0, v1: 0.5, w: 0.05, slant: 140, color: 0xc8b8ff, k: 0.05 },
+    { u: 0.3, v: 0.06, w: 0.1, dx: 160, p0: 0.78, p1: 1.08, color: 0xd8ccff, k: 0.65, haze: 0.16 },
   ],
 };
 
+/** Per theme: the ambient light level (the light map's base colour) and the floor's colour grade. */
 const LOOK: Record<string, { ambient: number; far: number; near: number; lamp: number }> = {
-  hall: { ambient: 0x706878, far: 0x7a7280, near: 0xc4b8ac, lamp: 0.9 },
+  hall: { ambient: 0x58505f, far: 0x7a7280, near: 0xc4b8ac, lamp: 0.9 },
   bridge: { ambient: 0x68728e, far: 0x6a7490, near: 0xb0bacc, lamp: 0.85 },
   embers: { ambient: 0x745658, far: 0x7a5650, near: 0xc49484, lamp: 0.9 },
   crypt: { ambient: 0x627670, far: 0x5c6c66, near: 0xa0b0a8, lamp: 0.9 },
@@ -45,9 +45,9 @@ const LOOK: Record<string, { ambient: number; far: number; near: number; lamp: n
 };
 
 /** Depth of the floor seen from the camera: the foot of the back wall is FAR of the way to the fighters' line. */
-const FAR = 0.72;
-/** World units between the fighters' line and the foot of the wall (on screen). */
-const BACK = 58;
+const FAR = 0.66;
+/** World units between the fighters' line and the foot of the wall (on screen): a deep floor, the wall well back. */
+const BACK = 64;
 /** Floor drawn this far below the fighters' line (it runs off the bottom of the view). */
 const FRONT = 320;
 /** Floor texture: world units per texel at the fighters' line, and how much the floor is foreshortened. */
@@ -55,12 +55,14 @@ const TEXEL = 0.2;
 const SQUASH = 0.42;
 const ROWS = 44;
 /** The back wall's height (world units) and the mirrored copies laid side by side. */
-const WALL_H = 300;
-const COPIES = [-2, -1, 0, 1, 2];
+const WALL_H = 120;
+const COPIES = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
 
 export interface ArenaView {
   /** The lamps on the back wall. */
   lights: StaticLight[];
+  /** The window shafts and their floor patches, laid on the light map (refreshed by update()). */
+  shapes: LightStamp[];
   ambient: number;
   /** Lay the floor strips under the camera (call once per frame, after the camera moved). */
   update(): void;
@@ -77,8 +79,9 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
   // ---- the back wall: the painting, mirrored copies either side (the joins meet seamlessly), at the floor's far parallax
   const wallKey = scene.textures.exists(`wall-${theme}`) ? `wall-${theme}` : `bg-${theme}`;
   const src = scene.textures.get(wallKey).getSourceImage() as HTMLImageElement;
-  // scaled so its lamps and windows sit just above the fighters' heads (the camera sees ~250-300 units of height)
+  // small and far back, so the whole wall shows above the fighters (windows, banners, lamps) like a room, not a backdrop
   const ws = WALL_H / src.height;
+  const wallTop = wallBase + 2 - WALL_H;
   const tw = src.width * ws;
   for (const k of COPIES) {
     scene.add
@@ -89,6 +92,31 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
       .setScrollFactor(FAR, 1)
       .setDepth(-20);
   }
+  // above the wall (seen when the fight climbs to the high ledges): a second storey of the same wall sinking into the dark
+  // vault, or for the bridge the night sky going on up
+  const sky = theme === 'bridge';
+  const vaultC = sky ? 0x0b1124 : 0x07060a;
+  if (!sky) {
+    for (const k of COPIES) {
+      scene.add
+        .image(W / 2 + k * tw, wallTop + 3, wallKey)
+        .setOrigin(0.5, 1)
+        .setScale(ws)
+        .setFlipX(k % 2 === 0)
+        .setFlipY(true)
+        .setTint(0x7a7480)
+        .setScrollFactor(FAR, 1)
+        .setDepth(-20);
+    }
+  }
+  const vault = scene.add.graphics().setScrollFactor(FAR, 1).setDepth(-19.95);
+  const vx0 = W / 2 - 6 * tw;
+  const vx1 = W / 2 + 6 * tw;
+  const fade = sky ? WALL_H * 0.25 : WALL_H * 1.1;
+  const fadeTop = sky ? wallTop + WALL_H * 0.1 - fade : wallTop - fade;
+  vault.fillStyle(vaultC, 1).fillRect(vx0, fadeTop - 3000, vx1 - vx0, 3000);
+  vault.fillGradientStyle(vaultC, vaultC, vaultC, vaultC, 1, 1, sky ? 0 : 0.15, sky ? 0 : 0.15);
+  vault.fillRect(vx0, fadeTop - 1, vx1 - vx0, fade + 1);
 
   // ---- the floor: strips from the foot of the wall to below the view, each at its own depth
   const fKey = scene.textures.exists(`floor-${theme}`) ? `floor-${theme}` : `p-${theme}`;
@@ -198,15 +226,41 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
     }
   }
 
-  // ---- light shafts and drifting dust (additive, over the light map so they read as light in the dark)
+  // ---- light shafts: each window throws a slanting shaft across the room and a patch of light on the floor. Both light
+  // the scene (stamped on the light map, so a fighter walking through one is lit) and glow in the air (soft additive images)
+  shaftTextures(scene);
+  type Shaft = { b: Beam; xw: number; yw: number; F: number; air: Phaser.GameObjects.Image; pool: Phaser.GameObjects.Image; sShaft: LightStamp; sPool: LightStamp; sWin: LightStamp; ph: number };
+  const shafts: Shaft[] = [];
+  const shapes: LightStamp[] = [];
+  const mk = (key: string, color: number): LightStamp => ({ key, x: 0, y: 0, sx: 1, sy: 1, rot: 0, ox: 0.5, oy: 0.5, color, k: 0, on: false });
+  for (const kc of COPIES) {
+    // (every other bay only, each a little different, so the shafts do not march in a row)
+    if (kc % 2 !== 0) continue;
+    const vary = 0.75 + 0.25 * Math.abs(Math.sin(kc * 2.3 + 1));
+    for (const b0 of BEAMS[theme] ?? []) {
+      const b = { ...b0, k: b0.k * vary, haze: b0.haze * vary };
+      const u = kc % 2 === 0 ? b.u : 1 - b.u;
+      const xw = W / 2 + kc * tw + (u - 0.5) * tw;
+      const yw = wallBase + 2 - (1 - b.v) * WALL_H;
+      // the floor point under the window (at the wall's foot the floor and the wall share a parallax), then the throw
+      const F = W / 2 + (xw - W / 2) / FAR + b.dx;
+      const air = scene.add.image(0, 0, SHAFT).setOrigin(0.5, 0).setBlendMode(Phaser.BlendModes.ADD).setTint(b.color).setDepth(7.4).setVisible(false);
+      const pool = scene.add.image(0, 0, POOL).setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD).setTint(b.color).setDepth(-18.8).setVisible(false);
+      const sh: Shaft = { b, xw, yw, F, air, pool, sShaft: mk(SHAFT, b.color), sPool: mk(POOL, b.color), sWin: mk('light-blob', b.color), ph: xw * 0.013 };
+      sh.sShaft.oy = 0;
+      shafts.push(sh);
+      shapes.push(sh.sWin, sh.sShaft, sh.sPool);
+    }
+  }
+  // ---- drifting dust (additive, over the light map so it reads as light in the dark)
   const beamG = scene.add.graphics().setDepth(13).setBlendMode(Phaser.BlendModes.ADD);
-  const beams = BEAMS[theme] ?? [];
   const motes = Array.from({ length: 46 }, (_, i) => ({ x: (i * 977) % W, y: a.floor - ((i * 431) % 300), vx: 2 + (i % 5), vy: -1 - (i % 3), ph: i * 1.7 }));
   let t = 0;
   let last = performance.now();
 
   return {
     lights,
+    shapes,
     ambient: look.ambient,
     update() {
       const cam = scene.cameras.main;
@@ -218,26 +272,61 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
       last = now;
       t += dt;
       beamG.clear();
-      // (a point on the far wall, as the world x it shows at on the near layer)
-      const onWall = (x: number) => x + (1 - FAR) * cam.scrollX;
-      for (const k3 of COPIES) {
-        for (const b of beams) {
-          const u = k3 % 2 === 0 ? b.u : 1 - b.u;
-          const x = onWall(W / 2 + k3 * tw + (u - 0.5) * tw);
-          if (Math.abs(x - cx) > hw + 400) continue;
-          const yTop = wallBase + 2 - (1 - b.v1) * src.height * ws;
-          const half = b.w * tw * 0.5;
-          const sl = k3 % 2 === 0 ? b.slant : -b.slant;
-          const yBot = a.floor + 26;
-          const pulse = b.k * (0.85 + 0.15 * Math.sin(t * 0.7 + u * 9));
-          // a shaft widening down to the floor, brightest at the window
-          beamG.fillGradientStyle(b.color, b.color, b.color, b.color, pulse, pulse, pulse * 0.25, pulse * 0.25);
-          beamG.fillTriangle(x - half, yTop, x + half, yTop, x - half * 2.2 + sl, yBot);
-          beamG.fillGradientStyle(b.color, b.color, b.color, b.color, pulse, pulse * 0.25, pulse * 0.25, pulse * 0.25);
-          beamG.fillTriangle(x + half, yTop, x + half * 2.2 + sl, yBot, x - half * 2.2 + sl, yBot);
-          // and where it lands, a pale patch on the floor
-          beamG.fillStyle(b.color, pulse * 0.55).fillEllipse(x + sl, yBot - 4, half * 5.5, 20);
-        }
+      // projections to the screen: a point on the wall, a point on the floor at depth p, a world y
+      const Wv = scene.scale.width;
+      const Hv = scene.scale.height;
+      const sx0 = cam.scrollX;
+      const sy0 = cam.scrollY;
+      const wallX = (x: number) => Wv / 2 + z * (x - FAR * sx0 - Wv / 2);
+      const floorX = (F: number, p: number) => Wv / 2 + z * p * (F - sx0 - Wv / 2);
+      const scrY = (y: number) => Hv / 2 + z * (y - sy0 - Hv / 2);
+      // (and back: the world point a screen pixel shows on the fighters' layer)
+      const worldX = (X: number) => sx0 + Wv / 2 + (X - Wv / 2) / z;
+      const worldY = (Y: number) => sy0 + Hv / 2 + (Y - Hv / 2) / z;
+      for (const sh of shafts) {
+        const b = sh.b;
+        const ax = wallX(sh.xw);
+        const ay = scrY(sh.yw);
+        const pm = (b.p0 + b.p1) / 2;
+        const bx = floorX(sh.F, pm);
+        const ya = horizon + D * b.p0;
+        const yb = horizon + D * b.p1;
+        const by = scrY((ya + yb) / 2);
+        const on = Math.max(ax, bx) > -300 && Math.min(ax, bx) < Wv + 300;
+        sh.air.setVisible(on);
+        sh.pool.setVisible(on);
+        sh.sShaft.on = sh.sPool.on = sh.sWin.on = on;
+        if (!on) continue;
+        const pulse = 0.9 + 0.1 * Math.sin(t * 0.6 + sh.ph);
+        const winW = z * b.w * tw;
+        const poolW = z * pm * b.w * tw * 4.6;
+        const poolH = z * (yb - ya);
+        const len = Math.hypot(bx - ax, by - ay);
+        const rot = Math.atan2(-(bx - ax), by - ay);
+        // the patch on the floor (its slant follows the shaft)
+        const flip = bx < ax ? -1 : 1;
+        const sp = sh.sPool;
+        sp.x = bx;
+        sp.y = by;
+        sp.sx = (poolW / POOL_W) * flip;
+        sp.sy = poolH / POOL_H;
+        sp.k = b.k * pulse;
+        const ss = sh.sShaft;
+        ss.x = ax;
+        ss.y = ay;
+        ss.sx = poolW / SHAFT_W;
+        ss.sy = len / SHAFT_H;
+        ss.rot = rot;
+        ss.k = b.k * 0.38 * pulse;
+        const sw = sh.sWin;
+        sw.x = ax;
+        sw.y = ay;
+        sw.sx = (winW * 2.6) / 128;
+        sw.sy = (winW * 3.4) / 128;
+        sw.k = 0.55 * pulse;
+        // and the same in the air, soft and faint
+        sh.air.setPosition(worldX(ax), worldY(ay)).setRotation(rot).setScale(poolW / z / SHAFT_W, len / z / SHAFT_H).setAlpha(b.haze * pulse);
+        sh.pool.setPosition(worldX(bx), worldY(by)).setScale((poolW / z / POOL_W) * flip, poolH / z / POOL_H).setAlpha(b.haze * 0.9 * pulse);
       }
       // dust motes drifting through the air, twinkling
       for (const m of motes) {
@@ -263,4 +352,43 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
 function lerpColor(a: number, b: number, t: number) {
   const ch = (s: number) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t) << s;
   return ch(16) | ch(8) | ch(0);
+}
+
+const SHAFT = 'light-shaft';
+const POOL = 'light-pool';
+const SHAFT_W = 64;
+const SHAFT_H = 256;
+const POOL_W = 160;
+const POOL_H = 64;
+
+/** Soft-edged white shapes for the shafts: a beam widening as it falls and fading toward the floor, and the slanted patch it lands as. */
+function shaftTextures(scene: Phaser.Scene) {
+  if (scene.textures.exists(SHAFT)) return;
+  const smooth = (e: number) => (e <= 0 ? 0 : e >= 1 ? 1 : e * e * (3 - 2 * e));
+  const paint = (key: string, w: number, h: number, alpha: (x: number, y: number) => number) => {
+    const tex = scene.textures.createCanvas(key, w, h)!;
+    const img = tex.context.createImageData(w, h);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+        img.data[i + 3] = Math.round(255 * alpha((x + 0.5) / w, (y + 0.5) / h));
+      }
+    tex.context.putImageData(img, 0, 0);
+    tex.refresh();
+  };
+  // the beam: a third as wide at the window as at the floor, soft sides, bright high up and thinning as it falls
+  paint(SHAFT, SHAFT_W, SHAFT_H, (x, y) => {
+    const half = 0.5 * (0.32 + 0.68 * y);
+    const side = smooth((half - Math.abs(x - 0.5)) / (half * 0.55));
+    return side * smooth(y / 0.06) * (1 - 0.7 * y) * smooth((1 - y) / 0.12);
+  });
+  // the patch: a long parallelogram whose near edge lies further from the window than its far edge (the rays that land
+  // nearer the viewer have travelled further), feathered all round, brightest in its middle
+  paint(POOL, POOL_W, POOL_H, (x, y) => {
+    const lean = (y - 0.5) * 0.5;
+    const ex = smooth((0.3 - Math.abs(x - 0.5 - lean)) / 0.12);
+    const ey = smooth((0.5 - Math.abs(y - 0.5)) / 0.28);
+    return ex * ey;
+  });
 }
