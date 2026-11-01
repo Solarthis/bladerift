@@ -25,7 +25,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const randomId = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => (b % 36).toString(36)).join('') + Date.now().toString(36).slice(-4);
 
 /** The local description once every candidate is in (no trickle: one offer, one answer), or after `ms`. */
-async function gathered(pc: RTCPeerConnection, ms = 2500): Promise<RTCSessionDescriptionInit> {
+async function gathered(pc: RTCPeerConnection, ms = 1500): Promise<RTCSessionDescriptionInit> {
   if (pc.iceGatheringState !== 'complete') {
     await new Promise<void>((done) => {
       const t = setTimeout(done, ms);
@@ -70,10 +70,10 @@ const supported = () => typeof RTCPeerConnection === 'function' && typeof crypto
 // ---------------------------------------------------------------- guest
 
 /**
- * Try to reach the host of `code` directly (about 6 s at most). Resolves the open link, or null (no WebRTC, the host
- * is not listening, or no path between the two networks).
+ * Try to reach the host of `code` directly (about 11 s at most: each handshake call crosses the CDN, ~1 s). Resolves
+ * the open link, or null (no WebRTC, the host is not listening, or no path between the two networks).
  */
-export async function dialHost(code: string, budgetMs = 6500): Promise<DirectLink | null> {
+export async function dialHost(code: string, budgetMs = 11000): Promise<DirectLink | null> {
   if (!supported()) return null;
   const t0 = performance.now();
   const pc = new RTCPeerConnection({ iceServers: ICE });
@@ -190,7 +190,7 @@ export class HostListener {
     private code: string,
     private onGuest: (link: DirectLink) => void,
     /** How often to look for a guest's offer (a host already in a direct match only listens for re-links, slowly). */
-    private everyMs = 1000,
+    private everyMs = 700,
   ) {
     if (supported()) void this.loop();
   }
