@@ -179,6 +179,11 @@ function solidBelow(arena: ArenaDef, x: number, y: number) {
  * carry SKILL_WEAPON as their weapon. */
 export const SKILL_EVENT = 32;
 export const SKILL_WEAPON = 100;
+/** The 'shoot' kind of the Sun Crescent (Richard's heavy). */
+export const SHOOT_CRESCENT = 10;
+/** The Sun Crescent in flight: spawned `ahead` of the swordsman, flies at `speed` for `life` ticks (about a third of an
+ * arena: mid range), runs along floors, a guard blocks it and a parry sends it back. */
+export const CRESCENT = { ahead: 12, speed: 780, life: 26 } as const;
 const overlap = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 /** Damage scale of the n-th hit of a combo (FIGHTER.comboScaleStep / comboScaleMin). */
@@ -717,6 +722,15 @@ export class World {
     if (s.act === Act.Attack) {
       const m = currentMove(s, f.load);
       const w = WEAPONS[f.load.weapons[s.slot]];
+      if (m?.crescent) {
+        // the Sun Crescent: the cleave's arc flies on, low and level, for a mid-range distance (CRESCENT)
+        this.projectiles.push({
+          id: this.nextId++ % 65536, kind: 'wave', owner: f.id, x: s.x + s.face * CRESCENT.ahead, y: s.y - 30, vx: s.face * CRESCENT.speed, vy: 0,
+          dmg: moveDamage(s, f.load, m), kb: m.kbX, kbY: m.kbY, stun: m.stun, life: CRESCENT.life, heavy: false,
+        });
+        this.events.push({ t: 'shoot', p: f.id, kind: SHOOT_CRESCENT });
+        return;
+      }
       if (!m || !m.arrow || !w.arrowSpeed) return;
       const heavy = s.move === MOVE_CHARGED;
       const C = classOf(f.load.cls);
@@ -874,7 +888,8 @@ export class World {
         } else {
           const front = (p.vx < 0) === (f.s.face > 0);
           const guardOk = isBlocking(f.s) && front;
-          const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' || p.kind === 'relic' || p.kind === 'hand' || p.kind === 'steed' ? 106 : 101;
+          // (the Sun Crescent, a wave that is not the Art's, cuts like the sword it came from)
+          const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' && !p.art ? WeaponId.Sword : p.kind === 'wave' || p.kind === 'relic' || p.kind === 'hand' || p.kind === 'steed' ? 106 : 101;
           const kbY = p.kbY ?? (p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40);
           const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable, art: !!p.art });
           if (this.lastParry && !p.art && !p.pierce) {

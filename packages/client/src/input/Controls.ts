@@ -160,6 +160,8 @@ export interface TouchButtonState {
   rollCd: number;
   /** An overheated ranged weapon cooling (1 = just overheated, 0 = ready): sweeps the attack buttons. */
   reload: number;
+  /** The Sun Crescent recharging (1 = just thrown): sweeps the heavy button only. */
+  crescent: number;
   flask: number;
   /** Rift gauge 0..1 (1 = the Art is ready). */
   rift: number;
@@ -356,7 +358,7 @@ export class TouchSource implements InputSource {
     cd('skill', s.skillCd);
     cd('roll', s.rollCd);
     cd('a', s.reload);
-    cd('b', s.reload);
+    cd('b', Math.max(s.reload, s.crescent));
     // the Art tile fills from the bottom with the gauge and glows when ready
     const art = this.btnEls.get('art')!;
     art.style.setProperty('--fill', String(Math.max(0, Math.min(1, s.rift))));

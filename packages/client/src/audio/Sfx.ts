@@ -22,6 +22,8 @@ export type SfxName =
   | 'starfall' | 'chains' | 'slam'
   // ranged shots (shoot events: arrow, arcane bolt, orb, frost shard, trap set)
   | 'arrow' | 'arcane' | 'orb' | 'frost' | 'trapSet'
+  // Richard's Sun Crescent (his heavy, a flying golden slash)
+  | 'crescent'
   // the Flash Step (heroes 7 and 8 share it, the second pitched up) and each hero's own dodge (DODGE_SOUNDS)
   | 'blink' | 'dodgeLion' | 'dodgeVault' | 'dodgeGate' | 'dodgePole' | 'dodgeClay' | 'dodgeMirage' | 'dodgePage'
   | 'dodgeBeast' | 'dodgeFog' | 'dodgeCharge' | 'dodgeShadow' | 'dodgeShield'
@@ -294,6 +296,7 @@ export class Sfx {
       case 'explosion': this.sExplosion(opts); break;
       case 'grenadeThrow': this.sGrenadeThrow(opts); break;
       case 'swing': this.sSwing(opts); break;
+      case 'crescent': this.sCrescent(opts); break;
       case 'punch': this.sPunch(opts); break;
       case 'grenadeBounce': this.sGrenadeBounce(opts); break;
       case 'reload': this.sReload(opts); break;
@@ -1043,6 +1046,17 @@ export class Sfx {
     if (!v) return;
     v.pitch *= 0.92 + Math.random() * 0.16;
     this.noise(v, v.t, 0.16, 0.45, 700, 2600, 'bandpass', 0.02, 2.2, 0.5, this.pink!);
+  }
+
+  /** The Sun Crescent: a heavy blade sweep that rings out, then a bright shimmer that flies away with the light. */
+  private sCrescent(o: PlayOpts): void {
+    const v = this.spawn('crescent', o, 0.55, 0.12);
+    if (!v) return;
+    const t = v.t;
+    this.noise(v, t, 0.22, 0.5, 500, 3400, 'bandpass', 0.015, 1.8, 0.7, this.pink!);
+    this.tone(v, t, 0.18, 'triangle', 520, 1040, 0.16, 0.01);
+    this.tone(v, t + 0.03, 0.32, 'sine', 1318, 1568, 0.08, 0.01);
+    this.noise(v, t + 0.06, 0.3, 0.22, 5200, 2600, 'bandpass', 0.03, 1.4, 0.8);
   }
 
   /** Melee hit: a meaty low thump with a slap on top. */

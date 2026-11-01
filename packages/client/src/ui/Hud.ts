@@ -1,4 +1,4 @@
-import { ARTS, classOf, FIGHTER, GameEvent, heroOf, isRanged, RIFT, RosterEntry, SKILLS, WEAPONS } from '@bladerift/shared';
+import { ARTS, classOf, FIGHTER, GameEvent, hasCrescent, heroOf, isRanged, RIFT, RosterEntry, SKILLS, WEAPONS } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import { colorOf, css } from './colors';
 import { artIconOf, skillIcon, weaponIcon } from './icons';
@@ -216,6 +216,14 @@ export class Hud {
       if (ranged && f) {
         s.heatFill.style.width = Math.min(1, f.heat / FIGHTER.heatMax) * 100 + '%';
         s.heat.classList.toggle('over', f.reload);
+      }
+      // the Sun Crescent: the same strip in gold, refilling while it recharges and brimming when B will throw it
+      const crescent = !!f && hasCrescent(f);
+      s.root.classList.toggle('crescent', crescent);
+      if (crescent && f) {
+        const k = f.reload ? 1 - Math.max(0, f.heat - FIGHTER.heatReady) / (FIGHTER.crescentHeat - FIGHTER.heatReady) : 1;
+        s.heatFill.style.width = k * 100 + '%';
+        s.heat.classList.toggle('ready', !f.reload);
       }
 
       const rift = f ? Math.min(1, f.rift / RIFT.max) : 0;

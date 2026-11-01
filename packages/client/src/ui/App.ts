@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
-  ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, dodgeOf, FIGHTER, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout,
+  ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, dodgeOf, FIGHTER, hasCrescent, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout,
   heroWeapon, SKILLS, weaponLookOf, WeaponId, WEAPONS, WEAPON_COUNT,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
@@ -712,7 +712,9 @@ export class App {
               this.touch.show({
                 aIcon: heroWeaponIcon(f.hero), bIcon: heroWeaponIcon(f.hero), skillIcon: skillIcon(f.skill), artIcon: heroArtIcon(f.hero),
                 skillCd: f.skillCd / ((SKILLS[f.skill]?.cooldown ?? 1) * classOf(f.cls).skillCd), rollCd: f.rollCd / 40, flask: f.flask, rift: f.rift / RIFT.max,
-                reload: f.reload ? (f.heat - FIGHTER.heatReady) / (FIGHTER.heatMax - FIGHTER.heatReady) : 0,
+                // (the Sun Crescent's cooldown sweeps the heavy button only: B still cleaves meanwhile)
+                reload: f.reload && !hasCrescent(f) ? (f.heat - FIGHTER.heatReady) / (FIGHTER.heatMax - FIGHTER.heatReady) : 0,
+                crescent: f.reload && hasCrescent(f) ? (f.heat - FIGHTER.heatReady) / (FIGHTER.crescentHeat - FIGHTER.heatReady) : 0,
               });
             }
           }

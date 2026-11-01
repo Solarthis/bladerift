@@ -76,6 +76,8 @@ export interface Move {
    * move's dmg is the whole volley's, shared among the blades; only the last carries the full knockback and stun. */
   gate?: boolean;
   blades?: number;
+  /** A golden crescent of light flung forward from the swing (Richard's heavy): a mid-range projectile on a cooldown. */
+  crescent?: boolean;
   /** Screen shake strength for the client (0..1). */
   shake?: number;
 }

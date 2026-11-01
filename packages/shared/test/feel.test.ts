@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   Act, ArtId, ARTS, Btn, CLASSES, ClassId, comboScale, copyState, decodeSnapshot, encodeSnapshot, encodeSnapshotBody, FIGHTER, FighterState, GameEvent,
-  getArena, HEROES, hitstopFor, HITSTOP, InputCmd, Loadout, newFighterState, RIFT, ROUND, sanitizeLoadout, stepFighter, World, WeaponId, WEAPONS,
+  getArena, heroClass, HEROES, hitstopFor, HITSTOP, InputCmd, Loadout, newFighterState, RIFT, ROUND, sanitizeLoadout, stepFighter, World, WeaponId, WEAPONS,
 } from '../src/index';
 
 /** Richard: the longsword in both hands (a three-hit combo whose third swing launches). */
@@ -223,14 +223,14 @@ describe('combos', () => {
       hits.push(...tick(w, { btn: i % 2 ? Btn.A : 0 }).filter((e): e is HitEvent => e.t === 'hit' && e.a === fa.id));
     }
     expect(hits.map((h) => h.n)).toEqual([1, 2, 3]);
-    const C = CLASSES[LEON.cls];
+    const C = heroClass(LEON); // (the class with the hero's own tune)
     hits.forEach((h, k) => expect(h.amt, `hit ${k + 1}`).toBe(Math.max(1, Math.round(Math.round(SWORD.combo[k].dmg * C.dmg) * comboScale(k + 1)))));
     expect(fb.comboHits).toBe(3);
   });
 
   it('a long combo runs to comboBreak hits, then the anti-infinite makes the defender untouchable', () => {
     const { w, fa, fb } = duel();
-    const C = CLASSES[LEON.cls];
+    const C = heroClass(LEON); // (the class with the hero's own tune)
     const events: HitEvent[] = [];
     for (let n = 1; n <= FIGHTER.comboBreak; n++) {
       applyHit(w, fa, fb, { dmg: 50, kbX: 0, kbY: 0, stun: 30, crit: false, w: WeaponId.Sword, x: 620, y: 570, front: true });
@@ -251,7 +251,7 @@ describe('combos', () => {
 
   it('a hit on a fighter that has recovered starts a new combo; Rift Art hits land in full and never trip the break', () => {
     const { w, fa, fb } = duel();
-    const C = CLASSES[LEON.cls];
+    const C = heroClass(LEON); // (the class with the hero's own tune)
     for (let n = 1; n < FIGHTER.comboBreak; n++) applyHit(w, fa, fb, { dmg: 50, kbX: 0, kbY: 0, stun: 30, crit: false, w: WeaponId.Sword, x: 620, y: 570, front: true });
     w.events = [];
     // an Art hit (weapon 104..199) as the comboBreak-th: counted, full damage, no break

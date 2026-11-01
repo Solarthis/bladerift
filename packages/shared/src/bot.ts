@@ -8,7 +8,7 @@
 import { DT, FIGHTER } from './constants';
 import { ArtId, classOf, RIFT } from './classes';
 import { solidAt, surfaceBelow } from './arena';
-import { Act, currentMove, FLASH } from './fighter';
+import { Act, currentMove, FLASH, hasCrescent } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
 import { Box, dodgeOf, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
@@ -644,6 +644,14 @@ export class BotBrain {
         cmd.buttons |= btn;
         return true;
       }
+    }
+    // the Sun Crescent (Richard's heavy) flung from middle range while it is ready
+    if (
+      hasCrescent(me.load) && s.ground && !s.reload && g.facing && Math.abs(g.dy) < 40 && g.dist > 90 && g.dist < 320 &&
+      !(this.prev & Btn.B) && this.rng.next() < (vuln ? T.punish : T.ranged * 0.6)
+    ) {
+      cmd.buttons |= Btn.B;
+      return true;
     }
     // lance lunge (hold to charge) or bow draw (hold to draw), out of melee reach
     for (const i of order) {

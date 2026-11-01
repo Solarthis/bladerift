@@ -2,7 +2,7 @@
 // plunge in the air (the sprite roster draws each hero with its own weapon only).
 import { describe, expect, it } from 'vitest';
 import { ROUND, World } from '../src/index';
-import { Act, Btn, getArena, heavyOf, InputCmd, Loadout, MOVE_CHARGED, MOVE_PLUNGE, moveOf, newFighterState, sanitizeLoadout, SkillId, stepFighter, WEAPONS, WeaponId } from '../src/index';
+import { Act, Btn, CRESCENT, FIGHTER, getArena, heavyOf, InputCmd, Loadout, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, moveOf, newFighterState, sanitizeLoadout, SkillId, stepFighter, SUN_CRESCENT, WEAPONS, WeaponId } from '../src/index';
 
 const c = (buttons = 0, moveX = 0): InputCmd => ({ seq: 0, moveX, moveY: 0, buttons, viewTick: 0 });
 const arena = getArena(0);
@@ -15,7 +15,7 @@ function fighter(hero: number) {
 
 describe('kit: A light, B heavy', () => {
   it('B on the ground is the heavy attack: the combo finisher, slower, stronger and guard-breaking', () => {
-    const { s, step } = fighter(0); // Leon: sword
+    const { s, step } = fighter(11); // Alexander: the kopis (a sword)
     step(c(Btn.B));
     for (let i = 0; i < 3 && s.act !== Act.Attack; i++) step(c());
     expect(s.act).toBe(Act.Attack);
@@ -107,5 +107,57 @@ describe('Gilgamesh: the Gate of Treasures', () => {
     });
     expect(most).toBe(9);
     expect(g.s.act).not.toBe(Act.Attack);
+  });
+
+  it("Richard's B is the Sun Crescent: a golden slash that flies to mid range, then the plain cleave while it recharges", () => {
+    const w = new World({ arenaId: 'bridge', wins: 2, roundTime: 90 });
+    const fa = w.addFighter(1, 0, 'A', sanitizeLoadout({ hero: 0 }));
+    const fb = w.addFighter(2, 1, 'B', sanitizeLoadout({ hero: 11 }));
+    w.start();
+    for (let i = 0; i < ROUND.introTicks + 1; i++) w.step();
+    fa.s.x = 400;
+    fb.s.x = 650; // out of sword reach, inside the crescent's
+    fa.s.face = 1;
+    fb.s.face = -1;
+    let seq = 1;
+    const tick = (btn = 0) => {
+      fa.inputs.push({ seq: seq++, moveX: 0, moveY: 0, buttons: btn, viewTick: w.tick });
+      w.step();
+      const ev = [...w.events];
+      w.events.length = 0;
+      return ev;
+    };
+    tick(Btn.B);
+    expect(fa.s.move).toBe(MOVE_CRESCENT);
+    const hp0 = fb.s.hp;
+    let shot = false;
+    let flew = 0;
+    for (let i = 0; i < 60; i++) {
+      const ev = tick();
+      if (ev.some((e) => e.t === 'shoot' && e.p === 1)) shot = true;
+      if (w.projectiles.some((p) => p.owner === 1 && p.kind === 'wave')) flew++;
+    }
+    expect(shot).toBe(true);
+    expect(flew).toBeGreaterThan(5);
+    expect(fb.s.hp).toBeLessThan(hp0);
+    // recharging: B is the guard-breaking cleave
+    expect(fa.s.reload).toBe(1);
+    for (let i = 0; i < 30; i++) tick();
+    tick(Btn.B);
+    for (let i = 0; i < 3 && fa.s.act !== Act.Attack; i++) tick();
+    expect(fa.s.move).toBe(MOVE_CHARGED);
+    // about two seconds after the throw it is ready again
+    for (let i = 0; i < FIGHTER.crescentHeat; i++) tick();
+    expect(fa.s.reload).toBe(0);
+    tick(Btn.B);
+    for (let i = 0; i < 3 && fa.s.act !== Act.Attack; i++) tick();
+    expect(fa.s.move).toBe(MOVE_CRESCENT);
+  });
+
+  it('the crescent is a mid-range shot: it fades before it crosses the arena', () => {
+    const range = (CRESCENT.speed * CRESCENT.life) / 60;
+    expect(range).toBeGreaterThan(250);
+    expect(range).toBeLessThan(450);
+    expect(moveOf(WeaponId.Sword, MOVE_CRESCENT)).toBe(SUN_CRESCENT);
   });
 });

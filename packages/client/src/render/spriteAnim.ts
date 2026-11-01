@@ -4,7 +4,7 @@
  * frame inside it follows the move's own timing: startup = anticipation, the first active ticks = the strike, then the
  * extension and the recovery. Time-driven animations (idle, run, KO, victory) play at their own frame rates.
  */
-import { Act, ARTS, artIdOf, DODGES, FIGHTER, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_PLUNGE, moveOf, SKILLS } from '@bladerift/shared';
+import { Act, ARTS, artIdOf, DODGES, FIGHTER, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, moveOf, SKILLS } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
 
 export interface SpriteFrame {
@@ -189,7 +189,7 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         return pick('art', Math.min(n - 1, (n >= 6 ? 2 : 0) + (ph.stance ? 3 : ph.idx)), 'heavy');
       }
       const m = moveOf(w, v.move);
-      const name = v.move === MOVE_AIR ? 'airAttack' : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED ? 'heavy' : `combo${Math.min(2, v.move)}`;
+      const name = v.move === MOVE_AIR ? 'airAttack' : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : `combo${Math.min(2, v.move)}`;
       if (!m) return pick(name, 0, 'combo0');
       const n = A[name]?.frames.length ?? 4;
       if (v.move === MOVE_PLUNGE) {
@@ -198,7 +198,7 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         if (!v.ground) return pick(name, 1, 'airAttack');
         return pick(name, t < m.startup + m.active + m.recovery * 0.5 ? 2 : 3, 'combo2');
       }
-      const heavy = v.move === MOVE_CHARGED || m.stun >= 30;
+      const heavy = v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT || m.stun >= 30;
       const ph = attackPhase(m.startup, m.active, m.recovery, t, n, heavy);
       pose.dx = ph.lunge * (heavy ? LUNGE_HEAVY : LUNGE);
       // the early return to the stance (on the ground; in the air the recovery drawing holds)

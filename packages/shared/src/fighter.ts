@@ -39,6 +39,20 @@ export const MOVE_PLUNGE = 11;
 export const MOVE_CHARGED = 12;
 /** Lancer's Piercing Fang: an attack move, so it uses the normal hit system. */
 export const MOVE_ART = 13;
+/** Richard's heavy: the Sun Crescent (SUN_CRESCENT), a golden slash that flies on toward the opponent. */
+export const MOVE_CRESCENT = 14;
+
+/**
+ * The Sun Crescent: a big overhead cleave whose arc flies off as a crescent of gold light (World: CRESCENT), on a cooldown
+ * (the heat gauge: it fills it past FIGHTER.heatMax, and B is the plain heavy cleave until it has cooled to heatReady).
+ */
+export const SUN_CRESCENT: Move = {
+  startup: 13, active: 3, recovery: 20, dmg: 95, box: { x: 0, y: 0, w: 0, h: 0 }, kbX: 260, kbY: 170, stun: 26, step: 40, arrow: true, crescent: true, shake: 0.45,
+};
+/** Heroes whose heavy (B on the ground) is the Sun Crescent while it is ready. */
+export const CRESCENT_HEROES: ReadonlySet<number> = new Set([0]);
+/** Is the Sun Crescent this loadout's heavy? */
+export const hasCrescent = (load: { hero?: number }) => CRESCENT_HEROES.has(load.hero ?? -1);
 
 /** Piercing Fang: an unstoppable, guard-breaking lunge across the arena. */
 export const ART_FANG: Move = {
@@ -245,6 +259,7 @@ export function moveOf(weapon: number, move: number): Move | null {
   if (move === MOVE_PLUNGE) return w.plunge ?? w.air;
   if (move === MOVE_CHARGED) return heavyOf(weapon);
   if (move === MOVE_ART) return ART_FANG;
+  if (move === MOVE_CRESCENT) return SUN_CRESCENT;
   return w.combo[move] ?? w.combo[0];
 }
 
@@ -297,11 +312,16 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     if (!w) return false;
     // an overheated ranged weapon fires nothing until it cools
     if (s.reload && isRanged(w)) return false;
+    // a swing goes the way the stick points (pressed out of a run or a string the other way, it turns on the spot)
+    if (Math.abs(cmd.moveX) > 0.5 && s.rootT <= 0) s.face = cmd.moveX > 0 ? 1 : -1;
     // the heavy button: B with the same weapon in both hands (every hero's kit) is the heavy attack on the ground (a charged
     // weapon charges it: hold for the power move, a tap is the light move) and the plunge in the air
     const heavy = slot === 1 && load.weapons[1] === load.weapons[0];
     if (heavy && !s.ground) {
       startAttack(s, slot, w.plunge ? MOVE_PLUNGE : MOVE_AIR);
+    } else if (heavy && hasCrescent(load) && !s.reload) {
+      // the Sun Crescent while it is ready (cooling down, B is the plain heavy cleave below)
+      startAttack(s, slot, MOVE_CRESCENT);
     } else if (heavy && !w.charged) {
       startAttack(s, slot, MOVE_CHARGED);
     } else if (w.block) {
@@ -787,8 +807,14 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       else s.vx = approach(s.vx, ax * PHYS.runSpeed * speedK, PHYS.airAccel * 0.5 * DT);
       if (m.arrow && s.actT === m.startup) {
         s.spawn = 1;
-        s.heat += s.move === MOVE_CHARGED ? FIGHTER.heatCharged : FIGHTER.heatShot;
-        if (s.heat >= FIGHTER.heatMax) s.reload = 1;
+        if (m.crescent) {
+          // the crescent's cooldown: the gauge brimming, then cooling back to heatReady
+          s.heat = FIGHTER.crescentHeat;
+          s.reload = 1;
+        } else {
+          s.heat += s.move === MOVE_CHARGED ? FIGHTER.heatCharged : FIGHTER.heatShot;
+          if (s.heat >= FIGHTER.heatMax) s.reload = 1;
+        }
       }
       // chain: the next press is honoured once the hit window has passed and a little recovery is done (on a hit, at
       // once: chain on hit); a hit that landed can also be cancelled into a jump (air combos)
@@ -807,7 +833,8 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         if (tryBuffered(s, cmd, arena, load)) break;
         s.act = act;
       }
-      const jumpCancel = s.buf === Buf.Jump && s.confirm > 0 && s.actT >= end;
+      // a jump cancels a swing that connected once its hit window is over, and a whiff from the chain point on
+      const jumpCancel = s.buf === Buf.Jump && s.actT >= (s.confirm > 0 ? end : chainAt);
       if (jumpCancel || (s.actT >= chainAt && (s.buf === Buf.A || s.buf === Buf.B || s.buf === Buf.Roll || s.buf === Buf.Skill))) {
         s.act = Act.Free;
         s.actT = 0;
@@ -815,7 +842,9 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         tryBuffered(s, cmd, arena, load);
         break;
       }
-      if (s.actT >= total) {
+      // the last quarter of the recovery: pushing the stick walks out of it (the swing never feels like it holds you)
+      const walkOut = s.ground && s.move !== MOVE_ART && Math.abs(ax) > 0.5 && s.actT >= total - Math.round(rec * 0.25);
+      if (s.actT >= total || walkOut) {
         s.act = Act.Free;
         s.actT = 0;
         s.comboWin = 18;
@@ -940,11 +969,17 @@ function collide(s: FighterState, arena: ArenaDef) {
   s.x += s.vx * DT;
   if (s.x <= half) hitWall(half, -1);
   else if (s.x >= arena.w - half) hitWall(arena.w - half, 1);
-  for (const b of arena.blocks) {
-    if (!(s.y > b.y + 0.5 && s.y - h < b.y + b.h)) continue;
-    if (x0 + half <= b.x + 0.5 && s.x + half >= b.x) hitWall(b.x - half, 1);
-    else if (x0 - half >= b.x + b.w - 0.5 && s.x - half <= b.x + b.w) hitWall(b.x + b.w + half, -1);
-  }
+  // block sides: a body overlapping a block (walked in, or slipped in past a top corner while falling, or put there by a
+  // blink) is pushed back out of the side its centre came from
+  const pushOut = () => {
+    for (const b of arena.blocks) {
+      if (!(s.y > b.y + 0.5 && s.y - h < b.y + b.h)) continue;
+      if (s.x + half <= b.x || s.x - half >= b.x + b.w) continue;
+      if (x0 <= b.x + b.w / 2) hitWall(b.x - half, 1);
+      else hitWall(b.x + b.w + half, -1);
+    }
+  };
+  pushOut();
   const prevY = s.y;
   let ny = s.y + s.vy * DT;
   const wasGround = s.ground;
@@ -986,6 +1021,7 @@ function collide(s: FighterState, arena: ArenaDef) {
     s.vy = Math.max(0, s.vy);
   }
   s.y = ny;
+  pushOut();
   if (s.ground && !wasGround && s.act === Act.Attack && s.move === MOVE_AIR) {
     // landing out of an air attack ends it (no floating recovery on the floor)
     s.act = Act.Free;

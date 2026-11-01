@@ -2,7 +2,7 @@
  * Which PixelFX effect plays for each move, impact and skill, with its palette and playback rate. The effect's time 0
  * is lined up with the move's first hitting tick (PixelFX: "t = 0 is the effect's first frame" = the strike).
  */
-import { MOVE_AIR, MOVE_CHARGED, MOVE_PLUNGE, WeaponId } from '@bladerift/shared';
+import { MOVE_AIR, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, WeaponId } from '@bladerift/shared';
 import type { FxModule } from './pixel';
 // @ts-expect-error - plain JS vendor modules
 import * as swordSlash from '../vendor/pixelfx/fx/melee/sword-slash.js';
@@ -119,6 +119,8 @@ export const FX = {
   slowed, stunned, damageNumber, critNumber, pow, lightningStrike, chargeUp, arcaneOrb, divineShield, rage, energyDisc, spellCharge, circleCast,
   smite, portal, starFall, graspingHands, shadowTendrils, darkExplosion, flamethrower, fireRing, blessing, sunburst, earthSpike, forceField,
   runeCircle, splash,
+  // the crit burst on a wider canvas, for a word (PARRY!) rather than a number: the stock canvas fits about four letters
+  critWord: { ...critNumber, meta: { ...critNumber.meta, size: [232, 120], origin: [116, 60] } },
 } as Record<string, FxModule>;
 
 /** Palettes that recolour PixelFX effects for the Arts (dark to bright). */
@@ -196,7 +198,7 @@ export interface HeroEnergy {
   spark: number;
 }
 export const HERO_ENERGY: HeroEnergy[] = [
-  { arc: 0x8ccaff, rim: 0x2a6aff, spark: 0xffd84a }, // 0 Richard: blue-white arcs, gold sparks
+  { arc: 0xffd86a, rim: 0xd8901a, spark: 0xfff2b0 }, // 0 Richard: the sun's gold, white-hot sparks
   { arc: 0x9cff3a, rim: 0x2a7a1a, spark: 0xe0ff8a }, // 1 Alcides: Hydra venom green
   { arc: 0xffd060, rim: 0xd88a10, spark: 0xfff0a0 }, // 2 Gilgamesh: molten gold, white-hot core
   { arc: 0x5af0e0, rim: 0x108a9a, spark: 0xd0fbff }, // 3 Cu Chulainn: cyan-teal, pale motes
@@ -249,6 +251,8 @@ export function arcFor(weapon: number, move: number): ArcShape | null {
       if (move === MOVE_AIR) return S(-100, 250, 40, 10, { cx: 0, cy: 28, sy: 0.9, dur: 0.1, life: 0.26 });
       if (move === 1) return S(55, -115, 46, 11, { sy: 0.7 });
       if (move === 2) return S(-150, 60, 58, 15, { cy: 34, sy: 0.95, dur: 0.09, life: 0.32, heavy: true });
+      // the Sun Crescent: a wide overhead cleave, the arc that flies off it (World: the crescent projectile)
+      if (move === MOVE_CRESCENT) return S(-120, 75, 50, 15, { cy: 32, sy: 1, dur: 0.06, life: 0.22, heavy: true });
       return S(-125, 35, 46, 11, { sy: 0.7 });
     case WeaponId.Scythe:
       if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;

@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -109,6 +109,8 @@ export const FIGHTER = {
   heatCharged: 80,
   heatMax: 120,
   heatReady: 30,
+  /** The Sun Crescent sets the heat to this (and locks it until heatReady): 3 s before the next crescent. */
+  crescentHeat: 210,
   /** Damage taken through a block, and the blocker's slide back. */
   chip: 0.15,
   blockPush: 170,

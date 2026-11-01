@@ -176,7 +176,7 @@ export function create(o) {
         if (shine !== null && shine > x0 && shine < x0 + W) p.glowLine(shine, y0, shine + 0.6 * H, y0 + H, 8, C[6], 0.3);
         // the label stamps down on top, a size too big for a frame
         const lk = t - 0.06, lo = seg(t, TAGOUT - 0.05, TAGOUT);
-        if (lk > 0 && t < TAGOUT) {
+        if (lk > 0 && t < TAGOUT && lab.w > 0) {
           const ls = lk < 0.035 ? 3 : lk < 0.07 ? 1.8 : 2 * (1 + 0.15 * lo), LW = lab.w * ls, lh = 5 * ls, lxo = sx + lx - 8 - LW / 2, lyo = y0 - 3 - lh + ly - 2 * lo;
           if (lo > 0.5) tag(p, { 0: WHITE, 2: WHITE, 3: WHITE, 4: WHITE }, lxo - 4, lyo - 3, LW + 8, lh + 5, 3);
           else tag(p, C, lxo - 4, lyo - 3, LW + 8, lh + 5, 3);

@@ -171,6 +171,15 @@
   text-shadow: 0 1px 1px #000;
 }
 @keyframes heat-blink { 50% { filter: brightness(1.5); } }
+/* the Sun Crescent (Richard's heavy): the strip in gold, refilling while it recharges, shimmering when B will throw it */
+.hud .hp-side.crescent .hp-heat { display: block; box-shadow: inset 0 0 0 1px rgba(255, 216, 106, 0.3); }
+.hud .hp-side.crescent .hp-heat i { background: linear-gradient(90deg, #b8781a, #ffd86a 70%, #fff4c8); transition: width 0.06s linear; }
+.hud .hp-side.crescent .hp-heat.ready i {
+  background: linear-gradient(90deg, #d8901a, #ffd86a 35%, #fffbe8 50%, #ffd86a 65%, #d8901a);
+  background-size: 220% 100%;
+  animation: rift-flow 1.2s linear infinite;
+  box-shadow: 0 0 8px rgba(255, 216, 106, 0.8);
+}
 
 /* ------------------------------------------------------------------ clock */
 .hud .hud-mid {

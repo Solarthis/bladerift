@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, ArtId, DODGES, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, ArtId, CRESCENT, DODGES, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
@@ -441,6 +441,8 @@ interface ProjView {
   lift?: number;
   /** Hero special (skill id + 1, NetProjectile.skin); 0 for the ordinary projectiles. */
   skin: number;
+  /** Richard's Sun Crescent (a wave that is not the Art's): its additive layer (gfx is the body). */
+  sun?: Phaser.GameObjects.Graphics;
   /** Where it has been, frame by frame (the trails). */
   hist: { x: number; y: number }[];
 }
@@ -1294,6 +1296,44 @@ export class GameScene extends Phaser.Scene {
     g.fillPoints(P as Phaser.Math.Vector2[], true);
   }
 
+  /**
+   * The Sun Crescent in flight: a tall crescent of gold light opening toward its target, grown out of the swing over its
+   * first frames, with two fading after-images behind it and motes shed off the tail; it dims over its last frames.
+   */
+  private drawSunCrescent(pv: ProjView, p: NetProjectile) {
+    const g = pv.gfx!;
+    const add = pv.sun!;
+    g.clear();
+    add.clear();
+    const f = pv.face;
+    const life = CRESCENT.life / TICK_RATE;
+    const grow = Math.min(1, 0.55 + pv.age / 0.08);
+    const fade = pv.age < life - 0.1 ? 1 : Math.max(0, (life - pv.age) / 0.1);
+    pv.hist.push({ x: p.x, y: p.y });
+    if (pv.hist.length > 7) pv.hist.shift();
+    const R = 38 * grow;
+    const W = 15 * grow;
+    const draw = (x: number, y: number, a: number, k: number) => {
+      // (its centre sits behind the leading edge, so the crescent's points reach back past it)
+      const cx = x - f * R * 0.55;
+      this.crescent(g, cx, y, R + 3, 1, f, 78, -78, W * 1.7 * k, 0xd8901a, 0.45 * a);
+      this.crescent(g, cx, y, R, 1, f, 74, -74, W * k, 0xffd86a, 0.9 * a);
+      this.crescent(add, cx, y, R, 1, f, 74, -74, W * 0.65 * k, 0xffe8a0, 0.5 * a);
+      this.crescent(add, cx, y, R - 0.5, 1, f, 70, -70, W * 0.32 * k, 0xffffff, a);
+    };
+    const h = pv.hist;
+    // after-images: where it was 2 and 4 frames ago, thinner and fainter
+    if (h.length > 5) draw(h[h.length - 6].x, h[h.length - 6].y, 0.22 * fade, 0.7);
+    if (h.length > 3) draw(h[h.length - 4].x, h[h.length - 4].y, 0.4 * fade, 0.85);
+    draw(p.x, p.y, fade, 1);
+    // the leading edge's glint and motes shed off the tips
+    add.fillStyle(0xffffff, 0.8 * fade).fillCircle(p.x - f * 2, p.y, 3.2 * grow);
+    if (fade > 0.3 && Math.random() < 0.8) {
+      const tip = Math.random() < 0.5 ? -1 : 1;
+      this.spark(p.x - f * R * 0.75, p.y + tip * R * 0.8, -f * (30 + Math.random() * 60), tip * (20 + Math.random() * 40), 0.35, Math.random() < 0.3 ? 0xffffff : 0xffd86a, 2, 0);
+    }
+  }
+
   /** An additive drawing that lives `life` seconds (a spark's layers), drawn above the fighters and the effects. */
   private addAdd(life: number, draw: Vec['draw']) {
     if (this.adds.length >= MAX_ADDS) this.adds.shift();
@@ -1636,7 +1676,8 @@ export class GameScene extends Phaser.Scene {
         if (prefs().damageNumbers && v) {
           const pal = burn ? ['#1a0a04', '#4a1a06', '#8c3a08', '#d46a10', '#ff9a2a', '#ffc46a', '#ffe8b0', '#ffffff'] : undefined;
           const mod = e.crit ? FX.critNumber : FX.damageNumber;
-          this.addFx(mod, v.x + (Math.random() * 16 - 8), v.y - FIGHTER.h - 6, false, 1.1, { text: e.crit ? `${e.amt}!` : `-${e.amt}`, ...(pal ? { palette: pal } : {}) }, 31, 32);
+          // (sized for the close duel camera: a number about a body tall, a crit burst about two)
+          this.addFx(mod, v.x + (Math.random() * 16 - 8), v.y - FIGHTER.h - 6, false, 1.1, { text: e.crit ? `${e.amt}!` : `-${e.amt}`, ...(pal ? { palette: pal } : {}) }, 31, 32, e.crit ? 0.5 : 0.62);
         }
         break;
       }
@@ -1653,7 +1694,7 @@ export class GameScene extends Phaser.Scene {
         {
           // the word over the defender: PARRY! for a guard timed just right, CUT! for a shot cut down by a swing
           const d = find(e.a);
-          if (d) this.addFx(FX.critNumber, d.x, d.y - FIGHTER.h - 10, false, 1.1, { text: d.act === Act.Attack ? 'CUT!' : 'PARRY!' }, 31, 32);
+          if (d) this.addFx(FX.critWord, d.x, d.y - FIGHTER.h - 16, false, 1.1, { text: d.act === Act.Attack ? 'CUT!' : 'PARRY!', label: '' }, 31, 32, 0.45);
         }
         if (e.v === 255) {
           // a shot cut out of the air or parried back: a bright clang and sparks, nobody staggers
@@ -1698,6 +1739,17 @@ export class GameScene extends Phaser.Scene {
         // 6 is a Rift Art projectile (the Art's own sound covers it)
         if (e.kind === 7) {
           sfx.play('specGate', { volume: 0.45 });
+          break;
+        }
+        if (e.kind === SHOOT_CRESCENT) {
+          // the Sun Crescent leaves the blade: a gold flare at the swing and a ring of light
+          const c = find(e.p);
+          sfx.play('crescent', c ? { x: c.x, y: c.y } : {});
+          if (c) {
+            this.ring(c.x + c.face * 22, c.y - 30, 6, 40, 0.22, 0xffd86a, 3);
+            this.ring(c.x + c.face * 22, c.y - 30, 3, 22, 0.16, 0xffffff, 2, true);
+            this.shake(0.25);
+          }
           break;
         }
         const names = ['arrow', 'grenadeThrow', 'frost', 'trapSet', 'arcane', 'orb'] as const;
@@ -1848,6 +1900,10 @@ export class GameScene extends Phaser.Scene {
       pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.violet }, 14, 14, 10);
     } else if (p.kind === 'orb') {
       pv.fx = new FxSprite(this, FX.arcaneOrb, p.x, p.y + 30, false, {}, 14, 14, 10);
+    } else if (p.kind === 'wave' && !p.heavy) {
+      // the Sun Crescent: a crescent of gold light, the body in normal blend under an additive white-hot edge
+      pv.gfx = this.add.graphics().setDepth(14.9);
+      pv.sun = this.add.graphics().setDepth(15).setBlendMode(Phaser.BlendModes.ADD);
     } else if (p.kind === 'wave') {
       // Radiant Cleave: the gold disc, with a bright crescent edge drawn over it
       pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: PAL.gold }, 14, 14, 10);
@@ -1887,6 +1943,10 @@ export class GameScene extends Phaser.Scene {
     const face = pv.face;
     if (p.skin) {
       this.updateSkin(pv, p);
+      return;
+    }
+    if (pv.sun) {
+      this.drawSunCrescent(pv, p);
       return;
     }
     if (p.kind === 'arrow' || p.kind === 'frost' || p.kind === 'arcane' || p.kind === 'orb' || p.kind === 'wave') {
@@ -1998,6 +2058,13 @@ export class GameScene extends Phaser.Scene {
       }
     } else if (pv.kind === 'relic') {
       for (let i = 0; i < 6; i++) this.spark(pv.x, pv.y, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 120, 0.4, 0xffe08a, 2.5, 60);
+    } else if (pv.sun) {
+      // the crescent breaks up into gold motes where it ends (spent, or cut against a body or a guard)
+      for (let i = 0; i < 10; i++) {
+        const a = (Math.random() - 0.5) * 2.2;
+        this.spark(pv.x + pv.face * Math.cos(a) * 26, pv.y + Math.sin(a) * 30, pv.face * (40 + Math.random() * 120), (Math.random() - 0.5) * 140, 0.45, i % 3 ? 0xffd86a : 0xffffff, 2, 80);
+      }
+      pv.sun.destroy();
     }
     if (pv.kind === 'steed' || pv.kind === 'hand') pv.fx?.stop();
     else pv.fx?.destroy();
