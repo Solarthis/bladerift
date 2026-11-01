@@ -7,69 +7,129 @@
     "references/design.png"
   ],
   "designRefs": [
-    "../h00-leon/references/approved-sheet.png",
-    "references/portrait.jpg"
+    "../h00-leon/references/approved-sheet.png"
   ],
-  "bible": "A tall, slim, gaunt gentleman of about fifty: narrow-shouldered, very upright, long-legged, with a composed and unhurried bearing. Face: pale, angular and smooth, half-shadowed under the peak of his cap, calm narrow grey eyes and a faint polite half-smile; the cheeks and jaw dissolve at their edges into drifting grey fog. Headwear: a black PEAKED CAP with a dark charcoal crown, a black band and a tarnished BRASS cog-and-star badge. Costume: a long dark charcoal-grey GREATCOAT to mid-calf with a high turned-up collar and a short cape over the shoulders, a double row of tarnished brass buttons, a black leather belt with a brass buckle, a thin brass watch chain across the waistcoat, dark charcoal trousers, polished black boots and black leather gloves. WEAPON: a long black lacquered BATON-CUDGEL about as long as his forearm and upper arm together, with a heavy ridged black-steel head and a brass butt cap; the right hand grips it low on a black leather wrap, and the left hand joins only for the heavy strikes. Effects are pale silver-grey fog swirls with cool white glints.",
-  "design": "- top row: full-body neutral stance facing right; a composed combat stance with the baton ready; a measured walking pose; a stride with the coat swinging; a leaping jump with the coat billowing; a close-up of the cap and the baton head\n- middle rows: six attack poses: two heavy overhead baton blows, a wide sideways sweep, a stepping ground slam with fog, an airborne baton blow, a Grim Fog pose with his outline dissolving into fog; grey fog and silver glints in each\n- bottom row: guard with the baton across the body, hit reaction, knocked down, victory pose with the baton upright like a cane, the Grim Fog cloud at full spread",
+  "bible": "A tall, slim, gaunt gentleman of about fifty: narrow-shouldered, very upright, long-legged, with a composed and unhurried bearing. Face: pale, angular and smooth, half-shadowed under the brim of a tall black silk TOP HAT with a dark band; calm narrow grey eyes and a faint polite half-smile; the cheeks and jaw dissolve at their edges into drifting grey fog. Costume: a long charcoal-black INVERNESS coat to mid-calf with a short shoulder CAPE and dark horn buttons, a white shirt with a high collar and a black cravat, a dark grey waistcoat with a thin silver watch chain, dark trousers, polished black shoes and black leather gloves. Palette: charcoal, black, pale grey and silver. WEAPON: a pair of LONG SURGICAL KNIVES, one in EACH hand. Each is a long, thin, straight blade of bright polished surgical steel about as long as his forearm, with a slim ebony handle and a silver ferrule, held low in a forward grip like a surgeon. Energy and trails: thin, razor-sharp SILVER-WHITE slash lines with pale grey fog wisps and a few tiny crimson flecks.",
+  "design": "- top row: full-body stance facing right, a long surgical knife held low in each hand; a three-quarter head close-up under the top hat, with the fog at the jaw\n- top row: a close view of the two long surgical knives and a small silver scalpel\n- second row: a quick cross-cut with a silver slash line; a backhand slash; a walking pose with the coat cape swinging\n- second row: a jump with the coat billowing\n- third row: a lunging X-shaped double slash; a plunge with both knives driven down\n- third row: a deep double thrust; a crouched guard with the knives crossed\n- bottom row: a hit reaction; knocked down on the fog\n- bottom row: a victory pose straightening the top hat with the knives behind his back; the Grim Fog vanishing into a grey fog cloud",
   "sheets": {
     "atk-a": {
-      "title": "Heavy baton blows 1 and 2 (3 frames each)",
+      "title": "Quick surgical cuts 1 and 2 (4 frames each)",
       "grid": [
-        3,
+        4,
         2
       ],
       "standFrac": 0.66,
       "frames": [
-        "baton blow 1, anticipation: raising the baton high overhead in the right hand, the left hand joining, weight back, coat swinging back",
-        "baton blow 1, strike: a crushing downward blow, the weighted head crashing down in front, a pale fog burst kept inside this cell",
-        "baton blow 1, recovery: the baton carried down, the body settling back toward stance, the coat swinging forward",
-        "baton blow 2, anticipation: the baton drawn back low across the body, torso turned, the coat flaring",
-        "baton blow 2, strike: a wide, precise sideways sweep at waist height, a grey-silver arc of fog kept inside this cell",
-        "baton blow 2, recovery: the follow-through, the baton swung round, the body recovering composed and upright"
+        "combo strike 1, anticipation: the right knife drawn back across the body for a quick cut, the left knife held low, weight settling back",
+        "combo strike 1, strike: a fast horizontal cross-cut with the right knife, a thin silver-white slash line, with a motion smear of the swing, kept inside this cell",
+        "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 1, recovery: the knives returning low, the coat settling",
+        "combo strike 2, anticipation: the left knife raised high, weight shifting across to the other foot",
+        "combo strike 2, strike: a sharp diagonal backhand slash with the left knife, a thin silver arc, with a motion smear of the swing, kept inside this cell",
+        "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 2, recovery: both knives low again, the body settling back toward stance"
       ]
     },
     "atk-b": {
-      "title": "Combo finisher and aerial blow (3 frames each)",
+      "title": "Combo finisher X-slash and aerial spin (4 frames each)",
       "grid": [
-        3,
+        4,
         2
       ],
       "standFrac": 0.66,
       "frames": [
-        "combo finisher, anticipation: a deliberate wind-up, the baton raised high overhead in both hands, the coat sweeping back",
-        "combo finisher, strike: a stepping overhead slam, the baton driven down into the ground in front, a shockwave of grey fog kept inside this cell, the strongest pose",
-        "combo finisher, recovery: lifting the baton back up, the cap tilted, fog trailing",
-        "aerial blow, anticipation: airborne, baton raised behind the head in one hand, the long coat billowing up",
-        "aerial blow, strike: a sweeping mid-air baton blow forward and down, a silver fog arc kept inside this cell",
-        "aerial blow, recovery: airborne, body tucked, the baton held across the body, returning toward ready"
+        "combo finisher, anticipation: both knives drawn back wide, the front foot stepping in",
+        "combo finisher, strike: a lunging X-shaped double slash, two crossing silver-white slash lines with fog, with a motion smear of the swing, kept inside this cell, the strongest pose",
+        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo finisher, recovery: the arms crossing back, the coat cape flaring",
+        "aerial attack, anticipation: in mid-air, both knives raised",
+        "aerial attack, strike: a spinning mid-air slash, a ring of thin silver arcs, with a motion smear of the swing, kept inside this cell",
+        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "aerial attack, recovery: airborne, the coat billowing, the knives drawn in"
       ]
     },
     "atk-c": {
-      "title": "Plunge and heavy attack (3 frames each)",
+      "title": "Plunge and deep double thrust (4 frames each)",
       "grid": [
-        3,
+        4,
         2
       ],
       "standFrac": 0.66,
       "frames": [
-        "plunge, dive: in mid-air diving headfirst, the baton pointed straight down under the body, the coat streaming up, grey fog trailing",
-        "plunge, impact: landing in a low crouch, the weighted head driven into the ground, a burst of dust and fog kept inside this cell",
-        "plunge, recovery: rising from the crouch, the baton lifted back toward stance, cap straightened",
-        "heavy attack, charge: body coiled, the baton drawn far back over the shoulder, pale fog gathering around it",
-        "heavy attack, strike: a devastating full-power diagonal overhead blow, a huge grey-silver fog arc kept inside this cell",
-        "heavy attack, follow-through: deep follow-through with the coat flaring, the fog dissipating"
+        "plunge, dive: diving down, both knives pointed straight down under the body, the coat streaming up, fog trailing",
+        "plunge, impact: landing in a low crouch, both knives driven into the ground, a burst of fog and dust, with a motion smear of the swing, kept inside this cell",
+        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "plunge, recovery: rising from the crouch, the knives pulled free",
+        "heavy attack, charge: body coiled low, both knives drawn back at the hips, fog gathering",
+        "heavy attack, strike: a deep lunging double thrust, both knives extended, two long silver streaks, with a motion smear of the swing, kept inside this cell",
+        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "heavy attack, follow-through: deep follow-through, the coat flaring, the fog dissipating"
       ]
     }
   },
   "sheetNotes": {
-    "idle": "The coat and cape sway gently with each breath, and thin fog drifts from the edges of his face and the cuffs of his gloves; the baton stays steady in the right hand.",
-    "run": "Long, unhurried strides with a composed upright posture; the long greatcoat swings wide behind him on each step and the cape lifts with the motion; the baton is carried low at the right side.",
-    "air": "The long greatcoat and cape billow upward in every airborne frame, the coat tails trailing and the fog streaming behind.",
-    "art": "Grim Fog, the vanishing: anticipation 1, he tips his cap and fog coils around his boots and coat, his outline softening; anticipation 2, his body dissolves at the edges into dense swirling grey fog, only the cap and the baton still clear; execution 1, he has vanished into a thick grey-white fog cloud that bursts outward, only a faint silhouette of coat and a brass glint showing within; execution 2, the cloud at full spread, a blurred shape and a silver fog ring, kept inside the cell; recovery 1, the fog thins and he reforms, cap and baton visible; recovery 2, he stands upright again, straightening his coat as the fog disperses.",
-    "misc": "Skill throw: from inside his coat he takes a small black smoke canister and throws it forward underhand, the arm extended. Taunt: he tips his cap to the opponent with a polite half-smile, then taps the baton lightly against his gloved palm. Victory: he sets the baton upright in front of him like a cane and straightens his cap, a calm, pleased look as the fog curls around his boots.",
-    "ko": "Intro: he walks in at an unhurried pace with the baton lowered behind his back; he raises the baton before his face in a courteous salute; he flicks it in a neat flourish; he settles into a composed stance with fog curling at his feet.",
-    "skill": "Scalpel Rain, his own special (three scalpels arc through the fog). He holds the baton-cudgel low in the RIGHT hand. The scalpels are conjured from the fog, so they are silver-grey with red drops at the tips. 1: he raises the LEFT gloved hand, palm up, into the fog around him, the face calm. 2: the gloved hand fully open with silver fog swirling up into its palm, three scalpel glints forming above. 3: the hand sweeps down and forward and three scalpels leave the fog in an arc. 4: the three scalpels arcing down through the fog at full force, a few red drops flying. 5: the fog thinning, the hand lowering, the scalpels gone. 6: back to the stance, the cudgel held low."
+    "idle": "Both knives are held low at his sides in a forward grip, the blades angled down and back, and he stands composed and upright. Fog drifts from the edges of his face and from his cuffs in every frame, and the coat sways gently with each breath. Standing guard (frame 5) crosses both knives in front of the chest. The crouch (frame 6) keeps the knives low on bent knees. The skid and the landing keep the knives low and the coat settling.",
+    "run": "Long, composed strides with an upright posture. The knives are carried low at his sides in a forward grip, blades angled down and back, and never raised. The long INVERNESS coat and the short cape swing and lift with each stride, with fog trailing from the coat hem.",
+    "air": "Airborne, the coat and the short cape billow upward in every frame, and the knives are held close to the body in a forward grip. The take-off crouch and the apex keep the knives gathered in. The falling and fast-fall frames stream the coat up with fog trailing behind. The wall slide and ledge frames keep the knives gripped in his hands, tucked close.",
+    "dash": "The dash frames show a roll tucked inside the long coat: the coat wraps around him in frames 2 and 3, and he comes out of the roll into a low crouch with the knives gripped forward. The ground dash and the air dash are low and fast, the knives forward and the fog streaking behind him. For the heal (frames 7 and 8) he pulls a small glass flask of glowing red potion from inside his coat and drinks it, head tipped back, the knives staying in his hands.",
+    "hurt": "The knives stay in his hands through every hurt frame. A light hit snaps his head back, and he recovers the balance with the knives brought back toward guard. A heavy hit bends him backward with the knives flung out. The launched and knockdown frames keep the knives gripped and the long coat flying. Knocked down, he lies on his back still holding both knives. Getting up and back on guard return the knives to the forward grip, low at the sides.",
+    "atk-a": "Quick surgical cuts. Combo strike 1: the right knife is drawn back across the body with the left knife low, then a fast horizontal cross-cut with the right knife, a thin silver-white slash line kept inside the cell. Combo strike 2: the left knife is raised high with the weight shifting, then a sharp diagonal backhand slash with the left knife, a thin silver arc kept inside the cell. Both recoveries bring the knives back low and the coat settles. The trails are thin and silver-white with pale grey wisps and a few crimson flecks.",
+    "atk-b": "The finisher draws both knives back wide with the front foot stepping in, then lunges into a double X-shaped slash: two crossing silver-white slash lines with pale fog kept inside the cell, the strongest pose. The recovery crosses the arms back with the coat cape flaring. In the air the knives are raised, then a spinning mid-air slash makes a ring of thin silver arcs kept inside the cell, and he lands in the airborne recovery with the coat billowing.",
+    "atk-c": "The plunge dives head first with both knives pointed straight down under the body and fog trailing; the impact lands in a low crouch with both knives driven into the ground and a burst of fog and dust kept inside the cell; the recovery rises with the knives pulled free. The heavy attack coils low with both knives drawn back at the hips and fog gathering, then drives a deep lunging double thrust with two long silver streaks kept inside the cell, and follows through as the fog dissipates.",
+    "art": "Grim Fog, his vanishing. Anticipation 1: he tips his top hat and fog coils round his shoes and coat. Anticipation 2: his body dissolves at the edges into dense grey fog, only the top hat and the knife blades still sharp. Execution 3: he vanishes into a thick grey-white fog cloud bursting outward, only a faint top-hatted silhouette and a silver glint showing inside. Execution 4: the cloud at full spread, a blurred shape and a ring of silver fog, all kept inside the cell. Recovery 5: the fog thins and he reforms, the top hat and knives visible. Recovery 6: upright again, straightening his coat as the fog clears.",
+    "skill": "Scalpel Rain, his own special: three silver scalpels arc out of the fog. Both knives stay in his hands; the left hand does the work. Anticipation 1: he raises the left hand into the fog, the left knife held back along the wrist. Anticipation 2: fog swirls up round the left hand and three small silver scalpels form above it. Execution 3: the hand sweeps down and forward, and three scalpels arc out of the fog. Execution 4: the three scalpels arc down through the fog at full force, a few crimson flecks flying. Recovery 5: the fog thins and the hand lowers. Recovery 6: back in the stance, the knives low at his sides.",
+    "misc": "Frames 1 to 3, skill throw: he reaches back with his free hand to take a small silver scalpel from inside his coat, flicks it forward underhand with the arm extended, and follows through. Frames 4 and 5, taunt: he tips his top hat to the opponent with a polite half-smile, then wipes a knife clean on a white handkerchief. Frames 6 to 8, victory: he straightens his top hat with the knives crossed behind his back, a calm, pleased look, fog curling round his shoes.",
+    "ko": "Defeat, frames 1 to 4: he staggers from the final blow, drops to one knee with a knife slipping from his grip, collapses forward and lies still in the fog. Intro, frames 5 to 8: he walks in carrying a black leather doctor's bag; he sets the bag down and draws the two long knives from inside his coat; he crosses them before his face in a precise flourish; he settles into his stance with fog at his feet."
   },
-  "nativeHeight": 188
+  "nativeHeight": 188,
+  "sheetsThreeFrame": {
+    "atk-a": {
+      "title": "Quick surgical cuts 1 and 2 (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: the right knife drawn back across the body for a quick cut, the left knife held low, weight settling back",
+        "combo strike 1, strike: a fast horizontal cross-cut with the right knife, a thin silver-white slash line kept inside this cell",
+        "combo strike 1, recovery: the knives returning low, the coat settling",
+        "combo strike 2, anticipation: the left knife raised high, weight shifting across to the other foot",
+        "combo strike 2, strike: a sharp diagonal backhand slash with the left knife, a thin silver arc kept inside this cell",
+        "combo strike 2, recovery: both knives low again, the body settling back toward stance"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher X-slash and aerial spin (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: both knives drawn back wide, the front foot stepping in",
+        "combo finisher, strike: a lunging X-shaped double slash, two crossing silver-white slash lines with fog kept inside this cell, the strongest pose",
+        "combo finisher, recovery: the arms crossing back, the coat cape flaring",
+        "aerial attack, anticipation: in mid-air, both knives raised",
+        "aerial attack, strike: a spinning mid-air slash, a ring of thin silver arcs kept inside this cell",
+        "aerial attack, recovery: airborne, the coat billowing, the knives drawn in"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge and deep double thrust (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: diving down, both knives pointed straight down under the body, the coat streaming up, fog trailing",
+        "plunge, impact: landing in a low crouch, both knives driven into the ground, a burst of fog and dust kept inside this cell",
+        "plunge, recovery: rising from the crouch, the knives pulled free",
+        "heavy attack, charge: body coiled low, both knives drawn back at the hips, fog gathering",
+        "heavy attack, strike: a deep lunging double thrust, both knives extended, two long silver streaks kept inside this cell",
+        "heavy attack, follow-through: deep follow-through, the coat flaring, the fog dissipating"
+      ]
+    }
+  }
 }

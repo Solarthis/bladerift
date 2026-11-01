@@ -1,4 +1,4 @@
-import { heroOf, weaponLookOf, WeaponId } from '@bladerift/shared';
+import { heroOf, lookWeapon, weaponLookOf, WeaponId } from '@bladerift/shared';
 
 // Square framed icons (tools/art-gen: icons-gear / icons-abilities sheets, sliced by slice.py).
 const W: Record<number, string> = {
@@ -19,7 +19,7 @@ const ARTS = ['a-cleave', 'a-hail', 'a-fang', 'a-thunder', 'a-flash', 'a-frenzy'
 const CRESTS = ['c-saber', 'c-archer', 'c-lancer', 'c-caster', 'c-assassin', 'c-berserker', 'c-shielder'];
 
 const art = (n: string) => `assets/art/${n}.jpg`;
-export const weaponIcon = (w: number) => art(W[w] ?? 'g-sword');
+export const weaponIcon = (w: number) => art(W[w] ?? W[lookWeapon(w)] ?? 'g-sword');
 /** A hero's own weapon icon (Jack's surgical knives, Alexander's kopis, Enkidu's chains...). */
 export const heroWeaponIcon = (hero: number) => art(weaponLookOf(hero).icon);
 export const skillIcon = (s: number) => art(S[s] ?? 'i-art');

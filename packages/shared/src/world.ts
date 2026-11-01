@@ -5,7 +5,7 @@
 import { ArenaDef, getArena, solidAt, surfaceBelow } from './arena';
 import { DT, FIGHTER, PHYS, ROUND, TICK_RATE } from './constants';
 import {
-  Act, copyState, currentMove, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isFrozen, meleeConnect, meleeCrit, moveDamage, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
+  Act, bodySolid, bodyYields, copyState, currentMove, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isFrozen, meleeConnect, meleeCrit, moveDamage, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
@@ -271,7 +271,7 @@ export class World {
   /** The opponent as a Rift Art sees them (no view when they are down). */
   foeView(f: Fighter): FoeView | undefined {
     const o = this.opponent(f);
-    return o && o.s.act !== Act.KO ? { x: o.s.x, y: o.s.y, face: o.s.face } : undefined;
+    return o && o.s.act !== Act.KO ? { x: o.s.x, y: o.s.y, face: o.s.face, solid: bodySolid(o.s), yields: bodyYields(o.s) } : undefined;
   }
 
   opponent(f: Fighter): Fighter | undefined {
@@ -761,7 +761,7 @@ export class World {
         // the staff: a quick bolt, or held, a slow orb that bursts
         this.projectiles.push({
           id: this.nextId++ % 65536, kind: heavy ? 'orb' : 'arcane', owner: f.id, x: s.x + s.face * 20, y: s.y - 38, vx: s.face * (heavy ? 380 : w.arrowSpeed), vy: 0,
-          dmg: moveDamage(s, f.load, m), kb: m.kbX, stun: m.stun, life: Math.round((heavy ? 2 : 0.85) * TICK_RATE), heavy,
+          dmg: moveDamage(s, f.load, m), kb: m.kbX, stun: m.stun, life: Math.round((heavy ? 2 : 0.85) * TICK_RATE), heavy, slow: m.slow,
         });
         this.events.push({ t: 'shoot', p: f.id, kind: heavy ? 5 : 4 });
         return;

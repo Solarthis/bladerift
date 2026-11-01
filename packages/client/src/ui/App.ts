@@ -680,7 +680,7 @@ export class App {
     s.connect();
     // (the host's own Hello first, so it takes the first seat and host rights)
     setTimeout(() => attachGuest(room, link), 60);
-    this.listener = new HostListener(code, (l) => this.goDirectHost(code, l));
+    this.listener = new HostListener(code, (l) => this.goDirectHost(code, l), 3000);
     this.toast('Your friend linked straight to you: no server lag');
     this.show('lobby');
   }

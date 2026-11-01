@@ -14,6 +14,71 @@
   "design": "- top row: full-body neutral stance facing right with the staff held low in the right hand; a combat stance with the staff raised; a walking pose with the crimson coat hem swaying; a running pose; a jump with the coat flaring; a close-up of the staff's star crystal crown\n- middle rows: six casting poses: violet bolts launched from the crystal crown, a two-handed overhead swing releasing a violet crescent, a charged violet orb held in the staff head, a downward plunge with the staff tip toward the ground, an aerial sweep scattering violet star shards\n- bottom row: guard with the staff across the body, a hit reaction, knocked down, a victory pose holding the staff upright, the Starfall pose with three falling stars above",
   "sheets": {
     "atk-a": {
+      "title": "Basic combo strikes 1 and 2 (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo cast 1, anticipation: the staff pulled back beside the hip, its crystal crown starting to glow violet",
+        "combo cast 1, strike: a sharp forward thrust of the staff releasing a violet arcane bolt with a pink spark trail, with a motion smear of the swing, kept inside this cell",
+        "combo cast 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo cast 1, recovery: the staff returning to a ready position, the glow and sparks fading",
+        "combo cast 2, anticipation: the staff raised high overhead in both hands, the star crown flaring with light",
+        "combo cast 2, strike: a sharp downward sweep of the staff flinging a crescent of violet starlight forward and down, a bright trail, with a motion smear of the swing, kept inside this cell",
+        "combo cast 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo cast 2, recovery: the staff planted low after the swing, the coat settling, sparks drifting down"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher and aerial attack (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: a big wind-up, the staff swept far back over the shoulder, the front foot stepping in, small violet stars circling the crown",
+        "combo finisher, strike: a lunging thrust of the staff releasing a large violet starbolt, a huge bright arc trail of pink-violet light, with a motion smear of the swing, kept inside this cell, the strongest pose",
+        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo finisher, recovery: full extension relaxing, the crimson coat flaring, the staff drawn back toward stance",
+        "aerial attack, anticipation: in mid-air, the staff raised overhead, the crystal crown shining",
+        "aerial attack, strike: a spinning mid-air staff sweep in front that scatters a violet arc of star shards,, with a motion smear of the swing, kept inside this cell",
+        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "aerial attack, recovery: airborne, body tucked, the coat wrapped around the legs, the staff held upright"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge attack and heavy attack (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, the staff pointed down beneath the body, violet speed lines",
+        "plunge, impact: landing in a low crouch, the staff's crystal crown driven into the ground in front, a burst of violet starlight and pink sparks",
+        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "plunge, recovery: rising from the impact back toward stance, the staff drawn back up",
+        "heavy attack, charge: body coiled, the staff held far back and high, a deep violet orb of light swelling in the crystal crown",
+        "heavy attack, strike: a devastating forward release, a huge violet starlight orb bursting from the staff head, a large bright arc trail, with a motion smear of the swing, kept inside this cell",
+        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "heavy attack, follow-through: deep follow-through, the staff ending low, the orb's stars dissipating"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "art": "Starfall (Lumi's Rift Art), six frames: 1-2 she raises the staff high over her head, violet light gathering in the crystal crown and pink sparkles rising; 3-4 three falling violet star shards streak diagonally down toward the right edge of the cell and burst into starlight where they land, everything kept inside the cell; 5-6 the staff lowered, the sparkles fading and the coat settling. Only stars, sparkles and sigils, no letters or symbols.",
+    "idle": "the crimson coat hem and the bob's stray curl drift with each breath; the staff stays in the right hand with its crown upright.",
+    "run": "the long coat hem swings out behind on each stride; the staff is carried upright at the side in the right hand, never dragging.",
+    "misc": "Taunt: she twirls the staff once, then tips her chin up with a sly smile and a wink. Victory: she plants the staff upright beside her, one hand resting on its crown, a small violet star-burst orbiting her, a playful pose.",
+    "ko": "Intro: she walks in with the staff trailing low, lifts it to shoulder height, spins it in a bright flourish that leaves a trail of violet sparks, then settles into stance with the crown raised and a confident smile.",
+    "skill": "Phantom Stars, her own special (three falling-star bolts that slow whatever they touch). She holds the ivory staff in the RIGHT hand, the violet star crystal glowing. 1: she raises the staff overhead, the crystal brightening. 2: the staff pointed up, three violet stars gathering in a ring above her head. 3: she swings the staff down in front and the three star bolts launch forward. 4: three violet-pink falling stars streaking forward at full force, each with a sparkle trail. 5: the star trails fading into pink-white sparkles, the staff lowering. 6: back to a ready stance with the staff held low."
+  },
+  "nativeHeight": 162,
+  "sheetsThreeFrame": {
+    "atk-a": {
       "title": "Basic combo strikes 1 and 2 (3 frames each)",
       "grid": [
         3,
@@ -61,14 +126,5 @@
         "heavy attack, follow-through: deep follow-through, the staff ending low, the orb's stars dissipating"
       ]
     }
-  },
-  "sheetNotes": {
-    "art": "Starfall (Lumi's Rift Art), six frames: 1-2 she raises the staff high over her head, violet light gathering in the crystal crown and pink sparkles rising; 3-4 three falling violet star shards streak diagonally down toward the right edge of the cell and burst into starlight where they land, everything kept inside the cell; 5-6 the staff lowered, the sparkles fading and the coat settling. Only stars, sparkles and sigils, no letters or symbols.",
-    "idle": "the crimson coat hem and the bob's stray curl drift with each breath; the staff stays in the right hand with its crown upright.",
-    "run": "the long coat hem swings out behind on each stride; the staff is carried upright at the side in the right hand, never dragging.",
-    "misc": "Taunt: she twirls the staff once, then tips her chin up with a sly smile and a wink. Victory: she plants the staff upright beside her, one hand resting on its crown, a small violet star-burst orbiting her, a playful pose.",
-    "ko": "Intro: she walks in with the staff trailing low, lifts it to shoulder height, spins it in a bright flourish that leaves a trail of violet sparks, then settles into stance with the crown raised and a confident smile.",
-    "skill": "Phantom Stars, her own special (three falling-star bolts that slow whatever they touch). She holds the ivory staff in the RIGHT hand, the violet star crystal glowing. 1: she raises the staff overhead, the crystal brightening. 2: the staff pointed up, three violet stars gathering in a ring above her head. 3: she swings the staff down in front and the three star bolts launch forward. 4: three violet-pink falling stars streaking forward at full force, each with a sparkle trail. 5: the star trails fading into pink-white sparkles, the staff lowering. 6: back to a ready stance with the staff held low."
-  },
-  "nativeHeight": 162
+  }
 }

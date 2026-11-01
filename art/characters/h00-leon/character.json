@@ -13,5 +13,111 @@
     "ko": "Intro: he walks in with the sword lowered at his side, raises it in a knightly salute before his face, swings it down in a flourish, and takes his stance.",
     "skill": "Lion's Roar, his own special (a royal war cry that throws close enemies back). 1: he plants his feet and lifts the longsword high overhead, blade vertical, chin up, mouth opening for a shout. 2: the sword drawn back beside his head, the sapphire fuller and gold sparks gathering, the cape snapping out. 3: he drives the blade down in front of his chest and roars, a golden LION-SHAPED shockwave bursting outward from him in gold and blue-white rings. 4: the roar at full force, the lion-head wave filling the cell out to its margin, his body braced, the cape flaring back. 5: the wave fading into drifting gold sparks, the sword lowering. 6: back in stance with the blade held across the body."
   },
-  "nativeHeight": 176
+  "nativeHeight": 176,
+  "sheets": {
+    "atk-a": {
+      "title": "Basic combo strikes 1 and 2 (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: drawing the weapon back for a quick slash",
+        "combo strike 1, strike: a fast horizontal slash forward with a bright weapon trail, with a motion smear of the swing, kept inside this cell",
+        "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 1, recovery: the follow-through settling back toward stance",
+        "combo strike 2, anticipation: weight shifts, weapon raised high for a diagonal cut",
+        "combo strike 2, strike: a powerful diagonal cut with a bright arc trail, with a motion smear of the swing, kept inside this cell",
+        "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 2, recovery: follow-through low, pulling back toward stance"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher and aerial attack (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: a big wind-up, weapon far back, front foot stepping in",
+        "combo finisher, strike: an overwhelming lunging strike, large bright arc trail, with a motion smear of the swing, kept inside this cell, the strongest pose",
+        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo finisher, recovery: full extension relaxing, cape flaring, settling toward stance",
+        "aerial attack, anticipation: in mid-air, weapon raised",
+        "aerial attack, strike: a sweeping mid-air slash in front, bright arc trail, with a motion smear of the swing, kept inside this cell",
+        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "aerial attack, recovery: airborne, body tucked, returning to a ready pose"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge attack and heavy attack (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, weapon pointed down beneath the body, speed lines",
+        "plunge, impact: landing in a low crouch, weapon driven into the ground in front, a burst of light and dust",
+        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "plunge, recovery: rising from the impact back toward stance",
+        "heavy attack, charge: body coiled, weapon held far back, a bright glow building on it",
+        "heavy attack, strike: a devastating full-power strike with a huge bright arc trail, with a motion smear of the swing, kept inside this cell",
+        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "heavy attack, follow-through: deep follow-through, trail dissipating"
+      ]
+    }
+  },
+  "sheetsThreeFrame": {
+    "atk-a": {
+      "title": "Basic combo strikes 1 and 2 (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: drawing the weapon back for a quick slash",
+        "combo strike 1, strike: a fast horizontal slash forward with a bright weapon trail kept inside this cell",
+        "combo strike 1, recovery: the follow-through settling back toward stance",
+        "combo strike 2, anticipation: weight shifts, weapon raised high for a diagonal cut",
+        "combo strike 2, strike: a powerful diagonal cut with a bright arc trail kept inside this cell",
+        "combo strike 2, recovery: follow-through low, pulling back toward stance"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher and aerial attack (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: a big wind-up, weapon far back, front foot stepping in",
+        "combo finisher, strike: an overwhelming lunging strike, large bright arc trail kept inside this cell, the strongest pose",
+        "combo finisher, recovery: full extension relaxing, cape flaring, settling toward stance",
+        "aerial attack, anticipation: in mid-air, weapon raised",
+        "aerial attack, strike: a sweeping mid-air slash in front, bright arc trail kept inside this cell",
+        "aerial attack, recovery: airborne, body tucked, returning to a ready pose"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge attack and heavy attack (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, weapon pointed down beneath the body, speed lines",
+        "plunge, impact: landing in a low crouch, weapon driven into the ground in front, a burst of light and dust",
+        "plunge, recovery: rising from the impact back toward stance",
+        "heavy attack, charge: body coiled, weapon held far back, a bright glow building on it",
+        "heavy attack, strike: a devastating full-power strike with a huge bright arc trail kept inside this cell",
+        "heavy attack, follow-through: deep follow-through, trail dissipating"
+      ]
+    }
+  }
 }

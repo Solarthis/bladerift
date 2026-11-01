@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, ArtId, CRESCENT, DODGES, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, ArtId, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
@@ -1138,7 +1138,8 @@ export class GameScene extends Phaser.Scene {
     if (!m) return;
     const sw = swingFx(weapon, move);
     const delay = Math.max(0, (m.startup - actT) * STEP_MS);
-    sfx.play(weapon === WeaponId.Hammer || weapon === WeaponId.Scythe ? 'swing' : 'swing', { pitch: weapon === WeaponId.Daggers ? 1.4 : weapon === WeaponId.Hammer ? 0.7 : 1 });
+    const lw = lookWeapon(weapon);
+    sfx.play('swing', { pitch: lw === WeaponId.Daggers ? 1.4 : lw === WeaponId.Hammer ? 0.7 : weapon === WeaponId.Chains ? 0.85 : weapon === WeaponId.Kopis ? 1.15 : 1 });
     const fire = () => {
       const fv = this.views.get(id);
       const v = fv?.shown;
@@ -1215,6 +1216,44 @@ export class GameScene extends Phaser.Scene {
     const thin = 1 - q * 0.55;
     const cx = a.x + f * s.cx;
     const cy = a.y - s.cy;
+    if (s.kind === 'chain') {
+      // a lash of links: the head races out along a whip curve that straightens as it lands, then the chain falls slack
+      const tip = s.r * easeOut3(p);
+      const slack = 1 - p;
+      const N = 14;
+      let px = cx;
+      let py = cy;
+      for (let i = 1; i <= N; i++) {
+        const u = i / N;
+        const x = cx + f * tip * u;
+        const y = cy + Math.sin(u * Math.PI * 2.2 + a.age * 30) * (6 + 10 * slack) * u * (1 - u * 0.4) + q * 14 * u * u;
+        this.arcN.lineStyle(s.w * 1.7 * thin, a.c.rim, 0.45 * alpha).lineBetween(px, py, x, y);
+        this.arcN.lineStyle(s.w * 0.8 * thin, a.c.arc, 0.9 * alpha).lineBetween(px, py, x, y);
+        g.fillStyle(0xffffff, 0.7 * alpha).fillCircle(x, y, Math.max(1, s.w * 0.28));
+        px = x;
+        py = y;
+      }
+      // the spearhead on the end
+      g.fillStyle(a.c.arc, alpha).fillTriangle(px, py - s.w * 0.8, px, py + s.w * 0.8, px + f * s.w * 2.4, py);
+      if (s.heavy && p < 1 && now - a.sparkAt > 20) {
+        a.sparkAt = now;
+        this.spark(px, py, -f * (60 + Math.random() * 80), (Math.random() - 0.5) * 120, 0.3, a.c.arc, 2, 200);
+      }
+      return;
+    }
+    if (s.kind === 'rake') {
+      // three claw cuts side by side, each a little shorter and fainter (a beast's raking hand)
+      const head = s.a0 + (s.a1 - s.a0) * easeOut3(p);
+      const tail = s.a0 + (head - s.a0) * Math.min(1, q * q * 0.95);
+      for (let k = 0; k < 3; k++) {
+        const r = s.r - k * s.w * 1.15;
+        const al = alpha * (1 - k * 0.18);
+        this.crescent(this.arcN, cx, cy, r + 2, s.sy, f, tail, head, s.w * 1.5 * thin, a.c.rim, 0.42 * al);
+        this.crescent(this.arcN, cx, cy, r, s.sy, f, tail, head, s.w * 0.75 * thin, a.c.arc, 0.9 * al);
+        this.crescent(g, cx, cy, r - 0.5, s.sy, f, tail, head, s.w * 0.3 * thin, 0xffffff, al);
+      }
+      return;
+    }
     if (s.kind === 'thrust') {
       const r0 = s.r0 ?? 0;
       const tip = r0 + (s.r - r0) * easeOut3(p);

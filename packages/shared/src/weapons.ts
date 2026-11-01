@@ -14,8 +14,18 @@ export const enum WeaponId {
   Staff = 7,
   /** Gilgamesh's Gate of Treasures: no weapon in hand - golden portals open behind him and fire treasured blades. */
   Gate = 8,
+  /** Alexander's kopis: quick forward chops, four to a string, the last a flaming cut that launches. */
+  Kopis = 9,
+  /** Hashashin's twin blades: a five-cut flurry at arm's length that ends in a spin. */
+  TwinBlades = 10,
+  /** Jack the Ripper's surgical knives: long, precise thrusts that crit at the tip and from behind. */
+  Knives = 11,
+  /** Enkidu's living chains: the longest lashes in the game, the third whips the target off its feet. */
+  Chains = 12,
+  /** Dumas' quill: quick golden-ink bolts, the third slows the target while the story catches up. */
+  Quill = 13,
 }
-export const WEAPON_COUNT = 9;
+export const WEAPON_COUNT = 14;
 
 /** Every hero's own signature special (the Skill button): skill N belongs to hero N (heroes.ts). */
 export const enum SkillId {
@@ -80,6 +90,8 @@ export interface Move {
   crescent?: boolean;
   /** Screen shake strength for the client (0..1). */
   shake?: number;
+  /** A shot that slows what it hits for this many ticks (the quill's ink). */
+  slow?: number;
 }
 
 export interface WeaponDef {
@@ -94,6 +106,8 @@ export interface WeaponDef {
   charged?: Move & { min: number; max: number; dmgMax: number };
   /** Hold to block (shield): a tap does `combo[0]`. */
   block?: boolean;
+  /** The weapon whose look a hero's own weapon borrows where it has none of its own yet (client: poses, effects, icons). */
+  base?: WeaponId;
   /** Arrow speed / gravity (bow). */
   arrowSpeed?: number;
   /** Handle length drawn behind the grip (client) and reach summary for the menus. */
@@ -219,7 +233,87 @@ export const WEAPONS: WeaponDef[] = [
     charged: { startup: 3, active: 1, recovery: 20, dmg: 70, dmgMax: 170, box: b(0, 0, 0, 0), kbX: 200, kbY: 90, stun: 18, arrow: true, gate: true, min: 10, max: 60 },
     arrowSpeed: 1050,
   },
+  {
+    id: WeaponId.Kopis,
+    name: 'Kopis',
+    short: 'Kopis',
+    blurb: 'Quick forward chops, four to a string; the last is a flaming cut that launches.',
+    base: WeaponId.Sword,
+    combo: [
+      { startup: 4, active: 4, recovery: 9, dmg: 64, box: b(4, -50, 56, 44), kbX: 140, kbY: 50, stun: 18, step: 110 },
+      { startup: 4, active: 4, recovery: 9, dmg: 66, box: b(4, -50, 56, 44), kbX: 140, kbY: 50, stun: 18, step: 110 },
+      { startup: 5, active: 4, recovery: 11, dmg: 70, box: b(2, -64, 50, 62), kbX: 110, kbY: 250, stun: 24, step: 90 },
+      { startup: 9, active: 5, recovery: 20, dmg: 112, box: b(0, -60, 66, 58), kbX: 330, kbY: 190, stun: 32, step: 150, shake: 0.45 },
+    ],
+    air: { startup: 5, active: 7, recovery: 11, dmg: 72, box: b(-2, -56, 56, 52), kbX: 170, kbY: 140, stun: 22 },
+    plunge: { startup: 8, active: 40, recovery: 15, dmg: 118, box: b(-18, -24, 46, 38), kbX: 230, kbY: 320, stun: 30, plunge: true, shake: 0.5 },
+  },
+  {
+    id: WeaponId.TwinBlades,
+    name: 'Twin Blades',
+    short: 'Blades',
+    blurb: "A five-cut flurry at arm's length that ends in a spin. Hits from behind crit.",
+    base: WeaponId.Daggers,
+    combo: [
+      { startup: 3, active: 3, recovery: 7, dmg: 32, box: b(4, -48, 32, 36), kbX: 70, kbY: 20, stun: 14, step: 90, backCrit: true },
+      { startup: 3, active: 3, recovery: 7, dmg: 32, box: b(4, -48, 32, 36), kbX: 70, kbY: 20, stun: 14, step: 90, backCrit: true },
+      { startup: 3, active: 3, recovery: 7, dmg: 33, box: b(4, -48, 32, 36), kbX: 70, kbY: 20, stun: 14, step: 90, backCrit: true },
+      { startup: 3, active: 3, recovery: 7, dmg: 34, box: b(4, -48, 32, 36), kbX: 70, kbY: 20, stun: 14, step: 90, backCrit: true },
+      { startup: 5, active: 6, recovery: 16, dmg: 56, box: b(-16, -52, 54, 44), kbX: 230, kbY: 160, stun: 24, step: 60, backCrit: true },
+    ],
+    air: { startup: 4, active: 8, recovery: 8, dmg: 40, box: b(-12, -52, 44, 48), kbX: 110, kbY: 90, stun: 16, backCrit: true },
+    plunge: { startup: 6, active: 40, recovery: 12, dmg: 78, box: b(-12, -24, 30, 34), kbX: 160, kbY: 240, stun: 24, plunge: true, backCrit: true },
+  },
+  {
+    id: WeaponId.Knives,
+    name: 'Surgical Knives',
+    short: 'Knives',
+    blurb: 'Long, precise thrusts. The point crits, and so does a cut from behind.',
+    base: WeaponId.Daggers,
+    combo: [
+      { startup: 6, active: 3, recovery: 11, dmg: 60, box: b(6, -46, 66, 20), kbX: 120, kbY: 30, stun: 18, step: 120, tipCrit: true, backCrit: true },
+      { startup: 6, active: 4, recovery: 11, dmg: 62, box: b(2, -56, 60, 40), kbX: 130, kbY: 40, stun: 18, step: 100, backCrit: true },
+      { startup: 10, active: 5, recovery: 18, dmg: 90, box: b(0, -58, 70, 50), kbX: 260, kbY: 120, stun: 28, step: 130, tipCrit: true, backCrit: true, shake: 0.35 },
+    ],
+    air: { startup: 5, active: 6, recovery: 10, dmg: 50, box: b(-6, -52, 60, 46), kbX: 120, kbY: 90, stun: 18, backCrit: true },
+    plunge: { startup: 6, active: 40, recovery: 12, dmg: 82, box: b(-12, -24, 30, 34), kbX: 160, kbY: 240, stun: 24, plunge: true, backCrit: true },
+  },
+  {
+    id: WeaponId.Chains,
+    name: 'Living Chains',
+    short: 'Chains',
+    blurb: 'The longest lashes in the game; the third whips the target up off its feet. Hold to lock the chains into a spear and lunge.',
+    base: WeaponId.Lance,
+    combo: [
+      { startup: 10, active: 4, recovery: 16, dmg: 63, box: b(14, -46, 82, 18), kbX: 150, kbY: 30, stun: 18, step: 30 },
+      { startup: 10, active: 4, recovery: 16, dmg: 65, box: b(10, -72, 84, 32), kbX: 150, kbY: 120, stun: 18, step: 30 },
+      { startup: 13, active: 6, recovery: 24, dmg: 84, box: b(14, -52, 94, 28), kbX: 200, kbY: 260, stun: 30, shake: 0.35 },
+    ],
+    air: { startup: 7, active: 8, recovery: 14, dmg: 70, box: b(4, -40, 96, 30), kbX: 200, kbY: 80, stun: 22 },
+    charged: {
+      startup: 4, active: 18, recovery: 22, dmg: 105, dmgMax: 190, box: b(4, -46, 66, 24), kbX: 420, kbY: 160, stun: 38,
+      dash: 640, min: 14, max: 50, shake: 0.6,
+    },
+  },
+  {
+    id: WeaponId.Quill,
+    name: 'Quill and Book',
+    short: 'Quill',
+    blurb: 'Quick golden-ink bolts; the third slows the target. Hold to write an ink orb that bursts.',
+    base: WeaponId.Staff,
+    combo: [
+      { startup: 6, active: 1, recovery: 15, dmg: 42, box: b(0, 0, 0, 0), kbX: 110, kbY: 40, stun: 8, arrow: true, arcane: true },
+      { startup: 6, active: 1, recovery: 15, dmg: 44, box: b(0, 0, 0, 0), kbX: 110, kbY: 40, stun: 8, arrow: true, arcane: true },
+      { startup: 8, active: 1, recovery: 24, dmg: 54, box: b(0, 0, 0, 0), kbX: 180, kbY: 100, stun: 14, arrow: true, arcane: true, slow: 75 },
+    ],
+    air: { startup: 6, active: 1, recovery: 16, dmg: 40, box: b(0, 0, 0, 0), kbX: 110, kbY: 60, stun: 8, arrow: true, arcane: true },
+    charged: { startup: 3, active: 1, recovery: 20, dmg: 85, dmgMax: 160, box: b(0, 0, 0, 0), kbX: 280, kbY: 220, stun: 32, arrow: true, arcane: true, min: 14, max: 60 },
+    arrowSpeed: 800,
+  },
 ];
+
+/** The weapon whose look (poses, swing effects, icon) stands in for a hero's own weapon that has none yet. */
+export const lookWeapon = (w: number): WeaponId => WEAPONS[w]?.base ?? (w as WeaponId);
 
 /**
  * A hero's special. How it works:

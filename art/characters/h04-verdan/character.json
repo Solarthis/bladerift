@@ -10,67 +10,285 @@
     "../h00-leon/references/approved-sheet.png",
     "references/portrait.jpg"
   ],
-  "bible": "Verdan is androgynous, tall and slender, with pale fired-porcelain skin, a soft oval face, a fine jaw and calm gold-green eyes with a gentle, knowing look. Hair is very long, pale sage-green, falling past the waist in a loose braid over one shoulder. Costume: a long ivory robe with a high collar and wide sleeves tied at the wrists, a long ivory sash wound at the waist, all edged with gold embroidery and a moss-green hem; under it an ivory undertunic and dark moss-olive trousers. Living GOLD CHAINS coil around both forearms and upper arms, with loose links trailing from the free arm and drifting like thread. WEAPON: a lance about one and a half times his height. The shaft is pale celadon glazed clay with fine cracks, wound with a spiral of gold chain links, and loose chain coils at the butt. The blade is a leaf-shaped gold spearhead with a jade-green vein down its centre and a ring of gold chain at the socket. He grips the lance in his RIGHT hand at mid-shaft; his LEFT hand holds the shaft below the blade for thrusts. Energy and trails: GOLD light with jade-green glints; the chains glow gold.",
-  "design": "- top row: full-body neutral stance facing right with the lance held upright; a combat stance with the lance lowered across the hips; a walking pose with the sash and long braid swinging; a running pose with the robe flowing; a jump with the chains trailing; a close-up of the gold leaf blade and the chain-wound shaft\n- middle rows: six attack and special poses: two thrusts, a low rising sweep, a lunging charge with a gold trail, a diving plunge, a burst of living chains from the ground\n- bottom row: guard with the lance across the body and chains raised, hit reaction, knocked down, a calm victory pose with the lance planted, the signature gold chains binding upward with a jade glow",
+  "bible": "Enkidu is androgynous, tall and slender, with pale FIRED-PORCELAIN skin, a soft oval face, a fine jaw and calm GOLD-GREEN eyes with a knowing look. Fine crack lines of fired clay show at the wrists and at the collarbone. Hair is very long, pale SAGE-GREEN, falling past the waist in a loose braid over one shoulder. Costume: a long IVORY robe with a high collar and wide sleeves tied at the wrists, a long ivory sash wound at the waist, all edged with gold embroidery and a moss-green hem; under it an ivory undertunic and dark moss-olive trousers. NO WEAPON IN THE HANDS: both hands are empty and open. Living GOLD CHAINS coil around both forearms and upper arms and float in slow loops around the hands. On command the chains shoot out of the sleeves and lock RIGID into a straight CHAIN-SPEAR of interlocked gold links about one and a half times his height, tipped with a leaf-shaped gold blade with a jade-green vein, shaped from gilded celadon clay. For guard the chains weave a lattice shield of links in front of the body. Energy and trails: GOLD light with JADE-GREEN glints; the chains glow gold.",
+  "design": "- top row: full-body stance facing right with gold chains floating around both empty hands; a three-quarter head close-up; a close view of the chain-spear tip, interlocked gold links ending in the leaf-shaped gold blade with a jade vein\n- second row: a palm thrust shooting a rigid chain-spear straight ahead; a low rising chain thrust; a walking pose with the braid and sash swinging; a jump with chains trailing\n- third row: a lunge with two braided chains forming one long spear; a mid-air diagonal chain thrust; a plunge with chains driving into the ground and clay spikes bursting up; a guard behind a lattice shield of chain links\n- bottom row: a hit reaction; knocked down; a calm victory pose with chains looping slowly around them; the Chains of Genesis, living gold chains bursting from the ground",
   "sheets": {
-    "atk-a": {
-      "title": "Basic combo thrusts 1 and 2 (3 frames each)",
+    "idle": {
+      "title": "Stance and footwork, chains as the weapon",
       "grid": [
-        3,
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "combat idle loop 1: fighting stance, both hands empty, loose gold chains floating in slow coils around both hands, knees bent, weight centred",
+        "combat idle loop 2: the same stance breathing in, shoulders slightly raised, the chains drifting, long hair lifting",
+        "combat idle loop 3: the same stance at the top of the breath, the small leaf-shaped gold blade tip hovering by the right hand",
+        "combat idle loop 4: the same stance breathing out, settling back toward frame 1",
+        "standing guard: the chains weaving a lattice shield of gold links in front of the body, braced, chin down",
+        "crouch: low crouch on bent knees, both hands low with chains coiled around the forearms (a crouching guard posture)",
+        "skid: braking hard from a run, front foot planted forward, body leaning back, the braid and chains swinging forward",
+        "landing: absorbing a landing from a jump, deep knee bend, one hand low to steady, chains still settling"
+      ]
+    },
+    "run": {
+      "title": "Run cycle (8 frames, loops from frame 8 back to frame 1)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "run cycle 1: right foot contact, stride long, body leaning forward, both hands empty with gold chains streaming back from both arms",
+        "run cycle 2: right foot down, body at its lowest, chains swinging from both arms",
+        "run cycle 3: passing pose, left knee driving forward, body rising, chains and braid swinging",
+        "run cycle 4: left leg reaching forward, body at its highest, both feet briefly off the ground, sash and hair streaming",
+        "run cycle 5: left foot contact, stride long (the mirror of frame 1)",
+        "run cycle 6: left foot down, body at its lowest",
+        "run cycle 7: passing pose, right knee driving forward, body rising",
+        "run cycle 8: right leg reaching forward, body at its highest, both feet off the ground"
+      ]
+    },
+    "air": {
+      "title": "Jumping, falling, walls and ledges, chains trailing",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "jump take-off: crouched spring an instant before leaving the ground, gold chains gathering around both arms",
+        "rising: leaping upward, legs tucked under, robe trailing down, loose chains trailing from both arms",
+        "apex: at the top of the jump, knees tucked, body compact, robe billowing, the chains flaring out from both arms",
+        "falling: descending, legs extending to land, robe and hair flowing upward, chains streaming upward",
+        "fast fall: diving straight down, body straight and streamlined, hair and chains streaming up",
+        "wall slide: back and left shoulder pressed against a wall on the LEFT, one chain-wrapped hand bracing on it, sliding down, one foot scraping it",
+        "ledge hang: hanging by both hands from a ledge edge above the head, body dangling below, legs together, chains looped over the ledge",
+        "ledge climb: pulling up over the ledge, one knee up, chest over the edge, chains coiling to grip"
+      ]
+    },
+    "dash": {
+      "title": "Dodge roll, dash and healing, chains wrapped and trailing",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "dodge roll 1: dropping low into a forward roll, gold chains whipping in around the body",
+        "dodge roll 2: tucked into a tight ball mid-roll, the chains wrapped around the body, robe wrapping around",
+        "dodge roll 3: rolling over the shoulder, nearly upside down, chains wound round the torso",
+        "dodge roll 4: coming out of the roll into a low crouch, chains unwinding back to the arms, ready",
+        "ground dash: a fast low burst forward, body almost horizontal, gold chains trailing behind like streamers, faint speed lines",
+        "air dash: dashing horizontally through the air, body stretched forward, robe snapping behind, chains trailing like streamers",
+        "heal 1: pulling out a small glass flask of glowing red potion",
+        "heal 2: drinking the potion, head tipped back, a soft red glow"
+      ]
+    },
+    "atk-a": {
+      "title": "Basic combo strikes 1 and 2: chain thrusts (4 frames each)",
+      "grid": [
+        4,
         2
       ],
       "standFrac": 0.66,
       "frames": [
-        "combo thrust 1, anticipation: the lance drawn back to the hip, gold chains tightening around the forearm, weight on the back foot",
-        "combo thrust 1, strike: a fast two-handed thrust straight forward at chest height, the gold blade driving out with a short gold streak kept inside this cell",
-        "combo thrust 1, recovery: the lance pulled back to the hip, loose chains swinging after the thrust, body settling toward stance",
-        "combo thrust 2, anticipation: the lance swung low and back, the chain-wound shaft dropping toward the ground, sash whipping forward",
-        "combo thrust 2, strike: a low rising thrust, the lance sweeping up from knee height to shoulder height with a bright gold arc kept inside this cell",
-        "combo thrust 2, recovery: lance held high in a guard above the shoulder, chains and braid settling"
+        "combo strike 1, anticipation: the right hand drawn back to the hip, gold chains tightening around the forearm, weight on the back foot",
+        "combo strike 1, strike: a fast palm thrust, a rigid chain-spear shoots straight out of the right palm at chest height, the gold blade leading, a short gold streak, with a motion smear of the swing, kept inside this cell",
+        "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 1, recovery: the chain retracting and coiling back around the arm, body settling toward stance",
+        "combo strike 2, anticipation: the left hand swung low and back, the chains dropping toward the ground",
+        "combo strike 2, strike: a low rising thrust, the chain-spear sweeping up from knee height to shoulder height, a gold arc, with a motion smear of the swing, kept inside this cell",
+        "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 2, recovery: the chains coiling back above the shoulder in a guard, braid settling"
       ]
     },
     "atk-b": {
-      "title": "Combo finisher lunge and aerial thrust (3 frames each)",
+      "title": "Combo finisher and aerial attack: chain-spears (4 frames each)",
       "grid": [
-        3,
+        4,
         2
       ],
       "standFrac": 0.66,
       "frames": [
-        "combo finisher, anticipation: the lance drawn back under the arm, couched low, front foot stepping in, chains pulled taut across the body",
-        "combo finisher, strike: a lunging thrust with the whole body driving forward, the lance extended straight ahead, a large gold trail streaking behind the blade kept inside this cell; the strongest pose",
-        "combo finisher, recovery: full extension relaxing, the lance pulled back, robe and sash flaring, settling toward stance",
-        "aerial thrust, anticipation: in mid-air, the lance drawn back level with the hip, robe lifting, body angled forward",
-        "aerial thrust, strike: a diving thrust forward and slightly down, the gold blade leading, a short gold trail kept inside this cell",
-        "aerial thrust, recovery: airborne, body tucked around the lance, long braid and chains streaming, returning to a ready pose"
+        "combo finisher, anticipation: finisher wind-up, both hands drawn back under the arm, front foot stepping in, chains pulled taut",
+        "combo finisher, strike: a lunging double thrust, two chains shoot out and braid into one long rigid spear driving straight ahead, a large gold trail, with a motion smear of the swing, kept inside this cell; the strongest pose",
+        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo finisher, recovery: the chains whipping back into coils, robe and sash flaring, settling toward stance",
+        "aerial attack, anticipation: in mid-air, the right hand drawn back, chains gathering",
+        "aerial attack, strike: a chain-spear shooting forward and down from the palm, a short gold trail, with a motion smear of the swing, kept inside this cell",
+        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "aerial attack, recovery: airborne, body tucked, chains streaming, returning to a ready pose"
       ]
     },
     "atk-c": {
-      "title": "Plunge attack and charged lunge (3 frames each)",
+      "title": "Plunge attack and charged lunge: chains into the ground (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, both palms pointed at the ground, chains shooting point-first beneath the body, speed lines",
+        "plunge, impact: landing in a low crouch, the chains driven into the ground in front, celadon clay spikes and gold light bursting up",
+        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "plunge, recovery: rising from the impact back toward stance, chains pulling free",
+        "heavy attack, charge: coiled low, chains wound tight round both arms glowing gold, one long rigid chain-spear forming forward",
+        "heavy attack, strike: a full-power gliding lunge behind the rigid chain-spear, the whole body driving forward, a huge gold trail, with a motion smear of the swing, kept inside this cell",
+        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "heavy attack, follow-through: the chain-spear relaxing into loose coils and gold motes, the trail dissipating"
+      ]
+    },
+    "hurt": {
+      "title": "Getting hit, knocked down and getting up, chains coiled",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "light hit: flinching back from a blow, head snapped back, eyes squeezed, the chains loosening from the arms",
+        "light hit recovery: catching his footing, guard coming back up, chains coiled around the arms",
+        "heavy hit: body bent backward by a heavy blow, arms flung out, chains flying loose, pain on the face",
+        "launched: knocked off the feet and flying backward through the air, chains streaming",
+        "knockdown fall: falling onto the back, about to hit the ground, chains loosening",
+        "knocked down: lying flat on the back on the ground, the chains loosened but still coiled around the arms",
+        "getting up: pushing up onto one knee, chains coiling back around the arms",
+        "back on guard: rising back into the fighting stance, chains coiled around both forearms"
+      ]
+    },
+    "art": {
+      "title": "Chains of Genesis: anticipation, execution, recovery",
       "grid": [
         3,
         2
       ],
       "standFrac": 0.66,
       "frames": [
-        "plunge, dive: in mid-air diving straight down, the lance pointed point-first beneath the body, robe and chains streaming up, speed lines",
-        "plunge, impact: landing in a low crouch, the lance driven point-first into the ground in front, a burst of gold light and dust",
-        "plunge, recovery: rising from the impact back toward stance, the lance pulled free",
-        "charged lunge, charge: the lance couched under the arm pointing forward, body coiled low, chains wound tight, a bright gold glow building along the blade",
-        "charged lunge, strike: a full-power lunge, the whole body and the lance driving forward in one long straight thrust, a huge gold trail kept inside this cell",
-        "charged lunge, follow-through: deep follow-through with the lance held out at the end of the lunge, the trail dissipating into gold motes"
+        "special anticipation 1: both palms pressed to the ground, gold chains beginning to spin up around the body",
+        "special anticipation 2: the instant before release, the ground under the right of the cell glowing gold, gold chains spinning fast around the body",
+        "special execution 1: living gold chains burst up out of the ground in front and whip toward the opponent (its effect kept inside this cell)",
+        "special execution 2: the chains binding a space at the right of the cell in glowing links, jade light at the centre (its effect kept inside this cell)",
+        "special recovery 1: the chains sinking back down into the ground",
+        "special recovery 2: standing again, chains coiling home around the arms"
+      ]
+    },
+    "skill": {
+      "title": "Chain Lash: the hero's own special, anticipation, execution, recovery",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "special anticipation 1, Chain Lash: left hand raised, palm open, the chains floating loose around the arms",
+        "special anticipation 2, Chain Lash: left hand clenched, gold links coiling round the wrist, the arm drawn back",
+        "special execution 1, Chain Lash: the arm snaps forward and a living chain lashes out from the hand, uncoiling (its effect kept inside this cell)",
+        "special execution 2, Chain Lash: the chain at full extension, its tip curling to bind, glowing gold (its effect kept inside this cell)",
+        "special recovery 1, Chain Lash: the chain retracting, the links loosening back into coils",
+        "special recovery 2, Chain Lash: back in the fighting stance, chains floating around the arms"
+      ]
+    },
+    "misc": {
+      "title": "Skill throw, taunt and victory, with chains",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "skill throw 1: reaching back with one hand, a loose gold chain link held between the fingers",
+        "skill throw 2: flicking the gold chain link forward, arm extended",
+        "skill throw 3: follow-through after the flick, a chain trailing from the fingers",
+        "taunt 1: a chain looping lazily around the body, one hand open",
+        "taunt 2: chin lifted, a faintly amused smile, the chain still looping",
+        "victory 1: the start of the victory pose, chains beginning to loop slowly around him",
+        "victory 2: the victory pose at its height, chains looping around him in a slow gold glow",
+        "victory 3: the victory pose held, chains and long hair settling"
+      ]
+    },
+    "ko": {
+      "title": "Defeat and intro, chains slackening and unwinding",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "defeat 1: staggering from the final blow, chains jerking loose",
+        "defeat 2: dropping to the knees as the chains slacken",
+        "defeat 3: collapsing forward, the chains crumbling",
+        "defeat 4: lying motionless on the ground, the chains crumbling into clay dust",
+        "intro 1: walking in with the chains loose, calm",
+        "intro 2: raising one hand, a length of gold chain unwinding in the air",
+        "intro 3: a slow flourish, the chain unwinding into a spiral in the air",
+        "intro 4: settling into the fighting stance, chains loose, ready"
       ]
     }
   },
   "sheetNotes": {
-    "art": "Chains of Genesis: he plants the lance point-down in front of him and raises his free hand, gold chains spinning up around his body (anticipation 1-2). Execution: living gold chains burst up out of the ground in front of him and whip toward the opponent, binding them in glowing links, jade light at the centre (execution 1-2, kept inside each cell); recovery: the chains sink back down into the ground, the lance drawn up.",
-    "misc": "Skill throw: he flicks a loose gold chain link forward from the free hand. Taunt: he raises the lance and loops it once, then lifts his chin with a calm, faintly amused smile and one hand open. Victory: he rests the lance point-down on the ground with both hands on the shaft; the chains loop around him in a slow gold glow and the long hair settles.",
-    "ko": "Intro: he walks in with the lance lowered and the chains loose at his side, raises the lance upright with one hand, spins it once in a slow flourish that unwinds a length of gold chain, then settles into the stance, calm.",
-    "idle": "The lance is a LANCE, never a sword: held upright beside the body in the right hand, the gold blade tilted slightly forward; loose gold chains drift from the free arm and the long hair moves with each breath.",
-    "run": "The lance is carried upright at the side with its butt low; loose gold chains swing from the free arm; the long green hair and the sash flow behind.",
-    "air": "The lance is held level with the body, blade forward; the chains and hair stream upward and the robe billows.",
-    "dash": "The ground dash is a low, fast burst with the lance couched forward; gold chains trail behind like streamers.",
-    "skill": "Chain Lash, his own special (a living golden chain lashes out and binds the target where it stands). He holds the celadon lance in the RIGHT hand at mid-shaft. 1: he raises the LEFT hand, palm open, toward the front, the lance held ready. 2: the left hand clenched, gold chain links coiling around the wrist and spilling from the lance butt, the arm drawn back. 3: the left arm snaps forward and a living gold chain lashes out from the hand, uncoiling. 4: the chain at full extension at full force, its links glowing gold, the tip curling to bind. 5: the chain retracting, the links loosening back into coils. 6: back in stance, the lance upright, chains hanging from its butt."
+    "idle": "No weapon in the hands: both hands are empty and open. Loose gold chains float in slow coils around both hands and forearms, and a small leaf-shaped gold blade tip, linked to the chains, hovers by the right hand without being gripped. Standing guard (frame 5): the chains weave a lattice shield of interlocked gold links in front of the body. The long sage-green hair moves with each breath.",
+    "run": "No weapon: the hands stay empty and open in every frame. Gold chains stream back from both arms as he runs, and the long sage-green braid and the ivory sash flow behind him.",
+    "air": "No weapon: the hands are empty. The chains and the long hair stream upward, the robe billows, and the gold chains stay loose around both arms and hands.",
+    "dash": "The dodge roll wraps the gold chains around the body and they unwind back to the arms at the end. The ground dash is a low glide with chains trailing behind like streamers, and the air dash is the same with the robe snapping behind. Heal frames 7-8 are the standard heal with a small red potion flask.",
+    "hurt": "No weapon. A hit loosens the chains but they stay coiled around the arms; in the knockdown the chains lie loose and slack beside him, still around the arms.",
+    "atk-a": "The chain-spear is made of interlocked gold links, rigid only while it is thrust, and it is tipped with the leaf-shaped gold blade with a jade vein. Combo strike 1 is a palm thrust out of the RIGHT palm at chest height. Combo strike 2 is a low rising thrust, the left hand swung low and back and the chain-spear sweeping up from knee height to shoulder height. The hands hold nothing between thrusts.",
+    "atk-b": "The combo finisher is a lunging double thrust: two gold chains shoot out of the sleeves and braid into one long rigid chain-spear about one and a half times his height, tipped with the leaf-shaped gold blade. Frame 2 is the strongest pose. The aerial attack is a single chain-spear shot forward and down from the right palm.",
+    "atk-c": "Plunge: both palms point at the ground and chains shoot point-first beneath the body; on impact the chains are driven into the ground, and celadon clay spikes and gold light burst up. Heavy attack: the chains are wound tight round both arms glowing gold, then one long rigid chain-spear drives forward in a full-power gliding lunge, ending in loose coils and gold motes.",
+    "art": "Chains of Genesis, six frames in three beats. Anticipation (1-2): both palms pressed to the ground, gold chains spinning up around the body, then the ground under the right of the cell glows gold. Execution (3-4): living gold chains burst up out of the ground in front and whip toward the opponent, binding a space at the right of the cell in glowing links with jade light at the centre. Recovery (5-6): the chains sink back into the ground, and he stands again with the chains coiling home around the arms. Every effect is kept inside its cell.",
+    "skill": "Chain Lash, his own special, not the Rift Art. Anticipation (1-2): 1 left hand raised, palm open; 2 left hand clenched, gold links coiling round the wrist, the arm drawn back. Execution (3-4): 3 the arm snaps forward and a living chain lashes out, uncoiling; 4 the chain at full extension with its tip curling to bind, glowing gold. Recovery (5-6): 5 the chain retracts and the links loosen into coils; 6 back in the fighting stance with the chains floating around the arms. The right hand stays open at the side throughout.",
+    "misc": "Skill throw: he flicks a loose gold chain link forward from the fingers. Taunt: a chain loops lazily around him, chin lifted with a faintly amused smile and one hand open. Victory: standing calm, chains looping around him in a slow gold glow, the long hair settling.",
+    "ko": "Defeat: he staggers, kneels as the chains slacken, collapses, and lies still with the chains crumbling into clay dust. Intro: he walks in with the chains loose, raises one hand, and a length of gold chain unwinds into a spiral in the air, then he settles into the fighting stance, calm and ready."
   },
-  "nativeHeight": 180
+  "nativeHeight": 180,
+  "sheetsThreeFrame": {
+    "atk-a": {
+      "title": "Basic combo strikes 1 and 2: chain thrusts (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: the right hand drawn back to the hip, gold chains tightening around the forearm, weight on the back foot",
+        "combo strike 1, strike: a fast palm thrust, a rigid chain-spear shoots straight out of the right palm at chest height, the gold blade leading, a short gold streak kept inside this cell",
+        "combo strike 1, recovery: the chain retracting and coiling back around the arm, body settling toward stance",
+        "combo strike 2, anticipation: the left hand swung low and back, the chains dropping toward the ground",
+        "combo strike 2, strike: a low rising thrust, the chain-spear sweeping up from knee height to shoulder height, a gold arc kept inside this cell",
+        "combo strike 2, recovery: the chains coiling back above the shoulder in a guard, braid settling"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher and aerial attack: chain-spears (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: finisher wind-up, both hands drawn back under the arm, front foot stepping in, chains pulled taut",
+        "combo finisher, strike: a lunging double thrust, two chains shoot out and braid into one long rigid spear driving straight ahead, a large gold trail kept inside this cell; the strongest pose",
+        "combo finisher, recovery: the chains whipping back into coils, robe and sash flaring, settling toward stance",
+        "aerial attack, anticipation: in mid-air, the right hand drawn back, chains gathering",
+        "aerial attack, strike: a chain-spear shooting forward and down from the palm, a short gold trail kept inside this cell",
+        "aerial attack, recovery: airborne, body tucked, chains streaming, returning to a ready pose"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge attack and charged lunge: chains into the ground (3 frames each)",
+      "grid": [
+        3,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, both palms pointed at the ground, chains shooting point-first beneath the body, speed lines",
+        "plunge, impact: landing in a low crouch, the chains driven into the ground in front, celadon clay spikes and gold light bursting up",
+        "plunge, recovery: rising from the impact back toward stance, chains pulling free",
+        "heavy attack, charge: coiled low, chains wound tight round both arms glowing gold, one long rigid chain-spear forming forward",
+        "heavy attack, strike: a full-power gliding lunge behind the rigid chain-spear, the whole body driving forward, a huge gold trail kept inside this cell",
+        "heavy attack, follow-through: the chain-spear relaxing into loose coils and gold motes, the trail dissipating"
+      ]
+    }
+  }
 }

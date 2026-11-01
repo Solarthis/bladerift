@@ -42,8 +42,15 @@ describe('classes', () => {
       expect(l.weapons[0]).toBe(heroWeapon(h.id));
       expect(l.weapons[1]).toBe(heroWeapon(h.id)); // the kit: one weapon, A light and B heavy
     }
-    // as in their legends: no bow for Gilgamesh, knives for Jack, a sword for Alexander
-    expect([heroWeapon(2), heroWeapon(10), heroWeapon(11)]).toEqual([WeaponId.Gate, WeaponId.Daggers, WeaponId.Sword]);
+    // as in their legends: no bow for Gilgamesh, surgical knives for Jack, a kopis for Alexander, living chains for Enkidu,
+    // a quill for Dumas, twin blades for the Hashashin
+    expect([heroWeapon(2), heroWeapon(10), heroWeapon(11), heroWeapon(4), heroWeapon(6), heroWeapon(8)]).toEqual([
+      WeaponId.Gate, WeaponId.Knives, WeaponId.Kopis, WeaponId.Chains, WeaponId.Quill, WeaponId.TwinBlades,
+    ]);
+    // no two heroes who share a class fight with the same moves
+    const byClass = new Map<number, Set<number>>();
+    for (const h of HEROES) (byClass.get(h.cls) ?? byClass.set(h.cls, new Set()).get(h.cls)!).add(heroWeapon(h.id));
+    for (const h of HEROES) expect(byClass.get(h.cls)!.size, h.name).toBe(HEROES.filter((x) => x.cls === h.cls).length);
     const { fa, fb } = duel(ClassId.Assassin, ClassId.Berserker);
     expect(fa.s.hp).toBe(CLASSES[ClassId.Assassin].hp);
     expect(fb.s.hp).toBe(CLASSES[ClassId.Berserker].hp);
@@ -55,7 +62,8 @@ describe('classes', () => {
     const a0 = fa.s.x;
     const b0 = fb.s.x;
     run(w, 30, (i) => cmd(i, 1), (i) => cmd(i, 1));
-    expect(fa.s.x - a0).toBeGreaterThan((fb.s.x - b0) * 1.3);
+    // (Humbaba is a quick beast for a Berserker: HERO_TUNE speed)
+    expect(fa.s.x - a0).toBeGreaterThan((fb.s.x - b0) * 1.1);
     expect(CLASSES[ClassId.Assassin].airJumps).toBe(2);
   });
 

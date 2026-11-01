@@ -4,7 +4,7 @@
  * frame inside it follows the move's own timing: startup = anticipation, the first active ticks = the strike, then the
  * extension and the recovery. Time-driven animations (idle, run, KO, victory) play at their own frame rates.
  */
-import { Act, ARTS, artIdOf, DODGES, FIGHTER, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, moveOf, SKILLS } from '@bladerift/shared';
+import { Act, ARTS, artIdOf, DODGES, FIGHTER, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, moveOf, SKILLS, WEAPONS } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
 
 export interface SpriteFrame {
@@ -77,6 +77,15 @@ interface AttackPhase {
   stance: boolean;
   /** Lunge weight 0..1 (1 on the strike, easing back to 0 through the recovery drawing). */
   lunge: number;
+}
+
+/** The drawing set a combo step plays: the finisher is always combo2; a longer string alternates combo0 and combo1
+ * before it, so a four- or five-cut flurry swings back and forth instead of repeating one drawing. */
+function comboAnim(weapon: number, move: number) {
+  const n = WEAPONS[weapon]?.combo.length ?? 3;
+  if (n > 1 && move >= n - 1) return 'combo2';
+  if (n > 3) return move % 2 ? 'combo1' : 'combo0';
+  return `combo${Math.min(2, move)}`;
 }
 
 export function attackPhase(startup: number, active: number, recovery: number, t: number, n: number, heavy = false): AttackPhase {
@@ -189,7 +198,7 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         return pick('art', Math.min(n - 1, (n >= 6 ? 2 : 0) + (ph.stance ? 3 : ph.idx)), 'heavy');
       }
       const m = moveOf(w, v.move);
-      const name = v.move === MOVE_AIR ? 'airAttack' : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : `combo${Math.min(2, v.move)}`;
+      const name = v.move === MOVE_AIR ? 'airAttack' : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : comboAnim(w, v.move);
       if (!m) return pick(name, 0, 'combo0');
       const n = A[name]?.frames.length ?? 4;
       if (v.move === MOVE_PLUNGE) {
@@ -201,6 +210,20 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
       const heavy = v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT || m.stun >= 30;
       const ph = attackPhase(m.startup, m.active, m.recovery, t, n, heavy);
       pose.dx = ph.lunge * (heavy ? LUNGE_HEAVY : LUNGE);
+      // the body sells the blow: it coils down and back through the wind-up, stretches forward on the first strike
+      // frames, and settles (the drawings hold; only the squash, lean and lunge move between them)
+      if (t < m.startup) {
+        const k = Math.min(1, t / Math.max(1, m.startup));
+        pose.sy = 1 - (heavy ? 0.06 : 0.035) * k;
+        pose.sx = 1 + (heavy ? 0.04 : 0.025) * k;
+        pose.dx -= (heavy ? 3 : 1.5) * k;
+        pose.rot = -(heavy ? 3 : 1.5) * k;
+      } else if (t < m.startup + 4) {
+        const k = 1 - (t - m.startup) / 4;
+        pose.sx = 1 + (heavy ? 0.07 : 0.045) * k;
+        pose.sy = 1 - (heavy ? 0.04 : 0.025) * k;
+        pose.rot = (heavy ? 4 : 2) * k;
+      }
       // the early return to the stance (on the ground; in the air the recovery drawing holds)
       if (ph.stance && v.move !== MOVE_AIR && v.ground) return pick('idle', 0);
       // a charged release: the charge itself showed the first frame, so the release starts at the wind-up

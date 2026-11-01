@@ -34,6 +34,19 @@ STD = json.load(open(os.path.join(ROOT, 'art', 'sprite-standard.json'), encoding
 ANIMS = json.load(open(os.path.join(ROOT, 'art', 'animations.json'), encoding='utf-8'))['anims']
 CH = json.load(open(os.path.join(CDIR, 'character.json'), encoding='utf-8'))
 NATIVE = int(flags.get('native', CH.get('nativeHeight', STD['nativeHeight'])))
+
+# Attack sheets drawn four to a move (a 4x2 grid: wind-up, strike, follow-through, recovery) instead of three: the
+# animations that read three cells of such a sheet (cells 0-2 and 3-5) read its four cells instead (0-3 and 4-7).
+for _sh, _spec in (CH.get('sheets') or {}).items():
+    if not _sh.startswith('atk-') or (_spec.get('grid') or [3])[0] != 4:
+        continue
+    for _a in ANIMS.values():
+        fr = _a['frames']
+        if len(fr) == 3 and all(f.split(':')[0] == _sh for f in fr):
+            i0 = int(fr[0].split(':')[1])
+            if i0 % 3 == 0:
+                base = (i0 // 3) * 4
+                _a['frames'] = [f'{_sh}:{base + j}' for j in range(4)]
 OUT = os.path.join(ROOT, 'packages', 'client', 'public', 'assets', 'characters', CID)
 FRAMES = os.path.join(CDIR, 'frames')
 PREV = os.path.join(CDIR, 'previews')

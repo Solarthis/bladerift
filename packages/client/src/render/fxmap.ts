@@ -2,7 +2,7 @@
  * Which PixelFX effect plays for each move, impact and skill, with its palette and playback rate. The effect's time 0
  * is lined up with the move's first hitting tick (PixelFX: "t = 0 is the effect's first frame" = the strike).
  */
-import { MOVE_AIR, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, WeaponId } from '@bladerift/shared';
+import { lookWeapon, MOVE_AIR, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, WeaponId } from '@bladerift/shared';
 import type { FxModule } from './pixel';
 // @ts-expect-error - plain JS vendor modules
 import * as swordSlash from '../vendor/pixelfx/fx/melee/sword-slash.js';
@@ -163,7 +163,7 @@ const SCYTHE_DARK = undefined;
 /** The swing effect for a move (null = none). */
 export function swingFx(weapon: number, move: number): SwingFx | null {
   const s = (mod: FxModule, rate = 1.4, opts?: Record<string, unknown>): SwingFx => ({ mod, rate, opts, stop: mod.act?.hits?.[0]?.stop ?? 0.1 });
-  switch (weapon) {
+  switch (lookWeapon(weapon)) {
     case WeaponId.Sword:
       if (move === MOVE_PLUNGE) return null;
       if (move === MOVE_AIR || move === 2) return s(FX.spinSlash, 1.5);
@@ -223,7 +223,9 @@ export const heroEnergy = (hero: number): HeroEnergy => HERO_ENERGY[hero] ?? HER
  * Sizes are world units (a standing fighter is ~58 tall). `dur` is the sweep time, `life` the whole effect's.
  */
 export interface ArcShape {
-  kind: 'slash' | 'thrust';
+  /** slash: a crescent swept round; thrust: a straight streak; chain: a lash of links whipping out to `r`; rake: three
+   * parallel claw cuts (a slash drawn three times, each a little further in). */
+  kind: 'slash' | 'thrust' | 'chain' | 'rake';
   a0: number;
   a1: number;
   r: number;
@@ -245,7 +247,51 @@ export function arcFor(weapon: number, move: number): ArcShape | null {
   const S = (a0: number, a1: number, r: number, w: number, o: Partial<ArcShape> = {}): ArcShape => ({
     kind: 'slash', a0, a1, r, w, cx: 4, cy: 30, sy: 0.8, dur: 0.07, life: 0.24, ...o,
   });
+  const T = (r: number, w: number, o: Partial<ArcShape> = {}): ArcShape => ({
+    kind: 'thrust', a0: 0, a1: 0, r0: 6, r, w, cx: 0, cy: 36, sy: 1, dur: 0.05, life: 0.2, ...o,
+  });
   switch (weapon) {
+    // the heroes' own weapons
+    case WeaponId.Kopis:
+      // fast forward chops alternating down and up, a rising cut, then the flaming finisher
+      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
+      if (move === MOVE_AIR) return S(-110, 200, 42, 11, { cx: 0, cy: 28, sy: 0.9, dur: 0.08, life: 0.24 });
+      if (move === 0) return S(-115, 30, 46, 11, { sy: 0.62, dur: 0.045, life: 0.19 });
+      if (move === 1) return S(45, -100, 46, 11, { sy: 0.62, dur: 0.045, life: 0.19 });
+      if (move === 2) return S(140, -75, 54, 13, { cy: 36, sy: 1, dur: 0.07, life: 0.26 });
+      return S(-160, 70, 62, 17, { cy: 34, sy: 0.95, dur: 0.08, life: 0.34, heavy: true });
+    case WeaponId.TwinBlades:
+      // a flurry of short alternating cuts, then a full spin
+      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
+      if (move === MOVE_AIR) return S(-180, 180, 36, 8, { cx: 0, cy: 28, sy: 0.55, dur: 0.12, life: 0.26 });
+      if (move === 4) return S(-180, 180, 42, 9, { cx: 0, cy: 30, sy: 0.45, dur: 0.12, life: 0.3, heavy: true, cross: true });
+      return move % 2 ? S(55, -55, 32, 6, { cy: 31, sy: 0.75, dur: 0.04, life: 0.15 }) : S(-60, 45, 32, 6, { cy: 30, sy: 0.75, dur: 0.04, life: 0.15 });
+    case WeaponId.Knives:
+      // a long surgical thrust, a clean cross-cut, then an X
+      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
+      if (move === MOVE_AIR) return S(-70, 60, 50, 6, { cx: 0, cy: 30, sy: 0.85, dur: 0.06, life: 0.2 });
+      if (move === 0) return T(72, 4, { cy: 38, life: 0.18 });
+      if (move === 1) return S(-55, 50, 54, 6, { cy: 34, sy: 0.85, dur: 0.05, life: 0.2 });
+      return S(-60, 55, 60, 8, { cy: 34, sy: 0.9, dur: 0.06, life: 0.3, cross: true, heavy: true });
+    case WeaponId.Chains:
+      // living chains whipping out (low, high), then the yank
+      if (move === MOVE_CHARGED) return T(96, 9, { life: 0.34, heavy: true });
+      if (move === MOVE_PLUNGE) return null;
+      if (move === MOVE_AIR) return { kind: 'chain', a0: 0, a1: 0, r: 96, w: 6, cx: 4, cy: 26, sy: 1, dur: 0.09, life: 0.3 };
+      if (move === 1) return { kind: 'chain', a0: 0, a1: 0, r: 104, w: 6, cx: 6, cy: 56, sy: 1, dur: 0.1, life: 0.3 };
+      if (move === 2) return { kind: 'chain', a0: 0, a1: 0, r: 124, w: 8, cx: 6, cy: 40, sy: 1, dur: 0.11, life: 0.4, heavy: true };
+      return { kind: 'chain', a0: 0, a1: 0, r: 114, w: 6, cx: 6, cy: 38, sy: 1, dur: 0.1, life: 0.3 };
+    case WeaponId.Quill:
+    case WeaponId.Staff:
+    case WeaponId.Bow:
+    case WeaponId.Gate:
+      return null;
+    case WeaponId.Hammer:
+      // Humbaba's claws: three parallel rakes (the third blow is the ground slam)
+      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
+      if (move === 2) return { kind: 'rake', a0: -160, a1: 70, r: 64, w: 9, cx: 0, cy: 38, sy: 0.9, dur: 0.1, life: 0.36, heavy: true };
+      if (move === MOVE_AIR) return { kind: 'rake', a0: -140, a1: 60, r: 50, w: 8, cx: 0, cy: 30, sy: 1, dur: 0.09, life: 0.3, heavy: true };
+      return { kind: 'rake', a0: move === 1 ? 40 : -140, a1: move === 1 ? -120 : 40, r: 56, w: 8, cx: 2, cy: 38, sy: 0.95, dur: 0.08, life: 0.32, heavy: true };
     case WeaponId.Sword:
       if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
       if (move === MOVE_AIR) return S(-100, 250, 40, 10, { cx: 0, cy: 28, sy: 0.9, dur: 0.1, life: 0.26 });
@@ -276,11 +322,6 @@ export function arcFor(weapon: number, move: number): ArcShape | null {
       if (move === 1) return S(45, -55, 32, 7, { cy: 30, sy: 0.75, dur: 0.05, life: 0.17 });
       if (move === 2) return S(-20, 25, 36, 6, { cy: 27, sy: 0.4, dur: 0.05, life: 0.17 });
       return S(-55, 45, 32, 7, { cy: 31, sy: 0.75, dur: 0.05, life: 0.17 });
-    case WeaponId.Hammer:
-      if (move === MOVE_PLUNGE || move === MOVE_CHARGED) return null;
-      if (move === MOVE_AIR) return S(-150, 70, 52, 15, { cy: 30, sy: 1, dur: 0.09, life: 0.3, heavy: true });
-      if (move === 2) return S(-175, 60, 64, 19, { cx: 0, cy: 40, sy: 0.85, dur: 0.11, life: 0.38, heavy: true });
-      return S(-150, 50, 58, 17, { cx: 2, cy: 38, sy: 0.95, dur: 0.1, life: 0.34, heavy: true });
     case WeaponId.Shield:
       return S(-55, 55, 30, 9, { cx: 6, cy: 28, sy: 1, dur: 0.05, life: 0.18 });
     default:

@@ -61,7 +61,9 @@ export const artIdOf = (load: { hero?: number; cls: number }) => heroOf(load.her
 
 /** Heroes whose weapon is their own rather than their class's signature, as in their legends: Gilgamesh fights with the
  * Gate of Treasures (no bow), Jack the Ripper with long surgical knives, Alexander with a kopis sword. */
-const HERO_WEAPON: Partial<Record<number, WeaponId>> = { 2: WeaponId.Gate, 10: WeaponId.Daggers, 11: WeaponId.Sword };
+const HERO_WEAPON: Partial<Record<number, WeaponId>> = {
+  2: WeaponId.Gate, 4: WeaponId.Chains, 6: WeaponId.Quill, 8: WeaponId.TwinBlades, 10: WeaponId.Knives, 11: WeaponId.Kopis,
+};
 /** Signature weapon per class (ClassId order). */
 const SIGNATURE: WeaponId[] = [WeaponId.Sword, WeaponId.Bow, WeaponId.Lance, WeaponId.Staff, WeaponId.Daggers, WeaponId.Hammer, WeaponId.Shield, WeaponId.Scythe];
 /** The weapon a hero fights with: its own (Gilgamesh's Gate) or its class's signature weapon. */
@@ -72,14 +74,16 @@ export const heroWeapon = (hero: number) => HERO_WEAPON[hero] ?? SIGNATURE[HEROE
  * a dodge than Humbaba, and each cut a little deeper. */
 export type HeroTune = Partial<Pick<ClassDef, 'dmg' | 'speed' | 'recovery' | 'rollCd'>>;
 export const HERO_TUNE: Partial<Record<number, HeroTune>> = {
-  0: { dmg: 0.88 },
+  0: { dmg: 0.85 },
   2: { dmg: 0.92 },
+  4: { dmg: 1.12 },
   5: { dmg: 1.12, recovery: 0.92 },
   6: { dmg: 1.08 },
-  9: { dmg: 1.2, speed: 1.1, recovery: 0.9 },
-  10: { dmg: 1.15, speed: 1.3, recovery: 0.85, rollCd: 0.7 },
+  8: { dmg: 1.1 },
+  9: { dmg: 1.32, speed: 1.15, recovery: 0.82 },
+  10: { dmg: 0.85, speed: 1.3, recovery: 0.9, rollCd: 0.7 },
   12: { dmg: 0.85, recovery: 1.08 },
-  13: { dmg: 0.9 },
+  13: { dmg: 0.82 },
 };
 const tunedClasses = new Map<number, ClassDef>();
 /** The class stats a loadout fights with: its class's, with its hero's tune (HERO_TUNE) applied. */

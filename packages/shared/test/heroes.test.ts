@@ -3,7 +3,7 @@ import {
   Act, ARENAS, ARTS, ArtId, artIdOf, BotBrain, Btn, CLASSES, ClassId, decodeSnapshot, DT, encodeSnapshot, encodeSnapshotBody, Fighter, GameEvent,
   HERO_COUNT, HEROES, InputCmd, MOVE_ART, PROJ_KINDS, Projectile, RIFT, ROUND, sanitizeLoadout, SkillId, solidAt, World, WeaponId, FIGHTER,
 } from '../src/index';
-import { heroWeapon } from '../src/heroes';
+import { heroClass, heroWeapon } from '../src/heroes';
 
 /** Every Rift Art starts with the superpause: its timeline runs after it. */
 const SP = FIGHTER.superpause;
@@ -169,7 +169,7 @@ describe('new Rift Arts', () => {
     });
     expect(rooted).toBe(true);
     expect(Math.abs(fb.s.x - x0)).toBeLessThan(1);
-    expect(hp0 - fb.s.hp).toBe(120);
+    expect(hp0 - fb.s.hp).toBe(Math.round(120 * heroClass(loadOf(VERDAN)).dmg));
     expect(hitsBy(log, fa.id, fb.id).some((e) => e.w === 107)).toBe(true);
   });
 
@@ -422,7 +422,7 @@ describe('protocol round-trip', () => {
     expect(b.buff).toBe(true);
     expect(b.veil).toBe(false);
     expect(b.rift).toBe(1000);
-    expect(b.weapons).toEqual([WeaponId.Staff, WeaponId.Staff]);
+    expect(b.weapons).toEqual([WeaponId.Quill, WeaponId.Quill]);
 
     // the recipient's own fighter is sent whole
     expect(snap.self).not.toBeNull();

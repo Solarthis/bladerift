@@ -32,6 +32,73 @@
       ]
     },
     "atk-a": {
+      "title": "Basic combo strikes 1 and 2: quick thrusts and crossing cuts (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: the right knife drawn back at the shoulder in forward grip, body turned side-on, the veil edge lifting, a faint cyan after-image",
+        "combo strike 1, strike: a fast forward thrust with the right knife, arm straight, the knife point leading, a short cyan trail, with a motion smear of the swing, kept inside this cell",
+        "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 1, recovery: the knife pulled back into guard, body light on the balls of the feet",
+        "combo strike 2, anticipation: the left knife swept across behind the head, weight rolling onto the toes, a cyan trace behind the hand",
+        "combo strike 2, strike: a quick crossing slash with the left knife across the body, a sharp cyan arc, with a motion smear of the swing, kept inside this cell, the scarf snapping outward",
+        "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 2, recovery: both knives back in forward guard, the body already turning toward the next cut"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher and aerial attack: leaping double cut and mid-air spin (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: a fast crouch, both knives low and crossed at the hips, body coiled, a cyan after-image starting behind her",
+        "combo finisher, strike: a leaping double cut, both knives sweeping forward in a wide arc as she springs off the ground, a large cyan arc trail, with a motion smear of the swing, kept inside this cell, the strongest pose",
+        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo finisher, recovery: landing into a long stretched pose, knives flared out wide, scarf and veil flaring, the after-images fading",
+        "aerial attack, anticipation: in mid-air, body folded, both knives drawn in close to the chest, a cyan after-image trailing",
+        "aerial attack, strike: a spinning mid-air slash, one knife sweeping across in front, a cyan arc trail, with a motion smear of the swing, kept inside this cell",
+        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "aerial attack, recovery: airborne, body tucked, knives returned to forward guard, the scarf streaming upward"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge attack and heavy attack: knife dive and whirling cut flurry (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: diving straight down feet-first, both knives pointed at the ground under the body, cyan speed streaks",
+        "plunge, impact: landing in a low crouch, both knives driven into the ground in front, a burst of cyan light and dust, with a motion smear of the swing, kept inside this cell",
+        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "plunge, recovery: rising from the impact, the knives pulled free and returned to forward guard",
+        "heavy attack, charge: body coiled low, both knives drawn back far behind the body, a cyan glow building along the blades",
+        "heavy attack, strike: a whirling spin into a flurry of cuts, the body turning with both knives extended, a huge cyan arc of cuts, with a motion smear of the swing, kept inside this cell",
+        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "heavy attack, follow-through: the spin ends in a poised pose, the knives crossed in front, cyan after-images dissolving"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "idle": "Both knives held forward-grip at the hips, blades angled out; the veil and hood stay still; a faint cyan after-image shimmers at the edge of the stance.",
+    "air": "In the air she holds both knives forward-grip and tucks her knees; the scarf tail streams behind; cyan after-images trail on fast moves.",
+    "dash": "Ground dash: she stretches forward into a flat blur with a cyan after-image trailing, the scarf snapping back. Air dash: the same stretched line through the air.",
+    "hurt": "Show the pain on her face: eyes squeezed, the veil pulling down with a gasp, the hood knocked back. Both knives stay in hand.",
+    "art": "Flash Step: anticipation 1-2, she sinks low and her figure splits into two cyan after-images, the instant before the blink. Execution 3-4, the blink: her body is a cyan streak sweeping across the cell, leaving three after-images, the knives crossed; then the six-cut flurry, six cyan arc slashes around her body kept inside the cell, the knives blurring. Recovery 5-6, the flurry ends, she lands in a low crouch as the after-images dissolve, then rises back to her stance.",
+    "misc": "Skill throw: the thrown item is a single slim knife thrown overhand with the right hand, a short cyan trail behind it. Taunt: she spins one knife around her fingers in a quick flourish, then rises with a slow, confident head tilt, a cyan after-image behind her. Victory: she crosses the two knives in front of her chest, blades down, the scarf stirring, a cyan after-image shimmering beside her.",
+    "ko": "Intro: she walks in quietly with both knives lowered and the hood up; she lifts the knives to a salute in front of her veil, twirls them once in a fast cyan-trail flourish, and settles into the low, coiled stance. Defeat: she staggers, drops to one knee with a knife slipping, then collapses.",
+    "skill": "Fan of Knives, her own special (three knives flung in a spread). Both knives are held in forward grip. 1: she crouches with both knives in forward grip, the arms drawn in close. 2: both arms swept back wide, a cyan ghost blade forming in the space between her hands. 3: she flings both arms forward and three knives release together in a spread. 4: the three knives in a wide fan at full force, cyan trails behind each blade. 5: the cyan trails fading, the arms lowering. 6: back in stance with both knives in hand."
+  },
+  "nativeHeight": 164,
+  "sheetsThreeFrame": {
+    "atk-a": {
       "title": "Basic combo strikes 1 and 2: quick thrusts and crossing cuts (3 frames each)",
       "grid": [
         3,
@@ -79,16 +146,5 @@
         "heavy attack, follow-through: the spin ends in a poised pose, the knives crossed in front, cyan after-images dissolving"
       ]
     }
-  },
-  "sheetNotes": {
-    "idle": "Both knives held forward-grip at the hips, blades angled out; the veil and hood stay still; a faint cyan after-image shimmers at the edge of the stance.",
-    "air": "In the air she holds both knives forward-grip and tucks her knees; the scarf tail streams behind; cyan after-images trail on fast moves.",
-    "dash": "Ground dash: she stretches forward into a flat blur with a cyan after-image trailing, the scarf snapping back. Air dash: the same stretched line through the air.",
-    "hurt": "Show the pain on her face: eyes squeezed, the veil pulling down with a gasp, the hood knocked back. Both knives stay in hand.",
-    "art": "Flash Step: anticipation 1-2, she sinks low and her figure splits into two cyan after-images, the instant before the blink. Execution 3-4, the blink: her body is a cyan streak sweeping across the cell, leaving three after-images, the knives crossed; then the six-cut flurry, six cyan arc slashes around her body kept inside the cell, the knives blurring. Recovery 5-6, the flurry ends, she lands in a low crouch as the after-images dissolve, then rises back to her stance.",
-    "misc": "Skill throw: the thrown item is a single slim knife thrown overhand with the right hand, a short cyan trail behind it. Taunt: she spins one knife around her fingers in a quick flourish, then rises with a slow, confident head tilt, a cyan after-image behind her. Victory: she crosses the two knives in front of her chest, blades down, the scarf stirring, a cyan after-image shimmering beside her.",
-    "ko": "Intro: she walks in quietly with both knives lowered and the hood up; she lifts the knives to a salute in front of her veil, twirls them once in a fast cyan-trail flourish, and settles into the low, coiled stance. Defeat: she staggers, drops to one knee with a knife slipping, then collapses.",
-    "skill": "Fan of Knives, her own special (three knives flung in a spread). Both knives are held in forward grip. 1: she crouches with both knives in forward grip, the arms drawn in close. 2: both arms swept back wide, a cyan ghost blade forming in the space between her hands. 3: she flings both arms forward and three knives release together in a spread. 4: the three knives in a wide fan at full force, cyan trails behind each blade. 5: the cyan trails fading, the arms lowering. 6: back in stance with both knives in hand."
-  },
-  "nativeHeight": 164
+  }
 }

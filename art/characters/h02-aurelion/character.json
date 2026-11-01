@@ -85,6 +85,95 @@
       ]
     },
     "atk-a": {
+      "title": "Basic combo strikes 1 and 2: portal shots fired without unfolding his arms (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo strike 1, anticipation: ARMS STILL FOLDED, he narrows his eyes at the opponent and a small gold portal opens in the air behind his right shoulder, a GOLD sword point emerging",
+        "combo strike 1, strike: arms still folded, a slight lift of the chin, and the gold sword shoots straight forward out of the portal past him, a straight molten-gold streak, with a motion smear of the swing, kept inside this cell",
+        "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 1, recovery: arms still folded, a bored half-lidded look, the portal closing into sparks",
+        "combo strike 2, anticipation: arms still folded, a portal opens above his head with a SILVER spear point emerging, he glances at it",
+        "combo strike 2, strike: arms still folded, a dismissive tilt of the head toward the opponent, and the silver spear shoots forward and slightly down, a silver-gold streak, with a motion smear of the swing, kept inside this cell",
+        "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo strike 2, recovery: arms still folded, chin lifted, a faint smirk, the crimson waist drape settling"
+      ]
+    },
+    "atk-b": {
+      "title": "Combo finisher: a dismissive backhand volley, and an aerial shot (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "combo finisher, anticipation: he unfolds only his RIGHT hand, the left arm stays across his chest, two portals open behind him, a gold sword in one and a silver axe in the other",
+        "combo finisher, strike: a lazy dismissive BACKHAND WAVE of the right hand toward the opponent, as if shooing away an insect, and both weapons shoot forward one just behind the other, a gold streak and a silver streak, with a motion smear of the swing, kept inside this cell",
+        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "combo finisher, recovery: re-folding the arms across the chest, chin lifted, the two portals closing into sparks",
+        "aerial attack, anticipation: in mid-air with arms folded, a portal opening below and in front of him, he looks down at the opponent",
+        "aerial attack, strike: in mid-air with arms folded, a gold sword shoots diagonally downward out of the portal, its trail, with a motion smear of the swing, kept inside this cell",
+        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "aerial attack, recovery: airborne, arms folded, legs tucked, the portal closing into sparks"
+      ]
+    },
+    "atk-c": {
+      "title": "Plunge: gold and silver blades falling, and a Vault volley (4 frames each)",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.66,
+      "frames": [
+        "plunge, dive: in mid-air diving straight down, both hands pointing at the ground, two portals above him launching a gold and a silver blade downward ahead of him, gold speed lines and the crimson waist drape flying upward",
+        "plunge, impact: landing in a low crouch, the blades embedded point-first in the ground in front, a burst of gold light and dust",
+        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "plunge, recovery: rising from the impact, the blades dissolving into sparks, back toward stance",
+        "heavy attack, charge: the left arm stays folded across his chest, the RIGHT hand raised lazily, palm UP at shoulder height as if presenting something trivial, an arc of seven to nine gold portal rings opening behind and above him, sword, spear and axe points glinting in them, chin lifted, a contemptuous smirk",
+        "heavy attack, strike: a casual flick of two fingers of the right hand toward the opponent and a staggered volley of seven to nine mixed gold and silver weapons streaks forward across the cell, every weapon, with a motion smear of the swing, kept inside this cell, his body barely moving",
+        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+        "heavy attack, follow-through: re-folding the arms, the portals closing one by one in sparks, golden light dissipating, chin high"
+      ]
+    },
+    "ko": {
+      "title": "Defeat and intro",
+      "grid": [
+        4,
+        2
+      ],
+      "standFrac": 0.78,
+      "frames": [
+        "defeat 1: staggering from the final blow, hands empty, chin still raised",
+        "defeat 2: dropping to one knee, the portal behind him cracking, hands empty",
+        "defeat 3: collapsing forward, the crimson waist drape falling with him, hands empty",
+        "defeat 4: lying motionless on the ground, a few gold sparks fading around him",
+        "intro 1: strolling in with arms folded high across the chest, chin lifted, looking down his nose",
+        "intro 2: a golden portal opens beside him and a gold sword rises halfway out of it",
+        "intro 3: he flicks his fingers and three portals flare open behind him in a crown-like arc",
+        "intro 4: settling into the arms-folded stance, one portal hovering behind the shoulder, a contemptuous smirk"
+      ]
+    }
+  },
+  "sheetNotes": {
+    "idle": "HANDS ALWAYS EMPTY and ARMS FOLDED high across the chest in EVERY frame of this sheet (both forearms crossed, the hands tucked at the opposite upper arms). He holds no weapon at any time; the PORTAL is his only weapon. In the combat loop the small gold portal ring hovers just behind his RIGHT shoulder in all four frames, a gold sword hilt inside it, its glow pulsing. Chin lifted, looking down his nose at the opponent with half-lidded crimson eyes and a faint smirk: condescending, bored, unimpressed. Frame 5: the guard - arms still folded, a portal opens by itself in front of him with a gold shield's face emerging. Frame 6: crouch, arms folded. Frame 7: skid, arms folded. Frame 8: landing, arms folded.",
+    "run": "A brisk, upright, HAUGHTY stride: he will not deign to run like a common soldier. ARMS FOLDED across the chest in every frame, chin high, long confident steps, the crimson waist drape streaming back. A small gold portal ring trails just behind his shoulder. Hands empty, never a weapon in the hand. Facing RIGHT, moving right.",
+    "air": "Hands always empty; the portal is his only weapon and no ranged weapon is ever held. Frame 1 is the crouched take-off, frame 2 the rising jump with legs tucked, frame 3 the apex, frame 4 the falling pose, frame 5 the fast fall diving straight down. In the rising, apex, falling and fast-fall frames the crimson waist drape flares and gold sparks trail behind him. Frame 6 is the wall slide with the back and the LEFT shoulder against a wall on the left, one hand bracing and one foot scraping. Frame 7 is the ledge hang and frame 8 the ledge climb, both with empty hands.",
+    "dash": "Hands always empty, the crimson waist drape whipping with each move. Dodge roll 1 to 4: he drops low into a forward roll, tucks into a tight ball with the drape wrapping around him, rolls over the shoulder, and comes out into a low crouch, ready. Ground dash 5: a fast low burst forward, body almost horizontal, faint gold speed lines behind. Air dash 6: body stretched forward through the air, the drape snapping behind him, gold sparks trailing. Heal 7 and 8 keep the standard frames: he pulls a small glass flask of glowing red potion from his belt and drinks it, head tipped back, with a soft red glow (the flask is not a weapon).",
+    "hurt": "Hands always empty; no weapon is ever held. Light hit: his folded arms knocked loose and an expression of outrage. Recovery: re-folding the arms with an indignant glare. Heavy hit: bent backward, arms flung out. Frame 4 launched backward, frame 5 falling onto his back, frame 6 lying flat on his back, frame 7 rising onto one knee brushing dust off his pauldron with disdain, frame 8 standing tall and re-folding the arms.",
+    "atk-a": "His ARMS STAY FOLDED across the chest in ALL SIX frames: the portals fire by themselves at a glance; he cannot be bothered to lift a hand. Combo strike 1: a portal behind the shoulder fires a gold sword point-first in a straight molten-gold streak. Combo strike 2: a portal above the head fires a silver spear forward and slightly down. Frames 1 and 4 anticipation (portal opening), frames 2 and 5 strikes (streaks kept inside the cell), frames 3 and 6 recovery (portal closing into sparks). Face: half-lidded contempt, chin lifted.",
+    "atk-b": "Frames 1 to 3, the combo finisher: only the RIGHT hand unfolds while the left arm stays across the chest; a lazy backhand wave, as if shooing an insect, fires a gold sword and a silver axe from two portals; then he re-folds his arms. Frames 4 to 6, the aerial attack: in mid-air with ARMS FOLDED, a portal below and in front fires a gold sword diagonally downward; he recovers airborne with arms folded. Hands empty throughout.",
+    "atk-c": "Hands always empty; the portals and the blades they launch are the weapons. Frames 1 to 3 are the plunge: a dive straight down with arms folded, two portals above launching a gold and a silver blade ahead of him; then a low-crouch impact with the blades embedded point-first in the ground and a burst of gold light; then rising and re-folding the arms. Frames 4 to 6 are the heavy attack: LEFT ARM STAYS FOLDED across the chest; the right hand raised lazily palm-up with an arc of seven to nine gold portal rings behind and above him; then a casual flick of two fingers sends a staggered volley of mixed gold and silver weapons across the cell, every one kept inside the cell; then he re-folds his arms as the portals close.",
+    "art": "Vault of Ages, his Rift Art - the ONLY time he spreads both arms. Hands empty throughout; the portals and the treasures are the weapons, and every portal and weapon stays inside the cell. Anticipation 1: he UNFOLDS his arms and spreads them wide with a cruel grin, a large arc of golden portals opening behind him. Anticipation 2: a wall of portals behind and above him, gold and silver weapon points emerging. Execution 3: the treasures burst out of the portals (gold swords, silver swords, spears, axes, halberds) flying to the right. Execution 4: a storm of weapons streams across the right side of the cell. Recovery 5: the portals dim and close, sparks falling. Recovery 6: arms folded again, chin lifted, the crimson waist drape settling.",
+    "skill": "Gate Shot, his own special: one LARGE ornate golden portal opens behind him and one COLOSSAL gold greatsword fires straight through it. Anticipation 1: arms folded, he looks at the opponent with contempt, light gathering behind him. Anticipation 2: the large portal fully open behind him, the colossal blade's point emerging, arms still folded. Execution 3: he unfolds the right hand and points one finger at the opponent and the colossal blade launches. Execution 4: the blade streaks forward at full force with a wide gold trail, kept inside the cell. Recovery 5: the portal fades into gold rings and sparks. Recovery 6: arms folded again, chin lifted.",
+    "misc": "Hands empty except where a treasure is shown. Skill throw 1 to 3: he flicks a gold coin forward from his fingers like a tip to a servant, and the coin bursts into a small shimmer of gold light. Taunt 4: arms folded, he looks down his nose and laughs at the opponent, head tipped back. Taunt 5: a tiny golden portal at his fingertip and he raises a golden goblet toward the opponent with an arrogant half-smile. Victory 6 to 8: arms folded, turned half away from the opponent, laughing with his head tipped back, a crown of golden portals behind him with gold and silver blades circling it.",
+    "ko": "Defeat 1 to 4: he staggers from the final blow in disbelief, drops to one knee with the portal behind him cracking, collapses forward, and lies motionless with a few gold sparks fading; hands empty throughout. Intro 5 to 8: he strolls in with ARMS FOLDED and chin high, looking down his nose; a golden portal opens beside him and a gold sword rises halfway out of it; three portals flare open behind him in a crown-like arc; he settles into the arms-folded stance with a contemptuous smirk."
+  },
+  "nativeHeight": 180,
+  "sheetsThreeFrame": {
+    "atk-a": {
       "title": "Basic combo strikes 1 and 2: portal shots fired without unfolding his arms (3 frames each)",
       "grid": [
         3,
@@ -131,39 +220,6 @@
         "heavy attack, strike: a casual flick of two fingers of the right hand toward the opponent and a staggered volley of seven to nine mixed gold and silver weapons streaks forward across the cell, every weapon kept inside this cell, his body barely moving",
         "heavy attack, follow-through: re-folding the arms, the portals closing one by one in sparks, golden light dissipating, chin high"
       ]
-    },
-    "ko": {
-      "title": "Defeat and intro",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.78,
-      "frames": [
-        "defeat 1: staggering from the final blow, hands empty, chin still raised",
-        "defeat 2: dropping to one knee, the portal behind him cracking, hands empty",
-        "defeat 3: collapsing forward, the crimson waist drape falling with him, hands empty",
-        "defeat 4: lying motionless on the ground, a few gold sparks fading around him",
-        "intro 1: strolling in with arms folded high across the chest, chin lifted, looking down his nose",
-        "intro 2: a golden portal opens beside him and a gold sword rises halfway out of it",
-        "intro 3: he flicks his fingers and three portals flare open behind him in a crown-like arc",
-        "intro 4: settling into the arms-folded stance, one portal hovering behind the shoulder, a contemptuous smirk"
-      ]
     }
-  },
-  "sheetNotes": {
-    "idle": "HANDS ALWAYS EMPTY and ARMS FOLDED high across the chest in EVERY frame of this sheet (both forearms crossed, the hands tucked at the opposite upper arms). He holds no weapon at any time; the PORTAL is his only weapon. In the combat loop the small gold portal ring hovers just behind his RIGHT shoulder in all four frames, a gold sword hilt inside it, its glow pulsing. Chin lifted, looking down his nose at the opponent with half-lidded crimson eyes and a faint smirk: condescending, bored, unimpressed. Frame 5: the guard - arms still folded, a portal opens by itself in front of him with a gold shield's face emerging. Frame 6: crouch, arms folded. Frame 7: skid, arms folded. Frame 8: landing, arms folded.",
-    "run": "A brisk, upright, HAUGHTY stride: he will not deign to run like a common soldier. ARMS FOLDED across the chest in every frame, chin high, long confident steps, the crimson waist drape streaming back. A small gold portal ring trails just behind his shoulder. Hands empty, never a weapon in the hand. Facing RIGHT, moving right.",
-    "air": "Hands always empty; the portal is his only weapon and no ranged weapon is ever held. Frame 1 is the crouched take-off, frame 2 the rising jump with legs tucked, frame 3 the apex, frame 4 the falling pose, frame 5 the fast fall diving straight down. In the rising, apex, falling and fast-fall frames the crimson waist drape flares and gold sparks trail behind him. Frame 6 is the wall slide with the back and the LEFT shoulder against a wall on the left, one hand bracing and one foot scraping. Frame 7 is the ledge hang and frame 8 the ledge climb, both with empty hands.",
-    "dash": "Hands always empty, the crimson waist drape whipping with each move. Dodge roll 1 to 4: he drops low into a forward roll, tucks into a tight ball with the drape wrapping around him, rolls over the shoulder, and comes out into a low crouch, ready. Ground dash 5: a fast low burst forward, body almost horizontal, faint gold speed lines behind. Air dash 6: body stretched forward through the air, the drape snapping behind him, gold sparks trailing. Heal 7 and 8 keep the standard frames: he pulls a small glass flask of glowing red potion from his belt and drinks it, head tipped back, with a soft red glow (the flask is not a weapon).",
-    "hurt": "Hands always empty; no weapon is ever held. Light hit: his folded arms knocked loose and an expression of outrage. Recovery: re-folding the arms with an indignant glare. Heavy hit: bent backward, arms flung out. Frame 4 launched backward, frame 5 falling onto his back, frame 6 lying flat on his back, frame 7 rising onto one knee brushing dust off his pauldron with disdain, frame 8 standing tall and re-folding the arms.",
-    "atk-a": "His ARMS STAY FOLDED across the chest in ALL SIX frames: the portals fire by themselves at a glance; he cannot be bothered to lift a hand. Combo strike 1: a portal behind the shoulder fires a gold sword point-first in a straight molten-gold streak. Combo strike 2: a portal above the head fires a silver spear forward and slightly down. Frames 1 and 4 anticipation (portal opening), frames 2 and 5 strikes (streaks kept inside the cell), frames 3 and 6 recovery (portal closing into sparks). Face: half-lidded contempt, chin lifted.",
-    "atk-b": "Frames 1 to 3, the combo finisher: only the RIGHT hand unfolds while the left arm stays across the chest; a lazy backhand wave, as if shooing an insect, fires a gold sword and a silver axe from two portals; then he re-folds his arms. Frames 4 to 6, the aerial attack: in mid-air with ARMS FOLDED, a portal below and in front fires a gold sword diagonally downward; he recovers airborne with arms folded. Hands empty throughout.",
-    "atk-c": "Hands always empty; the portals and the blades they launch are the weapons. Frames 1 to 3 are the plunge: a dive straight down with arms folded, two portals above launching a gold and a silver blade ahead of him; then a low-crouch impact with the blades embedded point-first in the ground and a burst of gold light; then rising and re-folding the arms. Frames 4 to 6 are the heavy attack: LEFT ARM STAYS FOLDED across the chest; the right hand raised lazily palm-up with an arc of seven to nine gold portal rings behind and above him; then a casual flick of two fingers sends a staggered volley of mixed gold and silver weapons across the cell, every one kept inside the cell; then he re-folds his arms as the portals close.",
-    "art": "Vault of Ages, his Rift Art - the ONLY time he spreads both arms. Hands empty throughout; the portals and the treasures are the weapons, and every portal and weapon stays inside the cell. Anticipation 1: he UNFOLDS his arms and spreads them wide with a cruel grin, a large arc of golden portals opening behind him. Anticipation 2: a wall of portals behind and above him, gold and silver weapon points emerging. Execution 3: the treasures burst out of the portals (gold swords, silver swords, spears, axes, halberds) flying to the right. Execution 4: a storm of weapons streams across the right side of the cell. Recovery 5: the portals dim and close, sparks falling. Recovery 6: arms folded again, chin lifted, the crimson waist drape settling.",
-    "skill": "Gate Shot, his own special: one LARGE ornate golden portal opens behind him and one COLOSSAL gold greatsword fires straight through it. Anticipation 1: arms folded, he looks at the opponent with contempt, light gathering behind him. Anticipation 2: the large portal fully open behind him, the colossal blade's point emerging, arms still folded. Execution 3: he unfolds the right hand and points one finger at the opponent and the colossal blade launches. Execution 4: the blade streaks forward at full force with a wide gold trail, kept inside the cell. Recovery 5: the portal fades into gold rings and sparks. Recovery 6: arms folded again, chin lifted.",
-    "misc": "Hands empty except where a treasure is shown. Skill throw 1 to 3: he flicks a gold coin forward from his fingers like a tip to a servant, and the coin bursts into a small shimmer of gold light. Taunt 4: arms folded, he looks down his nose and laughs at the opponent, head tipped back. Taunt 5: a tiny golden portal at his fingertip and he raises a golden goblet toward the opponent with an arrogant half-smile. Victory 6 to 8: arms folded, turned half away from the opponent, laughing with his head tipped back, a crown of golden portals behind him with gold and silver blades circling it.",
-    "ko": "Defeat 1 to 4: he staggers from the final blow in disbelief, drops to one knee with the portal behind him cracking, collapses forward, and lies motionless with a few gold sparks fading; hands empty throughout. Intro 5 to 8: he strolls in with ARMS FOLDED and chin high, looking down his nose; a golden portal opens beside him and a gold sword rises halfway out of it; three portals flare open behind him in a crown-like arc; he settles into the arms-folded stance with a contemptuous smirk."
-  },
-  "nativeHeight": 180
+  }
 }

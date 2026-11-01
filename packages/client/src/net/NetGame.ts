@@ -1,6 +1,6 @@
 import {
   ArenaDef, copyState, FighterState, GameEvent, getArena, InputCmd, Loadout, MatchSettings, NetFighter, NetProjectile, NetTrap, Phase,
-  Act, SNAPSHOT_INTERVAL, Snapshot, stepFighter, TICK_RATE, ArtId, artIdOf, bodyBox, ClassId, currentMove, FIGHTER, hitstopFor, isActive,
+  Act, bodySolid, bodyYields, FoeView, SNAPSHOT_INTERVAL, Snapshot, stepFighter, TICK_RATE, ArtId, artIdOf, bodyBox, ClassId, currentMove, FIGHTER, hitstopFor, isActive,
   isFrozen, meleeConnect, meleeCrit, moveBox, moveDamage, MOVE_ART,
 } from '@bladerift/shared';
 
@@ -87,7 +87,7 @@ export class NetGame {
   renderAlpha = 1;
   private pending: InputCmd[] = [];
   /** The opponent as the newest snapshot has it: a Rift Art of yours can move you toward or behind them (World.stepArts). */
-  private foe: { x: number; y: number; face: number } | undefined = undefined;
+  private foe: FoeView | undefined = undefined;
   private seq = 0;
   private snaps: Snapshot[] = [];
   private tickOffset = NaN;
@@ -173,7 +173,7 @@ export class NetGame {
     this.latest = s;
     this.snaps.push(s);
     const other = s.fighters.find((f) => f.id !== this.selfId && f.id !== s.selfId);
-    this.foe = other && other.act !== Act.KO ? { x: other.x, y: other.y, face: other.face } : undefined;
+    this.foe = other && other.act !== Act.KO ? { x: other.x, y: other.y, face: other.face, solid: bodySolid(other), yields: bodyYields(other) } : undefined;
     while (this.snaps.length > 40) this.snaps.shift();
     this.phase = s.phase;
     this.phaseLeft = s.phaseLeft;

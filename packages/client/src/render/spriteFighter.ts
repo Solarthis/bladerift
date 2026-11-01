@@ -7,6 +7,10 @@ import Phaser from 'phaser';
 import { Act, FIGHTER } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
 import { hurtLevel, spritePoseFor, type SpriteAtlasMeta, type SpriteCtx, type SpritePose } from './spriteAnim';
+import { heroEnergy } from './fxmap';
+
+/** How long the motion smear of a swing lingers (seconds). */
+const SMEAR_LIFE = 0.11;
 
 /** Atlas folder per hero id (the same names as the art sources in art/characters/). */
 export const SPRITE_IDS = [
@@ -107,11 +111,25 @@ export class SpriteFighterView {
   /** The knockdown tilt (degrees, clockwise), applied just before rendering (the scene resets the angle each frame). */
   private rot = 0;
   private rotPending = false;
+  /**
+   * The motion smear: when a swing snaps from its wind-up to its strike, the wind-up drawing lingers for a few frames
+   * behind the body, stretched along the swing and washed in the hero's energy colour (additive), so the cut reads as
+   * one fast motion instead of two pictures.
+   */
+  private readonly smear: Phaser.GameObjects.Image;
+  private smearAt = -1;
+  private smearFrom = '';
+  private smearX = 0;
+  private smearY = 0;
+  private smearFace = 1;
+  private readonly energy: number;
 
   constructor(scene: Phaser.Scene, readonly hero: number, readonly meta: SpriteAtlasMeta, depth = 10) {
     this.scale = STAND_WORLD / (meta.base ?? meta.native);
     const first = meta.anims.idle?.frames[0] ?? Object.keys(meta.frames)[0];
+    this.smear = scene.add.image(0, 0, texKey(hero), first).setScale(this.scale).setDepth(depth - 0.01).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
     this.img = scene.add.image(0, 0, texKey(hero), first).setScale(this.scale).setDepth(depth);
+    this.energy = heroEnergy(hero).arc;
     this.apply(first, 1);
     scene.events.on(Phaser.Scenes.Events.PRE_RENDER, this.preRender, this);
   }
@@ -167,6 +185,15 @@ export class SpriteFighterView {
   draw(v: ViewFighter, x: number, y: number, ctx: SpriteCtx, flash: number, tint: number) {
     const pose = this.poseFor(v, ctx);
     const name = pose.frame;
+    // a swing reaching its strike drawing (the lunge snaps in): the drawing it leaves becomes the smear
+    if (v.act === Act.Attack && name !== this.frame && this.frame && pose.dx > 1 && !this.meta.anims.idle?.frames.includes(this.frame)) {
+      this.smearAt = ctx.time;
+      this.smearFrom = this.frame;
+      this.smearX = x;
+      this.smearY = y;
+      this.smearFace = v.face < 0 ? -1 : 1;
+    }
+    this.drawSmear(ctx.time);
     // the wall-slide frame is drawn with the wall behind; the game faces a sliding fighter toward the wall
     const wallFrame = this.meta.anims.wallSlide?.frames.includes(name);
     this.apply(name, wallFrame ? -v.face : v.face);
@@ -186,6 +213,27 @@ export class SpriteFighterView {
       if (t) this.img.setTint(t & 0xffffff);
       else this.img.clearTint();
     }
+  }
+
+  private drawSmear(now: number) {
+    const k = (now - this.smearAt) / SMEAR_LIFE;
+    if (this.smearAt < 0 || k >= 1 || k < 0 || !this.meta.frames[this.smearFrom]) {
+      this.smear.setVisible(false);
+      return;
+    }
+    const f = this.meta.frames[this.smearFrom];
+    const face = this.smearFace;
+    const ox = f.ax / f.w;
+    // it trails back along the cut and thins out as it fades
+    this.smear
+      .setVisible(true)
+      .setFrame(this.smearFrom)
+      .setFlipX(face < 0)
+      .setOrigin(face < 0 ? 1 - ox : ox, f.ay / f.h)
+      .setPosition(this.smearX - face * (3 + 9 * k), this.smearY)
+      .setScale(this.scale * (1.08 + 0.1 * k), this.scale * (1 - 0.04 * k))
+      .setTint(this.energy)
+      .setAlpha(0.55 * (1 - k) * (1 - k));
   }
 
   /** The knockdown tilt turns the figure about its body centre (not the feet anchor): set last thing before the render. */
@@ -215,6 +263,7 @@ export class SpriteFighterView {
 
   destroy() {
     this.img.scene?.events.off(Phaser.Scenes.Events.PRE_RENDER, this.preRender, this);
+    this.smear.destroy();
     this.img.destroy();
   }
 }

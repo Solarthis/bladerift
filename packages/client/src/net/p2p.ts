@@ -189,6 +189,8 @@ export class HostListener {
   constructor(
     private code: string,
     private onGuest: (link: DirectLink) => void,
+    /** How often to look for a guest's offer (a host already in a direct match only listens for re-links, slowly). */
+    private everyMs = 1000,
   ) {
     if (supported()) void this.loop();
   }
@@ -205,7 +207,7 @@ export class HostListener {
       } catch {
         /* the signalling script is not reachable: keep trying slowly */
       }
-      await sleep(this.busy ? 200 : 1000);
+      await sleep(this.busy ? 200 : this.everyMs);
     }
   }
 

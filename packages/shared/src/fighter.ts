@@ -499,7 +499,41 @@ export interface FoeView {
   x: number;
   y: number;
   face: number;
+  /** Their body blocks (bodySolid): bodies push apart instead of passing through. */
+  solid?: boolean;
+  /** They step out of the overlap themselves (bodyYields): this fighter then takes only half of it. */
+  yields?: boolean;
 }
+
+/** Does this body block the other's (it is on its feet or in the air, not dodging, lying down or in a Rift Art)? */
+export const bodySolid = (s: { act: number }) =>
+  s.act !== Act.Roll && s.act !== Act.Down && s.act !== Act.KO && s.act !== Act.Win && s.act !== Act.Ledge && s.act !== Act.Climb && s.act !== Act.Art;
+
+/** Does this body step out of an overlap itself? Not while swinging: an attacker holds its ground (its own prediction
+ * then never depends on where the defender was knocked to), and the defender steps out of the whole overlap. */
+export const bodyYields = (s: { act: number }) => bodySolid(s) && s.act !== Act.Attack;
+
+/**
+ * Bodies push apart (the fighting-game push box): two solid bodies closer than PUSH_W with overlapping heights step out
+ * of the overlap, half each, or the whole of it when the other is swinging (bodyYields); each fighter moves itself, so
+ * the client predicts its own share. Dodges, Rift Arts and a fighter lying down pass through; jumping over a head
+ * clears it.
+ */
+function pushApart(s: FighterState, arena: ArenaDef) {
+  if (!FOE?.solid || !bodyYields(s)) return;
+  if (Math.abs(FOE.y - s.y) >= FIGHTER.h) return;
+  const dx = s.x - FOE.x;
+  if (Math.abs(dx) >= PUSH_W) return;
+  // (exactly on top of each other: the one facing right steps left)
+  const dir = dx !== 0 ? Math.sign(dx) : -s.face;
+  const half = FIGHTER.w / 2;
+  const share = FOE.yields ? 0.5 : 1;
+  const x = Math.max(half, Math.min(arena.w - half, s.x + dir * (PUSH_W - Math.abs(dx)) * share));
+  for (const b of arena.blocks) if (x + half > b.x && x - half < b.x + b.w && s.y > b.y + 0.5 && s.y - FIGHTER.h < b.y + b.h) return;
+  s.x = x;
+}
+/** Push-box width: centres closer than this push apart. */
+const PUSH_W = 26;
 
 /** Night Hunt's leap: the hound's pounce lands on the opponent's spot (0.45 s of flight). */
 function nightHuntLaunch(s: FighterState, foe: FoeView | undefined) {
@@ -949,6 +983,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     s.wallSide = s.wall;
   }
   if (!s.ground) s.crouch = 0;
+  pushApart(s, arena);
   grabLedge(s, cmd, arena, C);
 }
 
