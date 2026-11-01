@@ -336,6 +336,12 @@ interface Arc {
 const easeOut3 = (p: number) => 1 - (1 - p) * (1 - p) * (1 - p);
 /** A colour darkened to `k` of its brightness (a spark's rim). */
 const shade = (c: number, k: number) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
+/** How saturated a colour is (0 grey .. 1 pure). */
+const saturation = (c: number) => {
+  const r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  return mx ? (mx - mn) / mx : 0;
+};
 /** A colour mixed toward white by `k` (a spark's hot middle). */
 const mixWhite = (c: number, k: number) => {
   const m = (v: number) => Math.round(v + (255 - v) * k);
@@ -1448,10 +1454,12 @@ export class GameScene extends Phaser.Scene {
   private impact(x: number, y: number, dir: number, str: number, c: HeroEnergy, heavy: boolean, crit: boolean, hold = 0.13) {
     const R = BODY_H * 0.36 * str;
     const big = heavy || crit;
-    // saturated like a sprite spark: the arc colour's darkest rim, its body, and the pale spark colour as the hot middle
-    const rim = shade(c.rim, 0.5);
-    const mid = c.arc;
-    const hot = mixWhite(c.spark, 0.35);
+    // saturated like a sprite spark: whichever of the hero's arc and spark colours is the more saturated is the body
+    // (Jack's steel arc would make a grey spark; his red cut does not), a dark rim of it, a pale hot middle
+    const body = saturation(c.arc) >= saturation(c.spark) ? c.arc : c.spark;
+    const rim = shade(body === c.arc ? c.rim : c.spark, 0.45);
+    const mid = body;
+    const hot = mixWhite(body === c.arc ? c.spark : c.arc, 0.4);
     const life = Phaser.Math.Clamp(hold + 0.1, 0.18, 0.38);
     const n = crit ? 12 : big ? 10 : 8;
     const rot0 = dir > 0 ? -0.1 : Math.PI + 0.1;
@@ -1463,8 +1471,8 @@ export class GameScene extends Phaser.Scene {
     // the bloom behind it
     this.addAdd(life * 0.8, (g, p) => {
       const a = 1 - p;
-      g.fillStyle(mid, 0.28 * a).fillCircle(x, y, R * (1.5 + 0.5 * p));
-      g.fillStyle(0xffffff, 0.3 * a * a).fillCircle(x, y, R * 0.45);
+      g.fillStyle(mid, 0.18 * a).fillCircle(x, y, R * (1.1 + 0.3 * p));
+      g.fillStyle(0xffffff, 0.3 * a * a).fillCircle(x, y, R * 0.4);
     });
     this.addVec(life, (g, p) => {
       const t = p * life;
