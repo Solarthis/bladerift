@@ -172,7 +172,7 @@ export function mountHeroSelect(root: HTMLElement, opts: HeroSelectOpts): { dest
       <button class="hsel-back" data-act="done" aria-label="Back">‹</button>
       <h2>Choose your hero</h2>
       <span class="hsel-grow"></span>
-      <input class="hsel-name" maxlength="16" value="${esc(opts.name)}" placeholder="Name" aria-label="Name">
+      <input id="fname" class="hsel-name" maxlength="16" value="${esc(opts.name)}" placeholder="Name" aria-label="Name">
       <button class="primary hsel-done" data-act="done">Done</button>
     </header>
     <div class="hsel-body">

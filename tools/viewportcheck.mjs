@@ -286,7 +286,8 @@ await block('iPhone home-screen app', async () => {
   await t.waitForTimeout(1600);
   check(Math.abs((await appH(t)) - 393) <= 1, `iPhone app, fighter: keyboard closed, full screen again (--app-h ${await appH(t)}, want 393)`);
   // in a match: stale viewports in both directions leave the match at full size
-  await t.click('[data-act="back"]');
+  // (the hero select's Back arrow and Done button both return to the title)
+  await t.click('.hsel-done');
   await t.waitForSelector('.screen-title');
   await t.click('[data-act="practice"]');
   await t.click('[data-act="start"]', { timeout: 10000 });
