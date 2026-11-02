@@ -255,15 +255,18 @@ export function meleeConnect(s: FighterState, load: Loadout, m: Move, hitstop: n
   }
 }
 
-/** Newest press wins the buffer (attacks over movement presses pressed on the same tick). */
+/** Newest press wins the buffer (attacks over movement presses pressed on the same tick). A press made while busy is kept
+ * longer (FIGHTER.bufferBusy), so it waits for the chain point or the end of the action instead of expiring. */
 function bufferPresses(s: FighterState, press: number) {
-  if (press & Btn.Jump) { s.buf = Buf.Jump; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.Heal) { s.buf = Buf.Heal; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.Roll) { s.buf = Buf.Roll; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.Skill) { s.buf = Buf.Skill; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.B) { s.buf = Buf.B; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.A) { s.buf = Buf.A; s.bufT = FIGHTER.buffer; }
-  if (press & Btn.Special) { s.buf = Buf.Special; s.bufT = FIGHTER.buffer; }
+  if (!press) return;
+  const t = s.act === Act.Free ? FIGHTER.buffer : FIGHTER.bufferBusy;
+  if (press & Btn.Jump) { s.buf = Buf.Jump; s.bufT = t; }
+  if (press & Btn.Heal) { s.buf = Buf.Heal; s.bufT = t; }
+  if (press & Btn.Roll) { s.buf = Buf.Roll; s.bufT = t; }
+  if (press & Btn.Skill) { s.buf = Buf.Skill; s.bufT = t; }
+  if (press & Btn.B) { s.buf = Buf.B; s.bufT = t; }
+  if (press & Btn.A) { s.buf = Buf.A; s.bufT = t; }
+  if (press & Btn.Special) { s.buf = Buf.Special; s.bufT = t; }
 }
 
 export const copyState = (s: FighterState): FighterState => ({ ...s });
@@ -962,6 +965,13 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     case Act.Attack: {
       const m = moveOf(load.weapons[s.slot], s.move)!;
       const end = m.startup + m.active;
+      // an air swing that landed in its hit window ends with it (see the landing check after collide)
+      if (s.ground && isAirMove(s.move) && s.actT >= end) {
+        s.act = Act.Free;
+        s.actT = 0;
+        s.comboWin = 18;
+        break;
+      }
       if (m.plunge) {
         if (s.actT >= m.startup && s.actT < end) {
           gravity = false;
@@ -1137,8 +1147,22 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   // the air string: its first swings of an airtime check the fall, and a fighter it juggles floats down with it
   if (!s.ground && s.vy > FIGHTER.airFloat && ((s.act === Act.Stun && s.float > 0) || (s.act === Act.Attack && isAirMove(s.move) && s.air <= FIGHTER.airHover)))
     s.vy = FIGHTER.airFloat;
+  const airSwing = s.act === Act.Attack && isAirMove(s.move) && !s.ground;
   if (s.act !== Act.Climb && s.act !== Act.Ledge) collide(s, arena);
   else s.wall = 0;
+  if (airSwing && s.ground) {
+    // landing out of an air swing: one still winding up becomes the ground swing (the press is not lost to the floor);
+    // one in its hit window finishes it (the Attack case ends it there); one past it ends (no floating recovery on the floor)
+    const m = moveOf(load.weapons[s.slot], s.move);
+    const w = WEAPONS[load.weapons[s.slot]];
+    if (m && w && s.actT < m.startup && !isRanged(w)) {
+      startAttack(s, s.slot, 0);
+      s.combo = 1 % w.combo.length;
+    } else if (!m || s.actT >= m.startup + m.active) {
+      s.act = Act.Free;
+      s.actT = 0;
+    }
+  }
   if (s.act === Act.Ledge || s.act === Act.Climb) s.ground = s.act === Act.Climb ? s.ground : 0;
   if (s.ground) {
     s.coyote = PHYS.coyote;
@@ -1193,7 +1217,6 @@ function collide(s: FighterState, arena: ArenaDef) {
   pushOut();
   const prevY = s.y;
   let ny = s.y + s.vy * DT;
-  const wasGround = s.ground;
   s.ground = 0;
   if (ny >= arena.floor) {
     ny = arena.floor;
@@ -1233,11 +1256,6 @@ function collide(s: FighterState, arena: ArenaDef) {
   }
   s.y = ny;
   pushOut();
-  if (s.ground && !wasGround && s.act === Act.Attack && isAirMove(s.move)) {
-    // landing out of an air attack ends it (no floating recovery on the floor)
-    s.act = Act.Free;
-    s.actT = 0;
-  }
 }
 
 /** Falling past a top edge (block or platform) within reach of the hands: catch it and hang. */

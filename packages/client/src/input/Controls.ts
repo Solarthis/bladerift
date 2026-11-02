@@ -350,7 +350,8 @@ export class TouchSource implements InputSource {
   private stick = { id: -1, ox: 0, oy: 0, x: 0, y: 0 };
   /** The stick is past its dead zone (see STICK_ON / STICK_OFF). */
   private moving = false;
-  private pressed = new Map<number, number>();
+  /** The tile each finger on the cluster went down on (pointerId to button). */
+  private pressed = new Map<number, (typeof BUTTONS)[number]>();
   /** Buttons pressed since the last read: a tap quicker than a frame (down and up between two reads) still counts once. */
   private tapped = 0;
   /** performance.now() until which the chord thresholds apply (set by each button press, see CHORD_MS). */
@@ -370,6 +371,8 @@ export class TouchSource implements InputSource {
   private hintTimer = 0;
   private artWasReady = false;
   private btnEls = new Map<string, HTMLElement>();
+  /** Window listeners (see the constructor), removed by destroy(). */
+  private offWindow: () => void;
 
   constructor(parent: HTMLElement) {
     this.root = document.createElement('div');
@@ -419,20 +422,15 @@ export class TouchSource implements InputSource {
       this.knob.style.transform = `translate(${dx / this.scale}px, ${dy / this.scale}px)`;
       this.aim(dx, dy);
     });
-    const end = (e: PointerEvent) => {
-      if (e.pointerId !== this.stick.id) return;
-      this.stick = { id: -1, ox: 0, oy: 0, x: 0, y: 0 };
-      this.knob.style.transform = '';
-      this.base.classList.remove('on', 'lit-l', 'lit-r', 'lit-d');
-      this.base.style.opacity = this.stickRest();
-    };
+    const end = (e: PointerEvent) => this.endStick(e.pointerId);
     zone.addEventListener('pointerup', end);
     zone.addEventListener('pointercancel', end);
+    zone.addEventListener('lostpointercapture', end);
     for (const b of BUTTONS) {
       const el = this.btnEls.get(b.id)!;
       el.addEventListener('pointerdown', (e) => {
         el.setPointerCapture(e.pointerId);
-        this.pressed.set(e.pointerId, b.bit);
+        this.pressed.set(e.pointerId, b);
         this.tapped |= b.bit;
         this.chordUntil = performance.now() + CHORD_MS;
         el.classList.add('down');
@@ -442,19 +440,72 @@ export class TouchSource implements InputSource {
         navigator.vibrate?.(8);
         e.preventDefault();
       });
-      const up = (e: PointerEvent) => {
-        if (!this.pressed.has(e.pointerId)) return;
-        this.pressed.delete(e.pointerId);
-        if (![...this.pressed.values()].includes(b.bit)) {
-          el.classList.remove('down');
-          this.setRest(b.id);
-        }
-      };
+      const up = (e: PointerEvent) => this.release(e.pointerId);
       el.addEventListener('pointerup', up);
       el.addEventListener('pointercancel', up);
+      // the capture can end without a pointerup reaching the tile: the K.O. fade sets pointer-events: none on it, and
+      // the browser may take the touch for a gesture. That finger's release is never seen, so it is let go now
+      el.addEventListener('lostpointercapture', up);
     }
+    // a safety net: a finger lifted anywhere lets go of whatever it held, even if its pointerup went to another element
+    const anyUp = (e: PointerEvent) => {
+      this.release(e.pointerId);
+      this.endStick(e.pointerId);
+    };
+    // the app hidden (a call, the home gesture, a notification) or the window blurred: no pointerup will come
+    const drop = () => this.releaseAll();
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') this.releaseAll();
+    };
+    addEventListener('pointerup', anyUp, true);
+    addEventListener('pointercancel', anyUp, true);
+    addEventListener('blur', drop);
+    addEventListener('pagehide', drop);
+    document.addEventListener('visibilitychange', onVis);
+    this.offWindow = () => {
+      removeEventListener('pointerup', anyUp, true);
+      removeEventListener('pointercancel', anyUp, true);
+      removeEventListener('blur', drop);
+      removeEventListener('pagehide', drop);
+      document.removeEventListener('visibilitychange', onVis);
+    };
     liveTouch.add(this);
     this.refresh();
+  }
+
+  /** A finger on the cluster lifted (or lost): its tile pops up unless another finger still holds it. */
+  private release(pointerId: number) {
+    const b = this.pressed.get(pointerId);
+    if (!b) return;
+    this.pressed.delete(pointerId);
+    if ([...this.pressed.values()].includes(b)) return;
+    this.btnEls.get(b.id)!.classList.remove('down');
+    this.setRest(b.id);
+  }
+
+  /** The stick's finger lifted (or lost): the stick recentres and waits for the next thumb. */
+  private endStick(pointerId: number) {
+    if (pointerId < 0 || pointerId !== this.stick.id) return;
+    this.stick = { id: -1, ox: 0, oy: 0, x: 0, y: 0 };
+    this.moving = false;
+    this.knob.style.transform = '';
+    this.base.classList.remove('on', 'lit-l', 'lit-r', 'lit-d');
+    this.base.style.opacity = this.stickRest();
+  }
+
+  /** Let go of every finger: nothing reads as held until it is pressed again. */
+  releaseAll() {
+    for (const id of [...this.pressed.keys()]) this.release(id);
+    this.endStick(this.stick.id);
+  }
+
+  /**
+   * The K.O. fade: faded, the controls show nothing and take no touches (styles.css). Every finger is let go, since a
+   * tile under a held thumb stops receiving its events and would otherwise read as held into the next round.
+   */
+  setFaded(on: boolean) {
+    this.root.classList.toggle('faded', on);
+    if (on) this.releaseAll();
   }
 
   /** Re-read the control prefs (size, opacity, handedness) and lay the touch controls out again. */
@@ -547,7 +598,7 @@ export class TouchSource implements InputSource {
   read(): Intent {
     let b = this.tapped;
     this.tapped = 0;
-    for (const bit of this.pressed.values()) b |= bit;
+    for (const btn of this.pressed.values()) b |= btn.bit;
     const chord = this.chord();
     const ax = Math.abs(this.stick.x);
     this.moving = ax >= (this.moving ? STICK_OFF : chord ? CHORD_ON : STICK_ON);
@@ -604,6 +655,7 @@ export class TouchSource implements InputSource {
 
   destroy() {
     window.clearTimeout(this.hintTimer);
+    this.offWindow();
     liveTouch.delete(this);
     this.root.remove();
   }

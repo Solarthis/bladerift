@@ -894,7 +894,7 @@ export class App {
           const src: (KeyboardSource | GamepadSource | TouchSource)[] = [new KeyboardSource('solo' as KeyScheme), pads(0)];
           if (isTouchDevice()) {
             this.touch = new TouchSource(this.ui);
-            this.touch.root.classList.toggle('faded', this.koHidden);
+            this.touch.setFaded(this.koHidden);
             src.push(this.touch);
           }
           const input: InputSource = new MergedSource(src);
@@ -1254,7 +1254,7 @@ export class App {
   private fadeHud(on: boolean) {
     this.koHidden = on;
     this.hud?.setHidden(on);
-    this.touch?.root.classList.toggle('faded', on);
+    this.touch?.setFaded(on);
   }
 
   /**

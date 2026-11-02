@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 14;
+export const PROTOCOL_VERSION = 15;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -123,6 +123,9 @@ export const FIGHTER = {
   blockSpeed: 70,
   /** Inputs pressed slightly early are remembered this long (ticks). */
   buffer: 10,
+  /** A press made while the fighter is busy (mid-swing, dodging, staggered, healing) is kept this long instead, so a tap
+   * early in a slow swing still becomes the next swing at the chain point rather than expiring unseen (ticks). */
+  bufferBusy: 36,
 } as const;
 
 /**
