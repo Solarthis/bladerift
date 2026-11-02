@@ -11,6 +11,22 @@ import Phaser from 'phaser';
 import type { ArenaDef } from '@bladerift/shared';
 import LIGHTS from './arenaLights.json';
 import type { LightStamp, StaticLight } from './lighting';
+import type { BuildStageFx, StageFx } from './stageFx/types';
+import { build as buildHallFx } from './stageFx/hall';
+import { build as buildBridgeFx } from './stageFx/bridge';
+import { build as buildEmbersFx } from './stageFx/embers';
+import { build as buildCryptFx } from './stageFx/crypt';
+import { build as buildGroveFx } from './stageFx/grove';
+import { prefs } from '../ui/prefs';
+
+/** Each theme's animated stage elements (render/stageFx), built after the wall, floor and lights. */
+const STAGE_FX: Record<string, BuildStageFx> = {
+  hall: buildHallFx,
+  bridge: buildBridgeFx,
+  embers: buildEmbersFx,
+  crypt: buildCryptFx,
+  grove: buildGroveFx,
+};
 
 /**
  * Shafts of light through the wall's windows, falling across the room onto the floor (the reference clip's strongest
@@ -64,13 +80,17 @@ export interface ArenaView {
   /** The window shafts and their floor patches, laid on the light map (refreshed by update()). */
   shapes: LightStamp[];
   ambient: number;
-  /** Lay the floor strips under the camera (call once per frame, after the camera moved). */
+  /** Lay the floor strips under the camera and run the stage FX (call once per frame, after the camera moved). */
   update(): void;
+  /** Destroys the stage FX and the arena's own extra objects. Runs by itself on the scene's shutdown; safe to call twice. */
+  destroy(): void;
 }
 
 export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
   const theme = a.theme;
   const look = LOOK[theme] ?? LOOK.hall;
+  // Settings > Graphics, read once: 'low' drops the air glows (shafts, haze) and the dust motes; the light map stays
+  const low = prefs().quality === 'low';
   const W = a.w;
   const D = BACK / (1 - FAR);
   const horizon = a.floor - D;
@@ -229,7 +249,7 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
   // ---- light shafts: each window throws a slanting shaft across the room and a patch of light on the floor. Both light
   // the scene (stamped on the light map, so a fighter walking through one is lit) and glow in the air (soft additive images)
   shaftTextures(scene);
-  type Shaft = { b: Beam; xw: number; yw: number; F: number; air: Phaser.GameObjects.Image; pool: Phaser.GameObjects.Image; sShaft: LightStamp; sPool: LightStamp; sWin: LightStamp; ph: number };
+  type Shaft = { b: Beam; xw: number; yw: number; F: number; air: Phaser.GameObjects.Image | null; pool: Phaser.GameObjects.Image | null; sShaft: LightStamp; sPool: LightStamp; sWin: LightStamp; ph: number };
   const shafts: Shaft[] = [];
   const shapes: LightStamp[] = [];
   const mk = (key: string, color: number): LightStamp => ({ key, x: 0, y: 0, sx: 1, sy: 1, rot: 0, ox: 0.5, oy: 0.5, color, k: 0, on: false });
@@ -244,25 +264,43 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
       const yw = wallBase + 2 - (1 - b.v) * WALL_H;
       // the floor point under the window (at the wall's foot the floor and the wall share a parallax), then the throw
       const F = W / 2 + (xw - W / 2) / FAR + b.dx;
-      const air = scene.add.image(0, 0, SHAFT).setOrigin(0.5, 0).setBlendMode(Phaser.BlendModes.ADD).setTint(b.color).setDepth(7.4).setVisible(false);
-      const pool = scene.add.image(0, 0, POOL).setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD).setTint(b.color).setDepth(-18.8).setVisible(false);
+      // (low quality: no air glow images; the light-map stamps below still carry the shaft)
+      const air = low ? null : scene.add.image(0, 0, SHAFT).setOrigin(0.5, 0).setBlendMode(Phaser.BlendModes.ADD).setTint(b.color).setDepth(7.4).setVisible(false);
+      const pool = low ? null : scene.add.image(0, 0, POOL).setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD).setTint(b.color).setDepth(-18.8).setVisible(false);
       const sh: Shaft = { b, xw, yw, F, air, pool, sShaft: mk(SHAFT, b.color), sPool: mk(POOL, b.color), sWin: mk('light-blob', b.color), ph: xw * 0.013 };
       sh.sShaft.oy = 0;
       shafts.push(sh);
       shapes.push(sh.sWin, sh.sShaft, sh.sPool);
     }
   }
-  // ---- drifting dust (additive, over the light map so it reads as light in the dark)
+  // ---- the stage's own animated elements (render/stageFx/<theme>.ts), over the painted room, after the wall, floor and lights
+  const buildFx = STAGE_FX[theme];
+  const stageFx: StageFx | null = buildFx ? buildFx({ scene, theme, W, floor: a.floor, wallBase, wallTop, FAR, tw, quality: low ? 'low' : 'high' }) : null;
+  // ---- drifting dust (additive, over the light map so it reads as light in the dark); none on low quality
   const beamG = scene.add.graphics().setDepth(13).setBlendMode(Phaser.BlendModes.ADD);
-  const motes = Array.from({ length: 46 }, (_, i) => ({ x: (i * 977) % W, y: a.floor - ((i * 431) % 300), vx: 2 + (i % 5), vy: -1 - (i % 3), ph: i * 1.7 }));
+  const motes: { x: number; y: number; vx: number; vy: number; ph: number }[] = low
+    ? []
+    : Array.from({ length: 46 }, (_, i) => ({ x: (i * 977) % W, y: a.floor - ((i * 431) % 300), vx: 2 + (i % 5), vy: -1 - (i % 3), ph: i * 1.7 }));
   let t = 0;
   let last = performance.now();
+  let dead = false;
 
-  return {
+  const view: ArenaView = {
     lights,
     shapes,
     ambient: look.ambient,
+    destroy() {
+      if (dead) return;
+      dead = true;
+      stageFx?.destroy();
+      beamG.destroy();
+      for (const sh of shafts) {
+        sh.air?.destroy();
+        sh.pool?.destroy();
+      }
+    },
     update() {
+      if (dead) return;
       const cam = scene.cameras.main;
       const z = cam.zoom || 1;
       const cx = cam.midPoint.x;
@@ -271,6 +309,7 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       t += dt;
+      stageFx?.update(dt, cam);
       beamG.clear();
       // projections to the screen: a point on the wall, a point on the floor at depth p, a world y
       const Wv = scene.scale.width;
@@ -293,8 +332,8 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
         const yb = horizon + D * b.p1;
         const by = scrY((ya + yb) / 2);
         const on = Math.max(ax, bx) > -300 && Math.min(ax, bx) < Wv + 300;
-        sh.air.setVisible(on);
-        sh.pool.setVisible(on);
+        sh.air?.setVisible(on);
+        sh.pool?.setVisible(on);
         sh.sShaft.on = sh.sPool.on = sh.sWin.on = on;
         if (!on) continue;
         const pulse = 0.9 + 0.1 * Math.sin(t * 0.6 + sh.ph);
@@ -325,8 +364,8 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
         sw.sy = (winW * 3.4) / 128;
         sw.k = 0.55 * pulse;
         // and the same in the air, soft and faint
-        sh.air.setPosition(worldX(ax), worldY(ay)).setRotation(rot).setScale(poolW / z / SHAFT_W, len / z / SHAFT_H).setAlpha(b.haze * pulse);
-        sh.pool.setPosition(worldX(bx), worldY(by)).setScale((poolW / z / POOL_W) * flip, poolH / z / POOL_H).setAlpha(b.haze * 0.9 * pulse);
+        sh.air?.setPosition(worldX(ax), worldY(ay)).setRotation(rot).setScale(poolW / z / SHAFT_W, len / z / SHAFT_H).setAlpha(b.haze * pulse);
+        sh.pool?.setPosition(worldX(bx), worldY(by)).setScale((poolW / z / POOL_W) * flip, poolH / z / POOL_H).setAlpha(b.haze * 0.9 * pulse);
       }
       // dust motes drifting through the air, twinkling
       for (const m of motes) {
@@ -347,6 +386,9 @@ export function buildArena(scene: Phaser.Scene, a: ArenaDef): ArenaView {
       }
     },
   };
+  // the arena goes with its scene (the GameScene's teardown also calls destroy(); the second call does nothing)
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => view.destroy());
+  return view;
 }
 
 function lerpColor(a: number, b: number, t: number) {

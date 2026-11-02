@@ -592,8 +592,11 @@
    corner inside the safe area. The thumb rests on A (bottom right); B and heal stack above it; skill, jump and the
    Art form the middle column; roll sits at the far left of the bottom row. Tile size scales with the window height
    (56px on a 375-px landscape phone, up to 74px on a large window). */
+/* Settings > Touch: --touch-scale (0.8..1.3) sizes the tiles and the stick; --touch-opacity (0.3..1) sets the tiles' rest
+   opacity. Controls.ts also writes both as inline styles on the root and the tiles (the same values), which win over these
+   rules, so the opacity is applied once, per element, and never twice through a container. */
 .touch {
-  --tb: clamp(56px, calc(var(--u) * 16.5), 74px);
+  --tb: calc(clamp(56px, calc(var(--u) * 16.5), 74px) * var(--touch-scale, 1));
   --tg: 8px;
   --step: calc(var(--tb) + var(--tg));
 }
@@ -603,7 +606,20 @@
   width: calc(var(--tb) * 3 + var(--tg) * 2);
   height: calc(var(--tb) * 3 + var(--tg) * 2);
 }
-.tb { width: var(--tb); height: var(--tb); border-radius: 12px; isolation: isolate; opacity: 0.9; }
+.tb { width: var(--tb); height: var(--tb); border-radius: 12px; isolation: isolate; opacity: var(--touch-opacity, 0.85); }
+/* Settings > Touch > Left-handed (html[data-left-handed], set by ui/prefs.ts; the .lefty class on .touch is set by Controls.ts):
+   the stick zone moves to the right edge and the button cluster to the left. Controls.ts places the tiles and the hint inline
+   to match, so these rules only fix the containers and the hint's pointer. */
+html[data-left-handed='true'] .stick-zone { left: auto; right: 0; }
+html[data-left-handed='true'] .tbuttons {
+  left: max(6px, env(safe-area-inset-left));
+  right: auto;
+}
+.touch.lefty .touch-hint {
+  right: auto;
+  left: calc(max(6px, env(safe-area-inset-left)) + var(--step));
+}
+.touch.lefty .touch-hint::after { right: auto; left: 22px; }
 .tb i { border-radius: 10px; }
 .tb-a { right: 0; bottom: 0; }
 .tb-b { right: 0; bottom: var(--step); }

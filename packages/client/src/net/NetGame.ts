@@ -1,7 +1,7 @@
 import {
   ArenaDef, copyState, FighterState, GameEvent, getArena, InputCmd, Loadout, MatchSettings, NetFighter, NetProjectile, NetTrap, Phase,
   Act, bodySolid, bodyYields, FoeView, SNAPSHOT_INTERVAL, Snapshot, stepFighter, TICK_RATE, ArtId, artIdOf, bodyBox, ClassId, currentMove, FIGHTER, hitstopFor, isActive,
-  isFrozen, meleeConnect, meleeCrit, moveBox, moveDamage, MOVE_ART,
+  isFrozen, isThrowable, meleeConnect, meleeCrit, moveBox, moveDamage, MOVE_ART,
 } from '@bladerift/shared';
 
 /**
@@ -176,7 +176,7 @@ export class NetGame {
     this.latest = s;
     this.snaps.push(s);
     const other = s.fighters.find((f) => f.id !== this.selfId && f.id !== s.selfId);
-    this.foe = other && other.act !== Act.KO ? { x: other.x, y: other.y, face: other.face, solid: bodySolid(other), yields: bodyYields(other) } : undefined;
+    this.foe = other && other.act !== Act.KO ? { x: other.x, y: other.y, face: other.face, solid: bodySolid(other), yields: bodyYields(other), throwable: throwableOf(other) } : undefined;
     this.foeVx = other ? other.vx : 0;
     while (this.snaps.length > 40) this.snaps.shift();
     this.phase = s.phase;
@@ -488,6 +488,10 @@ export class NetGame {
   }
 }
 
+/** Can a throw grab this opponent at the start of the tick (isThrowable on the snapshot's copy of it). */
+const throwableOf = (f: NetFighter) =>
+  isThrowable({ ground: f.ground ? 1 : 0, act: f.act, move: f.move, invuln: f.invuln ? 1 : 0, frenzy: f.frenzy ? 1 : 0 } as FighterState);
+
 const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
   a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
@@ -496,7 +500,7 @@ function aboutMe(e: GameEvent, me: number) {
   switch (e.t) {
     case 'hit': case 'block': return e.v === me || e.a === me;
     case 'parry': return e.a === me || e.v === me;
-    case 'swing': case 'shoot': case 'roll': case 'heal': case 'blink': return e.p === me;
+    case 'swing': case 'shoot': case 'roll': case 'heal': case 'blink': case 'ex': return e.p === me;
     case 'trap': return e.v === me;
     case 'ko': return e.v === me || e.a === me;
     case 'round': case 'fight': case 'match': return true;

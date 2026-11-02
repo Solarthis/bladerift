@@ -1,21 +1,26 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, type ArenaDef, ArtId, surfaceBelow, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, moveOf, NetProjectile, NetStrike, NetTrap, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, type ArenaDef, ArtId, surfaceBelow, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, MOVE_THROW, moveOf, NetProjectile, NetStrike, NetTrap, type RosterEntry, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
-import type { InputSource } from '../input/Controls';
+import { touchLeftHanded, type InputSource } from '../input/Controls';
 import { bakeFrames, FighterCanvas, fighterLut, FxModule, FxSprite, paintLive, PIX, Pose, prewarmEffects } from '../render/pixel';
 import { poseFor } from '../render/poses';
 import { warmFighter } from '../render/warm';
 import { heroHasSprites, heroSpritesReady, loadHeroSprites, spritesPending, SpriteFighterView } from '../render/spriteFighter';
 import { arcFor, ArcShape, energyForMove, FX, heroEnergy, HeroEnergy, PAL, shadeColor, swingFx, whiten } from '../render/fxmap';
 import { DODGE_SOUNDS, sfx, SKILL_SOUNDS } from '../audio/Sfx';
+import { samples } from '../audio/Samples';
+import { music } from '../audio/Music';
+import { announcer } from '../audio/Announcer';
 import { prefs } from '../ui/prefs';
 import { buildArena, type ArenaView } from '../render/arena';
 import { StageLights, type LitBody } from '../render/lighting';
 import { colorOf, accentOf } from '../ui/colors';
 import { koCinematic, playSuperCinematic, superConnect } from './cinematic';
+import { destroyKoSequence, playKoSequence, playRoundWinner, type KoHandle } from './koSequence';
+import { FightCamera } from './camera';
 
 /** A fighter controlled on this device: its connection and its input. */
 export interface LocalPlayer {
@@ -534,12 +539,13 @@ export class GameScene extends Phaser.Scene {
   private shakeDur = 0;
   /** The camera shot in progress (zoomTo), with its timing in seconds and the weight it started from. */
   private shot: { tgt: ZoomShot; t: number; inS: number; holdS: number; outS: number; w0: number } | null = null;
-  /** The follow camera's horizontal frame centre (the dead zone keeps it still) and how long a closer zoom has been wanted. */
-  private camFc = 640;
-  private zoomInWait = 0;
-  private camInit = false;
+  /** The follow camera's framing (game/camera.ts): one per match, reset at each match's start. */
+  private fightCam: FightCamera | null = null;
   /** K.O. slow motion: the visual time scale and the fighters' display lag behind real time (s). */
   private slowT = -1;
+  /** The slow motion's scale and length (s), as playKoSequence asks for them (0.25x for 0.4 s by default). */
+  private slowScale = 0.25;
+  private slowLen = 0.4;
   private timeScale = 1;
   private dispLag = 0;
   private hist: { t: number; list: ViewFighter[] }[] = [];
@@ -561,6 +567,13 @@ export class GameScene extends Phaser.Scene {
   private camZoom = 1;
   /** Banner / round callbacks for the HUD (set by App). */
   onEvent: ((e: GameEvent) => void) | null = null;
+  /** The K.O. sequence on screen (game/koSequence.ts), and the last K.O.'s spot, victim and whether an Art landed it. */
+  private koHandle: KoHandle | null = null;
+  private koSpot: { v: number; a: number; x: number; y: number; art: boolean } | null = null;
+  /** Damage each fighter has taken this round (by fighter id): a winner who took none wins a PERFECT. */
+  private roundHurt = new Map<number, number>();
+  /** The phase last seen, so each round is announced once, as its intro begins. */
+  private lastPhase: string | null = null;
 
   constructor() {
     super('game');
@@ -586,10 +599,16 @@ export class GameScene extends Phaser.Scene {
     this.shot = null;
     this.shakeA = 0;
     this.slowT = -1;
+    this.slowScale = 0.25;
+    this.slowLen = 0.4;
     this.timeScale = 1;
     this.dispLag = 0;
     this.hist = [];
-    this.camInit = false;
+    // a new match: the camera frames the fighters at once, and no K.O. or round carries over
+    this.fightCam?.reset();
+    this.koSpot = null;
+    this.roundHurt.clear();
+    this.lastPhase = null;
   }
 
   preload() {
@@ -606,6 +625,9 @@ export class GameScene extends Phaser.Scene {
     const arena = g?.arena ?? ARENAS[0];
     this.arenaW = arena.w;
     this.floor = arena.floor;
+    this.fightCam = new FightCamera({ arenaW: this.arenaW, floor: this.floor });
+    // the arena's own track (the brief's stage-<theme> ids)
+    music.play('stage-' + arena.theme);
     this.cameras.main.setBackgroundColor('#0d0a14');
     const before = new Set<Phaser.GameObjects.GameObject>(this.children.list);
     this.arenaView = buildArena(this, this.game0!.arena);
@@ -619,7 +641,6 @@ export class GameScene extends Phaser.Scene {
       [FX.daggerFlurry, {}], [FX.heavyCleave, {}],
     ]);
     this.camX = arena.w / 2;
-    this.camFc = arena.w / 2;
     this.camY = arena.floor - 200;
     this.vecB = this.add.graphics().setDepth(9);
     this.vecF = this.add.graphics().setDepth(16);
@@ -664,6 +685,11 @@ export class GameScene extends Phaser.Scene {
     const g = this.game0;
     if (!g) return;
     const now = performance.now();
+    // each round is announced once, as its intro begins (the FIGHT! call comes with the 'fight' event)
+    if (g.phase !== this.lastPhase) {
+      this.lastPhase = g.phase;
+      if (g.phase === 'intro') this.announceRound(g);
+    }
 
     // fighters: the primary game's view, with each local player's own predicted fighter
     const list = g.fighters(now);
@@ -939,9 +965,15 @@ export class GameScene extends Phaser.Scene {
     }
     const speed = Math.abs(v.vx);
     if (v.ground && speed > 25) fv.runPhase += dt * (6 + speed / 28);
-    if (v.ground && !fv.wasGround) fv.landAt = this.clock;
+    if (v.ground && !fv.wasGround) {
+      // a landing from a jump or a fall (not the first frame on the ground): one quiet thump
+      if (fv.airAt > fv.landAt) sfx.play('land', { x: v.x, y: v.y, volume: 0.35 });
+      fv.landAt = this.clock;
+    }
     if (!v.ground && fv.wasGround) fv.airAt = this.clock;
-    const pose = poseFor({ ...v, actTf: t }, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt });
+    // a throw has no drawings of its own: the thrower shows the throw's toss (move 18) and the held victim the hurt pose
+    const anim: ViewFighter = v.act === Act.Throw ? { ...v, act: Act.Attack, move: MOVE_THROW } : v.act === Act.Held ? { ...v, act: Act.Stun } : v;
+    const pose = poseFor({ ...anim, actTf: t }, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt });
     const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : 0;
     // (two frames of white, then the blow's colour)
     if (fv.sprite) fv.sprite.flashColor = now - (fv.flashAt ?? 0) < 34 || fv.flashColor === undefined ? 0xffffff : fv.flashColor;
@@ -977,7 +1009,7 @@ export class GameScene extends Phaser.Scene {
       const g = this.game0;
       if (g?.phase === 'intro') this.introAt ??= this.clock;
       else this.introAt = null;
-      fv.sprite.draw({ ...v, actTf: t }, v.x, v.y, {
+      fv.sprite.draw({ ...anim, actTf: t }, v.x, v.y, {
         time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt, air: this.clock - fv.airAt,
         introT: this.introAt === null ? undefined : this.clock - this.introAt,
       }, flash, tint);
@@ -1686,15 +1718,37 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < 6; i++) this.spark(x, y, -dir * (60 + Math.random() * 160), -60 - Math.random() * 140, 0.28 + Math.random() * 0.15, Math.random() < 0.5 ? 0x9ad8ff : 0xffffff, 2, 600);
   }
 
-  /** K.O. slow motion: 0.25x for 0.4 s, then back to 1x over 0.15 s. Returns this frame's visual time scale. */
+  /** K.O. slow motion (visual only): `scale` for `ms`, then back to 1x over 0.15 s. */
+  private requestSlowmo(scale: number, ms: number) {
+    this.slowScale = scale;
+    this.slowLen = Math.max(0, ms) / 1000;
+    this.slowT = 0;
+  }
+
+  /** The round's voice line as its intro begins: ROUND 1-3, or FINAL ROUND when both fighters are one win from the match. */
+  private announceRound(g: NetGame) {
+    const need = g.settings.wins;
+    const final = need > 1 && g.wins[0] === need - 1 && g.wins[1] === need - 1;
+    announcer.say(final ? 'finalRound' : `round${Math.min(3, g.round)}`);
+  }
+
+  /** A fighter's roster entry (name, colours): the primary session's, else any local player's. */
+  private rosterOf(id: number): RosterEntry | undefined {
+    return this.primary.roster.get(id) ?? [...this.players].map((p) => p.session.roster.get(id)).find(Boolean);
+  }
+
+  /** K.O. slow motion: the scale and length set by requestSlowmo, then back to 1x over 0.15 s. Returns this frame's visual time scale. */
   private stepSlowmo(rdt: number): number {
     if (this.slowT < 0) {
       this.timeScale = 1;
     } else {
       this.slowT += rdt;
       const t = this.slowT;
-      this.timeScale = t < 0.4 ? 0.25 : t < 0.55 ? 0.25 + ((t - 0.4) / 0.15) * 0.75 : 1;
-      if (t >= 0.55) this.slowT = -1;
+      const hold = this.slowLen;
+      const ramp = 0.15;
+      const s = this.slowScale;
+      this.timeScale = t < hold ? s : t < hold + ramp ? s + ((t - hold) / ramp) * (1 - s) : 1;
+      if (t >= hold + ramp) this.slowT = -1;
     }
     // the fighters run behind real time while slowed, then slip back to it (a gentle 1.25x catch-up)
     this.dispLag = Math.max(0, this.dispLag + rdt * (1 - this.timeScale) - (this.timeScale >= 1 ? rdt * 0.25 : 0));
@@ -1853,6 +1907,7 @@ export class GameScene extends Phaser.Scene {
       case 'hit': {
         const a = find(e.a);
         const v = find(e.v);
+        this.roundHurt.set(e.v, (this.roundHurt.get(e.v) ?? 0) + e.amt);
         const burn = e.w === 200;
         const heavy = e.w === WeaponId.Hammer || e.amt >= 140;
         if (!burn) {
@@ -2067,20 +2122,52 @@ export class GameScene extends Phaser.Scene {
         this.shake(0.55);
         break;
       }
+      case 'throw': {
+        // a grab: the throw's whoosh, a small jolt and a white flash where the victim is caught
+        samples.play('throw');
+        this.shake(0.35);
+        const v = find(e.v);
+        if (v) this.stage?.flash(v.x, v.y - 40, 0xffffff, 150, 0.6, 0.22, this.floor, 0.3);
+        break;
+      }
+      case 'tech': {
+        // a tech out of the grab: a clang, and a white burst between the two fighters
+        samples.play('parry');
+        const a = find(e.a);
+        const v = find(e.v);
+        const mx = a && v ? (a.x + v.x) / 2 : (v ?? a)?.x ?? this.arenaW / 2;
+        const my = (a && v ? (a.y + v.y) / 2 : (v ?? a)?.y ?? this.floor) - 40;
+        this.stage?.flash(mx, my, 0xffffff, 230, 1, 0.3, this.floor, 0.25);
+        for (let i = 0; i < 10; i++) {
+          const ang = (i / 10) * Math.PI * 2;
+          this.spark(mx, my, Math.cos(ang) * 200, Math.sin(ang) * 200, 0.35, i % 2 ? 0xffffff : 0xd8f0ff, 2.5, 0);
+        }
+        break;
+      }
+      case 'ex': {
+        // an EX cast: a gold-white ring under the caster and the word EX popping over its head
+        samples.play('whooshHeavy');
+        const c = find(e.p);
+        if (c) {
+          this.ring(c.x, c.y, 8, 70, 0.5, 0xfff1b0, 4);
+          this.stage?.flash(c.x, c.y - 40, 0xffe27a, 200, 0.7, 0.3, this.floor, 0.25);
+          this.addFx(FX.critWord, c.x, c.y - FIGHTER.h - 16, false, 1.1, { text: 'EX', label: '' }, 31, 32, 0.7);
+        }
+        break;
+      }
       case 'ko': {
         const v = find(e.v);
-        // (smaller than it used to be: the camera pushes in on it)
-        if (v) this.addFx(FX.pow, v.x, v.y - 30, false, 1, {}, 31, 32, 0.6);
+        const a = find(e.a);
         sfx.play('death');
         this.shake(1);
-        // the K.O.: a beat of slow motion (visual only, 0.25x for 0.4 s) and the camera pushes in on the loser, following
-        // the body as it flies; the white flash (or an Art finish's white-out) and the light ring are cinematic.ts's
-        this.slowT = 0;
-        const loser = e.v;
-        const push = { zoomTo: (_x: number, _y: number, z: number, inMs: number, holdMs: number) => this.zoomShot({ id: loser, zoom: Math.min(z, 1.7) }, inMs + 50, holdMs + 500, 450) };
-        if (v) koCinematic(this, { x: v.x, y: v.y - 30, attackerId: e.a, camera: push });
-        else this.flash(0xffffff, 0.8, 300);
+        // the K.O.: a beat of slow motion (visual only) and the camera pushes in on the loser, following the body as it
+        // flies, and the music dips under it. The K.O. word, the flash and the result come with the round event (below),
+        // which knows whether the winner took a hit this round
+        this.requestSlowmo(0.25, 450);
+        this.zoomShot({ id: e.v, zoom: 1.7 }, 140, 950, 450);
+        music.duck(0.4, 1500);
         if (v) {
+          this.koSpot = { v: e.v, a: e.a, x: v.x, y: v.y - 30, art: a?.act === Act.Art };
           for (let i = 0; i < 18; i++) {
             const ang = (i / 18) * Math.PI * 2;
             this.spark(v.x, v.y - 30, Math.cos(ang) * (160 + Math.random() * 120), Math.sin(ang) * (160 + Math.random() * 120), 0.7, i % 2 ? 0xffffff : 0xffe08a, 3, 0);
@@ -2090,13 +2177,60 @@ export class GameScene extends Phaser.Scene {
       }
       case 'fight':
         sfx.play('matchStart');
+        announcer.say('fight', { delay: 0.2 });
+        // a new round: nobody has taken a hit yet
+        this.roundHurt.clear();
+        this.koSpot = null;
         break;
-      case 'round':
+      case 'round': {
         sfx.play('kill');
+        // the round's result: the K.O. (or the clock's), a PERFECT when the winner took no damage, a DRAW when both fell
+        const won = e.winner === 0 || e.winner === 1;
+        const win = won ? list.find((f) => f.seat === e.winner) : undefined;
+        const lose = won ? list.find((f) => f.seat === (e.winner ^ 1)) : undefined;
+        const spot = this.koSpot;
+        this.koSpot = null;
+        const perfect = !!win && !this.roundHurt.get(win.id);
+        const timeOver = e.why === 1;
+        const draw = !won;
+        const r = win ? this.rosterOf(win.id) : undefined;
+        const winName = win ? r?.name || 'Winner' : '';
+        const winColor = accentOf(r?.look?.accent ?? 0);
+        const x = spot?.x ?? lose?.x ?? this.arenaW / 2;
+        const y = spot?.y ?? (lose ? lose.y - 30 : this.floor - FIGHTER.h);
+        // (a match's last round is followed by the match event, which shows the WINNER banner instead)
+        const matchOver = won && !!this.game0 && this.game0.wins[e.winner] >= this.game0.settings.wins;
+        const handle = playKoSequence(this, {
+          x, y, perfect, timeOver, draw, artFinish: !!spot?.art, winnerName: winName, winnerColor: winColor,
+          onSlowmo: (s, ms) => this.requestSlowmo(s, ms),
+        });
+        this.koHandle = handle;
+        // an Art's finish gets its own white-out (cinematic.ts); the K.O. sequence skips its flash for it
+        if (spot?.art) koCinematic(this, { x, y, attackerId: spot.a, whiteout: true, camera: null });
+        if (timeOver) announcer.say('timeOver');
+        else if (draw) announcer.say('draw');
+        if (perfect) announcer.say('perfect', { delay: 0.35 });
+        if (won && !matchOver) {
+          // the round's banner once the K.O. has played
+          handle.done.then(() => {
+            if (this.sys.isActive()) playRoundWinner(this, { name: winName, color: winColor, finalWin: false });
+          });
+        }
         break;
-      case 'match':
+      }
+      case 'match': {
         sfx.play('matchEnd');
+        // two players on one device hear the winner's name; a player on their own hears their result
+        if (this.players.length > 1) announcer.say('winner');
+        else {
+          const me = list.find((f) => f.id === this.primary.selfId);
+          announcer.say(me && me.seat === e.winner ? 'youWin' : 'youLose');
+        }
+        const w = list.find((f) => f.seat === e.winner);
+        const r = w ? this.rosterOf(w.id) : undefined;
+        playRoundWinner(this, { name: r?.name || 'Winner', color: accentOf(r?.look?.accent ?? 0), finalWin: true });
         break;
+      }
     }
     this.onEvent?.(e);
   }
@@ -2125,15 +2259,15 @@ export class GameScene extends Phaser.Scene {
     } else if (p.kind === 'arrow') {
       // Serpent Rain's falling shafts are venom green; the bow's are as before
       const rain = Math.abs(p.vy) > 300;
-      pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, p.heavy ? { palette: ['#3a1a70', '#7f5ad8', '#e8e2ff', '#ffffff'] } : rain ? { palette: PAL.serpent } : {}, 14, 14, 10);
+      pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, p.heavy ? { palette: ['#3a1a70', '#7f5ad8', '#e8e2ff', '#ffffff'] } : rain ? { palette: PAL.serpent } : p.ex ? { palette: PAL.gold } : {}, 14, 14, 10);
     } else if (p.kind === 'frost') {
-      pv.fx = new FxSprite(this, FX.iceLance, p.x, p.y, p.vx < 0, {}, 14, 14, 10);
+      pv.fx = new FxSprite(this, FX.iceLance, p.x, p.y, p.vx < 0, p.ex ? { palette: PAL.gold } : {}, 14, 14, 10);
     } else if (p.kind === 'arcane') {
-      // Prelati's bolts are violet starlight; Dumas' quill writes in golden ink
+      // Prelati's bolts are violet starlight; Dumas' quill writes in golden ink (an EX bolt is gold too)
       const ink = this.lastList.find((f) => f.id === pv.spawnNear)?.hero === 6;
-      pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: ink ? PAL.gold : PAL.violet }, 14, 14, 10);
+      pv.fx = new FxSprite(this, FX.energyDisc, p.x, p.y, p.vx < 0, { palette: ink || p.ex ? PAL.gold : PAL.violet }, 14, 14, 10);
     } else if (p.kind === 'orb') {
-      pv.fx = new FxSprite(this, FX.arcaneOrb, p.x, p.y + 30, false, {}, 14, 14, 10);
+      pv.fx = new FxSprite(this, FX.arcaneOrb, p.x, p.y + 30, false, p.ex ? { palette: PAL.gold } : {}, 14, 14, 10);
     } else if (p.kind === 'wave' && !p.heavy) {
       // the Sun Crescent: a crescent of gold light, the body in normal blend under an additive white-hot edge
       pv.gfx = this.add.graphics().setDepth(14.9);
@@ -2163,6 +2297,11 @@ export class GameScene extends Phaser.Scene {
     } else {
       pv.img = this.add.image(p.x, p.y, 's-bomb').setScale(0.075).setDepth(14);
       pv.fx = new FxSprite(this, FX.fireball, p.x, p.y, p.vx > 0, { radius: 2 }, 13, 13, 10);
+    }
+    if (p.ex) {
+      // an EX projectile: a brighter, gold-tinted picture and a gold ring where it is loosed
+      pv.img?.setTint(0xffe9a0);
+      this.ring(p.x, p.y, 3, 24, 0.3, 0xffe27a, 2.5);
     }
     if (pv.fx) this.fx.push(pv.fx);
     return pv;
@@ -3082,55 +3221,19 @@ export class GameScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const vw = this.scale.width;
     const vh = this.scale.height;
-    const alive = list.length ? list : [];
-    let minX = this.arenaW / 2;
-    let maxX = this.arenaW / 2;
-    let minY = this.floor;
-    let maxY = this.floor;
-    if (alive.length) {
-      minX = Math.min(...alive.map((f) => f.x));
-      maxX = Math.max(...alive.map((f) => f.x));
-      minY = Math.min(...alive.map((f) => f.y));
-      maxY = Math.max(...alive.map((f) => f.y));
-    }
     // on touch screens the fight is framed in the room the controls leave: between the stick (left) and the button
     // cluster (right), with the floor raised above the cluster's lower rows
     const pad = this.touchInsets(vw);
-    const useW = vw - pad.left - pad.right;
-    // how much world fits: 220-275 units of height (a standing fighter is about a fifth to a quarter of the view),
-    // zoomed out to keep both fighters in view
-    const wantH = Phaser.Math.Clamp(vh * 0.55, 235, 295);
-    let zoom = vh / wantH;
-    zoom = Math.min(zoom, useW / (maxX - minX + 190), vh / (maxY - minY + 200));
-    zoom = Math.max(zoom, vw / (this.arenaW + 100));
-    if (!this.camInit) {
-      // the first frame of a match frames the fighters at once
-      this.camInit = true;
-      this.camZoom = zoom;
-      this.camFc = (minX + maxX) / 2;
+    // the follow frame (game/camera.ts): the zoom on the fighters' size, the dead zones, the lift and the wall clamp
+    if (this.fightCam) {
+      const frame = this.fightCam.update({
+        dt, viewW: vw, viewH: vh, padLeft: pad.left, padRight: pad.right,
+        touch: pad.right > 0, fighters: list.map((q) => ({ x: q.x, y: q.y })),
+      });
+      this.camZoom = frame.zoom;
+      this.camX = frame.x;
+      this.camY = frame.y;
     }
-    // zoom out fast when the fighters part; zoom in slowly, and only once the closer framing has been wanted for half a
-    // second, so the frame does not breathe with every step of an exchange
-    if (zoom < this.camZoom) {
-      this.zoomInWait = 0;
-      this.camZoom += (zoom - this.camZoom) * (1 - Math.exp(-dt * 8));
-    } else if (zoom > this.camZoom * 1.015) {
-      this.zoomInWait += dt;
-      if (this.zoomInWait > 0.5) this.camZoom += (zoom - this.camZoom) * (1 - Math.exp(-dt * 2));
-    } else {
-      this.zoomInWait = 0;
-    }
-    // horizontal dead zone: the frame stays still while both fighters are inside its middle 60%, and only then follows
-    const off = (pad.right - pad.left) / 2 / this.camZoom; // the usable area's centre sits this far left of the camera's
-    const dz = (useW / this.camZoom) * 0.3;
-    let fc = this.camFc;
-    if (maxX - minX > dz * 2) fc = (minX + maxX) / 2;
-    else if (minX < fc - dz) fc = minX + dz;
-    else if (maxX > fc + dz) fc = maxX - dz;
-    this.camFc += (fc - this.camFc) * (1 - Math.exp(-dt * 10));
-    const cy = Math.min(this.floor - (vh / this.camZoom) * (pad.right ? 0.24 : 0.25), (minY + maxY) / 2 - 40);
-    this.camY += (cy - this.camY) * (1 - Math.exp(-dt * 6));
-    this.camX = this.camFc + off;
     // a camera shot (zoomTo) blends in over the follow camera
     let z = this.camZoom;
     let x = this.camX;
@@ -3143,7 +3246,8 @@ export class GameScene extends Phaser.Scene {
       if (w > 0) {
         const zt = this.camZoom * s.tgt.zoom;
         const f = s.tgt.id !== undefined ? list.find((q) => q.id === s.tgt.id) : undefined;
-        const tx = f ? f.x : s.tgt.x ?? this.camFc;
+        // (the follow frame's centre, without the touch pads' shift)
+        const tx = f ? f.x : s.tgt.x ?? this.camX - (pad.right - pad.left) / 2 / this.camZoom;
         const ty = f ? f.y - 34 : s.tgt.y ?? this.camY;
         z = this.camZoom + (zt - this.camZoom) * w;
         x = this.camX + (tx + (pad.right - pad.left) / 2 / zt - this.camX) * w;
@@ -3172,13 +3276,20 @@ export class GameScene extends Phaser.Scene {
       const stick = document.querySelector('.touch .stick-base')?.getBoundingClientRect();
       const css = window.innerWidth || vw;
       const k = vw / css; // game pixels per CSS pixel
-      this.insets.right = cluster && cluster.width > 0 ? Math.max(0, css - cluster.left) * k * 0.7 : 0;
-      this.insets.left = stick && stick.width > 0 && this.insets.right ? Math.max(0, stick.right) * k * 0.45 : 0;
+      // left-handed: the stick is on the right and the buttons on the left, so the insets swap sides
+      const lefty = touchLeftHanded();
+      const clusterIn = cluster && cluster.width > 0 ? (lefty ? Math.max(0, cluster.right) : Math.max(0, css - cluster.left)) * k * 0.7 : 0;
+      const stickIn = stick && stick.width > 0 && clusterIn ? (lefty ? Math.max(0, css - stick.left) : Math.max(0, stick.right)) * k * 0.45 : 0;
+      this.insets.left = lefty ? clusterIn : stickIn;
+      this.insets.right = lefty ? stickIn : clusterIn;
     }
     return this.insets;
   }
 
   private teardown() {
+    destroyKoSequence(this);
+    this.koHandle = null;
+    announcer.stop();
     for (const [id, fv] of this.views) this.removeView(id, fv);
     for (const f of this.fx) f.destroy();
     this.fx = [];
@@ -3200,6 +3311,8 @@ export class GameScene extends Phaser.Scene {
     this.shadowG?.destroy();
     this.stage?.destroy();
     this.stage = null;
+    // the arena's own effects (its stage FX) go with it, once the arena view has a destroy()
+    (this.arenaView as Partial<Pick<ArenaView, 'destroy'>> | null)?.destroy?.();
     this.arenaView = null;
     for (const g of this.gfxPool) g.destroy();
     this.gfxPool = [];

@@ -5,8 +5,10 @@ import './styles.css';
 import './ui/roster.css';
 import './ui/hud.css';
 import './ui/hudbars.css';
+import './ui/training.css';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './ui/App';
+import { applyPrefsToDocument } from './ui/prefs';
 import { checkForUpdate, CURRENT_RELEASE, markUpdateReady, setUpdater } from './update';
 
 // Dev bench for animations (?lab): every weapon move and state side by side, no game UI.
@@ -15,6 +17,8 @@ const SPRITES = new URL(location.href).searchParams.has('sprites');
 const LAB = SPRITES || new URL(location.href).searchParams.has('lab');
 if (SPRITES) void import('./dev/SpriteLab').then((m) => m.startSpriteLab());
 else if (LAB) void import('./dev/PoseLab').then((m) => m.startPoseLab());
+// the touch layout, quality and handedness reach the CSS before the first screen
+applyPrefsToDocument();
 const app = LAB ? null : new App();
 app?.start();
 (window as unknown as { bladerift: App | null }).bladerift = app;

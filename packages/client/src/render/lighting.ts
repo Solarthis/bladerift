@@ -9,6 +9,7 @@
  * effects (slashes, sparks, projectiles) are drawn above it and stay bright against the dark.
  */
 import Phaser from 'phaser';
+import { prefs } from '../ui/prefs';
 
 /** A light fixed in the arena (a lamp painted on the back wall). `sf` is the horizontal scroll factor of what it sits on. */
 export interface StaticLight {
@@ -101,6 +102,8 @@ function vignetteTexture(scene: Phaser.Scene) {
 
 export class StageLights {
   private readonly rt: Phaser.GameObjects.RenderTexture;
+  /** Settings > Graphics 'low', read once at build: no vignette, and a lamp is stamped once (no floor pool under it). */
+  private readonly low: boolean;
   private readonly flashes: Flash[] = [];
   private t = 0;
   /** Lights out for this long (seconds): a K.O. or a super's dimming takes the lamps down with it. */
@@ -110,9 +113,10 @@ export class StageLights {
   shapes: LightStamp[] = [];
 
   constructor(private readonly scene: Phaser.Scene, readonly ambient: number, private readonly statics: StaticLight[], depth = 12.5) {
+    this.low = prefs().quality === 'low';
     blobTexture(scene);
-    vignetteTexture(scene);
-    const w = Math.max(2, Math.ceil(scene.scale.width * RES));
+    if (!this.low) vignetteTexture(scene);
+    const w =Math.max(2, Math.ceil(scene.scale.width * RES));
     const h = Math.max(2, Math.ceil(scene.scale.height * RES));
     this.rt = scene.add.renderTexture(0, 0, w, h).setScrollFactor(0).setDepth(depth).setBlendMode(Phaser.BlendModes.MULTIPLY).setOrigin(0.5);
   }
@@ -168,7 +172,7 @@ export class StageLights {
     for (const l of this.statics) {
       const f = l.flicker ? 0.9 + 0.06 * Math.sin(this.t * 9.1 + l.x) + 0.04 * Math.sin(this.t * 23.7 + l.y) : 1;
       stamp(px(l.x, l.sf), py(l.y), l.r, l.color, l.k * f);
-      if (l.floorY !== undefined) stamp(px(l.x, l.sf), py(l.floorY), l.r * 1.3, l.color, l.k * 0.45 * f, 0.22);
+      if (l.floorY !== undefined && !this.low) stamp(px(l.x, l.sf), py(l.floorY), l.r * 1.3, l.color, l.k * 0.45 * f, 0.22);
     }
     // the arena's shaped lights: shafts from the windows and the patches they throw on the floor
     for (const s of this.shapes) {
@@ -196,7 +200,7 @@ export class StageLights {
       stamp(px(f.x), py(f.y), r, f.color, k);
       if (f.floorY !== undefined) stamp(px(f.x), py(f.floorY), r * 1.8, f.color, k * 0.9, 0.3);
     }
-    this.rt.stamp(VIGNETTE, undefined, rw / 2, rh / 2, { scaleX: rw / 128, scaleY: rh / 72, blendMode: Phaser.BlendModes.MULTIPLY });
+    if (!this.low) this.rt.stamp(VIGNETTE, undefined, rw / 2, rh / 2, { scaleX: rw / 128, scaleY: rh / 72, blendMode: Phaser.BlendModes.MULTIPLY });
     this.rt.render();
   }
 

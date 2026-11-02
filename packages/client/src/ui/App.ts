@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
-  ARENAS, ARTS, CLASSES, classOf, DEFAULT_LOADOUT, dodgeOf, FIGHTER, hasCrescent, HEROES, HeroDef, heroOf, Loadout, LobbyStateMsg, MatchEndMsg, RIFT, Room, sanitizeLoadout,
-  heroClass, heroWeapon, SKILLS, weaponLookOf, WeaponId, WEAPONS, WEAPON_COUNT,
+  ARENAS, BotBrain, BotDifficulty, classOf, DEFAULT_LOADOUT, FIGHTER, GameEvent, hasCrescent, heroClass, heroOf, Loadout, LobbyStateMsg, MatchEndMsg,
+  HeroDef, RIFT, Room, sanitizeLoadout, SKILLS, weaponLookOf,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
 import { GameScene, LocalPlayer } from '../game/GameScene';
-import { GamepadSource, isTouchDevice, KEY_LABEL, KeyboardSource, KeyScheme, MergedSource, TouchSource } from '../input/Controls';
+import { controlPrefs, GamepadSource, InputSource, isTouchDevice, keyLabels, KEY_LABEL, KeyboardSource, KeyScheme, MergedSource, refreshControls, TouchSource } from '../input/Controls';
 import { Profile, Session } from '../net/Session';
 import { localRoom } from '../net/transport';
 import { attachGuest, dialHost, DirectLink, directRoom, HostListener } from '../net/p2p';
@@ -14,26 +14,76 @@ import {
   checkOnlineRoom, createOnlineRoom, hostedMatch, inviteLink, normalizeCode, onlineAvailable, onlineRoomExists, rememberHostedMatch, wsUrlFor,
 } from '../net/online';
 import { sfx } from '../audio/Sfx';
-import { prefs, setPref } from './prefs';
+import { music } from '../audio/Music';
+import { announcer } from '../audio/Announcer';
+import { samples } from '../audio/Samples';
+import { applyPrefsToDocument, prefs, Prefs } from './prefs';
 import { Hud } from './Hud';
-import { ACCENTS, accentOf, COLORS, colorOf, css } from './colors';
-import { quotesOf } from './quotes';
+import { colorOf, css } from './colors';
 import { checkForUpdate, CURRENT_RELEASE, updateReady } from '../update';
-import { crestIcon, dodgeIcon, heroArtIcon, heroWeaponIcon, skillIcon } from './icons';
-import { animatePreview } from './spritePreview';
+import { crestIcon, heroArtIcon, heroWeaponIcon, skillIcon } from './icons';
 import { startTitleShowcase } from './titleShowcase';
 import { prefetchHeroSprites } from '../render/spriteFighter';
 import { warmAllAtlases } from '../render/atlasStore';
 import { measureViewport, setViewport, viewH, viewW } from './viewport';
+import { mountHeroSelect } from './heroSelect';
+import { mountSettings } from './settingsScreen';
+import { showVsSplash } from './vsSplash';
+import { ArcadeRun, arcadeSummary, ArcadeStage, renderLadder, renderRunOver, renderSurvival, RunDifficulty, SurvivalFight, SurvivalRun, survivalSummary } from './modes';
+import { recordMatch, renderStats } from './stats';
+import { DummyMode, mountTraining, Training } from './training';
+import { showMoveList } from './moveList';
 
-type Screen = 'title' | 'fighter' | 'online' | 'lobby' | 'game' | 'results' | 'settings' | 'howto' | 'connecting';
+/**
+ * Screens. `game` hides the menus (the match runs under #ui); `modes` is a run's own screens (the arcade ladder, the
+ * survival stage, the run-over card) drawn straight into #ui; `records` is the stats screen, drawn the same way.
+ */
+type Screen = 'title' | 'fighter' | 'online' | 'lobby' | 'game' | 'results' | 'settings' | 'howto' | 'connecting' | 'modes' | 'records';
+
+/** The music track each menu screen plays (game and the run/record screens keep the current track or set their own). */
+const TRACK: Partial<Record<Screen, 'title' | 'select' | 'results'>> = {
+  title: 'title', howto: 'title', settings: 'title', records: 'title', online: 'title', connecting: 'title', modes: 'title',
+  fighter: 'select', lobby: 'select', results: 'results',
+};
+
+/** Everything a match needs to start as a private practice room (the arcade, survival and training fights). */
+interface FightOpts {
+  arenaId: string;
+  botLevel: BotDifficulty;
+  /** The bot's hero (a HEROES id); unset: a random one. */
+  botHero?: number;
+  training?: boolean;
+  infiniteRift?: boolean;
+  /** Survival: each seat's health at the start (absolute points; 0 or less, or unset: full). */
+  carryHp?: boolean;
+  startHp?: number[];
+  /** The mode name shown on the VS card. */
+  label?: string;
+}
+
+/** Training menu state that outlives a match restart (the menu keeps its choices). */
+interface TrainState {
+  level: DummyMode;
+  infinite: boolean;
+  arena: string;
+}
+
+/** Per-match counters for the records and the training readout. */
+interface MatchStat {
+  startedAt: number;
+  bestCombo: number;
+  liveCombo: number;
+  perfects: number;
+  totalDamage: number;
+  /** The local fighter has been hit since the round started (a perfect round has none). */
+  tookDamage: boolean;
+}
 
 const PROFILE_KEYS = ['bladerift.profile', 'bladerift.profile2'];
 const NAMES = ['Ronin', 'Vesper', 'Kael', 'Isolde', 'Marrow', 'Tamsin', 'Corvin', 'Wren'];
 
 /** Hero portrait card (240x320, framed): assets/art/h-00.jpg .. h-13.jpg. */
 const heroPortrait = (h: HeroDef) => `assets/art/h-${String(h.portrait).padStart(2, '0')}.jpg`;
-/** Square Rift Art icon by ArtId: the seven original arts have their own icon, the new seven share i-art. */
 
 function loadProfile(i: number): Profile {
   let p: Partial<Profile> = {};
@@ -87,6 +137,21 @@ export class App {
   private lastEnd: MatchEndMsg | null = null;
   private onlineMsg = '';
   private toastTimer = 0;
+  /** The hero select (the fighter screen) and the settings screen, while they are shown. */
+  private heroSel: { destroy(): void } | null = null;
+  private settingsUi: { destroy(): void } | null = null;
+  /** The training overlay and its menu state. It stays mounted across match restarts (see mountTrainingUi). */
+  private training: Training | null = null;
+  private trainingEl: HTMLElement | null = null;
+  private train: TrainState = { level: 'dummy-stand', infinite: false, arena: 'hall' };
+  /** A training match is the one running (its own overlay, no results screen, no records). */
+  private trainingOn = false;
+  /** The arcade or survival run in progress (its screens go between the fights), and which kind it is. */
+  private run: ArcadeRun | SurvivalRun | null = null;
+  private runKind: 'arcade' | 'survival' | null = null;
+  /** The match in progress: its label on the VS card, and its counters. */
+  private label = 'Practice';
+  private stat: MatchStat = { startedAt: 0, bestCombo: 0, liveCombo: 0, perfects: 0, totalDamage: 0, tookDamage: false };
 
   start() {
     this.fit();
@@ -100,9 +165,17 @@ export class App {
         if (!b.dataset.busy) b.textContent = 'Update ready';
       });
     });
-    document.addEventListener('pointerdown', () => sfx.unlock(), { capture: true });
-    document.addEventListener('keydown', () => sfx.unlock(), { capture: true });
+    // the first tap or key unlocks every audio channel (browsers need a gesture); volumes follow the settings
+    const unlock = () => {
+      sfx.unlock();
+      music.unlock();
+      announcer.unlock();
+      this.applyVolumes();
+    };
+    document.addEventListener('pointerdown', unlock, { capture: true });
+    document.addEventListener('keydown', unlock, { capture: true });
     sfx.volume = prefs().volume;
+    this.applyVolumes();
     this.bootPhaser();
     const room = new URL(location.href).searchParams.get('room');
     if (room && onlineAvailable()) {
@@ -175,9 +248,13 @@ export class App {
   // ------------------------------------------------------------------ screens
 
   private show(s: Screen) {
+    this.teardown(s);
     this.screen = s;
     document.body.dataset.screen = s;
-    if (s === 'game') {
+    const track = TRACK[s];
+    if (track) music.play(track);
+    // (the match, the run screens and the records draw their own content: see startGameView, showModes, records)
+    if (s === 'game' || s === 'modes' || s === 'records') {
       this.ui.innerHTML = '';
       return;
     }
@@ -196,12 +273,46 @@ export class App {
       this.warmed = true;
       setTimeout(() => void warmAllAtlases(this.profiles.map((p) => p.load.hero)), 2500);
     }
-    // the hero select's live sprite preview
-    this.ui.querySelectorAll<HTMLCanvasElement>('canvas.hs-sprite').forEach((cv) => void animatePreview(cv, Number(cv.dataset.hero)));
     this.ui.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => {
       const v = keep.get(el.dataset.keep!);
       if (v) [el.scrollLeft, el.scrollTop] = v;
     });
+  }
+
+  /**
+   * Draws a run screen (the difficulty pick, the ladder, the survival stage, the run-over card) straight into #ui. It
+   * takes the same teardown as show(); `track` is the music for it.
+   */
+  private showModes(draw: (root: HTMLElement) => void, track: 'title' | 'results' = 'title') {
+    this.teardown('modes');
+    this.screen = 'modes';
+    document.body.dataset.screen = 'modes';
+    music.play(track);
+    this.ui.innerHTML = '';
+    draw(this.ui);
+  }
+
+  /** Leaving a screen: its mounted widgets go (the hero select and settings listen for keys; training is a menu). */
+  private teardown(next: Screen) {
+    if (this.screen === 'fighter') {
+      this.heroSel?.destroy();
+      this.heroSel = null;
+    }
+    if (this.screen === 'settings') {
+      this.settingsUi?.destroy();
+      this.settingsUi = null;
+    }
+    if (next !== 'game') {
+      if (this.training) this.dropTraining();
+      this.trainingOn = false;
+    }
+  }
+
+  /** Applies the channel volumes (Settings: master x channel) to the music, the sample pack and the announcer. */
+  private applyVolumes(p: Prefs = prefs()) {
+    music.setVolume(p.volume * p.musicVol);
+    samples.setVolume(p.volume * p.sfxVol);
+    announcer.setVolume(p.volume * p.voiceVol);
   }
 
   private render(s: Screen): string {
@@ -215,16 +326,23 @@ export class App {
           <div class="logo"><span>BLADE</span><span>RIFT</span></div>
           <div class="tag">One rift. Two fighters. Pick your blades.</div>
           <div class="menu">
-            ${this.lan ? `<button class="big primary" data-act="lan">Join Wi&#8209;Fi duel</button>` : ''}
-            ${onlineAvailable() ? `<button class="big ${this.lan ? '' : 'primary'}" data-act="online">Play online</button>` : ''}
-            <button class="big" data-act="practice">Practice vs bot</button>
-            <button class="big" data-act="local">Two players, one device</button>
-            <div class="row"><button data-act="fighter">Fighter</button><button data-act="howto">How to play</button><button data-act="settings">Settings</button></div>
+            <div class="menu-grid menu-grid-big">
+              <button class="big primary" data-act="arcade">Arcade</button>
+              <button class="big" data-act="survival">Survival</button>
+              <button class="big" data-act="training">Training</button>
+            </div>
+            <div class="menu-grid menu-grid-vs">
+              ${this.lan ? `<button class="big" data-act="lan">Join Wi&#8209;Fi duel</button>` : ''}
+              ${onlineAvailable() ? `<button class="big" data-act="online">Play online</button>` : ''}
+              <button class="big" data-act="practice">Practice vs bot</button>
+              <button class="big" data-act="local">Two players, one device</button>
+            </div>
+            <div class="row menu-small"><button data-act="fighter">Fighter</button><button data-act="movelist">Move list</button><button data-act="records">Records</button><button data-act="howto">How to play</button><button data-act="settings">Settings</button></div>
           </div>
           <div class="credit">Effects &amp; animation: PixelFX (MIT) · build ${esc(String(import.meta.env.VITE_RELEASE ?? 'dev'))}</div>
         </div>`;
       case 'fighter':
-        return this.renderFighter();
+        return `<div class="hsel-host"></div>`;
       case 'online':
         return `${this.header('Play online')}
           <div class="card online-card">
@@ -239,15 +357,8 @@ export class App {
         return this.renderLobby();
       case 'results':
         return this.renderResults();
-      case 'settings': {
-        const p = prefs();
-        return `${this.header('Settings')}<div class="card settings">
-          <label>Sound <input type="range" min="0" max="1" step="0.05" value="${p.volume}" data-pref="volume"></label>
-          <label>Screen shake <input type="range" min="0" max="1" step="0.1" value="${p.shake}" data-pref="shake"></label>
-          <label class="check"><input type="checkbox" ${p.haptics ? 'checked' : ''} data-pref="haptics"> Vibration</label>
-          <div class="update-row"><span>Version <b>${esc(CURRENT_RELEASE)}</b></span><button class="update-btn inline${updateReady() ? ' ready' : ''}" data-act="update">${updateReady() ? 'Update ready' : 'Update game'}</button></div>
-        </div>`;
-      }
+      case 'settings':
+        return `<div class="settings-host"></div>`;
       case 'howto':
         return this.renderHowto();
       default:
@@ -272,86 +383,9 @@ export class App {
     }, 2500);
   }
 
-  private header(title: string, back = 'back') {
-    return `<div class="hdr"><button class="back" data-act="${back}" aria-label="Back">‹</button><h2>${esc(title)}</h2></div>`;
-  }
-
-  private renderFighter() {
-    const p = this.profiles[this.editing];
-    const h = heroOf(p.load.hero);
-    const C = classOf(h.cls);
-    const A = ARTS[h.art] ?? ARTS[0];
-    const wa = weaponLookOf(h.id);
-    // a hero with a weapon of its own (not the class's) reaches as far as that weapon does
-    const hw = heroWeapon(h.id);
-    const reach = hw === C.signature ? C.bars.reach : ({ [WeaponId.Daggers]: 1, [WeaponId.Sword]: 3, [WeaponId.Gate]: 5, [WeaponId.Chains]: 5 } as Record<number, number>)[hw] ?? C.bars.reach;
-    // the bars and traits are the hero's own (its class's numbers with the hero's tune: HERO_TUNE)
-    const T = heroClass({ cls: h.cls, hero: h.id });
-    const nudge = (b: number, k: number) => Math.max(1, Math.min(5, Math.round(b + k)));
-    const power = nudge(C.bars.power, (T.dmg / C.dmg - 1) * 6);
-    const speedBar = nudge(C.bars.speed, (T.speed / C.speed - 1) * 7);
-    const health = nudge(C.bars.health, (T.hp / C.hp - 1) * 12);
-    const traits = [
-      T.airJumps > C.airJumps ? 'Triple jump' : '',
-      (T.jump ?? 1) >= 1.08 ? 'High leap' : (T.jump ?? 1) <= 0.92 ? 'Low jump' : '',
-      (T.weight ?? 1) <= 0.86 ? 'Heavy: hard to launch' : (T.weight ?? 1) >= 1.1 ? 'Light: thrown far' : '',
-    ].filter(Boolean);
-    // the hero's own special and dodge (skill N and DODGES[N] belong to hero N): nothing to pick, the hero fixes them
-    const sp = SKILLS[h.id];
-    const dg = dodgeOf({ hero: h.id });
-    const slot = (x: HeroDef) => (x.slot === 'True' ? 'True' : x.slot === 'False' ? 'False' : 'Extra');
-    const card = (x: HeroDef) =>
-      `<button class="hs-hero ${x.id === h.id ? 'on' : ''}" data-pick="hero" data-i="${x.id}" title="${esc(x.name)}, ${esc(x.epithet)}" aria-label="${esc(x.name)}" aria-pressed="${x.id === h.id}">
-        <img src="${heroPortrait(x)}" alt=""><span class="hs-tag">${slot(x)}</span><span class="hs-nm">${esc(x.name)}</span></button>`;
-    // one column per class: the True champion above the False one (Aegis, the Extra, sits in the lower slot)
-    const columns = CLASSES.map((k) => {
-      const members = HEROES.filter((x) => x.cls === k.id);
-      const top = members.find((x) => x.slot === 'True');
-      const low = members.find((x) => x.slot !== 'True');
-      return `<div class="hs-col ${k.id === C.id ? 'current' : ''}">
-        <div class="hs-col-h"><img src="${crestIcon(k.id)}" alt=""><span>${esc(k.name)}</span></div>
-        <div class="hs-slots">${top ? card(top) : '<span class="hs-gap"></span>'}${low ? card(low) : '<span class="hs-gap"></span>'}</div>
-      </div>`;
-    }).join('');
-    const bar = (label: string, v: number) => `<div class="hs-bar"><span>${label}</span><i>${'<b></b>'.repeat(v)}${'<em></em>'.repeat(5 - v)}</i></div>`;
-    const sw = (kind: string, list: { name: string; rgb: number }[], cur: number) =>
-      list.map((c, i) => `<button class="sw ${cur === i ? 'on' : ''}" data-pick="${kind}" data-i="${i}" style="--c:${css(c.rgb)}" title="${c.name}" aria-label="${c.name}"></button>`).join('');
-    const title = this.editing ? 'Player 2 hero' : 'Your hero';
-    return `<div class="hdr hs-hdr"><button class="back" data-act="back" aria-label="Back">‹</button><h2>${esc(title)}</h2>
-        <span class="hs-grow"></span><input id="fname" maxlength="16" value="${esc(p.name)}" placeholder="Name" aria-label="Name"><button class="primary hs-done" data-act="back">Done</button></div>
-      <div class="hs">
-        <div class="card hs-roster" data-keep="roster" aria-label="Roster">${columns}</div>
-        <div class="hs-detail">
-          <div class="card hs-portrait">
-            <div class="hs-frame"><img src="${heroPortrait(h)}" alt="${esc(h.name)}"><canvas class="hs-sprite" data-hero="${h.id}" hidden aria-hidden="true"></canvas></div>
-            <div class="hs-id">
-              <small>${slot(h)} champion</small>
-              <h2>${esc(h.name)}</h2>
-              <p>${esc(h.epithet)}</p>
-            </div>
-            <div class="hs-class"><img src="${crestIcon(C.id)}" alt=""><div><b>${esc(C.name)}</b><small>${esc(C.title)}</small></div></div>
-          </div>
-          <div class="card hs-info" data-keep="info">
-            <p class="hs-lore">${esc(h.lore)}</p>
-            <div class="hs-bars">${bar('Power', power)}${bar('Speed', speedBar)}${bar('Health', health)}${bar('Reach', reach)}</div>
-            ${traits.length ? `<div class="hs-traits">${traits.map((t) => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
-            <p class="hs-blurb">${esc(C.blurb)}</p>
-            <div class="hs-item hs-special"><img src="${skillIcon(h.id)}" alt=""><div><small>Special</small><b>${esc(sp.name)}</b><p>${esc(sp.blurb)}</p></div></div>
-            <div class="hs-item hs-dodge"><img src="${dodgeIcon(h.id)}" alt=""><div><small>Dodge</small><b>${esc(dg.name)}</b><p>${esc(dg.blurb)}</p></div></div>
-          </div>
-          <div class="card hs-gear" data-keep="gear">
-            <div class="hs-gear-a">
-              <div class="hs-lbl">Player colour <small>name tag and effects</small></div>
-              <div class="sws">${sw('color', COLORS, p.color)}</div>
-            </div>
-            <div class="hs-gear-b">
-              <div class="hs-item hs-art"><img src="${heroArtIcon(h.id)}" alt=""><div><small>Rift Art</small><b>${esc(A.name)}</b><p>${esc(A.blurb)}</p></div></div>
-              <div class="hs-item hs-sig"><img src="${heroWeaponIcon(h.id)}" alt=""><div><small>Signature weapon<span class="hs-lock">, locked to the hero</span></small><b>${esc(wa.name)}</b><p>${esc(wa.blurb)}</p></div></div>
-              <p class="hs-note">${esc(h.name)} fights with the ${esc(wa.name)} alone: light ${WEAPONS[hw].arrowSpeed ? 'shots' : 'combo'} on one button, ${hw === WeaponId.Gate ? 'a held volley' : WEAPONS[hw].arrowSpeed ? 'a held shot' : 'a heavy strike'} on the other${WEAPONS[hw].arrowSpeed ? '' : ' (a plunge in the air)'}.</p>
-            </div>
-          </div>
-        </div>
-      </div>`;
+  /** A screen header: back button, title, and an optional tool button after the title (the lobby's Move list). */
+  private header(title: string, back = 'back', tool = '') {
+    return `<div class="hdr"><button class="back" data-act="${back}" aria-label="Back">‹</button><h2>${esc(title)}</h2>${tool}</div>`;
   }
 
   private renderLobby() {
@@ -402,7 +436,7 @@ export class App {
     const title = this.mode === 'online' ? 'Duel lobby' : this.mode === 'lan' ? 'Wi‑Fi duel' : this.mode === 'local' ? 'Two players' : 'Practice';
     const botRow = this.mode !== 'local' ? `<div class="opt opt-bot"><span>Bot</span>${host ? `<button class="seg tog ${l.bot ? 'on' : ''}" data-act="bot">${l.bot ? 'On' : 'Off'}</button>` : `<span class="seg-val">${l.bot ? 'On' : 'Off'}</span>`}
       <div class="segs ${l.bot ? '' : 'off'}">${(['easy', 'normal', 'hard'] as const).map((lv) => `<button class="seg ${l.botLevel === lv ? 'on' : ''}" ${host ? `data-level="${lv}"` : 'disabled'}>${lv}</button>`).join('')}</div></div>` : '';
-    return `${this.header(title, 'leave')}
+    return `${this.header(title, 'leave', '<button class="small hdr-tool" data-act="movelist">Move list</button>')}
       <div class="lobby">
         <div class="lobby-stage">
           <div class="seats">${seatCard(0)}<div class="vs"><span>VS</span></div>${seatCard(1)}</div>
@@ -437,7 +471,8 @@ export class App {
   }
 
   private renderHowto() {
-    const k = KEY_LABEL;
+    // (the solo column names the player's own keys when they were remapped in Settings)
+    const k = { ...KEY_LABEL, solo: keyLabels('solo') };
     const row = (label: string, key: keyof (typeof k)['solo']) => `<tr><td>${label}</td><td>${k.solo[key]}</td><td>${k.p1[key]}</td><td>${k.p2[key]}</td></tr>`;
     return `${this.header('How to play')}
       <div class="howto">
@@ -446,7 +481,7 @@ export class App {
         <table><tr><th></th><th>Keyboard</th><th>Player 1</th><th>Player 2</th></tr>
           ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo; an air combo in the air)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
         </table>
-        <p class="howto-pad">Phone: joystick on the left, buttons on the right. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
+        <p class="howto-pad">Phone: ${controlPrefs().leftHanded ? 'joystick on the right, buttons on the left' : 'joystick on the left, buttons on the right'}. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
       </div>
       <div class="card howto-rules" data-keep="howto">
         <h3>How to win</h3>
@@ -476,42 +511,62 @@ export class App {
         this.act(el.dataset.act!, el);
       }),
     );
-    if (this.screen === 'fighter') this.bindFighter(root);
+    // (mounted after the generic binding above, so their own buttons are not bound twice)
+    if (this.screen === 'fighter') this.mountHeroSelect(root);
     if (this.screen === 'lobby') this.bindLobby(root);
-    if (this.screen === 'settings') {
-      root.querySelectorAll<HTMLInputElement>('[data-pref]').forEach((el) =>
-        el.addEventListener('input', () => {
-          const k = el.dataset.pref as 'volume' | 'shake' | 'damageNumbers' | 'haptics';
-          const v = el.type === 'checkbox' ? el.checked : Number(el.value);
-          setPref(k, v as never);
-          if (k === 'volume') sfx.volume = Number(v);
-        }),
-      );
-    }
+    if (this.screen === 'settings') this.mountSettingsUi(root);
     if (this.screen === 'online') {
       const inp = root.querySelector<HTMLInputElement>('#code');
       inp?.addEventListener('keydown', (e) => e.key === 'Enter' && this.act('join', inp));
     }
   }
 
-  private bindFighter(root: HTMLElement) {
+  /** The fighter screen: the hero select (its own state; the callbacks save each change to the profile being edited). */
+  private mountHeroSelect(root: HTMLElement) {
+    const host = root.querySelector<HTMLElement>('.hsel-host');
+    if (!host) return;
     const p = this.profiles[this.editing];
-    root.querySelector<HTMLInputElement>('#fname')!.addEventListener('input', (e) => {
-      p.name = (e.target as HTMLInputElement).value.slice(0, 16) || p.name;
-      saveProfile(this.editing, p);
-    });
-    root.querySelectorAll<HTMLElement>('[data-pick]').forEach((el) =>
-      el.addEventListener('click', () => {
-        const i = Number(el.dataset.i);
-        const k = el.dataset.pick!;
-        if (k === 'color') p.color = i;
-        else if (k === 'hero') p.load = sanitizeLoadout({ ...p.load, hero: i }); // the hero fixes class, signature and Rift Art
-        else if (k === 'accent') p.look = { ...p.look!, accent: i };
+    this.heroSel = mountHeroSelect(host, {
+      hero: p.load.hero,
+      color: p.color,
+      name: p.name,
+      onHero: (id) => {
+        p.load = sanitizeLoadout({ ...p.load, hero: id });
         sfx.play('uiClick');
         saveProfile(this.editing, p);
-        this.show('fighter');
-      }),
-    );
+      },
+      onColor: (i) => {
+        p.color = i;
+        sfx.play('uiClick');
+        saveProfile(this.editing, p);
+      },
+      onName: (name) => {
+        p.name = name;
+        saveProfile(this.editing, p);
+      },
+      onDone: () => this.act('back', host),
+      onCursor: () => sfx.play('uiHover'),
+    });
+  }
+
+  /** The settings screen: every change applies live (volumes, touch layout, key remap) and is saved by the prefs. */
+  private mountSettingsUi(root: HTMLElement) {
+    const host = root.querySelector<HTMLElement>('.settings-host');
+    if (!host) return;
+    this.settingsUi = mountSettings(host, {
+      version: CURRENT_RELEASE,
+      onChange: (p) => {
+        sfx.volume = p.volume;
+        this.applyVolumes(p);
+        refreshControls();
+        applyPrefsToDocument();
+      },
+      onBack: () => this.show('title'),
+      onUpdate: () => {
+        const b = host.querySelector<HTMLElement>('.update-btn');
+        if (b) this.act('update', b);
+      },
+    });
   }
 
   private bindLobby(root: HTMLElement) {
@@ -549,6 +604,22 @@ export class App {
       case 'settings':
       case 'howto':
         this.show(a);
+        break;
+      case 'records':
+        this.show('records');
+        renderStats(this.ui, () => this.show('title'));
+        break;
+      case 'movelist':
+        showMoveList(this.ui, this.profiles[0].load.hero, () => {});
+        break;
+      case 'arcade':
+        this.showModes((root) => this.drawDifficulty(root));
+        break;
+      case 'survival':
+        this.startSurvival();
+        break;
+      case 'training':
+        this.startTraining();
         break;
       case 'update':
         void this.updateGame(el);
@@ -771,10 +842,13 @@ export class App {
     s.on('match', () => this.maybeStartGame());
     s.on('end', (m: MatchEndMsg) => {
       this.lastEnd = m;
+      this.onMatchOver(m, s);
       setTimeout(() => {
         if (this.screen === 'game') {
           this.endGameView();
-          this.show('results');
+          // a run's fight goes to the run's own screens; any other match to the results
+          if (this.runKind) this.afterRunFight();
+          else this.show('results');
         }
       }, 3200);
     });
@@ -798,6 +872,9 @@ export class App {
       const g0 = this.sessions[0]?.game;
       if (g0) for (const f of g0.fighters(performance.now())) prefetchHeroSprites(f.hero, this.game!.textures);
       this.show('game');
+      this.stat = { startedAt: performance.now(), bestCombo: 0, liveCombo: 0, perfects: 0, totalDamage: 0, tookDamage: false };
+      if (this.trainingOn) this.mountTrainingUi();
+      else this.dropTraining();
       const inputs: LocalPlayer[] = [];
       const pads = (n: number) => new GamepadSource(n);
       if (this.mode === 'local') {
@@ -812,7 +889,9 @@ export class App {
             this.touch = new TouchSource(this.ui);
             src.push(this.touch);
           }
-          inputs.push({ session: me, input: new MergedSource(src) });
+          const input: InputSource = new MergedSource(src);
+          // (training reads the local input once per tick: the input column and the frame counts)
+          inputs.push({ session: me, input: this.training ? this.tapInput(input) : input });
         }
       }
       this.inputs = inputs;
@@ -820,7 +899,10 @@ export class App {
       this.hud.onMenu = () => this.confirmLeave();
       this.game!.scene.start('game', { players: inputs, primary: this.sessions[0] });
       const scene = this.game!.scene.getScene('game') as GameScene;
-      scene.onEvent = (e) => this.hud?.onEvent(e, this.sessions[0].roster, this.sessions[0].game!);
+      scene.onEvent = (e) => {
+        this.hud?.onEvent(e, this.sessions[0].roster, this.sessions[0].game!);
+        this.onFightEvent(e);
+      };
       let last = performance.now();
       const loop = () => {
         if (this.screen !== 'game' || !this.hud) return;
@@ -845,13 +927,287 @@ export class App {
         requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
-      this.vsSplash();
+      // the VS card (training has no match start to announce)
+      if (!this.trainingOn) this.vsSplash();
     };
     if (this.booted) go();
     else this.game.events.once('booted', go);
   }
 
-  /** A short VS card as the match starts: both heroes slide in from the sides, then it clears. Never takes input. */
+  /** Per-event hooks of the running match: the HUD's K.O. slow-mo and result words, the training readout, the counters. */
+  private onFightEvent(e: GameEvent) {
+    const s = this.sessions[0];
+    const me = s?.selfId ?? -1;
+    const mySeat = s?.roster.get(me)?.seat ?? -1;
+    switch (e.t) {
+      case 'fight':
+        this.stat.tookDamage = false;
+        this.hud?.setHidden(false);
+        break;
+      case 'round': {
+        // the K.O. slow-mo hides the HUD (its banners stay up)
+        if (e.why === 0) this.hud?.setHidden(true);
+        const hud = this.hud;
+        const say = (text: string, color?: string) => setTimeout(() => this.hud === hud && hud?.announceResult(text, color), 1400);
+        if (e.winner === 255) say('DRAW');
+        else if (e.winner === mySeat && !this.stat.tookDamage && e.why === 0) {
+          this.stat.perfects++;
+          say('PERFECT', '#ffd84a');
+        }
+        break;
+      }
+      case 'hit':
+        if (e.v === me) this.stat.tookDamage = true;
+        // (burning ticks are not combo hits: the sim numbers them 0)
+        if (e.a !== me || e.v === me || e.n === 0) break;
+        this.stat.totalDamage += e.amt;
+        this.stat.liveCombo = e.n;
+        this.stat.bestCombo = Math.max(this.stat.bestCombo, e.n);
+        // (the training overlay carries the damage, combo, hits and best readout; the HUD's own training line would sit on it)
+        if (this.trainingOn) this.training?.setHit({ damage: e.amt, combo: e.n });
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** Passes every read of a local input source to the training overlay (one read per sim tick). */
+  private tapInput(src: InputSource): InputSource {
+    return {
+      read: () => {
+        const i = src.read();
+        this.training?.pushInput(i.buttons, i.moveX, i.moveY);
+        return i;
+      },
+      destroy: () => src.destroy(),
+    };
+  }
+
+  /** Mounts the training overlay once. A restart re-attaches the same one, so its menu keeps the choices made. */
+  private mountTrainingUi() {
+    if (this.training && this.trainingEl) {
+      this.ui.appendChild(this.trainingEl);
+      return;
+    }
+    this.training = mountTraining(this.ui, {
+      onDummy: (mode) => this.setDummy(mode),
+      onInfiniteRift: (on) => this.setInfinite(on),
+      onReset: () => this.restartTraining(),
+      onMoveList: () => showMoveList(this.ui, this.profiles[0].load.hero, () => {}),
+    });
+    this.trainingEl = this.ui.lastElementChild as HTMLElement;
+  }
+
+  private dropTraining() {
+    this.training?.destroy();
+    this.training = null;
+    this.trainingEl = null;
+  }
+
+  /** The dummy's behaviour changes live: the bot gets a brain at the new level (no restart). */
+  private setDummy(mode: DummyMode) {
+    this.train.level = mode;
+    const r = this.room;
+    if (!r) return;
+    r.botLevel = mode;
+    if (r.bot) r.bot.brain = new BotBrain(r.bot.id, r.bot.id * 7919, mode);
+  }
+
+  /** The Rift gauge stays full while on (the running match reads its own copy of the settings each tick). */
+  private setInfinite(on: boolean) {
+    this.train.infinite = on;
+    const r = this.room;
+    if (!r) return;
+    r.settings.infiniteRift = on;
+    if (r.world) r.world.settings.infiniteRift = on;
+  }
+
+  /** Reset: the same training match again, both fighters back at their start. */
+  private restartTraining() {
+    this.startFight({ arenaId: this.train.arena, botLevel: this.train.level, training: true, infiniteRift: this.train.infinite, label: 'Training' });
+  }
+
+  private startTraining() {
+    this.endRun();
+    this.train = { level: 'dummy-stand', infinite: false, arena: 'hall' };
+    this.startFight({ arenaId: this.train.arena, botLevel: this.train.level, training: true, infiniteRift: false, label: 'Training' });
+  }
+
+  /**
+   * Starts a private practice match (the arcade ladder, survival and training fights): a room of its own with the bot in
+   * the second seat, the match begins at once and skips the lobby.
+   */
+  private startFight(o: FightOpts) {
+    this.leave(true);
+    // (the previous match's view is ended by leave; the lobby listener only acts on the lobby screens, so wait on this one)
+    this.screen = 'modes';
+    this.mode = 'practice';
+    this.trainingOn = !!o.training;
+    this.label = o.label ?? 'Practice';
+    const room = localRoom('Practice');
+    this.room = room;
+    room.settings = {
+      ...room.settings,
+      arenaId: o.arenaId,
+      training: !!o.training,
+      infiniteRift: !!o.infiniteRift,
+      botHero: o.botHero,
+      carryHp: !!o.carryHp,
+      startHp: o.startHp,
+    };
+    room.botOn = true;
+    room.botLevel = o.botLevel;
+    const a = new Session({ kind: 'local', room, owns: true }, this.profiles[0]);
+    this.sessions = [a];
+    this.wire(a);
+    a.connect();
+    // the local transport opens on the next microtask: then the duel starts, the way the lobby's Fight button starts it
+    queueMicrotask(() => a.lobbyCmd({ op: 'start' }));
+  }
+
+  /** The difficulty pick of the arcade ladder: the bots step down (easy) or up (hard) the whole ladder. */
+  private drawDifficulty(root: HTMLElement) {
+    const opts: { id: RunDifficulty; name: string; blurb: string }[] = [
+      { id: 'easy', name: 'Easy', blurb: 'Every opponent one step softer' },
+      { id: 'normal', name: 'Normal', blurb: 'The ladder as designed' },
+      { id: 'hard', name: 'Hard', blurb: 'Every opponent one step harder' },
+    ];
+    root.innerHTML = `<div class="screen modes-screen md-pick">
+      <div class="md-wrap">
+        <header class="md-hdr">
+          <button class="md-back" data-x="back" type="button">Back</button>
+          <div class="md-title"><h2>Arcade</h2><span class="md-sub">Seven fights up the tower, the last one a boss. Three continues.</span></div>
+        </header>
+        <div class="md-pick-list">
+          ${opts.map((o) => `<button class="big md-pick-btn" data-diff="${o.id}" type="button"><b>${o.name}</b><small>${o.blurb}</small></button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+    root.querySelector<HTMLElement>('[data-x="back"]')?.addEventListener('click', () => this.show('title'));
+    root.querySelectorAll<HTMLElement>('[data-diff]').forEach((el) =>
+      el.addEventListener('click', () => {
+        sfx.play('uiClick');
+        this.startArcade(el.dataset.diff as RunDifficulty);
+      }),
+    );
+  }
+
+  private startArcade(diff: RunDifficulty) {
+    this.endRun();
+    this.runKind = 'arcade';
+    this.run = new ArcadeRun(this.profiles[0].load.hero, diff, (Math.random() * 1e9) | 0);
+    this.showLadder();
+  }
+
+  private showLadder() {
+    const run = this.run;
+    if (!(run instanceof ArcadeRun)) return;
+    this.showModes((root) => renderLadder(root, run, (stage) => this.fightArcade(stage), () => this.quitRun()));
+  }
+
+  private fightArcade(stage: ArcadeStage) {
+    this.startFight({
+      arenaId: stage.arenaId,
+      botLevel: stage.botLevel,
+      botHero: stage.heroId,
+      label: `Arcade ${stage.stage}/${stage.total}${stage.boss ? ' · Boss' : ''}`,
+    });
+  }
+
+  private startSurvival() {
+    this.endRun();
+    this.runKind = 'survival';
+    this.run = new SurvivalRun(this.profiles[0].load.hero, (Math.random() * 1e9) | 0);
+    this.showSurvival();
+  }
+
+  private showSurvival() {
+    const run = this.run;
+    if (!(run instanceof SurvivalRun)) return;
+    this.showModes((root) => renderSurvival(root, run, (f) => this.fightSurvival(f), () => this.quitRun()));
+  }
+
+  private fightSurvival(f: SurvivalFight) {
+    // the run's health is a fraction of full health; the room takes absolute points
+    const hp = Math.round(f.startHp * heroClass(this.profiles[0].load).hp);
+    this.startFight({
+      arenaId: f.arenaId,
+      botLevel: f.botLevel,
+      botHero: f.heroId,
+      carryHp: true,
+      startHp: [hp, -1],
+      label: `Survival · Fight ${f.fight}`,
+    });
+  }
+
+  /** A run's fight has ended and is recorded: the run's next screen, or its end card. */
+  private afterRunFight() {
+    const run = this.run;
+    if (run instanceof ArcadeRun) {
+      if (!run.done()) return this.showLadder();
+      const cleared = run.cleared();
+      this.showRunOver(
+        { title: cleared ? 'Ladder cleared' : 'Defeated', stats: arcadeSummary(run), tone: cleared ? 'win' : 'lose', retryLabel: 'New run' },
+        () => this.startArcade(run.difficulty),
+      );
+    } else if (run instanceof SurvivalRun) {
+      if (!run.done()) return this.showSurvival();
+      this.showRunOver({ title: 'Run over', stats: survivalSummary(run), tone: 'lose', retryLabel: 'New run' }, () => this.startSurvival());
+    } else this.show('title');
+  }
+
+  private showRunOver(opts: { title: string; stats: string[]; tone: 'win' | 'lose'; retryLabel: string }, retry: () => void) {
+    this.showModes((root) => renderRunOver(root, opts, retry, () => this.quitRun()), 'results');
+  }
+
+  /** Ends the run in progress (a quit or a leave). The run records its own result once. */
+  private endRun() {
+    this.run?.quit();
+    this.run = null;
+    this.runKind = null;
+  }
+
+  /** Quits a run (or training) to the title: the match is left and the run recorded. */
+  private quitRun() {
+    this.endRun();
+    this.leave(true);
+    this.show('title');
+  }
+
+  /** A match ended, as the local seat saw it: the records, the run's result, the victory track. */
+  private onMatchOver(m: MatchEndMsg, s: Session) {
+    if (this.trainingOn) return;
+    const me = s.roster.get(s.selfId);
+    const seat = me?.seat ?? -1;
+    // a spectator has no seat to record
+    if (!me || seat < 0) return;
+    const won = m.winnerId === s.selfId;
+    const foe = [...s.roster.values()].find((r) => r.seat >= 0 && r.seat !== seat);
+    recordMatch({
+      hero: me.load.hero,
+      foeHero: foe?.load.hero ?? me.load.hero,
+      won,
+      roundsWon: m.wins[seat] ?? 0,
+      roundsLost: m.wins[1 - seat] ?? 0,
+      perfects: this.stat.perfects,
+      bestCombo: this.stat.bestCombo,
+      seconds: (performance.now() - this.stat.startedAt) / 1000,
+      mode: this.runKind ?? this.mode,
+    });
+    const run = this.run;
+    if (run instanceof ArcadeRun) run.recordResult(won);
+    else if (run instanceof SurvivalRun) run.recordResult(won, this.survivalHp(seat, me.load));
+    music.play('victory');
+  }
+
+  /** The local fighter's health when a survival fight ended, as a fraction of full health (the room keeps it). */
+  private survivalHp(seat: number, load: Loadout): number {
+    const left = this.room?.settings.startHp?.[seat];
+    if (left === undefined || left < 0) return 0;
+    return Math.min(1, left / heroClass(load).hp);
+  }
+
+  /** The VS card as the match starts: both heroes, names, arena and mode. Presentation only; it takes no input. */
   private vsSplash(tries = 0) {
     const s = this.sessions[0];
     const g = s?.game;
@@ -865,21 +1221,16 @@ export class App {
       return;
     }
     const seat = s.roster.get(s.selfId)?.seat ?? -1;
+    const me = s.roster.get(s.selfId);
     const foe = [...s.roster.values()].find((r) => r.seat >= 0 && r.seat !== seat);
-    const who = (f: typeof mine, name: string) => {
-      const h = heroOf(f.hero);
-      return `<div class="vs-side"><div class="vs-frame"><img src="${heroPortrait(h)}" alt=""></div>
-        <b>${esc(h.name)}</b><small>${esc(h.epithet)}</small><span>${esc(name)}</span><q class="vs-quote">${esc(quotesOf(f.hero).vs)}</q></div>`;
-    };
-    const el = document.createElement('div');
-    el.className = 'vs-splash';
-    el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = `<div class="vs-l">${who(mine, s.roster.get(s.selfId)?.name ?? this.profiles[0].name)}</div>
-      <div class="vs-mark">VS</div>
-      <div class="vs-r">${who(theirs, foe?.name ?? (this.mode === 'practice' ? 'Bot' : 'Opponent'))}</div>`;
-    this.ui.appendChild(el);
-    window.setTimeout(() => el.classList.add('out'), 1650);
-    window.setTimeout(() => el.remove(), 2000);
+    const arena = ARENAS.find((a) => a.id === s.lobby?.settings.arenaId)?.name ?? 'Arena';
+    const modeLabel = this.runKind ? this.label : this.mode === 'practice' ? 'Practice' : this.mode === 'local' ? 'Two players' : undefined;
+    void showVsSplash(this.ui, {
+      p1: { heroId: mine.hero, playerName: me?.name ?? this.profiles[0].name, color: css(colorOf(me?.color ?? this.profiles[0].color)) },
+      p2: { heroId: theirs.hero, playerName: foe?.name ?? (this.mode === 'practice' ? 'Bot' : 'Opponent'), color: css(colorOf(foe?.color ?? 1)) },
+      arenaName: arena,
+      modeLabel,
+    });
   }
 
   private endGameView() {
@@ -895,16 +1246,23 @@ export class App {
   private confirmLeave() {
     const el = document.createElement('div');
     el.className = 'modal';
-    el.innerHTML = `<div class="card"><h3>Leave the duel?</h3><div class="row"><button data-x="stay" class="primary">Keep fighting</button><button data-x="go">Leave</button></div></div>`;
+    el.innerHTML = `<div class="card"><h3>Leave the duel?</h3><div class="row"><button data-x="stay" class="primary">Keep fighting</button><button data-x="moves">Move list</button><button data-x="go">Leave</button></div></div>`;
     this.ui.appendChild(el);
     el.addEventListener('click', (e) => {
       const x = (e.target as HTMLElement).dataset.x;
+      if (x === 'moves') {
+        el.remove();
+        showMoveList(this.ui, this.profiles[0].load.hero, () => {});
+        return;
+      }
       if (x === 'go') this.leave();
       if (x) el.remove();
     });
   }
 
   private leave(silent = false) {
+    // (a silent leave starts another match at once, so a run in progress carries on; a real leave ends it)
+    if (!silent) this.endRun();
     if (this.screen === 'game') this.endGameView();
     this.listener?.stop();
     this.listener = null;
@@ -935,4 +1293,3 @@ export class App {
   }
 }
 
-void accentOf;

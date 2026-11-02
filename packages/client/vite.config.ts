@@ -98,6 +98,25 @@ export default defineConfig({
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'bladerift-fighters', expiration: { maxEntries: 40 } },
           },
+          // the audio manifest names the files and their gains: it is always asked for fresh (it is precached too, and a
+          // release updates it through the precache), and the sounds it names are cached once played
+          {
+            urlPattern: /\/assets\/audio\/manifest\.json$/,
+            handler: 'NetworkFirst',
+            options: { cacheName: 'bladerift-audio-manifest', networkTimeoutSeconds: 4, expiration: { maxEntries: 2 } },
+          },
+          // music and sound effects (mp3, not precached: they are large): cached on first play, so they work offline after
+          // one listen; 120 files and 60 days at most
+          {
+            urlPattern: /\/assets\/audio\/.+\.mp3$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'bladerift-audio',
+              rangeRequests: true,
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 24 * 60 * 60 },
+            },
+          },
         ],
         // Only Vite's content-hashed bundles skip revisioning; generated art (assets/gen) is unhashed and
         // must get a precache revision so a new release never pairs new code with stale atlases.
