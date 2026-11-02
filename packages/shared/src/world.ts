@@ -3,9 +3,9 @@
  * status effects. Runs on the server and, for practice / same-device play, inside the browser.
  */
 import { ArenaDef, getArena, solidAt, surfaceBelow } from './arena';
-import { DT, FIGHTER, PHYS, ROUND, TICK_RATE } from './constants';
+import { DT, FIGHTER, PHYS, ROUND, THROW, TICK_RATE } from './constants';
 import {
-  Act, bodySolid, bodyYields, copyState, currentMove, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isAirMove, isFrozen, meleeConnect, meleeCrit, moveDamage, MOVE_AIR3, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
+  Act, bodySolid, bodyYields, castingEx, copyState, currentMove, exDamage, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isAirMove, isFrozen, isThrowable, meleeConnect, meleeCrit, moveDamage, MOVE_AIR3, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
@@ -18,7 +18,24 @@ export interface MatchSettings {
   wins: number;
   /** Round length in seconds. */
   roundTime: number;
+  /** Training: a fighter's health and flasks refill TRAINING.refillTicks after the combo against it ends, the round clock
+   * does not run and nobody can be K.O.'d (health floors at 1). */
+  training?: boolean;
+  /** The Rift gauge stays full (every Rift Art and EX special is available). */
+  infiniteRift?: boolean;
+  /** The practice bot's hero (-1 or unset: a random one). */
+  botHero?: number;
+  /** Survival: each match starts with the health the previous one ended with (see startHp). */
+  carryHp?: boolean;
+  /** Health to start the match with, per seat (used when carryHp is on; a value of 0 or less, or a missing one, is full
+   * health). The room fills it in when a match ends. */
+  startHp?: number[];
 }
+
+/** Training refill: ticks after a combo against a fighter ends before its health and flasks are restored (1 s). */
+export const TRAINING = { refillTicks: TICK_RATE } as const;
+/** The K.O. launch: the beaten fighter's push away from the attacker (at least vx) and its upward kick (vy, units/s). */
+export const KO_LAUNCH = { vx: 260, vy: -340 } as const;
 
 export const DEFAULT_SETTINGS: MatchSettings = { arenaId: 'hall', wins: ROUND.defaultWins, roundTime: ROUND.defaultTime };
 
@@ -73,6 +90,8 @@ export interface Projectile {
   /** Fired by a Rift Art: its hits land as Art hits (Art hit-stop, no combo scaling). Weapon and skill projectiles that
    * share a kind with an Art's (the Gate's blades and Gate Shot are relics, Chain Lash a hand) are ordinary hits. */
   art?: boolean;
+  /** Cast as the EX special (fighter.ts startEx): the client tints it. */
+  ex?: boolean;
 }
 
 export interface Trap {
@@ -108,7 +127,13 @@ export type GameEvent =
    * fighters, projectiles, strikes and the clock are frozen, and the Art plays out after it. */
   | { t: 'art'; p: number; art: number; pause: number }
   /** A Starfall bolt or Chains of Genesis landed. */
-  | { t: 'strike'; x: number; y: number; kind: number };
+  | { t: 'strike'; x: number; y: number; kind: number }
+  /** p started its hero special as the EX special (fighter.ts startEx; skill = the hero's SkillId): tint the cast. */
+  | { t: 'ex'; p: number; skill: number }
+  /** a's throw grabbed v (v is held THROW.hold ticks before it is thrown; the impact is an ordinary 'hit'). */
+  | { t: 'throw'; a: number; v: number }
+  /** v broke a's throw in the tech window: both are pushed apart, no damage. */
+  | { t: 'tech'; a: number; v: number };
 
 export interface Fighter {
   id: number;
@@ -148,6 +173,8 @@ export interface Fighter {
   blinkFrom: number;
   /** Hits of the combo this fighter is taking (0 = not in one). */
   comboHits: number;
+  /** Training: ticks left before the refill for the combo that ended (-1 = no combo has ended since its last hit). */
+  refillT: number;
   /** Frozen this tick (hit-stop or superpause at the start of the tick): it cannot land hits or run Art effects. */
   held: boolean;
   // stats
@@ -264,8 +291,9 @@ export class World {
       owed: 0, carry: 0, lagTicks: -1, prevViewTick: 0,
       histTick: new Int32Array(HIST).fill(-1), histX: new Float32Array(HIST), histY: new Float32Array(HIST), histFlags: new Uint8Array(HIST),
       histBlockT: new Uint16Array(HIST), histFace: new Int8Array(HIST),
-      lastHitSeq: -1, skillHit: false, comboHits: 0, held: false, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0, blinkFrom: 0,
+      lastHitSeq: -1, skillHit: false, comboHits: 0, refillT: -1, held: false, dealt: 0, roundDealt: 0, hits: 0, roundsWon: 0, blinkFrom: 0,
     };
+    if (this.settings.infiniteRift) f.s.rift = RIFT.max;
     f.s.lock = Math.max(0, this.phaseEnd - this.tick);
     this.fighters.set(id, f);
     this.seats[seat] = id;
@@ -279,16 +307,23 @@ export class World {
     if (this.seats[f.seat] === id) this.seats[f.seat] = -1;
   }
 
-  /** Begin the first round (call once both seats are filled, or for a solo warm-up). */
+  /** Begin the first round (call once both seats are filled, or for a solo warm-up). With carryHp, each seat starts the
+   * match at its startHp (clamped to 1..its class's health; a value of 0 or less means full health). */
   start() {
     this.resetRound();
+    if (this.settings.carryHp && this.settings.startHp) {
+      for (const f of this.fighters.values()) {
+        const hp = this.settings.startHp[f.seat];
+        if (typeof hp === 'number' && hp > 0) f.s.hp = Math.min(heroClass(f.load).hp, Math.max(1, Math.round(hp)));
+      }
+    }
   }
 
   /** The opponent as a Rift Art sees them (no view when they are down). */
   foeView(f: Fighter): FoeView | undefined {
     const o = this.opponent(f);
     if (!o || o.s.act === Act.KO) return undefined;
-    return o.start ?? { x: o.s.x, y: o.s.y, face: o.s.face, solid: bodySolid(o.s), yields: bodyYields(o.s) };
+    return o.start ?? { x: o.s.x, y: o.s.y, face: o.s.face, solid: bodySolid(o.s), yields: bodyYields(o.s), throwable: isThrowable(o.s) };
   }
 
   opponent(f: Fighter): Fighter | undefined {
@@ -316,6 +351,7 @@ export class World {
       f.s.lock = ROUND.introTicks;
       f.lastHitSeq = -1;
       f.comboHits = 0;
+      f.refillT = -1;
       f.roundDealt = 0;
     }
   }
@@ -331,7 +367,7 @@ export class World {
     if (paused) this.pause--;
     for (const f of this.fighters.values()) {
       f.held = isFrozen(f.s);
-      f.start = { x: f.s.x, y: f.s.y, face: f.s.face, solid: bodySolid(f.s), yields: bodyYields(f.s) };
+      f.start = { x: f.s.x, y: f.s.y, face: f.s.face, solid: bodySolid(f.s), yields: bodyYields(f.s), throwable: isThrowable(f.s) };
     }
     for (const f of this.fighters.values()) this.runCommands(f);
     for (const f of this.fighters.values()) f.start = undefined;
@@ -340,6 +376,7 @@ export class World {
     for (const f of this.fighters.values()) this.spawnFrom(f);
     for (const f of this.fighters.values()) this.checkMelee(f);
     for (const f of this.fighters.values()) this.checkSkillDash(f);
+    this.stepThrows();
     this.stepArts(paused);
     if (paused) {
       for (const t of this.traps) (t.armAt++, t.until++);
@@ -348,6 +385,7 @@ export class World {
       this.stepTraps();
       this.stepStatus();
     }
+    this.stepTraining(paused);
     this.stepRound(paused);
   }
 
@@ -370,7 +408,7 @@ export class World {
     for (const f of this.fighters.values()) {
       if (f.id === p.owner || f.s.act !== Act.Attack) continue;
       const m = currentMove(f.s, f.load);
-      if (!m || m.arrow || m.arcane || m.gate) continue;
+      if (!m || m.arrow || m.arcane || m.gate || m.grab) continue;
       if (f.s.actT < m.startup - 1 || f.s.actT >= m.startup + m.active + FIGHTER.deflectLate) continue;
       const mb = moveBox(m, f.s.x, f.s.y, f.s.face);
       const pb = { x: Math.min(px, p.x) - 6, y: Math.min(py, p.y) - 8, w: Math.abs(p.x - px) + 12, h: Math.abs(p.y - py) + 16 };
@@ -501,6 +539,7 @@ export class World {
         else this.events.push({ t: 'swing', p: f.id, w: f.load.weapons[s.slot], m: s.move });
       }
       if (s.act === Act.Art && s.actT === 0 && before !== Act.Art) art = true;
+      if (castingEx(s) && before !== Act.Skill) this.events.push({ t: 'ex', p: f.id, skill: f.load.skill });
       if (art) {
         this.events.push({ t: 'art', p: f.id, art: artIdOf(f.load), pause: FIGHTER.superpause });
         this.casting.push(f);
@@ -555,6 +594,10 @@ export class World {
     if (!m || m.arrow || !isActive(a.s, m)) return;
     const d = this.opponent(a);
     if (!d || d.s.act === Act.KO || d.lastHitSeq === a.s.moveSeq) return;
+    if (m.grab) {
+      this.checkThrow(a, d);
+      return;
+    }
     const seen = this.seenAt(d, this.validViewTick(a, a.lastCmd.viewTick));
     const box = moveBox(m, a.s.x, a.s.y, a.s.face);
     if (!overlap(box, bodyBox(seen.x, seen.y, seen.crouch)) || seen.invuln) return;
@@ -580,6 +623,78 @@ export class World {
     // the attacker freezes with the defender (melee hit-stop), a lunge brakes, a landed hit can be cancelled into a jump
     // or chained at once, and a plunge pogos (shared with the client's prediction)
     meleeConnect(a.s, a.load, m, this.lastStop);
+  }
+
+  /**
+   * A throw's grab (THROW): the thrower's move connects on a grounded, throwable opponent in front of it, in reach and level.
+   * Guards do not stop it. The victim is held (frozen, invulnerable) for THROW.hold ticks and the thrower is in Act.Throw.
+   */
+  private checkThrow(a: Fighter, d: Fighter) {
+    const seen = this.seenAt(d, this.validViewTick(a, a.lastCmd.viewTick));
+    const dx = seen.x - a.s.x;
+    if (!a.s.ground || seen.invuln || !isThrowable(d.s)) return;
+    if (dx * a.s.face <= 0 || Math.abs(dx) > THROW.range || Math.abs(seen.y - a.s.y) >= FIGHTER.h) return;
+    d.lastHitSeq = a.s.moveSeq;
+    d.comboHits = 0;
+    d.s.act = Act.Held;
+    d.s.actT = 0;
+    d.s.vx = 0;
+    d.s.vy = 0;
+    d.s.crouch = 0;
+    d.s.blockT = 0;
+    d.s.charge = 0;
+    d.s.face = a.s.x < d.s.x ? -1 : 1;
+    d.s.invuln = Math.max(d.s.invuln, THROW.hold + 1);
+    a.s.act = Act.Throw;
+    a.s.actT = 0;
+    a.s.vx = 0;
+    this.events.push({ t: 'throw', a: a.id, v: d.id });
+  }
+
+  /**
+   * The throws in progress (after every fighter moved): a victim whose thrower lost the hold (hit, KO) is let go; a victim
+   * that broke out in the tech window (stepFighter: Act.Stun) pushes the thrower back; at THROW.hold the throw lands.
+   */
+  private stepThrows() {
+    for (const f of this.fighters.values()) {
+      if (f.s.act !== Act.Held) continue;
+      const a = this.opponent(f);
+      if (!a || a.s.act !== Act.Throw) {
+        f.s.act = Act.Free;
+        f.s.actT = 0;
+      }
+    }
+    for (const a of this.fighters.values()) {
+      if (a.s.act !== Act.Throw) continue;
+      const d = this.opponent(a);
+      if (!d) continue;
+      if (d.s.act === Act.Held) {
+        if (a.s.actT === THROW.hold) this.landThrow(a, d);
+      } else if (d.s.act === Act.Stun && a.s.actT <= THROW.hold) this.techThrow(a, d);
+    }
+  }
+
+  /** The throw lands: the held victim takes it as a hit that knocks them down, away from the thrower (THROW). */
+  private landThrow(a: Fighter, d: Fighter) {
+    d.s.invuln = 0;
+    this.applyHit(a, d, {
+      dmg: THROW.dmg, kbX: THROW.kbX, kbY: THROW.kbY, stun: THROW.stun, crit: false, w: a.load.weapons[a.s.slot],
+      x: (a.s.x + d.s.x) / 2, y: d.s.y - FIGHTER.h / 2, front: true, breaksGuard: true,
+    });
+    // (the thrower recovers from here: stepFighter's Act.Throw ends THROW.after ticks on)
+    a.s.actT = THROW.hold + 1;
+  }
+
+  /** The victim broke the hold in the tech window (stepFighter pushed them apart): the thrower is pushed back too. */
+  private techThrow(a: Fighter, d: Fighter) {
+    const dir = d.s.x >= a.s.x ? 1 : -1;
+    a.s.act = Act.Stun;
+    a.s.actT = 0;
+    a.s.stun = THROW.techStun;
+    a.s.fall = 0;
+    a.s.charge = 0;
+    a.s.vx = -dir * THROW.techKb;
+    this.events.push({ t: 'tech', a: a.id, v: d.id });
   }
 
   /** The attacker's damage scale: class (and hero tune), the berserker's low-health rage, Blood Frenzy. */
@@ -685,8 +800,10 @@ export class World {
       a.roundDealt += h.dmg;
       a.hits++;
     }
-    // super armour: Blood Frenzy and Piercing Fang take the damage but never flinch (nor freeze: the attacker does)
-    const armour = ds.frenzy > 0 || (ds.act === Act.Attack && ds.move === MOVE_ART);
+    // super armour: Blood Frenzy, Piercing Fang and an EX special through its startup take the damage but never flinch
+    // (nor freeze: the attacker does)
+    const exArmour = castingEx(ds) && ds.actT <= (SKILLS[d.load.skill]?.startup ?? 0);
+    const armour = ds.frenzy > 0 || (ds.act === Act.Attack && ds.move === MOVE_ART) || exArmour;
     const hs = hitstopFor(hsDmg, h.crit, art, false);
     this.lastStop = hs;
     if (!armour) ds.hitstop = Math.max(ds.hitstop, hs);
@@ -729,15 +846,21 @@ export class World {
     return true;
   }
 
+  /**
+   * The beaten fighter is thrown back away from the attacker (at least KO_LAUNCH.vx, replacing the blow's push), so the body
+   * flies, lands and lies there in Act.KO. In training nobody is K.O.'d: health floors at 1.
+   */
   private knockOut(d: Fighter, a: Fighter | undefined) {
-    if (this.phase !== 'fight') {
+    if (this.phase !== 'fight' || this.settings.training) {
       d.s.hp = Math.max(1, d.s.hp);
       return;
     }
     d.s.hp = 0;
     d.s.act = Act.KO;
     d.s.actT = 0;
-    d.s.vy = Math.min(d.s.vy, -260);
+    const away = a && a.s.x !== d.s.x ? (d.s.x > a.s.x ? 1 : -1) : a ? -a.s.face : -d.s.face;
+    d.s.vx = away * Math.max(KO_LAUNCH.vx, Math.abs(d.s.vx));
+    d.s.vy = Math.min(d.s.vy, KO_LAUNCH.vy);
     d.s.ground = 0;
     this.events.push({ t: 'ko', v: d.id, a: a?.id ?? 255 });
     this.endRound(a ? a.seat : d.seat ^ 1, 0);
@@ -814,6 +937,8 @@ export class World {
     const sk = SKILLS[f.load.skill];
     if (!sk) return;
     this.events.push({ t: 'shoot', p: f.id, kind: SKILL_EVENT + sk.id });
+    // (an EX cast: its hits deal the EX multiple of the table's damage, and its shots are tinted)
+    const ex = castingEx(s);
     if (sk.kind === 'shot') {
       const n = sk.count ?? 1;
       const speed = sk.speed ?? 900;
@@ -822,9 +947,10 @@ export class World {
         const a = (i - (n - 1) / 2) * (sk.spread ?? 0) - (sk.gravity ? 0.18 : 0);
         this.projectiles.push({
           id: this.nextId++ % 65536, kind: sk.proj ?? 'arrow', owner: f.id, x: s.x + s.face * 20, y: s.y - (sk.launchY ?? 40),
-          vx: s.face * speed * Math.cos(a), vy: speed * Math.sin(a), dmg: sk.dmg, kb: sk.kb, kbY: sk.kbY, stun: sk.stun,
+          vx: s.face * speed * Math.cos(a), vy: speed * Math.sin(a), dmg: exDamage(s, sk.dmg), kb: sk.kb, kbY: sk.kbY, stun: sk.stun,
           life: sk.life ?? 60, heavy: false, skin: sk.id + 1, slow: sk.slow, root: sk.root, burn: sk.burn, pierce: sk.pierce,
           unblockable: sk.unblockable, gravity: sk.gravity, boomerang: sk.boomerang ? Math.round((sk.life ?? 60) / 2) : undefined,
+          ex,
         });
       }
     } else if (sk.kind === 'aura') {
@@ -836,7 +962,7 @@ export class World {
         const dy = o.s.y - s.y;
         if (dx * dx + dy * dy > R * R) continue;
         const landed = this.applyHit(f, o, {
-          dmg: sk.dmg, kbX: sk.kb, kbY: sk.kbY ?? 120, stun: sk.stun, crit: false, w: SKILL_WEAPON, x: o.s.x, y: o.s.y - FIGHTER.h / 2,
+          dmg: exDamage(s, sk.dmg), kbX: sk.kb, kbY: sk.kbY ?? 120, stun: sk.stun, crit: false, w: SKILL_WEAPON, x: o.s.x, y: o.s.y - FIGHTER.h / 2,
           front: true, melee: false, breaksGuard: true,
         });
         if (landed && sk.slow) o.s.slowT = Math.max(o.s.slowT, sk.slow);
@@ -860,7 +986,7 @@ export class World {
     f.skillHit = true;
     const front = (o.s.face > 0) !== (s.x > o.s.x);
     this.applyHit(f, o, {
-      dmg: sk.dmg, kbX: sk.kb, kbY: sk.kbY ?? 160, stun: sk.stun, crit: true, w: SKILL_WEAPON, x: o.s.x, y: o.s.y - FIGHTER.h / 2,
+      dmg: exDamage(s, sk.dmg), kbX: sk.kb, kbY: sk.kbY ?? 160, stun: sk.stun, crit: true, w: SKILL_WEAPON, x: o.s.x, y: o.s.y - FIGHTER.h / 2,
       front, melee: true, breaksGuard: !!sk.unblockable,
     });
   }
@@ -1166,10 +1292,32 @@ export class World {
 
   // ------------------------------------------------------------ rounds
 
+  /**
+   * Training and the infinite Rift gauge. A combo is over once its defender is out of hit-stun (comboHits stays set until
+   * the next hit); TRAINING.refillTicks later that fighter's health and flasks are restored and the combo is closed. A new
+   * hit in hit-stun in the meantime cancels the countdown. Frozen while the world is.
+   */
+  private stepTraining(paused: boolean) {
+    for (const f of this.fighters.values()) {
+      if (this.settings.infiniteRift) f.s.rift = RIFT.max;
+      if (!this.settings.training || paused) continue;
+      if (!(f.comboHits > 0 && f.s.act !== Act.Stun)) {
+        f.refillT = -1;
+        continue;
+      }
+      if (f.refillT < 0) f.refillT = TRAINING.refillTicks;
+      if (--f.refillT > 0) continue;
+      f.s.hp = heroClass(f.load).hp;
+      f.s.flask = FIGHTER.flasks;
+      f.comboHits = 0;
+      f.refillT = -1;
+    }
+  }
+
   private stepRound(paused: boolean) {
     if (this.phase === 'fight') {
-      // a solo warm-up (one seat empty) has no clock; a superpause stops it
-      if (this.seats[0] >= 0 && this.seats[1] >= 0 && !paused) this.timeLeft = Math.max(0, this.timeLeft - DT);
+      // a solo warm-up (one seat empty) has no clock; a superpause stops it; training has no clock
+      if (this.seats[0] >= 0 && this.seats[1] >= 0 && !paused && !this.settings.training) this.timeLeft = Math.max(0, this.timeLeft - DT);
       if (this.timeLeft <= 0) {
         const a = this.fighters.get(this.seats[0]);
         const b = this.fighters.get(this.seats[1]);

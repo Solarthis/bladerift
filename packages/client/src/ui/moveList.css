@@ -1,0 +1,180 @@
+/* Move list panel (ui/moveList.ts). Tokens come from styles.css :root. */
+
+/* the backdrop: a tap or click outside the panel closes it; the panel is a sheet on phones */
+.ml-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 6, 14, 0.72);
+  backdrop-filter: blur(3px);
+  animation: ml-in 0.18s ease-out both;
+}
+@keyframes ml-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ml-overlay { animation: none; } }
+
+.ml-panel {
+  width: min(600px, 100%);
+  max-height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel-solid);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+}
+
+/* hero name, weapon and the Close button; stays put while the list scrolls */
+.ml-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.ml-id { flex: 1 1 auto; min-width: 0; }
+.ml-id small {
+  display: block;
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+.ml-id h2 {
+  margin: 1px 0 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(22px, 5.4vh, 30px);
+  line-height: 1.05;
+  letter-spacing: 0.4px;
+  text-shadow: 0 3px 0 #2a1430;
+  overflow-wrap: anywhere;
+}
+.ml-weapon { margin: 2px 0 0; color: var(--gold-hi); font-size: 13px; font-style: italic; font-weight: 700; }
+.ml-close { flex: none; min-height: 40px; padding: 6px 16px; }
+.ml-style { flex: none; margin: 0; padding: 10px 16px 0; color: var(--dim); font-size: 13.5px; line-height: 1.35; }
+
+/* the only scrolling part: on a phone the panel is full height and this area takes the rest */
+.ml-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 2px 16px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(233, 182, 74, 0.35) transparent;
+}
+.ml-sec { margin-top: 14px; }
+.ml-sec h3 {
+  margin: 0 0 7px;
+  color: var(--gold-hi);
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 15px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.ml-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ml-row {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.28);
+}
+.ml-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+.ml-name { flex: 1 1 auto; min-width: 0; font-size: 14.5px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.ml-kind {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+.ml-dmg { flex: none; margin-left: auto; color: var(--dim); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.ml-dmg small { font-size: 10.5px; letter-spacing: 0.4px; text-transform: uppercase; }
+.ml-notes { margin: 0; color: var(--dim); font-size: 12.5px; line-height: 1.35; }
+.ml-empty { margin: 16px 0; color: var(--dim); font-weight: 700; text-align: center; }
+
+/* input notation as glyphs */
+.ml-input { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.ml-gap { width: 5px; }
+.ml-plus { margin: 0 1px; color: var(--dim); font-size: 13px; font-weight: 900; }
+.ml-arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 230, 190, 0.25);
+  background: #2a2236;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+.ml-btn {
+  display: inline-grid;
+  place-items: center;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  border-radius: 50%;
+  color: #1a1020;
+  font-family: var(--display);
+  font-size: 13px;
+  line-height: 1;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.ml-btn.ml-pill { padding: 0 7px; border-radius: 999px; font-size: 11px; letter-spacing: 0.4px; }
+.ml-b-light { background: radial-gradient(circle at 35% 30%, #e2f3ff, #6fb8ff 70%); }
+.ml-b-heavy { background: radial-gradient(circle at 35% 30%, #ffd9c4, #ff6a3d 70%); }
+.ml-b-special { background: radial-gradient(circle at 35% 30%, #fff3cc, #e9b64a 70%); }
+.ml-b-art { background: linear-gradient(180deg, #ffc2f0, #e25ac4); }
+.ml-b-jump { background: linear-gradient(180deg, #dcffcb, #7ee06a); }
+.ml-b-dodge { background: linear-gradient(180deg, #ebe0ff, #a98cf0); }
+.ml-tag {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px dashed var(--line);
+  color: var(--dim);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  line-height: 1.6;
+}
+.ml-word { color: var(--ink); font-size: 12px; font-weight: 800; }
+
+/* phones and narrow windows: the panel fills the screen, with the same 16px gutter */
+@media (max-width: 560px) {
+  .ml-overlay { padding: 0; }
+  .ml-panel { width: 100%; height: 100%; border: 0; border-radius: 0; }
+  .ml-head { padding: calc(env(safe-area-inset-top) + 12px) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); }
+  .ml-style { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  .ml-body { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: calc(env(safe-area-inset-bottom) + 20px); }
+}
+
+/* short landscape screens: the header tightens so the list gets the height */
+@media (max-height: 500px) {
+  .ml-head { padding-top: 8px; padding-bottom: 6px; }
+  .ml-sec { margin-top: 10px; }
+}

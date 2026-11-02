@@ -1,4 +1,4 @@
-import { BotBrain, BotDifficulty, botLoadout } from './bot';
+import { BotBrain, BOT_LEVELS, BotDifficulty, botLoadout } from './bot';
 import { MAX_PLAYERS, PROTOCOL_VERSION, SNAPSHOT_INTERVAL, TICK_RATE } from './constants';
 import { ARENAS } from './arena';
 import {
@@ -8,7 +8,7 @@ import {
 import { DEFAULT_SETTINGS, MatchSettings, World } from './world';
 import { botLook, PlayerLook, sanitizeColor, sanitizeLook } from './look';
 import { Loadout } from './weapons';
-import { DEFAULT_LOADOUT, sanitizeLoadout } from './heroes';
+import { DEFAULT_LOADOUT, HERO_COUNT, sanitizeLoadout } from './heroes';
 
 /** Minimal socket surface the room needs; implemented by `ws` on the server and by an in-memory pair offline. */
 export interface RoomSocket {
@@ -357,9 +357,17 @@ export class Room {
           if (typeof s.arenaId === 'string' && ARENAS.some((a) => a.id === s.arenaId)) this.settings.arenaId = s.arenaId;
           if (typeof s.wins === 'number') this.settings.wins = clampInt(s.wins, 1, 3);
           if (typeof s.roundTime === 'number') this.settings.roundTime = clampInt(s.roundTime, 30, 180);
+          if (typeof s.training === 'boolean') this.settings.training = s.training;
+          if (typeof s.infiniteRift === 'boolean') this.settings.infiniteRift = s.infiniteRift;
+          if (typeof s.botHero === 'number') this.settings.botHero = clampInt(s.botHero, -1, HERO_COUNT - 1);
+          if (typeof s.carryHp === 'boolean') {
+            this.settings.carryHp = s.carryHp;
+            if (!s.carryHp) this.settings.startHp = undefined;
+          }
+          if (Array.isArray(s.startHp)) this.settings.startHp = s.startHp.slice(0, 2).map((v) => clampInt(Number(v), 0, 99_999));
         } else if (cmd.op === 'bot') {
           this.botOn = !!cmd.on;
-        } else if (cmd.op === 'botLevel' && (cmd.level === 'easy' || cmd.level === 'normal' || cmd.level === 'hard')) {
+        } else if (cmd.op === 'botLevel' && (BOT_LEVELS as readonly string[]).includes(cmd.level)) {
           this.botLevel = cmd.level;
         } else if (cmd.op === 'start' && this.phase === 'lobby') {
           if (!this.startMatch()) this.send(c, encodeJson(Msg.Notice, { kind: 'info', text: 'Two fighters are needed: wait for an opponent or turn on the bot.' }));
@@ -421,7 +429,9 @@ export class Room {
         const id = this.allocId();
         const seed = (Math.random() * 1e9) | 0;
         const name = BOT_NAMES[seed % BOT_NAMES.length];
-        this.bot = { id, name, color: (seed >> 3) % 12, look: botLook(seed), load: botLoadout(seed), seat, brain: new BotBrain(id, seed, this.botLevel) };
+        // the practice bot's hero when one is chosen, else a random one
+        const load = this.settings.botHero !== undefined && this.settings.botHero >= 0 ? sanitizeLoadout({ hero: this.settings.botHero }) : botLoadout(seed);
+        this.bot = { id, name, color: (seed >> 3) % 12, look: botLook(seed), load, seat, brain: new BotBrain(id, seed, this.botLevel) };
         this.world.addFighter(id, seat, name, this.bot.load, true);
       }
     }
@@ -498,6 +508,11 @@ export class Room {
     w.step();
     // the match ended in play (last round won) or by forfeit (a fighter left, see dropClient); both go to results here
     if (w.phase === 'over' && this.phase === 'playing') {
+      // survival: the human seats carry their health into the next match (the bot's seat always starts full)
+      if (this.settings.carryHp) this.settings.startHp = [0, 1].map((seat) => {
+        const f = w.fighters.get(w.seats[seat]);
+        return f && !f.bot ? Math.max(0, Math.round(f.s.hp)) : -1;
+      });
       this.phase = 'results';
       this.resultsUntil = w.tick + RESULTS_SECONDS * TICK_RATE;
       const winnerId = w.seats[w.winner] ?? -1;

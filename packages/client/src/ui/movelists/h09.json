@@ -1,0 +1,22 @@
+{
+  "hero": 9,
+  "name": "Humbaba",
+  "weapon": "Guardian's Claws",
+  "style": "The forest guardian: slow, crushing claws that hit harder than anyone in the roster, hard to knock back, and a roar that freezes the foe close to him.",
+  "moves": [
+    { "name": "Claw Combo", "input": "LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [135, 145, 200], "notes": "Three slow, heavy claw swings. The first two push the foe back without launching them. The third slams the ground, breaks guards and knocks the foe down. Damage is the weapon's base number; Humbaba's hits are about 1.6 times these at full health, before combo scaling." },
+    { "name": "Rising Claw", "input": "↓+LIGHT", "kind": "launcher", "damage": [142], "notes": "A rising swing, a little slower than the first claw, that pops the foe up to float. Jump after them to keep the combo going." },
+    { "name": "Raking Claws", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [126, 107, 164], "notes": "Three air swings. The first two keep a floating foe close, the second a little weaker. The third is the heavy finisher and knocks them down." },
+    { "name": "Diving Claw", "input": "HEAVY (air)", "kind": "plunge", "damage": [170], "notes": "Drops straight down with the claws. It hits until he lands and breaks guards. If it connects he bounces back up." },
+    { "name": "Ground Slam", "input": "HEAVY", "kind": "heavy", "damage": [280], "notes": "The third claw made slower and stronger. Slow to start, about half a second. It breaks guards and knocks the foe down." },
+    { "name": "Crushing Grip", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded foe in front of him within reach, and a guard does not stop it. The foe can break free by pressing LIGHT or HEAVY in the first 8 ticks (about 0.13 seconds)." },
+    { "name": "Terror Roar", "input": "SPECIAL", "kind": "special", "damage": [30], "notes": "A roar like the flood. The foe close to him is frozen in fear for about 0.6 seconds and pushed back a little. It breaks guards. Cooldown about 9 seconds." },
+    { "name": "Seven Terrors", "input": "ART", "kind": "art", "notes": "Rift Art, ready at a full Rift gauge. He dons his seven auras for 6 seconds: hits cannot stagger him, he hits 25% harder, recovers 25% faster, moves 15% faster, and cannot be thrown. The art itself takes about 0.4 seconds." },
+    { "name": "Beast Bound", "input": "DODGE", "kind": "dodge", "notes": "A low, heavy pounce that carries the guardian clear. Invulnerable for its first 9 ticks (about 0.15 seconds). On the ground it has a cooldown, longer than most heroes' because his rolls are heavy; in the air it uses one of your air dashes." }
+  ],
+  "combos": [
+    { "name": "Rising claw and chase", "input": "↓+LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "The rising claw pops the foe up to float. He jumps after them and finishes with the raking claws, which knock them down on the third swing." },
+    { "name": "Roar and claws", "input": "SPECIAL, LIGHT, LIGHT, LIGHT", "notes": "The roar freezes the foe close to him for about half a second. Start the claw combo straight after it; the third claw knocks them down." },
+    { "name": "Float and dive", "input": "↓+LIGHT, JUMP, LIGHT, LIGHT, HEAVY (air)", "notes": "The first two raking claws keep the floating foe close, then the diving claw drops on them and knocks them down." }
+  ]
+}

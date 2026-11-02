@@ -1,0 +1,22 @@
+{
+  "hero": 10,
+  "name": "Jack the Ripper",
+  "weapon": "Surgeon's Knives",
+  "style": "A Berserker with long surgical knives: quick cuts with short reach that crit at the tip and from behind, a plunge that bounces him back up, and Grim Fog, whose first blow from the fog lands for three and a half times its damage.",
+  "moves": [
+    { "name": "Knife Combo", "input": "LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [60, 62, 90], "notes": "Three quick cuts. The first and third crit at the tip of the blade, and any cut from behind crits. The third is the deepest thrust and the finish." },
+    { "name": "Rising Cut", "input": "↓+LIGHT", "kind": "launcher", "damage": [63], "notes": "A rising cut that pops the opponent up to float without a knockdown. A jump right after the hit is a full jump that chases them into the air cuts." },
+    { "name": "Air Cuts", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [50, 43, 65], "notes": "Three cuts in the air. The first two keep the opponent floating close; the third knocks them down. Cuts from behind crit." },
+    { "name": "Plunge", "input": "HEAVY (air)", "kind": "plunge", "damage": [82], "notes": "Drops straight down and keeps hitting until he lands. If it hits in the air, it bounces him back up and his next air cut starts the air cuts again. Crits from behind." },
+    { "name": "Heavy Cut", "input": "HEAVY", "kind": "heavy", "damage": [126], "notes": "A slower, heavier cut: about a quarter of a second to start and 0.4 seconds to recover. It cannot be blocked or parried, so it breaks guards." },
+    { "name": "Knife Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent close in front of him; a guard does not stop it. They can break free by pressing LIGHT or HEAVY in the first 0.13 seconds of the hold." },
+    { "name": "Scalpel Rain", "input": "SPECIAL", "kind": "special", "damage": [42, 42, 42], "notes": "Three scalpels lob in a fan through the fog and fall onto the opponent, 42 damage each. Each cut keeps bleeding for about 2.5 seconds. Cooldown about 5 seconds." },
+    { "name": "Grim Fog", "input": "ART", "kind": "art", "notes": "Rift Art, ready at a full Rift gauge. He vanishes into the fog for about 6 seconds, unseen and 20% faster, and is untouchable for the first third of a second. The first blow that lands from the fog does three and a half times its damage and ends the fog. A blocked swing does not end it." },
+    { "name": "Fog Form", "input": "DODGE", "kind": "dodge", "notes": "He becomes the fog for a third of a second: untouchable while it drifts with the stick. On the ground the cooldown is about 0.6 seconds; in the air it uses one of your air dashes." }
+  ],
+  "combos": [
+    { "name": "Bread and butter", "input": "LIGHT, LIGHT, ↓+LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "Two cuts into the rising cut, a jump after the float, then the air cuts. The third air cut knocks them down, so the combo ends there." },
+    { "name": "Guard breaker", "input": "LIGHT, LIGHT, HEAVY", "notes": "Two quick cuts into the heavy. The heavy cannot be blocked, so use it when the opponent is holding a guard." },
+    { "name": "Fog opener", "input": "ART, LIGHT, LIGHT, LIGHT", "notes": "At a full Rift gauge, vanish into the fog and open with the knife combo: the first blow that lands does three and a half times its damage." }
+  ]
+}

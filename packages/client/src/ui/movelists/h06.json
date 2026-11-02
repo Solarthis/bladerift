@@ -1,0 +1,20 @@
+{
+  "hero": 6,
+  "name": "Alexandre Dumas",
+  "weapon": "Quill and Book",
+  "style": "The storyteller at range: quick golden-ink bolts that slow the foe, a charged ink orb that hits harder the longer it is held, and no launcher, so keep them at arm's length and write them a worse ending.",
+  "moves": [
+    { "name": "Ink Bolts", "input": "LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [42, 44, 54], "notes": "Three golden-ink bolts fired from range. Each bolt fires when you let go of LIGHT, so tap it. The third bolt slows the target for about 1.25 seconds." },
+    { "name": "Ink Orb", "input": "HEAVY (hold)", "kind": "heavy", "damage": [85, 160], "notes": "Hold to write an ink orb. Held for at least a quarter second it grows from 85 damage to 160 at one second, then bursts on impact in a small area. LIGHT held does the same. Let go early and you get a bolt instead." },
+    { "name": "Air Bolts", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [40, 34, 52], "notes": "Three bolts fired in the air. The first two lift the opponent and keep them close; the third knocks them down. HEAVY in the air fires the same string, since the quill has no plunge." },
+    { "name": "Ink Blot", "input": "SPECIAL", "kind": "special", "damage": [52], "notes": "Lobs a splash of golden ink that arcs over and bursts where it lands or hits. Anyone caught is slowed for about 2.8 seconds. Recharges in about 2.8 seconds, since Caster skills recharge twice as fast." },
+    { "name": "Scholar's Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent in reach, and a guard does not stop it. The victim can break free by pressing LIGHT or HEAVY in the first 8 ticks (about 0.13 seconds) of the grab." },
+    { "name": "Rewritten Fate", "input": "ART", "kind": "art", "notes": "Rift Art, ready at a full Rift gauge. The page turns at once: he heals about 28% of his health, is untouchable for half a second, and every blow hits 35% harder for eight seconds." },
+    { "name": "Turn of the Page", "input": "DODGE", "kind": "dodge", "notes": "A quick sideways step, left or right only. Invulnerable for its first 9 ticks (about 0.15 seconds). On the ground it has a cooldown of about 0.7 seconds; in the air it uses one of your air dashes." }
+  ],
+  "combos": [
+    { "name": "Ink and air", "input": "LIGHT, LIGHT, LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "Jump-cancel after the third bolt, which slows them, and finish with the air bolts. There is no launcher, so this works best while they are still close." },
+    { "name": "Orb finish", "input": "LIGHT, LIGHT, HEAVY (hold)", "notes": "Two quick bolts, then hold HEAVY for the ink orb. A full hold hits for 160." },
+    { "name": "Blot and bolts", "input": "SPECIAL, LIGHT, LIGHT, LIGHT", "notes": "Lob Ink Blot first. The slowed opponent cannot walk out while you close in and run the bolt string on them." }
+  ]
+}

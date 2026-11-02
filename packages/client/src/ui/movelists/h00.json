@@ -1,0 +1,23 @@
+{
+  "hero": 0,
+  "name": "Richard Lionheart",
+  "weapon": "Lion-Hilt Longsword",
+  "style": "The all-rounder: a clean three-hit longsword string that launches on the third swing, a golden Sun Crescent to hit from range, and Lion's Roar to clear the space around him.",
+  "moves": [
+    { "name": "Lion Combo", "input": "LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [90, 95, 132], "notes": "Three quick swings. The third is slower and launches the opponent into the air." },
+    { "name": "Rising Lion", "input": "↓+LIGHT", "kind": "launcher", "damage": [95], "notes": "A rising swing that pops the opponent up to float. Jump after them to keep the combo going." },
+    { "name": "Sky Lion", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [80, 68, 104], "notes": "Three air swings. The first two keep the opponent close and in the air; the third knocks them down." },
+    { "name": "Crusader's Plunge", "input": "HEAVY (air)", "kind": "plunge", "damage": [126], "notes": "Drops straight down with the sword. If it connects you bounce back up." },
+    { "name": "Sun Crescent", "input": "HEAVY", "kind": "heavy", "damage": [95], "notes": "A big cleave whose arc flies on as a golden crescent for a mid-range hit. Ready again about 3 seconds after each throw." },
+    { "name": "Heavy Cleave", "input": "HEAVY", "kind": "heavy", "damage": [185], "notes": "The plain heavy while the Sun Crescent is cooling. Slow to start, but it breaks guards." },
+    { "name": "Crusader's Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent in reach, and a guard does not stop it. The victim can break free by pressing LIGHT or HEAVY in the first moment of the grab." },
+    { "name": "Lion's Roar", "input": "SPECIAL", "kind": "special", "damage": [70], "notes": "A royal war cry: a golden shockwave throws everyone close away. Cooldown about 7 seconds." },
+    { "name": "Radiant Cleave", "input": "ART", "kind": "art", "damage": [200], "notes": "Rift Art, ready at a full Rift gauge. Gathers sunlight into the blade and hurls a crescent wave across the arena." },
+    { "name": "Lion's Step", "input": "DODGE", "kind": "dodge", "notes": "A low, guarded burst step. Invulnerable for its first 9 ticks (about 0.15 seconds). On the ground it has a cooldown; in the air it uses one of your air dashes." }
+  ],
+  "combos": [
+    { "name": "Launch and juggle", "input": "↓+LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "The launcher pops them up to float. Jump after them and finish with the air string." },
+    { "name": "Swing and plunge", "input": "LIGHT, LIGHT, LIGHT, JUMP, HEAVY (air)", "notes": "The third swing sends them up. Jump after them and drop the plunge onto them." },
+    { "name": "Breaker", "input": "LIGHT, LIGHT, →+HEAVY (close)", "notes": "Two quick swings, then the throw if they are still in front of you. Use it against a guarding opponent, since a guard does not stop a throw." }
+  ]
+}

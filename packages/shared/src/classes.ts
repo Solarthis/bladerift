@@ -158,6 +158,13 @@ export const RIFT = {
   perTaken: 0.2,
 } as const;
 
+/**
+ * The EX special: the Art button with the gauge at `cost` up to (not including) RIFT.max casts the hero's own special,
+ * empowered: it spends `cost`, ignores the skill cooldown (and does not start it), its hits deal `dmg` times the table's
+ * damage, and the caster has super armour through its startup (fighter.ts startEx). At RIFT.max the Art starts instead.
+ */
+export const EX_SPECIAL = { cost: 500, dmg: 1.5 } as const;
+
 export const classOf = (c: number): ClassDef => CLASSES[c] ?? CLASSES[0];
 export const artOf = (c: number): ArtDef => ARTS[classOf(c).art];
 export const isClass = (v: unknown): v is ClassId => Number.isInteger(v) && (v as number) >= 0 && (v as number) < CLASS_COUNT;

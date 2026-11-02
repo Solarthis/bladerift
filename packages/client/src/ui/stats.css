@@ -1,0 +1,285 @@
+/* Records screen (ui/stats.ts). Uses the global tokens from styles.css. Phones stack each hero row into a card; from
+   760px the rows become one aligned grid with a header line. */
+
+.rs-screen { align-items: center; }
+.rs-wrap {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  width: 100%;
+  max-width: 980px;
+  min-width: 0;
+}
+.rs-hdr { margin-bottom: 0; }
+.rs-sub {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dim);
+  text-align: right;
+}
+
+.rs-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-drop);
+  min-width: 0;
+}
+
+/* totals */
+.rs-totals { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.rs-tiles {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 8px;
+}
+.rs-tile {
+  margin: 0;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--line);
+}
+.rs-tile dt {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.rs-tile dd {
+  margin: 2px 0 0;
+  min-width: 0;
+  font-family: var(--display);
+  font-size: clamp(20px, 3.6vh, 26px);
+  line-height: 1.05;
+  color: var(--gold-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-tile small {
+  display: block;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-modes,
+.rs-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+.rs-note { padding: 0 4px; }
+
+/* hero table */
+.rs-table { overflow: hidden; display: flex; flex-direction: column; }
+.rs-head,
+.rs-row {
+  --rs-cols: 52px minmax(0, 1.5fr) minmax(64px, 0.8fr) minmax(110px, 1.3fr) minmax(100px, 1fr) minmax(56px, 0.6fr) minmax(56px, 0.6fr) minmax(56px, 0.6fr) minmax(56px, 0.6fr) minmax(56px, 0.6fr);
+}
+.rs-head {
+  display: none;
+  grid-template-columns: var(--rs-cols);
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--line);
+}
+.rs-head > :first-child { grid-column: 1 / span 2; }
+.rs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+.rs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 10px 12px;
+}
+.rs-row + .rs-row { border-top: 1px solid var(--line); }
+.rs-row:nth-child(even) { background: rgba(255, 255, 255, 0.025); }
+.rs-row.is-idle { opacity: 0.55; }
+
+.rs-face {
+  flex: none;
+  width: 44px;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  background: #120d1c;
+}
+.rs-who {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rs-who b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.1;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-who span,
+.rs-who em {
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-who em { color: #d88a7a; }
+
+/* a labelled cell: label above the value on phones */
+.rs-c {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rs-c > small {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.rs-v {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.rs-c b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.1;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.rs-rec,
+.rs-arc { flex: 0 0 auto; }
+.rs-rec b { font-size: 14px; }
+.rs-arc { flex: 1 1 130px; }
+.rs-rate {
+  flex: 1 0 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+}
+.rs-rate > small { grid-column: 1 / -1; }
+.rs-rate .rs-v { display: contents; }
+.rs-rate .rs-bar { grid-column: 1; }
+.rs-rate b { grid-column: 2; min-width: 3.2em; text-align: right; }
+.rs-surv,
+.rs-rnd,
+.rs-perf,
+.rs-cmb,
+.rs-time { flex: 1 1 60px; }
+
+.rs-bar {
+  display: block;
+  flex: 1 1 auto;
+  height: 10px;
+  min-width: 40px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--line);
+}
+.rs-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-lo), var(--gold-hi));
+  transition: width 0.4s ease;
+}
+
+/* arcade stars: three, lit one per clear */
+.rs-stars {
+  display: inline-flex;
+  gap: 3px;
+  flex: none;
+}
+.rs-stars i {
+  width: 13px;
+  height: 13px;
+  background: rgba(255, 230, 190, 0.16);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.rs-stars i.on { background: linear-gradient(180deg, var(--gold-hi), var(--gold-lo)); }
+
+/* wide screens: one aligned grid with the header line */
+@media (min-width: 760px) {
+  .rs-head,
+  .rs-row {
+    display: grid;
+    grid-template-columns: var(--rs-cols);
+    gap: 8px;
+  }
+  .rs-head { display: grid; }
+  .rs-row { padding: 8px 12px; }
+  .rs-row > * { min-width: 0; }
+  .rs-face { width: 40px; }
+  .rs-c { flex-direction: row; align-items: center; }
+  .rs-c > small { display: none; }
+  .rs-v { flex-wrap: nowrap; }
+  .rs-rate { display: flex; align-items: center; gap: 8px; }
+  .rs-rate .rs-v { display: flex; }
+  .rs-rate .rs-bar { grid-column: auto; }
+  .rs-rate b { grid-column: auto; }
+  .rs-arc,
+  .rs-rec,
+  .rs-surv,
+  .rs-rnd,
+  .rs-perf,
+  .rs-cmb,
+  .rs-time { flex: none; }
+  .rs-who b { font-size: 16px; }
+}
+
+@media (max-width: 380px) {
+  .rs-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rs-face { width: 38px; }
+  .rs-who b { font-size: 15px; }
+}
+
+@media (max-height: 480px) {
+  .rs-face { width: 34px; }
+  .rs-row { padding: 6px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-bar i { transition: none; }
+}

@@ -8,7 +8,14 @@
  * Positional sounds pass world coordinates and are attenuated/panned relative to
  * the listener (set every frame by the game scene). Non-positional sounds (UI,
  * local player feedback) are played dry in the centre of the stereo field.
+ *
+ * Where the audio pack has a recorded sample for an event (SAMPLE_LAYERS), the sample plays on top and the synthesized
+ * voice drops to a quiet layer (or out, for events the recording fully replaces). Until the pack has loaded, or for
+ * events without a sample, the synthesized sound plays alone, as before.
  */
+
+import { getAudioContext, samples, SFX_VOLUME_DEFAULT, type SampleName } from './Samples';
+import { prefs } from '../ui/prefs';
 
 export type SfxName =
   | 'pistol' | 'smg' | 'rifle' | 'shotgun' | 'sniper' | 'rocket' | 'explosion' | 'grenadeThrow' | 'grenadeBounce'
@@ -16,6 +23,8 @@ export type SfxName =
   | 'kill' | 'jetStart' | 'spawn' | 'uiClick' | 'uiHover' | 'matchStart' | 'matchEnd' | 'countdown' | 'impact'
   | 'swing' | 'punch' | 'railgun' | 'launcher' | 'shieldHit' | 'shieldBreak' | 'pickupShield'
   | 'flagTake' | 'flagCap' | 'flagReturn' | 'flagDrop' | 'zoneClose'
+  // a fighter landing on the ground after a jump or a fall (sample 'land' only; the synth is a soft thump)
+  | 'land'
   // Rift Arts (one per ArtId, see ART_SOUNDS) and the duel's strike / landing events
   | 'artRadiant' | 'artSerpent' | 'artAbyss' | 'artStarfall' | 'artFlashStep' | 'artFrenzy' | 'artBulwark'
   | 'artVault' | 'artChains' | 'artFate' | 'artPhantom' | 'artFog' | 'artStampede' | 'artNight'
@@ -70,8 +79,6 @@ interface Voice {
   /** Placed in the world (someone else's sound); false = your own, played centred. */
   pos: boolean;
 }
-
-type AudioContextCtor = typeof AudioContext;
 
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
@@ -144,6 +151,50 @@ const BAKE_JITTER: Partial<Record<SfxName, number>> = { smg: 0.06, pistol: 0.03,
 const FULL_DISTANCE = 300;
 const SILENT_DISTANCE = 1600;
 
+/**
+ * The recorded layer for each event: which pack sample plays, and how much of the synthesized voice stays under it
+ * (0 = the recording replaces the synth; 1 = full synth). An event with no entry, or whose sample is not loaded, plays
+ * the synthesized sound alone at full level.
+ */
+const SAMPLE_LAYERS: Partial<Record<SfxName, { sample: SampleName; synth: number }>> = {
+  hit: { sample: 'hitLight', synth: 0.35 },
+  headshot: { sample: 'hitCrit', synth: 0.4 },
+  impact: { sample: 'hitHeavy', synth: 0.35 },
+  punch: { sample: 'hitLight', synth: 0.4 },
+  hurt: { sample: 'hitHeavy', synth: 0.5 },
+  slam: { sample: 'hitHeavy', synth: 0.4 },
+  shieldHit: { sample: 'block', synth: 0.35 },
+  dodgeShield: { sample: 'parry', synth: 0.4 },
+  swing: { sample: 'whoosh', synth: 0.35 },
+  crescent: { sample: 'whooshHeavy', synth: 0.4 },
+  blink: { sample: 'whoosh', synth: 0.5 },
+  jetStart: { sample: 'whoosh', synth: 0.6 },
+  dodgeLion: { sample: 'whoosh', synth: 0.6 },
+  dodgeVault: { sample: 'whoosh', synth: 0.6 },
+  dodgeGate: { sample: 'whoosh', synth: 0.6 },
+  dodgePole: { sample: 'whoosh', synth: 0.6 },
+  dodgeClay: { sample: 'whoosh', synth: 0.6 },
+  dodgeMirage: { sample: 'whoosh', synth: 0.6 },
+  dodgePage: { sample: 'whoosh', synth: 0.6 },
+  dodgeBeast: { sample: 'whooshHeavy', synth: 0.6 },
+  dodgeCharge: { sample: 'whooshHeavy', synth: 0.6 },
+  dodgeShadow: { sample: 'whooshHeavy', synth: 0.6 },
+  dodgeFog: { sample: 'wind', synth: 0.5 },
+  artFog: { sample: 'wind', synth: 0.5 },
+  specInk: { sample: 'wind', synth: 0.5 },
+  specEmber: { sample: 'fire', synth: 0.5 },
+  specDirk: { sample: 'slash', synth: 0.5 },
+  specScalpel: { sample: 'slash', synth: 0.5 },
+  grenadeThrow: { sample: 'throw', synth: 0.4 },
+  kill: { sample: 'koThud', synth: 0.4 },
+  matchEnd: { sample: 'koThud', synth: 0.6 },
+  death: { sample: 'bodyFall', synth: 0.5 },
+  matchStart: { sample: 'uiStart', synth: 0.5 },
+  uiClick: { sample: 'uiSelect', synth: 0 },
+  uiHover: { sample: 'uiMove', synth: 0 },
+  land: { sample: 'land', synth: 0 },
+};
+
 /** Cut the silent tail of a baked render (renders are a fixed 2.6 s). */
 function trimSilence(buf: AudioBuffer, ctx: AudioContext): AudioBuffer {
   let end = 0;
@@ -185,6 +236,9 @@ export class Sfx {
   private jetRumble: GainNode | null = null;
   private jetFilter: BiquadFilterNode | null = null;
 
+  /** When each recorded layer last started, keyed by name (+ "+" for positional): the 30 ms burst guard for samples. */
+  private lastSample = new Map<string, number>();
+
   /** Master volume 0..1. Applies live to anything already playing. */
   get volume(): number {
     return this._volume;
@@ -198,24 +252,24 @@ export class Sfx {
     }
   }
 
-  /** Lazily build the audio graph on the first user gesture (required by mobile browsers). */
+  /**
+   * Build the audio graph on the first user gesture (required by mobile browsers). Uses the game's shared
+   * AudioContext (getAudioContext), so music and the announcer run on the same clock. Also starts the recorded pack.
+   */
   unlock(): void {
     if (!this.ctx) {
-      const w = window as unknown as { webkitAudioContext?: AudioContextCtor };
-      const Ctor: AudioContextCtor | undefined = window.AudioContext ?? w.webkitAudioContext;
-      if (!Ctor) return;
-      try {
-        this.ctx = new Ctor();
-      } catch {
-        return;
-      }
-      this.initGraph(this.ctx);
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      this.ctx = ctx;
+      this.initGraph(ctx);
+      samples.setOutput(this.mix);
+      syncSampleVolume();
       this.installResumeHandlers();
       void this.bakeAll();
     }
-    const ctx = this.ctx;
-    if (!ctx) return;
-    if (ctx.state !== 'running') void ctx.resume().catch(() => {});
+    samples.unlock();
+    const live = getAudioContext();
+    if (live && live.state !== 'running') void live.resume().catch(() => {});
   }
 
   /** World position of the local listener; called every frame by the game scene. */
@@ -228,9 +282,49 @@ export class Sfx {
     const ctx = this.ctx;
     if (!ctx || this._volume <= 0 || this.baking) return;
     if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+    // the recorded layer first: it decides how much synth stays under it, or that the event is out of earshot
+    // the synthesized voice follows the sfx slider too (sfxVol relative to its 0.8 default), so 0 mutes every effect
+    const keep = this.layerSample(name, opts);
+    if (keep === null) return;
+    const scale = keep * (samples.volume / SFX_VOLUME_DEFAULT);
+    if (scale <= 0) return;
+    const o = scale < 1 ? { ...opts, volume: clamp01(opts.volume ?? 1) * scale } : opts;
     const b = this.baked.get(name);
-    if (b) return this.playBaked(name, b, opts);
-    this.synth(name, opts);
+    if (b) return this.playBaked(name, b, o);
+    this.synth(name, o);
+  }
+
+  /**
+   * Plays the recorded layer of an event when the pack has its sample. Returns how much of the synthesized voice to
+   * keep (1 when there is no sample), or null when the event is too far away to hear at all.
+   */
+  private layerSample(name: SfxName, opts: PlayOpts): number | null {
+    const layer = SAMPLE_LAYERS[name];
+    if (!layer || !samples.has(layer.sample)) return 1;
+    const h = this.hearing(opts);
+    if (!h) return null;
+    // the same sound starting again within 30 ms is one sound, as for the synth (bursts of pellets, hits in one frame)
+    const pos = opts.x !== undefined && opts.y !== undefined;
+    const key = pos ? `${name}+` : name;
+    const now = this.ctx?.currentTime ?? 0;
+    const last = this.lastSample.get(key);
+    if (last !== undefined && now - last < 0.03) return layer.synth;
+    this.lastSample.set(key, now);
+    const rate = (opts.pitch ?? 1) * (0.985 + Math.random() * 0.03);
+    samples.play(layer.sample, { gain: clamp01(opts.volume ?? 1) * h.atten, pan: h.pan, rate });
+    return layer.synth;
+  }
+
+  /** Distance attenuation and pan for a sound at (x, y), the same curve spawn() uses; null when it is out of earshot. */
+  private hearing(opts: PlayOpts): { atten: number; pan: number } | null {
+    if (opts.x === undefined || opts.y === undefined) return { atten: 1, pan: 0 };
+    const dx = opts.x - this.listener.x;
+    const dy = opts.y - this.listener.y;
+    const far = clamp01((Math.hypot(dx, dy) - FULL_DISTANCE) / (SILENT_DISTANCE - FULL_DISTANCE));
+    if (far >= 1) return null;
+    const atten = Math.pow(1 - far, 1.6);
+    if (atten < 0.015) return null;
+    return { atten, pan: clamp(dx / 900, -1, 1) };
   }
 
   /** Play a baked sound: one buffer source through the usual voice (position, caps, reverb send). */
@@ -313,6 +407,7 @@ export class Sfx {
       case 'spawn': this.sSpawn(opts); break;
       case 'uiClick': this.sUiClick(opts); break;
       case 'uiHover': this.sUiHover(opts); break;
+      case 'land': this.sLand(opts); break;
       case 'matchStart': this.sMatchStart(opts); break;
       case 'matchEnd': this.sMatchEnd(opts); break;
       case 'countdown': this.sCountdown(opts); break;
@@ -1234,6 +1329,14 @@ export class Sfx {
     this.tone(v, v.t, 0.035, 'sine', 1400, 1200, 0.05, 0.001);
   }
 
+  private sLand(o: PlayOpts): void {
+    const v = this.spawn('land', o, 0.2, 0.02);
+    if (!v) return;
+    const t = v.t;
+    this.tone(v, t, 0.16, 'sine', 140, 60, 0.35, 0.001, 1.4);
+    this.noise(v, t, 0.06, 0.25, 900, 300, 'lowpass', 0.001, 0.8, 0.7);
+  }
+
   private sMatchStart(o: PlayOpts): void {
     const v = this.spawn('matchStart', o, 1.2, 0.35);
     if (!v) return;
@@ -1795,6 +1898,16 @@ export class Sfx {
     this.tone(v, t, 0.14, 'sine', 1760, 1760, 0.07, 0.002);
     this.noise(v, t, 0.02, 0.08, 5000, 4000, 'highpass', 0.001, 0.7);
   }
+}
+
+/**
+ * The sample pack's volume from Settings: prefs key `sfxVol` (0..1, default 0.8). Call after the setting changes;
+ * unlock() calls it once when the graph starts.
+ */
+export function syncSampleVolume(): void {
+  const raw = (prefs() as unknown as { sfxVol?: unknown }).sfxVol;
+  const v = raw === undefined || raw === null || raw === '' ? NaN : Number(raw);
+  samples.setVolume(Number.isFinite(v) ? v : SFX_VOLUME_DEFAULT);
 }
 
 export const sfx = new Sfx();

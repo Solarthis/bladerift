@@ -1,5 +1,6 @@
 import { POS_SCALE, PROTOCOL_VERSION } from './constants';
 import { FighterState, STATE_KEYS } from './fighter';
+import type { BotDifficulty } from './bot';
 import { InputCmd } from './input';
 import type { PlayerLook } from './look';
 import { Loadout } from './weapons';
@@ -183,7 +184,13 @@ export interface NetFighter {
 /** A Thunder Call strike that has locked on (the marker), ticks until it lands. */
 export interface NetStrike { id: number; x: number; y: number; left: number; kind: number }
 
-export interface NetProjectile { id: number; kind: ProjKind; x: number; y: number; vx: number; vy: number; heavy: boolean; /** hero special: skill id + 1 (0 none) */ skin: number }
+export interface NetProjectile {
+  id: number; kind: ProjKind; x: number; y: number; vx: number; vy: number; heavy: boolean;
+  /** hero special: skill id + 1 (0 none) */
+  skin: number;
+  /** cast as the EX special (the client tints it) */
+  ex: boolean;
+}
 export interface NetTrap { id: number; owner: number; x: number; y: number; armed: boolean }
 
 export interface Snapshot {
@@ -205,7 +212,7 @@ export interface Snapshot {
   events: GameEvent[];
 }
 
-const EV = { hit: 1, block: 2, parry: 3, swing: 4, shoot: 5, boom: 6, trap: 7, roll: 8, heal: 9, blink: 10, ko: 11, round: 12, fight: 13, match: 14, art: 15, strike: 16 } as const;
+const EV = { hit: 1, block: 2, parry: 3, swing: 4, shoot: 5, boom: 6, trap: 7, roll: 8, heal: 9, blink: 10, ko: 11, round: 12, fight: 13, match: 14, art: 15, strike: 16, throw: 17, tech: 18, ex: 19 } as const;
 
 /** Body shared by every recipient of a given tick. */
 export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Array {
@@ -225,7 +232,7 @@ export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Arra
   const shown = world.projectiles.filter((p) => !p.wait).slice(0, 255);
   w.u8(shown.length);
   for (const p of shown) {
-    w.u16(p.id).u8(PROJ_KINDS.indexOf(p.kind) | (p.heavy ? 128 : 0)).u16(encX(p.x)).u16(encY(p.y)).i16(i16c(p.vx)).i16(i16c(p.vy)).u8(p.skin ?? 0);
+    w.u16(p.id).u8(PROJ_KINDS.indexOf(p.kind) | (p.heavy ? 128 : 0) | (p.ex ? 64 : 0)).u16(encX(p.x)).u16(encY(p.y)).i16(i16c(p.vx)).i16(i16c(p.vy)).u8(p.skin ?? 0);
   }
   w.u8(Math.min(255, world.traps.length));
   for (const t of world.traps.slice(0, 255)) w.u16(t.id).u8(t.owner).u16(encX(t.x)).u16(encY(t.y)).u8(world.tick >= t.armAt ? 1 : 0);
@@ -252,6 +259,8 @@ export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Arra
       case 'match': w.u8(e.winner); break;
       case 'art': w.u8(e.p).u8(e.art).u8(Math.min(255, e.pause)); break;
       case 'strike': w.u16(encX(e.x)).u16(encY(e.y)).u8(e.kind); break;
+      case 'throw': case 'tech': w.u8(e.a).u8(e.v); break;
+      case 'ex': w.u8(e.p).u8(e.skill); break;
     }
   }
   return w.finish();
@@ -302,7 +311,7 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
   const projectiles: NetProjectile[] = [];
   for (let i = 0; i < np; i++) {
     const id = r.u16(), k = r.u8();
-    projectiles.push({ id, kind: PROJ_KINDS[k & 127] ?? 'arrow', heavy: !!(k & 128), x: decX(r.u16()), y: decY(r.u16()), vx: r.i16(), vy: r.i16(), skin: r.u8() });
+    projectiles.push({ id, kind: PROJ_KINDS[k & 63] ?? 'arrow', heavy: !!(k & 128), ex: !!(k & 64), x: decX(r.u16()), y: decY(r.u16()), vx: r.i16(), vy: r.i16(), skin: r.u8() });
   }
   const nt = r.u8();
   const traps: NetTrap[] = [];
@@ -331,6 +340,9 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
       case EV.match: events.push({ t: 'match', winner: r.u8() }); break;
       case EV.art: events.push({ t: 'art', p: r.u8(), art: r.u8(), pause: r.u8() }); break;
       case EV.strike: events.push({ t: 'strike', x: decX(r.u16()), y: decY(r.u16()), kind: r.u8() }); break;
+      case EV.throw: events.push({ t: 'throw', a: r.u8(), v: r.u8() }); break;
+      case EV.tech: events.push({ t: 'tech', a: r.u8(), v: r.u8() }); break;
+      case EV.ex: events.push({ t: 'ex', p: r.u8(), skill: r.u8() }); break;
       default: throw new RangeError('bad event ' + t);
     }
   }
@@ -353,7 +365,7 @@ export interface LobbyStateMsg {
   maxPlayers: number;
   /** Fill an empty seat with a bot. */
   bot: boolean;
-  botLevel: 'easy' | 'normal' | 'hard';
+  botLevel: BotDifficulty;
   serverName: string;
 }
 export interface WelcomeMsg { id: number; v: number; host: boolean; resume: string; tickRate: number; local?: boolean }
@@ -366,7 +378,7 @@ export type LobbyCmd =
   | { op: 'settings'; settings: Partial<MatchSettings> }
   | { op: 'start' }
   | { op: 'bot'; on: boolean }
-  | { op: 'botLevel'; level: 'easy' | 'normal' | 'hard' }
+  | { op: 'botLevel'; level: BotDifficulty }
   | { op: 'seat'; seat: number }
   | { op: 'kick'; id: number }
   | { op: 'rename'; name: string; color: number; look?: PlayerLook }

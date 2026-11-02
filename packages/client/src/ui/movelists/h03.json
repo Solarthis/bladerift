@@ -1,0 +1,80 @@
+{
+  "hero": 3,
+  "name": "Cú Chulainn",
+  "weapon": "Gáe Bulg",
+  "style": "The Hound of Ulster: the longest reach of the spearmen and quick feet, so he pokes from outside your range, then closes in with a lunge or a leaping spear.",
+  "moves": [
+    {
+      "name": "Spear Combo",
+      "input": "LIGHT, LIGHT, LIGHT",
+      "kind": "normal",
+      "damage": [80, 85, 110],
+      "notes": "Three thrusts with long reach. The third steps further in and hits hardest, knocking the foe back and up."
+    },
+    {
+      "name": "Lunge",
+      "input": "HEAVY (hold)",
+      "kind": "heavy",
+      "damage": "110 to 200",
+      "notes": "Ground only. Hold HEAVY to charge, then let go to lunge across the arena. The damage grows with the charge (full charge takes about 0.8 s). A quick tap is the light combo instead."
+    },
+    {
+      "name": "Rising Spear",
+      "input": "↓+LIGHT",
+      "kind": "launcher",
+      "damage": 84,
+      "notes": "A rising swing that pops the foe up to float in the air. Jump after it connects to chase them into the air thrusts."
+    },
+    {
+      "name": "Air Thrusts",
+      "input": "LIGHT, LIGHT, LIGHT (air)",
+      "kind": "air",
+      "damage": [80, 68, 104],
+      "notes": "Two quick jabs keep a floating foe close, then a finisher knocks them down. HEAVY in the air plays the same string. He has no air plunge."
+    },
+    {
+      "name": "Spear Throw",
+      "input": "→+HEAVY (close)",
+      "kind": "throw",
+      "damage": 140,
+      "notes": "Grabs a grounded foe in front of him within reach. The foe can break free by pressing LIGHT or HEAVY within the first 8 ticks (about 0.13 s)."
+    },
+    {
+      "name": "Salmon Leap",
+      "input": "SPECIAL",
+      "kind": "special",
+      "damage": 78,
+      "notes": "His signature special: a fast, soaring vault over the foe, spear first. It hits once as he passes and launches them. 6 second cooldown."
+    },
+    {
+      "name": "Gáe Bulg",
+      "input": "ART (full Rift gauge)",
+      "kind": "art",
+      "damage": 185,
+      "notes": "The Rift Art: the barbed spear's unstoppable lunge across the arena. It cannot be blocked or parried, so guarding does not stop it."
+    },
+    {
+      "name": "Pole Vault",
+      "input": "DODGE",
+      "kind": "dodge",
+      "notes": "A leap up and over the foe on his spear, along the stick. Invulnerable for its first 11 ticks (about 0.2 s). On the ground it has a cooldown; in the air it uses his one air-dash charge."
+    }
+  ],
+  "combos": [
+    {
+      "name": "Launch and chase",
+      "input": "↓+LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)",
+      "notes": "The rising spear pops the foe up, then he jumps after them and finishes with the air thrusts. Each hit after the first in a string deals less (7% per hit, down to 40%), so the listed numbers are the first-hit values."
+    },
+    {
+      "name": "Thrusts into lunge",
+      "input": "LIGHT, LIGHT, HEAVY (hold)",
+      "notes": "Two thrusts to get the foe in front of him, then charge the lunge for the big hit. Release the charge after about a quarter second and it becomes the light combo."
+    },
+    {
+      "name": "Thrusts into leap",
+      "input": "LIGHT, LIGHT, LIGHT, SPECIAL",
+      "notes": "Chain straight from the last thrust into Salmon Leap, which launches the foe as a finish. Salmon Leap has a 6 second cooldown, so save it for a clean hit."
+    }
+  ]
+}

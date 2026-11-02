@@ -1,0 +1,22 @@
+{
+  "hero": 8,
+  "name": "Hashashin",
+  "weapon": "Twin Blades",
+  "style": "The nameless blade: a five-cut flurry at arm's length, Flash Step to vanish and land behind the foe, and every cut from behind crits.",
+  "moves": [
+    { "name": "Flurry", "input": "LIGHT, LIGHT, LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [32, 32, 33, 34, 56], "notes": "Five quick cuts at arm's length. The fifth is a spinning cut that pushes the foe away. Every cut from behind crits." },
+    { "name": "Rising Cut", "input": "↓+LIGHT", "kind": "launcher", "damage": [34], "notes": "A rising cut that pops the foe up to float. Jump straight after them and the air cuts take over." },
+    { "name": "Air Flurry", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [40, 34, 52], "notes": "Three cuts in the air. The first two pop the foe up and keep them floating close; the third knocks them down." },
+    { "name": "Falling Blades", "input": "HEAVY (air)", "kind": "plunge", "damage": [78], "notes": "Drops straight down with the blades until it lands. If it connects you bounce back up. Hits from behind crit." },
+    { "name": "Heavy Spin", "input": "HEAVY", "kind": "heavy", "damage": [78], "notes": "A slower, harder version of the spinning fifth cut. A guard does not stop it." },
+    { "name": "Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent in front and in reach, and a guard does not stop it. The victim can break free by pressing LIGHT or HEAVY in the first 8 ticks of the grab." },
+    { "name": "Fan of Knives", "input": "SPECIAL", "kind": "special", "damage": [30, 30, 30], "notes": "Three knives flung in a spread, faster than the eye. Cooldown 4.5 seconds. Can be pressed out of an attack's recovery." },
+    { "name": "Flash Step", "input": "DODGE", "kind": "dodge", "notes": "With a direction, a near-instant step of about 170 units that way, in any of eight directions. With the stick neutral and the foe close, it lands behind them, facing their back. Invulnerable for its first 9 ticks (about 0.15 seconds). It cancels any attack except the Rift Art. On the ground it has a short cooldown (about 0.33 seconds); in the air it uses one of your two air-dash charges." },
+    { "name": "Flash Step", "input": "ART", "kind": "art", "damage": [29, 29, 29, 29, 29, 61], "notes": "Needs a full Rift gauge. She vanishes, untouchable for 54 ticks (0.9 seconds), reappears behind the foe and unleashes six cuts: five of 29 and a final 61. A cut lands only while the foe is close. It can be pressed out of any attack, and while she is in hit-stun it breaks her out of a combo." }
+  ],
+  "combos": [
+    { "name": "Launch and chase", "input": "↓+LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "The Rising Cut floats them up. Jump after them (a full jump, however short the press) and finish with the air cuts; the third knocks them down." },
+    { "name": "Behind them", "input": "DODGE (close), LIGHT, LIGHT, LIGHT, LIGHT, LIGHT", "notes": "With the stick neutral and the foe close, Flash Step lands you behind them. Every cut from behind crits for the Assassin's full backstab (x1.9), so the five-cut flurry hits hard." },
+    { "name": "Break and vanish", "input": "LIGHT, LIGHT, ART", "notes": "Two quick cuts, then the full-gauge Art cancels the string into the vanish and the six-cut flurry behind them. Pressed while she is in hit-stun, the same Art breaks out of a combo." }
+  ]
+}

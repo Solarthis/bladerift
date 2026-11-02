@@ -29,6 +29,10 @@ const INTRO_VS = 1.4;
 const INTRO_ROUND = 0.5;
 /** The intro counts down in simulation ticks. */
 const TICK_RATE = 60;
+/** The super gauge's notch: EX from half, MAX when full (reference: a LEVEL badge per super stock). */
+const RIFT_EX = 0.5;
+/** How long a centre-screen result word (announceResult) holds. */
+const RESULT_MS = 1600;
 
 interface Combo {
   n: number;
@@ -49,6 +53,8 @@ interface Side {
   rift: HTMLElement;
   riftWrap: HTMLElement;
   riftPct: HTMLElement;
+  /** The level badge beside the gauge: EX from half, MAX when full (blank below half). */
+  riftLvl: HTMLElement;
   artWrap: HTMLElement;
   artIcon: HTMLImageElement;
   chips: HTMLElement[];
@@ -85,6 +91,11 @@ export class Hud {
   private vsSides: [VsSide, VsSide];
   private vsKey = '';
   private net: HTMLElement;
+  /** The training readout under the clock (setTrainingInfo). */
+  private train: HTMLElement;
+  private trainDmg: HTMLElement;
+  private trainCombo: HTMLElement;
+  private trainBest: HTMLElement;
   private bannerUntil = 0;
   private bannerKey = '';
   private combo: [Combo, Combo] = [
@@ -107,13 +118,15 @@ export class Hud {
       <div class="rift-row">
         <span class="rift-art"><img alt=""></span>
         <div class="rift"><div class="rift-fill"></div><span class="rift-pct"></span></div>
+        <b class="rift-lvl" aria-hidden="true"></b>
         <div class="hp-gear"></div>
       </div>
       <div class="hp-status">${CHIPS.map((c) => `<i class="chip chip-${c.k}">${c.label}</i>`).join('')}</div>
     </div>`;
     const combo = (cls: string) => `<div class="combo-big ${cls}"><b class="cb-n" data-n="2">2</b><span class="cb-l">HITS!</span></div>`;
     const vsSide = (cls: string) => `<div class="hud-vs-side ${cls}"><b class="hud-vs-name"></b></div>`;
-    this.root.innerHTML = `${side('left')}<div class="hud-mid"><div class="hud-round"></div><div class="hud-clock">90</div></div>${side('right')}
+    const train = `<div class="hud-train"><span>DMG <b class="tr-dmg">0</b></span><span class="tr-c">COMBO <b class="tr-combo">0</b></span><span class="tr-b">BEST <b class="tr-best">0</b></span></div>`;
+    this.root.innerHTML = `${side('left')}<div class="hud-mid"><div class="hud-round"></div><div class="hud-clock">90</div>${train}</div>${side('right')}
       <div class="hud-vs">${vsSide('l')}<span class="hud-vs-x">VS</span>${vsSide('r')}</div>
       <button class="hud-menu" aria-label="Menu">II</button>
       ${combo('left')}${combo('right')}
@@ -137,6 +150,7 @@ export class Hud {
         rift: q('.rift-fill'),
         riftWrap: q('.rift'),
         riftPct: q('.rift-pct'),
+        riftLvl: q('.rift-lvl'),
         artWrap: q('.rift-art'),
         artIcon: q<HTMLImageElement>('.rift-art img'),
         chips: Array.from(el.querySelectorAll<HTMLElement>('.chip')),
@@ -160,6 +174,10 @@ export class Hud {
     this.round = this.root.querySelector('.hud-round')!;
     this.banner = this.root.querySelector('.hud-banner')!;
     this.net = this.root.querySelector('.hud-net')!;
+    this.train = this.root.querySelector('.hud-train')!;
+    this.trainDmg = this.root.querySelector('.tr-dmg')!;
+    this.trainCombo = this.root.querySelector('.tr-combo')!;
+    this.trainBest = this.root.querySelector('.tr-best')!;
     this.root.querySelector('.hud-menu')!.addEventListener('click', () => this.onMenu?.());
   }
 
@@ -226,12 +244,18 @@ export class Hud {
         s.heat.classList.toggle('ready', !f.reload);
       }
 
+      // the super gauge: a % below half; EX from half (the first half glows); MAX when full
       const rift = f ? Math.min(1, f.rift / RIFT.max) : 0;
       const ready = rift >= 1;
+      const ex = !ready && rift >= RIFT_EX;
       s.rift.style.width = rift * 100 + '%';
       s.riftWrap.classList.toggle('ready', ready);
+      s.riftWrap.classList.toggle('ex', ex);
       s.artWrap.classList.toggle('ready', ready);
-      setText(s.riftPct, ready ? 'ART READY' : `${Math.floor(rift * 100)}%`);
+      setText(s.riftPct, ex || ready ? '' : `${Math.floor(rift * 100)}%`);
+      setText(s.riftLvl, ready ? 'MAX' : ex ? 'EX' : '');
+      s.riftLvl.classList.toggle('on', ex || ready);
+      s.riftLvl.classList.toggle('max', ready);
 
       s.chips.forEach((el, i) => el.classList.toggle('on', !!f && !!f[CHIPS[i].k]));
 
@@ -355,11 +379,41 @@ export class Hud {
     }
   }
 
+  /**
+   * A big centre-screen word for the lead to call (PERFECT, TIME OVER, DRAW): the same slam-in as the other banners,
+   * in `color` (any CSS colour) when given, else white.
+   */
+  announceResult(text: string, color?: string) {
+    this.showBanner(text, RESULT_MS, 'result', undefined, true, '', color);
+  }
+
+  /**
+   * Fades the HUD out (true) or back in (false): the panels, clock, combo counter, VS band, pause button and ping.
+   * The banners stay up, so a K.O. or announceResult still reads over a hidden HUD (the K.O. slow-mo).
+   */
+  setHidden(hidden: boolean) {
+    this.root.classList.toggle('faded', hidden);
+  }
+
+  /**
+   * The training readout under the clock: total damage, the live combo and the best combo this session.
+   * `null` hides it.
+   */
+  setTrainingInfo(info: { damage: number; combo: number; maxCombo: number } | null) {
+    this.train.classList.toggle('on', !!info);
+    if (!info) return;
+    setText(this.trainDmg, String(Math.round(info.damage)));
+    setText(this.trainCombo, String(info.combo));
+    setText(this.trainBest, String(info.maxCombo));
+  }
+
   /** A comic slam-in banner (ui/hud.css: scale-in with overshoot, a light ring and rays behind it); `sub` is a small second line. */
-  private showBanner(text: string, ms: number, cls: string, accent?: number, fresh = false, sub = '') {
+  private showBanner(text: string, ms: number, cls: string, accent?: number, fresh = false, sub = '', color?: string) {
     const b = this.banner;
     if (accent === undefined) b.style.removeProperty('--ac');
     else b.style.setProperty('--ac', css(accent));
+    if (color === undefined) b.style.removeProperty('color');
+    else b.style.color = color;
     const className = `hud-banner on ${cls}`;
     const key = `${text}|${sub}`;
     if (fresh || this.bannerKey !== key || b.className !== className) {

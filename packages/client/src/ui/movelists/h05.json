@@ -1,0 +1,20 @@
+{
+  "hero": 5,
+  "name": "François Prelati",
+  "weapon": "Conjurer's Staff",
+  "style": "A conjurer who keeps the enemy at range: quick arcane bolts that overheat the staff, a charged orb to punish, slowing stars, and Starfall to finish.",
+  "moves": [
+    { "name": "Arcane Bolts", "input": "LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [48, 50, 66], "notes": "Three bolts at range. The third is slower and pushes hardest. Each bolt adds heat, and the staff overheats after about five quick bolts and fires nothing until it has cooled (about 1.5 s). There is no launcher: down+LIGHT fires an ordinary bolt. The numbers are the bolt's own; François deals about 0.95 of them, after the Caster's damage scale and his own tune." },
+    { "name": "Conjured Orb", "input": "HEAVY (hold)", "kind": "heavy", "damage": "90 to 170", "notes": "A tap is the ordinary bolt. Hold for at least 14 ticks (about 0.23 s) to conjure an orb: the longer the hold, the harder it hits, up to full at 60 ticks (1 s). The orb bursts on impact and knocks hard. Holding LIGHT charges the same orb. A charged orb adds more heat than a bolt, so it cools the staff sooner." },
+    { "name": "Air Bolts", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [44, 37, 57], "notes": "Three bolts fired from the air. The first two lift the one they hit so it floats, and the third sends it away. HEAVY in the air starts the same string, since the staff has no plunge. Holding LIGHT in the air charges an orb instead of firing the bolt." },
+    { "name": "Phantom Stars", "input": "SPECIAL", "kind": "special", "damage": [34, 34, 34], "notes": "Three falling-star bolts in a fan, 34 each. Each one slows what it touches for 2 s. Cooldown 190 ticks (about 3.2 s) for a Caster, who recharges skills twice as fast." },
+    { "name": "Mirage", "input": "DODGE", "kind": "dodge", "notes": "An illusion takes the blow: a quick step of 150 units along the stick (in the facing direction with no stick). Invulnerable for its first 10 ticks (about 0.17 s). On the ground it has a cooldown of 40 ticks (about 0.67 s). In the air it uses one of your air-dash charges." },
+    { "name": "Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent within 38 units when the stick points at them, and a guard does not stop it. They can break free by pressing LIGHT or HEAVY in the first 8 ticks of the grab." },
+    { "name": "Starfall", "input": "ART", "kind": "art", "damage": [105, 105, 105], "notes": "Needs a full Rift gauge. Both fighters freeze for 0.75 s, then three falling stars come down. Each one locks onto the opponent's spot 20 ticks (about 0.33 s) before it lands, so stepping away in that window avoids it. The stars cannot be blocked. They land about 0.6 s, 1.0 s and 1.4 s after the Art begins." }
+  ],
+  "combos": [
+    { "name": "Bolts into orb", "input": "LIGHT, LIGHT, HEAVY (hold)", "notes": "Two bolts, then a charged orb. A bolt that connects lets the next press come early; one that whiffs makes you wait out part of its recovery. Let go at full charge for the strongest orb." },
+    { "name": "Slow, then stars", "input": "SPECIAL, LIGHT, LIGHT, ART", "notes": "Phantom Stars slow them for 2 s while the bolts keep them in range. Starfall needs a full gauge, and it is hardest to escape when they are still slowed." },
+    { "name": "Step and bolt", "input": "DODGE, LIGHT, LIGHT, LIGHT", "notes": "Mirage out of a rush, then open the bolts as they come back into range. Mirage has a short cooldown on the ground, so save it for a rush you cannot block." }
+  ]
+}

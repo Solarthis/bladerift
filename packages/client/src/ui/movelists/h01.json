@@ -1,0 +1,20 @@
+{
+  "hero": 1,
+  "name": "Alcides",
+  "weapon": "Hydra Greatbow",
+  "style": "Keeps the distance and fills the arena with venom-tipped arrows, drawing the heavy shot when the foe commits.",
+  "moves": [
+    { "name": "Arrow", "input": "LIGHT", "kind": "normal", "damage": [60], "notes": "A fast arrow with a short wind-up. The light string has one step, so every press looses another arrow. Each shot adds heat: about five quick shots overheat the bow, which then fires nothing until it has cooled (about 1.5 s)." },
+    { "name": "Drawn Shot", "input": "HEAVY (hold)", "kind": "heavy", "damage": [70, 150], "notes": "Hold HEAVY on the ground. A tap is a plain arrow; holding past about 0.2 s and releasing draws the heavy shot, at full draw after 1 s. Damage runs from 70 to 150. It flies faster and flatter than an arrow and adds 80 heat. Holding LIGHT on the ground draws the same shot. In the air, holding LIGHT draws it too, while HEAVY in the air fires the air volley instead." },
+    { "name": "Air Volley", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [55, 47, 72], "notes": "Tap LIGHT in the air to loose three arrows in order. The first two pop the target up and keep them floating close; the third knocks them down. Damage is per arrow, before combo scaling. HEAVY in the air starts this volley too." },
+    { "name": "Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Press HEAVY on the ground with the stick toward a grounded opponent who is within reach, in front and level. A guard does not stop it. Press LIGHT or HEAVY during the first 8 ticks of the hold to break it, which pushes both fighters apart. Not available while the bow is overheated." },
+    { "name": "Nine Lives", "input": "SPECIAL", "kind": "special", "damage": [42, 42, 42], "notes": "Three venom-tipped arrows fanned out, each for 42, dropping under gravity as they fly. Cooldown 5.4 s. Can be pressed out of an arrow's recovery." },
+    { "name": "Serpent Rain", "input": "ART", "kind": "art", "damage": [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40], "notes": "Needs a full Rift gauge. A short superpause, then eleven arrows fall from above onto the opponent's spot, spread over about 90 units, 40 each. Art hits are not scaled by combo count." },
+    { "name": "Hunter's Vault", "input": "DODGE", "kind": "dodge", "notes": "A back-flip leap. With no stick held it vaults away from the way Alcides faces; with the stick it leaps toward it. Invulnerable for its first 11 ticks (about 0.18 s). In the air it uses one air-dash charge." }
+  ],
+  "combos": [
+    { "name": "Air volley", "input": "JUMP, LIGHT (air), LIGHT (air), LIGHT (air)", "notes": "Jump in and tap LIGHT three times. The first two arrows float the target close; the third knocks them down. Use it to finish a jump-in." },
+    { "name": "Draw on the approach", "input": "LIGHT, LIGHT, HEAVY (hold)", "notes": "Two quick arrows as they walk in, then hold HEAVY and release at full draw. Each chained hit does 7% less than the one before, down to 40%." },
+    { "name": "Open the range", "input": "DODGE, SPECIAL", "notes": "Hunter's Vault leaps him back out of reach with no stick held, then Nine Lives fans into the gap." }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "hero": 11,
+  "name": "Alexander",
+  "weapon": "Kopis",
+  "style": "A quick-footed Rider with a kopis: four fast chops, a guard-breaking heavy, and Bucephalus' charge to close the gap or run a runner down.",
+  "moves": [
+    { "name": "Kopis Chops", "input": "LIGHT, LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [64, 66, 70, 112], "notes": "Four quick chops, each a little heavier. The third lifts the opponent; the fourth is a flaming cut that sends them flying back. Each chop can be chained into the next as soon as it hits." },
+    { "name": "Rising Cut", "input": "↓+LIGHT", "kind": "launcher", "damage": [67], "notes": "A rising swing a little slower than the first chop. It pops the opponent up to float, with no knockdown. Jump after them to keep the combo going." },
+    { "name": "Sky Cuts", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [72, 61, 94], "notes": "Three air swings. The first two pop the opponent up a little and keep them floating close, and carry you along with them; the third knocks them down. Damage is per swing, before combo scaling." },
+    { "name": "Kopis Plunge", "input": "HEAVY (air)", "kind": "plunge", "damage": [118], "notes": "Drops straight down with the blade. If it connects you bounce back up. Down + LIGHT in the air plunges too." },
+    { "name": "Heavy Cut", "input": "HEAVY", "kind": "heavy", "damage": [157], "notes": "A bigger, slower version of the last chop: slower to start, but it breaks guards, so a guard does not stop it. With the stick toward a grounded opponent in reach, HEAVY becomes the throw instead." },
+    { "name": "Crusher Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent in front of you and in reach, and a guard does not stop it. The victim can break free by pressing LIGHT or HEAVY in the first 8 ticks of the grab." },
+    { "name": "Bucephalus Charge", "input": "SPECIAL", "kind": "special", "damage": [82], "notes": "Bucephalus, his great black warhorse, charges in a short, fast run. It hits once with big knockback that pops the opponent up. The charge keeps its speed and cannot be steered once it starts. Cooldown 7 seconds." },
+    { "name": "Stampede", "input": "ART", "kind": "art", "damage": [170], "notes": "Rift Art, ready at a full Rift gauge. Bucephalus, wreathed in flame, thunders across the arena in one pierce that ignores guards and sets the opponent alight; the flames burn for about 2.5 seconds." },
+    { "name": "Cavalry Dash", "input": "DODGE", "kind": "dodge", "notes": "A burst of the Companions' charge along the ground. Invulnerable for its first 8 ticks (about 0.13 seconds). On the ground it has a cooldown; in the air it uses one of your two air-dash charges." }
+  ],
+  "combos": [
+    { "name": "Rising Kopis", "input": "↓+LIGHT, JUMP, LIGHT (air), LIGHT (air), LIGHT (air)", "notes": "The rising cut pops them up to float. Jump after them and finish with the sky cuts; the last one knocks them down." },
+    { "name": "Chop and drop", "input": "LIGHT, LIGHT, LIGHT, JUMP, HEAVY (air)", "notes": "The third chop lifts the opponent. Jump after them and drop the plunge onto them; if it connects, you bounce back up." },
+    { "name": "Breaker", "input": "LIGHT, LIGHT, HEAVY", "notes": "Two chops, then the heavy, chained on the hit. The heavy breaks guards, so use it against a guarding opponent. If the stick points at them in reach, the heavy becomes the throw." }
+  ]
+}

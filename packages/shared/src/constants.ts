@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 11;
+export const PROTOCOL_VERSION = 12;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -123,6 +123,29 @@ export const FIGHTER = {
   blockSpeed: 70,
   /** Inputs pressed slightly early are remembered this long (ticks). */
   buffer: 10,
+} as const;
+
+/**
+ * Throws: the heavy (B) on the ground with the stick toward a grounded opponent in front and within `range` (a guard does
+ * not stop it; a victim in the air, stunned, lying down, rolling, in a Rift Art or invulnerable cannot be grabbed). The
+ * grab (`startup` ticks) holds the victim `hold` ticks, frozen; in the first `tech` ticks of the hold a press of LIGHT or
+ * HEAVY breaks it: both fighters are pushed apart (`techKb` each, `techStun` ticks of stun, no damage). Otherwise the
+ * victim is thrown: `dmg` (class-scaled), `kbX` away and `kbY` up, a knockdown, and the thrower recovers `after` ticks.
+ * A whiff recovers `recovery` ticks.
+ */
+export const THROW = {
+  range: 38,
+  startup: 5,
+  recovery: 24,
+  hold: 12,
+  tech: 8,
+  dmg: 140,
+  kbX: 320,
+  kbY: 240,
+  stun: 40,
+  after: 14,
+  techKb: 260,
+  techStun: 20,
 } as const;
 
 /**

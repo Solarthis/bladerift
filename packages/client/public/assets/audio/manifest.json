@@ -1,0 +1,325 @@
+{
+  "music": {
+    "title": {
+      "file": "music/title.mp3",
+      "gain": 0.85,
+      "loop": true
+    },
+    "select": {
+      "file": "music/select.mp3",
+      "gain": 0.85,
+      "loop": true
+    },
+    "stage-hall": {
+      "file": "music/stage-hall.mp3",
+      "gain": 0.8,
+      "loop": true
+    },
+    "stage-bridge": {
+      "file": "music/stage-bridge.mp3",
+      "gain": 0.8,
+      "loop": true
+    },
+    "stage-embers": {
+      "file": "music/stage-embers.mp3",
+      "gain": 0.8,
+      "loop": true
+    },
+    "stage-crypt": {
+      "file": "music/stage-crypt.mp3",
+      "gain": 0.85,
+      "loop": true
+    },
+    "stage-grove": {
+      "file": "music/stage-grove.mp3",
+      "gain": 0.8,
+      "loop": true
+    },
+    "victory": {
+      "file": "music/victory.mp3",
+      "gain": 0.9,
+      "loop": false
+    },
+    "results": {
+      "file": "music/results.mp3",
+      "gain": 0.8,
+      "loop": true
+    }
+  },
+  "voice": {
+    "round1": {
+      "file": "voice/round1.mp3",
+      "gain": 1
+    },
+    "round2": {
+      "file": "voice/round2.mp3",
+      "gain": 1
+    },
+    "round3": {
+      "file": "voice/round3.mp3",
+      "gain": 1
+    },
+    "finalRound": {
+      "file": "voice/finalRound.mp3",
+      "gain": 1
+    },
+    "fight": {
+      "file": "voice/fight.mp3",
+      "gain": 1
+    },
+    "ready": {
+      "file": "voice/ready.mp3",
+      "gain": 1
+    },
+    "perfect": {
+      "file": "voice/perfect.mp3",
+      "gain": 1
+    },
+    "timeOver": {
+      "file": "voice/timeOver.mp3",
+      "gain": 1
+    },
+    "youWin": {
+      "file": "voice/youWin.mp3",
+      "gain": 1
+    },
+    "youLose": {
+      "file": "voice/youLose.mp3",
+      "gain": 1
+    },
+    "draw": {
+      "file": "voice/draw.mp3",
+      "gain": 1
+    },
+    "gameOver": {
+      "file": "voice/gameOver.mp3",
+      "gain": 1
+    },
+    "winner": {
+      "file": "voice/winner.mp3",
+      "gain": 1
+    }
+  },
+  "sfx": {
+    "hitLight": [
+      {
+        "file": "sfx/hitLight-0.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/hitLight-1.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/hitLight-2.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/hitLight-3.mp3",
+        "gain": 1
+      }
+    ],
+    "hitHeavy": [
+      {
+        "file": "sfx/hitHeavy-0.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/hitHeavy-1.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/hitHeavy-2.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/hitHeavy-3.mp3",
+        "gain": 1
+      }
+    ],
+    "hitCrit": [
+      {
+        "file": "sfx/hitCrit-0.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/hitCrit-1.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/hitCrit-2.mp3",
+        "gain": 1
+      }
+    ],
+    "slash": [
+      {
+        "file": "sfx/slash-0.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/slash-1.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/slash-2.mp3",
+        "gain": 1
+      }
+    ],
+    "whoosh": [
+      {
+        "file": "sfx/whoosh-0.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/whoosh-1.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/whoosh-2.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/whoosh-3.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/whoosh-4.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/whoosh-5.mp3",
+        "gain": 0.8
+      }
+    ],
+    "whooshHeavy": [
+      {
+        "file": "sfx/whooshHeavy-0.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/whooshHeavy-1.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/whooshHeavy-2.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/whooshHeavy-3.mp3",
+        "gain": 1
+      }
+    ],
+    "block": [
+      {
+        "file": "sfx/block-0.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/block-1.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/block-2.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/block-3.mp3",
+        "gain": 0.8
+      }
+    ],
+    "parry": [
+      {
+        "file": "sfx/parry-0.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/parry-1.mp3",
+        "gain": 1
+      }
+    ],
+    "throw": [
+      {
+        "file": "sfx/throw-0.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/throw-1.mp3",
+        "gain": 1
+      }
+    ],
+    "koThud": [
+      {
+        "file": "sfx/koThud-0.mp3",
+        "gain": 1
+      }
+    ],
+    "bodyFall": [
+      {
+        "file": "sfx/bodyFall-0.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/bodyFall-1.mp3",
+        "gain": 1
+      },
+      {
+        "file": "sfx/bodyFall-2.mp3",
+        "gain": 1
+      }
+    ],
+    "land": [
+      {
+        "file": "sfx/land-0.mp3",
+        "gain": 0.7
+      }
+    ],
+    "step": [
+      {
+        "file": "sfx/step-0.mp3",
+        "gain": 0.5
+      },
+      {
+        "file": "sfx/step-1.mp3",
+        "gain": 0.5
+      },
+      {
+        "file": "sfx/step-2.mp3",
+        "gain": 0.5
+      },
+      {
+        "file": "sfx/step-3.mp3",
+        "gain": 0.5
+      }
+    ],
+    "uiMove": [
+      {
+        "file": "sfx/uiMove-0.mp3",
+        "gain": 0.6
+      }
+    ],
+    "uiSelect": [
+      {
+        "file": "sfx/uiSelect-0.mp3",
+        "gain": 1
+      }
+    ],
+    "uiBack": [
+      {
+        "file": "sfx/uiBack-0.mp3",
+        "gain": 1
+      }
+    ],
+    "uiStart": [
+      {
+        "file": "sfx/uiStart-0.mp3",
+        "gain": 1
+      }
+    ],
+    "fire": [
+      {
+        "file": "sfx/fire-0.mp3",
+        "gain": 0.5
+      }
+    ]
+  }
+}

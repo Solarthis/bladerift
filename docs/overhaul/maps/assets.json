@@ -1,0 +1,995 @@
+[
+ {
+  "category": "music-title",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-title/music-title-grassy-world-main-title.mp3",
+    "licence": "CC-BY 3.0",
+    "sourceUrl": "https://opengameart.org/content/grassy-world-overture-8bitorchestral",
+    "author": "Matthew Pablo",
+    "attribution": "\"Grassy World (8-Bit Orchestral Overture) - Main Title Theme\" by Matthew Pablo, CC-BY 3.0, https://opengameart.org/content/grassy-world-overture-8bitorchestral. Licence confirmed via search-index summary of the OGA page; the page itself returned HTTP 403 to WebFetch and to a curl request, so it was not read directly."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-title/music-title-fall-of-arcana.mp3",
+    "licence": "CC-BY 3.0",
+    "sourceUrl": "https://opengameart.org/content/the-fall-of-arcana-epic-game-theme-music",
+    "author": "Matthew Pablo",
+    "attribution": "\"The Fall of Arcana (Epic Game Theme Music)\" by Matthew Pablo, CC-BY 3.0, https://opengameart.org/content/the-fall-of-arcana-epic-game-theme-music. Licence confirmed via search-index summary only; the OGA page returned HTTP 403 and was not read directly. The search summary notes the author links attribution instructions on his services page, which should be followed. The author's page also lists some other tracks as CC-BY-SA 3.0, so this track's own page must be the licence reference."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-title/music-title-heroes-theme.mp3",
+    "licence": "CC-BY 3.0",
+    "sourceUrl": "https://opengameart.org/content/heroes-theme",
+    "author": "Alexandr Zhelanov",
+    "attribution": "\"Heroes Theme\" by Alexandr Zhelanov, CC-BY 3.0, https://opengameart.org/content/heroes-theme. Licence confirmed via search-index summary only; the OGA page returned HTTP 403 and was not read directly. The page reportedly asks for a specific attribution notice that links the author's SoundCloud; that exact wording was not read and should be copied from the page before use. Spelling varies between Alexander and Alexandr across listings; use the page's spelling."
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "music-select",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-select/determined_pursuit_loop.wav",
+    "licence": "CC0 1.0 (public domain dedication); page shows License(s): CC0 and notice 'public domain as of January 2017. No attribution necessary.'",
+    "sourceUrl": "https://opengameart.org/content/determined-pursuit-epic-orchestra-loop",
+    "author": "Emma_MA",
+    "attribution": "No attribution required (CC0). Optional courtesy credit: Determined Pursuit (epic orchestra loop) by Emma_MA, CC0 1.0, https://opengameart.org/content/determined-pursuit-epic-orchestra-loop"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-select/character_selection_in_game.ogg",
+    "licence": "CC0 1.0 (public domain dedication); page shows License(s): CC0 and notice 'Credit appreciated but not necessary.'",
+    "sourceUrl": "https://opengameart.org/content/character-selection-theme-loop",
+    "author": "beardalaxy",
+    "attribution": "No attribution required (CC0). Optional courtesy credit: Character Selection Theme Loop by beardalaxy, CC0 1.0, https://opengameart.org/content/character-selection-theme-loop"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-select/fight.ogg",
+    "licence": "CC0 1.0 (public domain dedication); page shows License(s): CC0, notice says credit is totally optional.",
+    "sourceUrl": "https://opengameart.org/content/fast-fight-battle-music",
+    "author": "Ville Nousiainen / Xythe / mutkanto (submitted by Bonsaiheldin)",
+    "attribution": "No attribution required (CC0). Optional courtesy credit per author: Fast fight / battle music by Ville Nousiainen / Xythe / mutkanto, CC0 1.0, https://opengameart.org/content/fast-fight-battle-music (author suggests credit to Ville Nousiainen and/or http://soundcloud.com/mutkanto)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-select/battle1.mp3",
+    "licence": "CC0 1.0 (public domain dedication); page shows License(s): CC0 and asks for name credit in the project.",
+    "sourceUrl": "https://opengameart.org/content/heavy-battle-music",
+    "author": "Davieplier",
+    "attribution": "No attribution required (CC0). Author asks for credit: Heavy battle music by Davieplier, CC0 1.0, https://opengameart.org/content/heavy-battle-music"
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "music-hall",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-hall/junkala-epic-boss-battle-looping.wav",
+    "licence": "CC0 1.0 Universal (public domain dedication); no attribution required",
+    "sourceUrl": "https://opengameart.org/content/boss-battle-music",
+    "author": "Juhani Junkala (filename credit); OpenGameArt upload by SubspaceAudio",
+    "attribution": "Music: \"Epic Boss Battle [Seamlessly Looping]\" by Juhani Junkala, CC0 1.0, via OpenGameArt (https://opengameart.org/content/boss-battle-music). Optional credit only; not required by CC0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-hall/emma-ma-determined-pursuit-loop.wav",
+    "licence": "CC0 1.0 Universal (public domain dedication); page states public domain since January 2017, no attribution necessary",
+    "sourceUrl": "https://opengameart.org/content/determined-pursuit-epic-orchestra-loop",
+    "author": "Emma_MA",
+    "attribution": "Music: \"Determined Pursuit (epic orchestra loop)\" by Emma_MA, CC0 1.0, via OpenGameArt (https://opengameart.org/content/determined-pursuit-epic-orchestra-loop). Optional credit only; not required by CC0."
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "music-bridge",
+  "approved": [
+   {
+    "path": "C:\\Users\\vascu\\Projects\\bladerift\\.cache\\assets\\music-bridge\\oga_jrpg_battle_loop_HydroGene.mp3",
+    "author": "HydroGene",
+    "licence": "CC0 1.0 (verified on the OGA page: License(s) CC0; page states 'It's CC0, so no need to credits')",
+    "sourceUrl": "https://opengameart.org/content/jrpg-epic-rock-battle-theme-1",
+    "attribution": "No attribution required (CC0 1.0). Optional courtesy credit: \"JRPG Epic Rock Battle Theme #1\" by HydroGene, OpenGameArt.org, CC0 1.0, https://opengameart.org/content/jrpg-epic-rock-battle-theme-1 (the author asks to be told about projects that use it)."
+   },
+   {
+    "path": "C:\\Users\\vascu\\Projects\\bladerift\\.cache\\assets\\music-bridge\\oga_ghosts_and_heroes_Bobjt.mp3",
+    "author": "Bobjt",
+    "licence": "CC0 1.0 (verified on the OGA page: License(s) CC0; 'Copyright/Attribution Notice: None necessary'). Remix source Chamber Battle (https://opengameart.org/content/chamber-battle) also checked: License(s) CC0, author Bobjt, so the licence chain is CC0 throughout.",
+    "sourceUrl": "https://opengameart.org/node/142108",
+    "attribution": "No attribution required (CC0 1.0). Optional courtesy credit: \"Ghosts & Heroes\" by Bobjt, OpenGameArt.org, CC0 1.0, https://opengameart.org/node/142108 (remix of \"Chamber Battle\" by Bobjt, CC0 1.0, https://opengameart.org/content/chamber-battle). Note: the OGA download is named ghosts_n_heroes_2025_loop.mp3 (2.3 MB); the local copy is named ..._loop_0.mp3 and its size of 2,309,141 bytes matches, so this is likely a browser rename. Update SOURCES.md to match."
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "music-embers",
+  "approved": [],
+  "rejected": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-embers/nene-boss-battle-2-pack/boss_battle_#2_metal_loop.wav",
+    "reason": "Licence not verified. Source page https://opengameart.org/node/84428 returned HTTP 403 to WebFetch, and a curl retry with a browser User-Agent was denied by the sandbox as bot-check circumvention, so the CC0 claim rests only on the hunter's report. Header is a valid RIFF/WAVE. Hunter also says the loop and opening labels may be swapped, which is unchecked. Re-verify from the page in a normal browser before use."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-embers/nene-boss-battle-2-pack/boss_battle_#2_metal_opening.wav",
+    "reason": "Licence not verified. Same source page as the loop file, returned HTTP 403, so CC0 is unconfirmed. Header is a valid RIFF/WAVE. Possible loop/opening label swap is unresolved."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-embers/nene-boss-battle-2-symphonic-metal.zip",
+    "reason": "Licence not verified. Source page https://opengameart.org/node/84428 returned HTTP 403, so the CC0 claim is unconfirmed. The file starts with PK (valid ZIP header). Contents were not extracted, per the rule to treat downloads as untrusted. Redundant with the two extracted WAVs and not needed for shipping."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-embers/nene-boss-battle-9-metal-loop.wav",
+    "reason": "Licence not verified. Source page https://opengameart.org/node/151361 returned HTTP 403, so CC0 is unconfirmed. Header is a valid RIFF/WAVE. Hunter's metadata: about 42.5 s, guitars, drums and bass, fast. Alternate candidate only."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-embers/nene-boss-battle-9-metal-opening.wav",
+    "reason": "Licence not verified. Source page https://opengameart.org/node/151361 returned HTTP 403, so CC0 is unconfirmed. Header is a valid RIFF/WAVE. About 17 s, alternate candidate only."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-embers/wolfgang-battle-orchestral-tension.mp3",
+    "reason": "Licence not verified, and provenance conflict. Source page https://opengameart.org/content/battle-theme-0 returned HTTP 403, so the CC0 page licence field and the disputed CC-BY/GPL comment cannot be checked. The local ID3 artist tag (TPE1) reads Theodore Kerr, not Wolfgang_ as listed in SOURCES.md, and TCOP reads 2012, so the author and licence chain must be confirmed before use. Header is a valid ID3 MP3."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-embers/pro-sensory-metal-chromatic-electronic.mp3",
+    "reason": "Licence not verified. Source page https://opengameart.org/content/metal-chromatic-electronic returned HTTP 403, so CC0 is unconfirmed. Header is a valid ID3 MP3 (TYER 2018, LAME encoder). Hunter's clip is 33.5 s, too short for a standalone theme, so this is a fallback only. If later approved, the author requests credit as Pro Sensory (Alex McCulloch). The request is not a licence condition under CC0."
+   }
+  ]
+ },
+ {
+  "category": "music-crypt",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-crypt/infinite_darkness_0.mp3",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/8-bit-infinite-darkness",
+    "author": "HydroGene",
+    "attribution": "Not required (CC0 1.0). Optional credit: \"8-bit Infinite Darkness\" by HydroGene, CC0 1.0, https://opengameart.org/content/8-bit-infinite-darkness"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-crypt/Battle.mp3",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/battle-theme-0",
+    "author": "Wolfgang_",
+    "attribution": "Not required (CC0 1.0). Optional credit: \"Battle Theme\" by Wolfgang_, CC0 1.0, https://opengameart.org/content/battle-theme-0"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-crypt/spookloopable.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/spooky-loop-bomba32-wipicks-vs-stumpystrust",
+    "author": "glitchart (mix); underlying works by wipics and StumpyStrust",
+    "attribution": "Not required (CC0 1.0). Optional credit: \"Spooky loop & bomba32\" mix by glitchart, CC0 1.0, https://opengameart.org/content/spooky-loop-bomba32-wipicks-vs-stumpystrust; underlying \"Spooky loop\" by wipics (CC0, https://opengameart.org/content/spooky-loop) and \"bomba32\" by StumpyStrust (CC0, https://opengameart.org/content/bomba32). Note: about 31 s, below the 1.5-3 min target, so use only as a loop or stinger."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-crypt/spookmix_0.mp3",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/spooky-loop-bomba32-wipicks-vs-stumpystrust",
+    "author": "glitchart (mix); underlying works by wipics and StumpyStrust",
+    "attribution": "Not required (CC0 1.0). Optional credit: \"Spooky loop & bomba32\" mix by glitchart, CC0 1.0, https://opengameart.org/content/spooky-loop-bomba32-wipicks-vs-stumpystrust; underlying \"Spooky loop\" by wipics (CC0, https://opengameart.org/content/spooky-loop) and \"bomba32\" by StumpyStrust (CC0, https://opengameart.org/content/bomba32). Note: about 48 s, below the 1.5-3 min target, so use only as a loop or stinger."
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "music-grove",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-grove/fairy_battles_bpm180.ogg",
+    "sourceUrl": "https://opengameart.org/content/fairy-battles",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Verified on source page: license-name CC0.",
+    "author": "MintoDog",
+    "attribution": "Attribution not required (CC0). Suggested credit: \"Fairy Battles\" by MintoDog, CC0 1.0, https://opengameart.org/content/fairy-battles"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-grove/heartfelt-battle_loop.ogg",
+    "sourceUrl": "https://opengameart.org/content/heartfelt-battle-loopable-fantasy-stringspianohorn",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Verified on source page: license-name CC0. Page is titled \"Heartfelt Battle (Loopable, fantasy, strings/piano/horn)\".",
+    "author": "request (OGA author field as shown on page; the page also links request.moe)",
+    "attribution": "Attribution not required (CC0). The uploader asks for credit as a courtesy. Suggested credit: \"Heartfelt Battle (Loopable, fantasy, strings/piano/horn)\" by request, CC0 1.0, https://opengameart.org/content/heartfelt-battle-loopable-fantasy-stringspianohorn"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-grove/Battle_1.ogg",
+    "sourceUrl": "https://opengameart.org/content/battle-music-0",
+    "licence": "CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/). Verified on source page: license-name CC-BY 3.0. Page text: \"Please credit Peter Eastman if you use this.\"",
+    "author": "peastman (Peter Eastman)",
+    "attribution": "Required, CC BY 3.0: \"Battle Music\" by Peter Eastman (peastman), https://opengameart.org/content/battle-music-0, licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). Note: the page lists the file as Battle.ogg, but its download link is https://opengameart.org/sites/default/files/Battle_1.ogg, which matches the local file name."
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "music-victory",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-victory/victory-celestialghost8-Victory.mp3",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+    "sourceUrl": "https://opengameart.org/content/victory",
+    "author": "celestialghost8",
+    "attribution": "No attribution required (CC0 1.0). Optional credit line: \"Victory\" by celestialghost8, CC0 1.0, https://opengameart.org/content/victory",
+    "notes": "Verified on source page: License CC0, file Victory.mp3 65.2 KB matches local 65,152 bytes, download href Victory_0.mp3 resolves (HTTP 200). Header ID3 (MP3). Role: victory fanfare, candidate A. Duration 4.9 s is an estimate, not checked by ear."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-victory/fanfare-fupi-winfretless.ogg",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+    "sourceUrl": "https://opengameart.org/content/win-jingle",
+    "author": "Fupi",
+    "attribution": "No attribution required (CC0 1.0). Optional credit line: \"Win jingle\" by Fupi, CC0 1.0, https://opengameart.org/content/win-jingle",
+    "notes": "Verified on source page: License CC0, file winfretless.ogg 36.9 KB matches local 36,858 bytes, href winfretless_0.ogg resolves (HTTP 200). Header OggS (Ogg Vorbis). Role: fallback fanfare. Duration 3.8 s is an estimate."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-victory/results-wolfgang-8bitvictory.ogg",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+    "sourceUrl": "https://opengameart.org/content/8-bit-victory-loop",
+    "author": "Wolfgang_",
+    "attribution": "No attribution required (CC0 1.0). Optional credit line: \"8-bit victory loop\" by Wolfgang_, CC0 1.0, https://opengameart.org/content/8-bit-victory-loop",
+    "notes": "Verified on source page: License CC0, file 8bitvictory.ogg 1.8 MB matches local 1,768,313 bytes. Recorded URL 8bitvictory.ogg and page href 8bitvictory_0.ogg both return HTTP 200. Header OggS. Role: results loop, candidate A. Chiptune, not calm, so tone fit needs a listen before use. Duration 53.3 s is an estimate."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-victory/calm-pmiller-calm_track-loop.ogg",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+    "sourceUrl": "https://opengameart.org/content/calm-track",
+    "author": "pmiller",
+    "attribution": "No attribution required (CC0 1.0, page states Public Domain, no attribution necessary). Optional credit line: \"Calm track\" by pmiller, CC0 1.0, https://opengameart.org/content/calm-track",
+    "notes": "Verified on source page: License CC0, file calm_track-loop.ogg 3.4 MB matches local 3,415,564 bytes, href resolves (HTTP 200). Header OggS. Role: results loop, candidate B. About 249 s, so it must be trimmed to 30-90 s before use. Calm, not triumphant."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-victory/cynicmusic-Victory1_1.mp3",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+    "sourceUrl": "https://opengameart.org/content/victory-theme-for-rpg",
+    "author": "cynicmusic",
+    "attribution": "No attribution required (CC0 1.0). Optional credit line: \"Victory theme for RPG\" by cynicmusic, CC0 1.0, https://opengameart.org/content/victory-theme-for-rpg",
+    "notes": "Verified on source page: License CC0, file Victory1.mp3 1.4 MB matches local 1,361,839 bytes, href Victory1_1.mp3 resolves (HTTP 200). Header is MPEG frame sync FF FB, no ID3. The page shows a copyright notice pointing to pixelsphere.org, but CC0 requires no credit. Role: alternate only. About 56.7 s, too long for a fanfare, not calm."
+   }
+  ],
+  "rejected": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-victory/results-inspectorj-precipice-of-victory.zip",
+    "reason": "Not eligible as delivered. The OGA page (https://opengameart.org/node/107722) lists CC-BY 3.0, but the bundled 'LICENSE - RPG Orchestral Essentials.pdf' is a custom End-User License Agreement dated 2nd May 2019 by Jonathan Shaw. It grants royalty-free use provided attribution is given, and it terminates on breach. That is not CC-BY text and is not on the brief's allowed list. The EULA's canonical URL https://www.jshaw.co.uk/RPG-Orchestral-Essentials-eula returns HTTP 404 (Wix error page), so the licence cannot be re-checked online. Reject unless the lead accepts the custom EULA. If accepted, the attribution line is: \"The Precipice of Victory\" Composed by Jonathan Shaw (www.jshaw.co.uk). Zip header PK (valid), 2,855,442 bytes, matches the page's 2.9 MB."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-victory/precipice-of-victory/",
+    "reason": "Extracted contents of the rejected InspectorJ zip, same custom EULA problem. The MP3 (ID3 header) and the two PDFs are real files, but the folder must not be shipped unless the lead accepts the EULA."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/music-victory/SOURCES.md",
+    "reason": "Index file, not an audio asset. Not shipped. Its source URLs and author data were checked against the pages above and match, except that the recorded 8bitvictory.ogg URL is the same file the page lists as 8bitvictory_0.ogg, and both resolve."
+   }
+  ]
+ },
+ {
+  "category": "voice-announcer",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/round_1.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/round_2.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/round_3.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/final_round.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/fight.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/ready.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/flawless_victory.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/time.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/you_win.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/you_lose.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/it's_a_tie.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/game_over.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/winner.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/voiceover-pack-fighter",
+    "author": "Kenney Vleugels (Kenney.nl)",
+    "attribution": "Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl), CC0 1.0, https://kenney.nl/assets/voiceover-pack-fighter (credit optional, not required)"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/voice-announcer/kenney-voiceover-pack-40-lines/Male/time_over.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/voiceover-pack-40-lines",
+    "author": "Kenney Vleugels for Kenney (www.kenney.nl); Male voice Jeffrey M. Smith",
+    "attribution": "Voiceover Pack #1 by Kenney Vleugels for Kenney (www.kenney.nl), CC0 1.0, https://opengameart.org/content/voiceover-pack-40-lines; Male voice Jeffrey M. Smith (http://fiverr.com/jeffreymsmith) (credit optional, not required)"
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "sfx-sword",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-sword/oga-starninjas-attacks/extracted/sword - StarNinjas/sword.6.ogg",
+    "licence": "CC0 1.0 (public domain dedication; page at opengameart.org shows license-name CC0)",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "None required (CC0 1.0). Optional credit: \"Sword sound by StarNinjas, CC0 1.0, https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes\""
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-sword/oga-starninjas-attacks/extracted/sword - StarNinjas/sword.4.ogg",
+    "licence": "CC0 1.0 (public domain dedication; page at opengameart.org shows license-name CC0)",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "None required (CC0 1.0). Optional credit: \"Sword sound by StarNinjas, CC0 1.0, https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes\""
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-sword/oga-starninjas-attacks/extracted/sword - StarNinjas/sword.3.ogg",
+    "licence": "CC0 1.0 (public domain dedication; page at opengameart.org shows license-name CC0)",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "None required (CC0 1.0). Optional credit: \"Sword sound by StarNinjas, CC0 1.0, https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes\""
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-sword/oga-starninjas-clash/extracted/sword_clash.5.ogg",
+    "licence": "CC0 1.0 (public domain dedication; page at opengameart.org shows license-name CC0)",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "None required (CC0 1.0). Optional credit: \"Sword sound by StarNinjas, CC0 1.0, https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes\""
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-sword/oga-starninjas-clash/extracted/sword_clash.2.ogg",
+    "licence": "CC0 1.0 (public domain dedication; page at opengameart.org shows license-name CC0)",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "None required (CC0 1.0). Optional credit: \"Sword sound by StarNinjas, CC0 1.0, https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes\""
+   }
+  ],
+  "rejected": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-sword/SOURCES.md",
+    "reason": "Not an audio file. It is the provenance record for the pack (source URL, author, CC0 licence, per-file durations). Keep it in .cache as the record; do not ship it to public/. Its licence and source details were confirmed against the OpenGameArt page, so it is accurate."
+   }
+  ]
+ },
+ {
+  "category": "sfx-impact",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/kenney-impact-sounds/kenney_impact-sounds.zip",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (www.kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: Impact Sounds by Kenney (www.kenney.nl), CC0 1.0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_heavy_000.ogg through impactPunch_heavy_004.ogg (5 files, all OggS verified; hitHeavy primary)",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (www.kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: Impact Sounds by Kenney (www.kenney.nl), CC0 1.0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_medium_000.ogg through impactPunch_medium_004.ogg (5 files, all OggS verified; hitLight primary)",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (www.kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: Impact Sounds by Kenney (www.kenney.nl), CC0 1.0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPlate_heavy_000.ogg through impactPlate_heavy_004.ogg (5 files, all OggS verified; hitCrit boom candidate, not auditioned)",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (www.kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: Impact Sounds by Kenney (www.kenney.nl), CC0 1.0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactBell_heavy_000.ogg through impactBell_heavy_004.ogg (5 files, all OggS verified; hitCrit boom candidate, not auditioned)",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (www.kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: Impact Sounds by Kenney (www.kenney.nl), CC0 1.0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactMetal_heavy_000.ogg through impactMetal_heavy_004.ogg and impactWood_heavy_000.ogg through impactWood_heavy_004.ogg (10 files, all OggS verified; not in the hunter's recommended list, reserve only)",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (www.kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: Impact Sounds by Kenney (www.kenney.nl), CC0 1.0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/ (all 130 .ogg files; 0 failed the OggS header check)",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (www.kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: Impact Sounds by Kenney (www.kenney.nl), CC0 1.0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/oga-qubodup-impact/qubodupImpact/qubodupImpactMeat01.ogg, qubodupImpactMeat02.ogg, qubodupImpactMetal.ogg, qubodupImpactStone.ogg, qubodupImpactWood.ogg (5 OGG files, all OggS verified; FLAC copies also present)",
+    "licence": "CC0",
+    "sourceUrl": "https://opengameart.org/content/impact",
+    "author": "qubodup",
+    "attribution": "Not required (CC0). Optional credit: qubodup, Impact, OpenGameArt.org, CC0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/oga-qubodup-impact/qubodupImpact.7z (archive, 7z header verified)",
+    "licence": "CC0",
+    "sourceUrl": "https://opengameart.org/content/impact",
+    "author": "qubodup",
+    "attribution": "Not required (CC0). Optional credit: qubodup, Impact, OpenGameArt.org, CC0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/oga-hits-and-punches/hits/hit01.mp3.flac through hit37.mp3.flac (37 FLAC files, all fLaC verified; fallback only, must be converted to OGG or MP3 before use, not auditioned)",
+    "licence": "CC0",
+    "sourceUrl": "https://opengameart.org/content/37-hitspunches",
+    "author": "Independent.nu, submitted by qubodup (original: https://web.archive.org/web/20100307021017/http://www.johannespinter.com/inu/ljudbank.htm)",
+    "attribution": "Not required (CC0). Optional credit: Independent.nu (submitted by qubodup), 37 Hits and Punches, OpenGameArt.org, CC0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/oga-hits-and-punches/independent_nu_ljudbank-hits_and_punches.7z (archive, 7z header verified)",
+    "licence": "CC0",
+    "sourceUrl": "https://opengameart.org/content/37-hitspunches",
+    "author": "Independent.nu, submitted by qubodup",
+    "attribution": "Not required (CC0). Optional credit: Independent.nu (submitted by qubodup), 37 Hits and Punches, OpenGameArt.org, CC0."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-impact/SOURCES.md (record file, not an asset)",
+    "licence": "n/a (metadata record, not an asset)",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "n/a",
+    "attribution": "n/a. Its licence table matches the verified pages, except that the Hits and Punches author line should read Independent.nu, submitted by qubodup, as the OGA page shows."
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "sfx-whoosh",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-1.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-2.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-3.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-4.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-5.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-6.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-7.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-8.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-9.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-10.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-11.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-12.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes/swishes/swish-13.wav",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Not required (CC0). Optional credit: Swish sound by artisticdude, CC0 1.0, https://opengameart.org/content/swishes-sound-pack"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/swishes.zip",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://opengameart.org/content/swishes-sound-pack",
+    "author": "artisticdude",
+    "attribution": "Source archive only, kept in the cache. Do not ship to public/. Not required (CC0)."
+   }
+  ],
+  "rejected": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-whoosh/sword_sfx.wav",
+    "reason": "Licence OGA-BY 4.0 is not on the brief's allowed list (CC0, CC-BY 3.0/4.0, MIT, OFL). It is OpenGameArt's own attribution licence, not CC-BY 4.0 text. Re-admit only if the lead explicitly accepts OGA-BY 4.0. If accepted, attribution would be: Sword Swing by DavidW, OGA-BY 4.0, https://opengameart.org/content/sword-swing. File is real RIFF/WAVE audio at the stated path; source page confirms the licence."
+   }
+  ]
+ },
+ {
+  "category": "sfx-block",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.1.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: Sword sound effects by StarNinjas, CC0 1.0, https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.2.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.3.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.4.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.5.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.6.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.7.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.8.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.9.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/sword-clash/x/sword_clash.10.ogg",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+    "author": "StarNinjas",
+    "attribution": "Not required (CC0). Courtesy: StarNinjas, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-impact/bing1.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-impact-sounds",
+    "author": "BMacZero",
+    "attribution": "Not required (CC0). Courtesy: Metal impact sounds by BMacZero, CC0 1.0, https://opengameart.org/content/metal-impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-impact/clink1_0.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-impact-sounds",
+    "author": "BMacZero",
+    "attribution": "Not required (CC0). Courtesy: BMacZero, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-impact/clink2.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-impact-sounds",
+    "author": "BMacZero",
+    "attribution": "Not required (CC0). Courtesy: BMacZero, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-impact/clink3.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-impact-sounds",
+    "author": "BMacZero",
+    "attribution": "Not required (CC0). Courtesy: BMacZero, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-impact/bong1.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-impact-sounds",
+    "author": "BMacZero",
+    "attribution": "Not required (CC0). Courtesy: BMacZero, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #1.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: Metal clang sounds by bart, CC0 1.0, https://opengameart.org/content/metal-clang-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #2.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #3.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #4.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #5.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #6.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #7.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #8.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #9.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #10.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #11.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-block/metal-clangs/x/clang - Marker #12.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://opengameart.org/content/metal-clang-sounds",
+    "author": "bart",
+    "attribution": "Not required (CC0). Courtesy: bart, OpenGameArt"
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "sfx-ui",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/tick_001.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/interface-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: \"Sound: Kenney Interface Sounds (kenney.nl), CC0 1.0\". Verified RIFF/WAVE, mono 16-bit 44100 Hz. Use for uiMove."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/select_001.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/interface-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: \"Sound: Kenney Interface Sounds (kenney.nl), CC0 1.0\". Verified RIFF/WAVE, stereo 16-bit 44100 Hz. Use for uiSelect."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/back_001.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/interface-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: \"Sound: Kenney Interface Sounds (kenney.nl), CC0 1.0\". Verified RIFF/WAVE, mono 16-bit 44100 Hz. Use for uiBack."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/confirmation_002.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/interface-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: \"Sound: Kenney Interface Sounds (kenney.nl), CC0 1.0\". Verified RIFF/WAVE, mono 16-bit 44100 Hz, 0.562 s. Use for uiStart."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/click_001.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/interface-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: \"Sound: Kenney Interface Sounds (kenney.nl), CC0 1.0\". Verified RIFF/WAVE, mono 16-bit 44100 Hz. Alternate for uiMove or uiSelect."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/confirmation_001.wav",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://kenney.nl/assets/interface-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "Not required (CC0). Optional credit: \"Sound: Kenney Interface Sounds (kenney.nl), CC0 1.0\". Verified RIFF/WAVE, mono 16-bit 44100 Hz. Alternate for uiSelect."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ui/kenney-repo.zip",
+    "licence": "CC0 1.0",
+    "sourceUrl": "https://github.com/Calinou/kenney-interface-sounds/archive/refs/heads/master.zip",
+    "author": "Kenney (kenney.nl); repackaged by Calinou",
+    "attribution": "Not required (CC0). Archive is a PK zip (header verified, 1,727,059 bytes). Mirror README states CC0 1.0 Universal; contains the pack LICENSE.txt. Source archive, not a playable asset."
+   }
+  ],
+  "rejected": []
+ },
+ {
+  "category": "sfx-ko",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactSoft_heavy_000.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactSoft_heavy_001.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactSoft_heavy_002.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactSoft_heavy_003.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/footstep_concrete_000.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/footstep_concrete_001.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/footstep_concrete_002.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/footstep_concrete_003.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactGeneric_light_000.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/impact-sounds"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-music-jingles/extracted/Audio/Hit jingles/jingles_HIT15.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/music-jingles",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/music-jingles"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/kenney-music-jingles/extracted/Audio/Hit jingles/jingles_HIT11.ogg",
+    "licence": "CC0 1.0 Universal",
+    "sourceUrl": "https://kenney.nl/assets/music-jingles",
+    "author": "Kenney (kenney.nl)",
+    "attribution": "None required (CC0). Optional credit: Kenney (kenney.nl), https://kenney.nl/assets/music-jingles"
+   }
+  ],
+  "rejected": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/oga-various-sfx/snd_throw1.wav",
+    "reason": "Not approved: licence unconfirmed. Both OpenGameArt pages returned 403 to WebFetch, and the curl fetch of the page HTML was denied by the auto-mode classifier as bot-check circumvention, so it was not retried. The file is real RIFF audio (86410 bytes), but the CC0 claim (Spring Spring, https://opengameart.org/content/various-sound-effects-0) is unverified. Re-vet needed."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/oga-various-sfx/fall_0.wav",
+    "reason": "Not approved: same unconfirmed OpenGameArt licence as snd_throw1.wav (source page blocked, fetch denied). File is real RIFF audio (832998 bytes). Re-vet needed."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/oga-jump-landing/jumpland.wav",
+    "reason": "Not approved: licence unconfirmed. https://opengameart.org/content/jump-landing-sound returned 403 to WebFetch and the curl fetch was denied by the auto-mode classifier, so the qubodup CC0 claim is unverified. File is real RIFF audio (39250 bytes). Re-vet needed. It is the only landing-thump candidate, so this matters for the sfx-ko gap."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/sfx-ko/oga-various-sfx/death_2.wav",
+    "reason": "Rejected: not in the hunter's shortlist, content unverified (tagged death only), and licence unconfirmed for the same OpenGameArt reason. File is real RIFF audio (1181882 bytes), so it is not needed; do not use."
+   }
+  ]
+ },
+ {
+  "category": "ambience",
+  "approved": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/ambience/Forest_Ambience.mp3",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Confirmed on OGA page: License(s) CC0, author TinyWorlds, uploaded 2014-05-05, file Forest_Ambience.mp3 linked. Header ID3, 716,670 bytes.",
+    "sourceUrl": "https://opengameart.org/content/forest-ambience",
+    "author": "TinyWorlds",
+    "attribution": "Not required (CC0). Optional credit: Forest Ambience by TinyWorlds, CC0, https://opengameart.org/content/forest-ambience"
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/ambience/wind-01_0.ogg",
+    "licence": "CC-BY 3.0 on OGA (https://creativecommons.org/licenses/by/3.0/), confirmed on OGA page: License(s) CC BY 3.0, author AntumDeluge, file wind-01_0.ogg linked, 570.2 Kb. Original recording on Freesound (https://freesound.org/people/InspectorJ/sounds/376415/) confirmed CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), uploader InspectorJ (Jonathan Shaw), title 'Wind, Synthesized, A.wav'. Header OggS, 570,178 bytes. Attribution required.",
+    "sourceUrl": "https://opengameart.org/content/wind-loop",
+    "author": "AntumDeluge (loop edit, OGA); original by Jonathan Shaw (InspectorJ), Freesound",
+    "attribution": "Wind Loop by AntumDeluge (https://opengameart.org/content/wind-loop), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/), a loop edit of 'Wind, Synthesized, A' by Jonathan Shaw (InspectorJ) (https://freesound.org/people/InspectorJ/sounds/376415/), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes: looped by AntumDeluge."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/ambience/fire.wav",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Confirmed on OGA page: License(s) CC0, author PagDev, uploaded 2021-03-13, file fire.wav linked. Header RIFF/WAVE, 10,324,410 bytes.",
+    "sourceUrl": "https://opengameart.org/content/fireplace-sound-loop",
+    "author": "PagDev",
+    "attribution": "Not required (CC0). Optional credit: Fireplace sound loop by PagDev, CC0, https://opengameart.org/content/fireplace-sound-loop. Note: 10.3 MB WAV, OGG transcode suggested in the build step (not a licence issue)."
+   },
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/ambience/dungeon_ambient_1_0.ogg",
+    "licence": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Confirmed on OGA page: License(s) CC0, author JaggedStone, uploaded 2014-10-17, file dungeon_ambient_1_0.ogg linked. Header OggS, 1,626,352 bytes.",
+    "sourceUrl": "https://opengameart.org/content/loopable-dungeon-ambience",
+    "author": "JaggedStone",
+    "attribution": "Not required (CC0). Optional credit: Loopable Dungeon Ambience by JaggedStone, CC0, https://opengameart.org/content/loopable-dungeon-ambience. Note: 94.3 s, outside the 20-60 s target, so it needs trimming at a zero crossing before use as a cave/drip bed."
+   }
+  ],
+  "rejected": [
+   {
+    "path": "C:/Users/vascu/Projects/bladerift/.cache/assets/ambience/fire-1_0.ogg",
+    "reason": "Licence passes (CC0 1.0 on OGA, author AntumDeluge, file fire-1_0.ogg linked, header OggS). Rejected for loop use: 3.6 s one-shot, not loopable. Usable only as a one-shot sfx (fire), not as an ambience bed."
+   }
+  ]
+ }
+]

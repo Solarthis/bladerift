@@ -1,0 +1,285 @@
+{
+ "music": {
+  "title": {
+   "src": ".cache/assets/music-select/determined_pursuit_loop.wav",
+   "gain": 0.85,
+   "maxSeconds": 180
+  },
+  "select": {
+   "src": ".cache/assets/music-select/character_selection_in_game.ogg",
+   "gain": 0.85,
+   "maxSeconds": 150
+  },
+  "stage-hall": {
+   "src": ".cache/assets/music-hall/junkala-epic-boss-battle-looping.wav",
+   "gain": 0.8,
+   "maxSeconds": 200
+  },
+  "stage-bridge": {
+   "src": ".cache/assets/music-bridge/oga_jrpg_battle_loop_HydroGene.mp3",
+   "gain": 0.8,
+   "maxSeconds": 200
+  },
+  "stage-embers": {
+   "src": ".cache/assets/music-select/battle1.mp3",
+   "gain": 0.8,
+   "maxSeconds": 200
+  },
+  "stage-crypt": {
+   "src": ".cache/assets/music-crypt/infinite_darkness_0.mp3",
+   "gain": 0.85,
+   "maxSeconds": 200
+  },
+  "stage-grove": {
+   "src": ".cache/assets/music-grove/fairy_battles_bpm180.ogg",
+   "gain": 0.8,
+   "maxSeconds": 200
+  },
+  "victory": {
+   "src": ".cache/assets/music-victory/cynicmusic-Victory1_1.mp3",
+   "gain": 0.9,
+   "loop": false,
+   "maxSeconds": 20
+  },
+  "results": {
+   "src": ".cache/assets/music-victory/calm-pmiller-calm_track-loop.ogg",
+   "gain": 0.8,
+   "maxSeconds": 120
+  }
+ },
+ "voice": {
+  "round1": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/round_1.ogg"
+  },
+  "round2": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/round_2.ogg"
+  },
+  "round3": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/round_3.ogg"
+  },
+  "finalRound": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/final_round.ogg"
+  },
+  "fight": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/fight.ogg"
+  },
+  "ready": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/ready.ogg"
+  },
+  "perfect": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/flawless_victory.ogg"
+  },
+  "timeOver": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-40-lines/Male/time_over.ogg"
+  },
+  "youWin": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/you_win.ogg"
+  },
+  "youLose": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/you_lose.ogg"
+  },
+  "draw": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/it's_a_tie.ogg"
+  },
+  "gameOver": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/game_over.ogg"
+  },
+  "winner": {
+   "src": ".cache/assets/voice-announcer/kenney-voiceover-pack-fighter/Audio/winner.ogg"
+  }
+ },
+ "sfx": {
+  "hitLight": [
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_medium_000.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_medium_001.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_medium_002.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_medium_003.ogg"
+   }
+  ],
+  "hitHeavy": [
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_heavy_000.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_heavy_001.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_heavy_002.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_heavy_003.ogg"
+   }
+  ],
+  "hitCrit": [
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPlate_heavy_000.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPlate_heavy_001.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPlate_heavy_002.ogg"
+   }
+  ],
+  "slash": [
+   {
+    "src": ".cache/assets/sfx-sword/oga-starninjas-attacks/extracted/sword - StarNinjas/sword.3.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-sword/oga-starninjas-attacks/extracted/sword - StarNinjas/sword.4.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-sword/oga-starninjas-attacks/extracted/sword - StarNinjas/sword.6.ogg"
+   }
+  ],
+  "whoosh": [
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-1.wav",
+    "gain": 0.8
+   },
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-2.wav",
+    "gain": 0.8
+   },
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-3.wav",
+    "gain": 0.8
+   },
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-4.wav",
+    "gain": 0.8
+   },
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-5.wav",
+    "gain": 0.8
+   },
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-6.wav",
+    "gain": 0.8
+   }
+  ],
+  "whooshHeavy": [
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-7.wav"
+   },
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-8.wav"
+   },
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-9.wav"
+   },
+   {
+    "src": ".cache/assets/sfx-whoosh/swishes/swishes/swish-10.wav"
+   }
+  ],
+  "block": [
+   {
+    "src": ".cache/assets/sfx-block/sword-clash/x/sword_clash.1.ogg",
+    "gain": 0.8
+   },
+   {
+    "src": ".cache/assets/sfx-block/sword-clash/x/sword_clash.3.ogg",
+    "gain": 0.8
+   },
+   {
+    "src": ".cache/assets/sfx-block/sword-clash/x/sword_clash.4.ogg",
+    "gain": 0.8
+   },
+   {
+    "src": ".cache/assets/sfx-block/sword-clash/x/sword_clash.7.ogg",
+    "gain": 0.8
+   }
+  ],
+  "parry": [
+   {
+    "src": ".cache/assets/sfx-block/metal-impact/bing1.wav"
+   },
+   {
+    "src": ".cache/assets/sfx-block/metal-impact/clink2.wav"
+   }
+  ],
+  "throw": [
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactSoft_heavy_003.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-impact/kenney-impact-sounds/extracted/Audio/impactPunch_heavy_004.ogg"
+   }
+  ],
+  "koThud": [
+   {
+    "src": ".cache/assets/sfx-ko/kenney-music-jingles/extracted/Audio/Hit jingles/jingles_HIT15.ogg"
+   }
+  ],
+  "bodyFall": [
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactSoft_heavy_000.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactSoft_heavy_001.ogg"
+   },
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactSoft_heavy_002.ogg"
+   }
+  ],
+  "land": [
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/impactGeneric_light_000.ogg",
+    "gain": 0.7
+   }
+  ],
+  "step": [
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/footstep_concrete_000.ogg",
+    "gain": 0.5
+   },
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/footstep_concrete_001.ogg",
+    "gain": 0.5
+   },
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/footstep_concrete_002.ogg",
+    "gain": 0.5
+   },
+   {
+    "src": ".cache/assets/sfx-ko/kenney-impact-sounds/extracted/Audio/footstep_concrete_003.ogg",
+    "gain": 0.5
+   }
+  ],
+  "uiMove": [
+   {
+    "src": ".cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/tick_001.wav",
+    "gain": 0.6
+   }
+  ],
+  "uiSelect": [
+   {
+    "src": ".cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/select_001.wav"
+   }
+  ],
+  "uiBack": [
+   {
+    "src": ".cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/back_001.wav"
+   }
+  ],
+  "uiStart": [
+   {
+    "src": ".cache/assets/sfx-ui/kenney-pack/kenney-interface-sounds-master/addons/kenney_interface_sounds/confirmation_002.wav"
+   }
+  ],
+  "fire": [
+   {
+    "src": ".cache/assets/ambience/fire.wav",
+    "gain": 0.5,
+    "maxSeconds": 30
+   }
+  ]
+ }
+}

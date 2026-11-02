@@ -94,6 +94,8 @@ export interface Move {
   shake?: number;
   /** A shot that slows what it hits for this many ticks (the quill's ink). */
   slow?: number;
+  /** A throw (THROW): no box; it grabs a grounded opponent in front and in reach (World.checkThrow). */
+  grab?: boolean;
 }
 
 export interface WeaponDef {

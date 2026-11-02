@@ -1,0 +1,21 @@
+{
+  "hero": 4,
+  "name": "Enkidu",
+  "weapon": "Chains of Clay",
+  "style": "The longest reach in the game: living chains hold the opponent at a distance, the third lash whips them off their feet, and a triple jump lets Enkidu chase them into the air.",
+  "moves": [
+    { "name": "Chain Combo", "input": "LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [56, 58, 80], "notes": "Three lashes with the longest reach in the game. The first two hold the opponent at a distance; the third whips them off their feet." },
+    { "name": "Rising Chain", "input": "↓+LIGHT", "kind": "launcher", "damage": [59], "notes": "A rising lash that pops the opponent up to float without a knockdown. Jump after them to keep the combo going." },
+    { "name": "Sky Chain", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [62, 53, 81], "notes": "Three air lashes. The first two keep the opponent floating; the third knocks them down. Enkidu has no plunge, so HEAVY in the air starts this same string again from its first lash." },
+    { "name": "Chain Spear Lunge", "input": "HEAVY (hold)", "kind": "heavy", "damage": [105, 190], "notes": "Hold to lock the chains into a spear and lunge forward for about 0.3 seconds. A tap shorter than 0.23 seconds is a plain light lash. Damage grows with the hold and is full after about 0.8 seconds." },
+    { "name": "Chain Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent who is close in front of you, and a guard does not stop it. They can break free by pressing LIGHT or HEAVY in the first 0.13 seconds of the hold." },
+    { "name": "Chain Lash", "input": "SPECIAL", "kind": "special", "damage": [48], "notes": "A living chain lashes out and binds the first opponent it reaches, rooting them in place for 1.2 seconds. Cooldown about 7 seconds." },
+    { "name": "Chains of Genesis", "input": "ART", "kind": "art", "damage": [120], "notes": "Rift Art, ready at a full Rift gauge. Chains burst from the ground half a second into the Art and bind the spot where the opponent stood, for 1.8 seconds. A guard does not stop them; stepping out of the column does." },
+    { "name": "Clay Shift", "input": "DODGE", "kind": "dodge", "notes": "A low, fast dash that melts through the ground: invulnerable for its first 0.25 seconds. On the ground it has a cooldown of about 0.6 seconds; in the air it uses one of your air dashes." }
+  ],
+  "combos": [
+    { "name": "Bread and butter", "input": "LIGHT, LIGHT, ↓+LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "Two lashes into the rising chain, then jump after the float and finish with the air string. Each hit in a string does less damage than the last." },
+    { "name": "Chase high", "input": "↓+LIGHT, JUMP, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "Enkidu's triple jump lets you chase a high float: the second jump takes you up into the air string." },
+    { "name": "Bind and walk in", "input": "SPECIAL, →, LIGHT, LIGHT, LIGHT", "notes": "Chain Lash roots the opponent for 1.2 seconds. Walk into reach while they are held and string the lashes; the third whips them off their feet." }
+  ]
+}

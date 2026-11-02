@@ -1,0 +1,22 @@
+{
+  "hero": 12,
+  "name": "Pale Rider",
+  "weapon": "Reaper Scythe",
+  "style": "Long, slow scythe sweeps that hook the opponent in, an air sweep and a plunge to keep them up, and the Plague Hound or Pale Horse to finish.",
+  "moves": [
+    { "name": "Reaping Combo", "input": "LIGHT, LIGHT, LIGHT", "kind": "normal", "damage": [90, 95, 140], "notes": "Huge, slow sweeps. Hits on the tip of the blade crit for 1.4 times the damage. The third swing hooks the opponent in toward you, and it lifts them a little." },
+    { "name": "Rising Reap", "input": "↓+LIGHT", "kind": "launcher", "damage": [95], "notes": "A taller, slower version of the first swing that pops the opponent up to float. Jump after them to keep the combo going." },
+    { "name": "Sky Reap", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [85, 72, 111], "notes": "Three wide air sweeps. The first two float the opponent and keep them close; the third knocks them down." },
+    { "name": "Reaper's Drop", "input": "HEAVY (air)", "kind": "plunge", "damage": [120], "notes": "Drops straight down with the scythe. If it connects, Pale Rider bounces back up." },
+    { "name": "Death's Hook", "input": "HEAVY", "kind": "heavy", "damage": [196], "notes": "The third swing made heavier and slower. It cannot be blocked or parried, and it pulls the opponent in toward you." },
+    { "name": "Reaper's Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent in reach when the stick points at them, and a guard does not stop it. They can break the hold by pressing LIGHT or HEAVY within 8 ticks (about 0.13 s)." },
+    { "name": "Plague Hound", "input": "SPECIAL", "kind": "special", "damage": [56], "notes": "A shadow hound races along the ground. Its bite slows the target for about 1.7 seconds and sets them burning for 2 seconds, about 48 more damage. Cooldown 420 ticks (7 seconds)." },
+    { "name": "Pale Horse", "input": "ART", "kind": "art", "damage": [165], "notes": "Rift Art, ready at a full Rift gauge. Death's pale horse rises from her shadow and leaps onto the opponent's spot, then slams down with it. The slam breaks guards." },
+    { "name": "Shadow Sink", "input": "DODGE", "kind": "dodge", "notes": "She sinks into her shadow for a short step of about 140 units along the stick, invulnerable for its first 12 ticks (about 0.2 seconds). With no direction held and the opponent close, she lands behind them. It cannot cancel out of an attack. On the ground it has a cooldown of about half a second; in the air it uses one of her two air dashes." }
+  ],
+  "combos": [
+    { "name": "Bread and butter", "input": "LIGHT, LIGHT, ↓+LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "Two swings, then the rising reap pops them up to float. Step in after the second swing, jump after them and finish with the air sweeps." },
+    { "name": "Launch and drop", "input": "↓+LIGHT, JUMP, LIGHT, LIGHT, HEAVY (air)", "notes": "The launcher pops them up to float. Jump after them, sweep twice to keep them up, then drop the plunge onto them." },
+    { "name": "Hook and sweep", "input": "LIGHT, LIGHT, LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "The third swing hooks them in and lifts them a little. Jump in behind it and start the air sweeps while they are still in the air." }
+  ]
+}

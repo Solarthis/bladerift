@@ -306,6 +306,8 @@
   100% { transform: scale(1.5) rotate(14deg); opacity: 0; }
 }
 .hud-banner.round, .hud-banner.ready { font-size: clamp(34px, calc(var(--u) * 11), 92px); }
+/* a result word from announceResult (PERFECT, TIME OVER, DRAW): white by default, the caller's colour set inline */
+.hud-banner.result { color: #fff; --ol: #2a1430; font-size: clamp(40px, calc(var(--u) * 13), 110px); }
 .hud-banner.round { color: #fff; --ol: #2a1430; }
 .hud-banner.ready { color: #fff3a0; --ol: #3a1a00; }
 .hud-banner.fight { color: #ffd84a; --ol: #4a1000; font-size: clamp(50px, calc(var(--u) * 17), 150px); }
@@ -396,6 +398,38 @@
   transition: opacity 80ms linear, transform 80ms linear;
 }
 .hud.cinematic > .hp-side { transform: translateY(-14px); }
+
+/* setHidden(true) (supers, the K.O. slow-mo): everything but the banners fades out and stops taking taps */
+.hud.faded > :not(.hud-banner) {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+
+/* ------------------------------------------------------------------ training readout (setTrainingInfo) */
+/* a thin line under the clock inside the top band: damage, the live combo and the best combo; hidden outside training */
+.hud-train {
+  display: none;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid rgba(255, 230, 190, 0.18);
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: clamp(9px, calc(var(--u) * 2.3), 13px);
+  line-height: 1;
+  letter-spacing: 0.6px;
+  color: var(--dim);
+  text-shadow: 0 1px 2px #000;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.hud-train.on { display: flex; }
+.hud-train b { color: var(--ink); font-weight: 800; font-variant-numeric: tabular-nums; }
+.hud-train .tr-combo { color: #ffd98a; }
+/* narrow landscape phones (667 px wide): the side panels leave little room, so the best combo goes */
+@media (max-width: 760px) { .hud-train .tr-b { display: none; } }
 
 /* ------------------------------------------------------------------ cinematic layers (game/cinematic.ts) */
 /* Under the HUD and the touch controls (first child of #ui), over the game canvas; never takes input. */

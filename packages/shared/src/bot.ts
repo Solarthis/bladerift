@@ -5,17 +5,24 @@
  * ledges to follow. Difficulty changes reaction time, how often it commits and how exact its timing is (see TUNE).
  * Everything comes from its seeded Rng, so a seed always plays the same match.
  */
-import { DT, FIGHTER } from './constants';
-import { ArtId, classOf, RIFT } from './classes';
+import { DT, FIGHTER, THROW } from './constants';
+import { ArtId, classOf, EX_SPECIAL, RIFT } from './classes';
 import { solidAt, surfaceBelow } from './arena';
-import { Act, currentMove, FLASH, hasCrescent, MOVE_LAUNCH } from './fighter';
+import { Act, currentMove, FLASH, hasCrescent, isBlocking, isThrowable, MOVE_LAUNCH } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
-import { Box, dodgeOf, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
+import { Box, dodgeOf, Loadout, Move, SKILL_FX, SKILLS, SkillDef, WEAPONS, WeaponId } from './weapons';
 import { heroClass, HEROES, HERO_COUNT, sanitizeLoadout } from './heroes';
 import { bodyBox, Fighter, moveBox, Projectile, ProjKind, World } from './world';
 
-export type BotDifficulty = 'easy' | 'normal' | 'hard';
+/** The practice and training levels: `cpu` is the regular duel AI (the normal tuning); the `dummy-*` levels are training
+ * dummies that do not plan at all (see BotBrain.think). */
+export const BOT_LEVELS = ['easy', 'normal', 'hard', 'cpu', 'dummy-stand', 'dummy-guard', 'dummy-jump'] as const;
+export type BotDifficulty = (typeof BOT_LEVELS)[number];
+export type DummyLevel = 'dummy-stand' | 'dummy-guard' | 'dummy-jump';
+export const isDummyLevel = (l: BotDifficulty): l is DummyLevel => l.startsWith('dummy-');
+/** Ticks between a dummy-jump's jumps. */
+const DUMMY_JUMP_EVERY = 90;
 
 interface Tune {
   /** Ticks from noticing a swing or shot to answering it. */
@@ -58,7 +65,7 @@ interface Tune {
   commit: number;
 }
 
-const TUNE: Record<BotDifficulty, Tune> = {
+const TUNE: Record<'easy' | 'normal' | 'hard', Tune> = {
   easy: {
     react: 24, dodge: 0.2, parry: 0, through: 0.2, attack: 0.3, punish: 0.45, chain: 0.3, ranged: 0.12, skill: 0.01,
     heal: 0.25, healBelow: 0.4, windup: 14, spaceMul: 0.5, spaceAdd: 0, retreat: 0.3, climb: 0.02, drop: 0.02, hop: 0.01, dash: 0.05, wall: 0.2, commit: 26,
@@ -72,6 +79,9 @@ const TUNE: Record<BotDifficulty, Tune> = {
     heal: 0.9, healBelow: 0.55, windup: 0, spaceMul: 1, spaceAdd: 4, retreat: 0.7, climb: 0.12, drop: 0.12, hop: 0.06, dash: 0.6, wall: 0.95, commit: 12,
   },
 };
+
+/** The tuning a level plays with (cpu is the normal AI; a dummy never reads it). */
+const tuneOf = (l: BotDifficulty): Tune => TUNE[l === 'easy' || l === 'hard' ? l : 'normal'];
 
 type MoveMode = 'in' | 'back' | 'hold' | 'strafe';
 /** Melee: spaced for the chosen melee weapon. Range: keeps its distance and draws the bow. */
@@ -107,6 +117,14 @@ interface Geo {
   dir: number;
   dy: number;
   facing: boolean;
+}
+
+/** Is the opponent where a hero special lands: inside an aura, in a dash's charge, or in a shot's reach and level. */
+function skillInRange(sk: SkillDef, g: Geo): boolean {
+  if (sk.kind === 'aura') return g.dist <= (sk.radius ?? 90) * 0.9 && Math.abs(g.dy) < 70;
+  if (sk.kind === 'dash') return g.dist >= 90 && g.dist <= ((sk.vx ?? 600) * (sk.active ?? 16)) / 60 + 40 && Math.abs(g.dy) < (sk.vy ? 120 : 40);
+  const range = ((sk.speed ?? 900) * (sk.life ?? 60)) / 60;
+  return g.dist >= 80 && g.dist <= Math.min(range * 0.9, 700) && Math.abs(g.dy) < (sk.gravity ? 90 : 50);
 }
 
 const HALF = FIGHTER.w / 2;
@@ -236,6 +254,13 @@ export class BotBrain {
 
   think(w: World): InputCmd {
     const cmd: InputCmd = { seq: ++this.seq, moveX: 0, moveY: 0, buttons: 0, viewTick: 0 };
+    if (isDummyLevel(this.level)) {
+      // a training dummy never plans: it stands still, holds the crouch guard, or jumps on a fixed beat
+      if (this.level === 'dummy-guard') cmd.moveY = 1;
+      if (this.level === 'dummy-jump' && cmd.seq % DUMMY_JUMP_EVERY === 0) cmd.buttons = Btn.Jump;
+      this.prev = cmd.buttons;
+      return cmd;
+    }
     const me = w.fighters.get(this.id);
     const foe = me ? w.opponent(me) : undefined;
     this.fullT = me && me.s.rift >= RIFT.max ? this.fullT + 1 : 0;
@@ -319,7 +344,7 @@ export class BotBrain {
 
   private act(w: World, me: Fighter, foe: Fighter, cmd: InputCmd) {
     const s = me.s;
-    const T = TUNE[this.level];
+    const T = tuneOf(this.level);
     const dx = foe.s.x - s.x;
     const g: Geo = { dist: Math.abs(dx), dir: dx >= 0 ? 1 : -1, dy: foe.s.y - s.y, facing: false };
     g.facing = s.face === g.dir;
@@ -330,6 +355,12 @@ export class BotBrain {
     } else this.quietT++;
     this.bored = this.quietT > 360;
     this.refreshMode(me);
+    // grabbed by a throw: break it with a press of LIGHT in its tech window (THROW.tech), as often as the difficulty allows
+    if (s.act === Act.Held) {
+      this.clearHold();
+      if (s.actT <= THROW.tech && !(this.prev & (Btn.A | Btn.B)) && this.rng.next() < T.dodge) cmd.buttons |= Btn.A;
+      return;
+    }
     if (this.holdKind !== 'none' && this.continueHold(w, me, foe, g, cmd)) return;
     if (s.act === Act.Ledge) {
       // hanging from an edge: climb up, or let go when they are below us
@@ -347,6 +378,7 @@ export class BotBrain {
     if (!s.ground && this.air(w, me, foe, g, cmd, T)) return;
     if (this.heal(w, me, foe, g, cmd, T)) return;
     if (this.skill(w, me, foe, g, cmd, T)) return;
+    if (this.exSkill(me, foe, g, cmd)) return;
     // while a swing of theirs can reach us, our own swing would only trade: answer it instead
     if (!swingAt(me, foe) && this.attack(me, foe, g, cmd, T)) return;
     this.platforms(w, me, g, cmd, T);
@@ -578,19 +610,30 @@ export class BotBrain {
     if (s.skillCd > 0 || this.prev & Btn.Skill) return false;
     const sk = SKILLS[me.load.skill];
     if (!sk || swingAt(me, foe)) return false;
-    let ok = false;
-    if (sk.kind === 'aura') ok = g.dist <= (sk.radius ?? 90) * 0.9 && Math.abs(g.dy) < 70;
-    else if (sk.kind === 'dash') ok = g.dist >= 90 && g.dist <= ((sk.vx ?? 600) * (sk.active ?? 16)) / 60 + 40 && Math.abs(g.dy) < (sk.vy ? 120 : 40);
-    else {
-      const range = ((sk.speed ?? 900) * (sk.life ?? 60)) / 60;
-      ok = g.dist >= 80 && g.dist <= Math.min(range * 0.9, 700) && Math.abs(g.dy) < (sk.gravity ? 90 : 50);
-    }
-    if (!ok || this.rng.next() >= T.skill * 1.6) return false;
+    if (!skillInRange(sk, g) || this.rng.next() >= T.skill * 1.6) return false;
     if (s.face !== g.dir) {
       cmd.moveX = g.dir * 0.5; // turn to aim first
       return true;
     }
     cmd.buttons |= Btn.Skill;
+    return true;
+  }
+
+  /**
+   * The EX special (EX_SPECIAL): with the gauge between its cost and a full Rift gauge, the hero's special goes off as an EX
+   * cast when the opponent is in its range, on the cooldown-free button (Btn.Special). Half the time when it can.
+   */
+  private exSkill(me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd): boolean {
+    const s = me.s;
+    if (s.rift < EX_SPECIAL.cost || s.rift >= RIFT.max || this.prev & Btn.Special) return false;
+    const sk = SKILLS[me.load.skill];
+    if (!sk || swingAt(me, foe) || !skillInRange(sk, g)) return false;
+    if (this.rng.next() >= 0.5) return false;
+    if (s.face !== g.dir) {
+      cmd.moveX = g.dir * 0.5; // turn to aim first
+      return true;
+    }
+    cmd.buttons |= Btn.Special;
     return true;
   }
 
@@ -604,6 +647,16 @@ export class BotBrain {
       return true;
     }
     const vuln = this.vulnerable(foe);
+    // a throw on a guard: the opponent blocking or crouch-guarding in reach and level (a guard does not stop a throw); B is
+    // the heavy only with the same weapon in both hands
+    if (
+      s.ground && g.facing && g.dist <= THROW.range && Math.abs(g.dy) < FIGHTER.h && isBlocking(o) && isThrowable(o) &&
+      me.load.weapons[0] === me.load.weapons[1] && !(this.prev & Btn.B) && this.rng.next() < (vuln ? T.punish : T.attack)
+    ) {
+      cmd.moveX = g.dir;
+      cmd.buttons |= Btn.B;
+      return true;
+    }
     // a guard that has only just gone up still parries: do not walk into it
     const guardFresh = o.act === Act.Block && o.blockT < 14 && !vuln && !this.bored;
     const order = [this.slot, 1 - this.slot];

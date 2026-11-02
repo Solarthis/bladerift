@@ -1,0 +1,234 @@
+/*
+ * Settings screen (ui/settingsScreen.ts). Tokens come from styles.css :root. Every rule is scoped under .st so the
+ * screen does not depend on the order of the global sheets. Phone first: one column, tabs on top, the body scrolls;
+ * wider screens centre a 640px column.
+ */
+
+.st {
+  position: absolute;
+  inset: 0;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: max(10px, env(safe-area-inset-top));
+  color: var(--ink);
+}
+.st :focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.st input { min-height: 0; padding: 0; font: inherit; }
+
+/* header: the shared .hdr from styles.css, tightened for this screen */
+.st .hdr { flex: none; margin: 0 0 8px; padding: 0 var(--edge); }
+
+/* ------------------------------------------------------------------ tabs */
+.st .st-tabs {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 var(--edge) 10px;
+}
+.st .st-tab {
+  min-height: 42px;
+  padding: 6px 4px;
+  font-size: 15px;
+  border-radius: 10px;
+  box-shadow: none;
+  background: rgba(20, 14, 30, 0.7);
+  border: 1px solid var(--line);
+  color: var(--dim);
+}
+.st .st-tab.on {
+  color: var(--ink);
+  border-color: var(--line-strong);
+  background: linear-gradient(180deg, rgba(255, 217, 138, 0.22), rgba(233, 166, 58, 0.1));
+}
+
+/* ------------------------------------------------------------------ body and cards */
+.st .st-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 0 var(--edge) max(16px, env(safe-area-inset-bottom));
+}
+.st .st-card { margin: 0 0 12px; padding: 12px 14px 6px; }
+.st .st-card h3 {
+  margin: 0 0 4px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--gold-hi);
+}
+.st .st-help { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--dim); }
+
+/* one setting: name (and a small note) on the left, control on the right */
+.st .st-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 50px;
+  padding: 6px 0;
+  margin: 0;
+}
+.st .st-row + .st-row { border-top: 1px solid var(--line); }
+.st .st-name { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 800; line-height: 1.2; }
+.st .st-row small { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--dim); }
+.st .st-ctl { display: flex; align-items: center; gap: 10px; flex: 0 1 48%; min-width: 0; }
+.st .st-ctl input[type='range'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  accent-color: var(--gold);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.st output {
+  flex: none;
+  min-width: 3.4em;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gold-hi);
+  font-variant-numeric: tabular-nums;
+}
+.st .st-check { cursor: pointer; }
+.st .st-check input[type='checkbox'] { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--gold); }
+
+/* segmented choice (graphics quality) */
+.st .st-seg {
+  flex: none;
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.st .st-seg button {
+  min-height: 40px;
+  min-width: 76px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: rgba(20, 14, 30, 0.6);
+  color: var(--dim);
+}
+.st .st-seg button + button { border-left: 1px solid var(--line); }
+.st .st-seg button.on { background: linear-gradient(180deg, #ffd98a, #e9a93a); color: #2a1406; }
+
+/* notes: the frame-rate suggestion, a blocked key */
+.st .st-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: rgba(233, 182, 74, 0.1);
+  font-size: 13px;
+  font-weight: 700;
+}
+.st .st-note button { flex: none; min-height: 38px; padding: 6px 12px; }
+
+/* ------------------------------------------------------------------ keyboard remap */
+.st .st-binds { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.st .st-bind {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 60px;
+  padding: 8px 10px;
+  text-align: left;
+  border-radius: 10px;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+}
+.st .st-bind.wait {
+  border-color: var(--gold-hi);
+  background: rgba(233, 182, 74, 0.14);
+  box-shadow: 0 0 14px rgba(233, 182, 74, 0.3);
+}
+.st .st-bname { font-size: 13px; font-weight: 700; color: var(--dim); }
+.st .st-bkey b { font-family: var(--display); font-weight: 400; font-size: 20px; letter-spacing: 0.5px; color: var(--ink); }
+.st .st-bind.wait .st-bkey { font-size: 14px; font-weight: 800; color: var(--gold-hi); }
+.st .st-bind small { font-size: 11px; font-weight: 600; color: var(--dim); }
+.st .st-actions { display: flex; justify-content: flex-end; margin: 10px 0 6px; }
+.st .st-actions button { min-height: 40px; font-size: 14px; }
+
+/* ------------------------------------------------------------------ touch preview */
+.st .st-pv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: radial-gradient(120% 140% at 50% 0%, #2a1d3d, #120c1c);
+}
+.st .st-pv.lh { flex-direction: row-reverse; }
+.st .st-pv-stick {
+  flex: none;
+  position: relative;
+  width: calc(78px * var(--touch-scale, 1));
+  height: calc(78px * var(--touch-scale, 1));
+  border-radius: 50%;
+  border: 2px solid rgba(255, 230, 190, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  opacity: var(--touch-opacity, 0.85);
+}
+.st .st-pv-stick::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34%;
+  height: 34%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(233, 182, 74, 0.6);
+}
+.st .st-pv-grid {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, calc(44px * var(--touch-scale, 1)));
+  grid-auto-rows: calc(44px * var(--touch-scale, 1));
+  gap: 4px;
+  opacity: var(--touch-opacity, 0.85);
+}
+.st .st-pv-grid span {
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 230, 190, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  font-family: var(--display);
+  font-size: calc(11px * var(--touch-scale, 1));
+  color: var(--ink);
+}
+.st .st-pv-grid span.empty { border: 0; background: none; }
+
+/* ------------------------------------------------------------------ game tab: about row */
+.st .st-card .update-btn.inline { flex: none; }
+
+/* narrow phones: a slider takes its own full-width line under its name */
+@media (max-width: 380px) {
+  .st .st-row { flex-wrap: wrap; }
+  .st .st-ctl { flex: 1 1 100%; }
+  .st .st-pv { padding: 12px; gap: 8px; }
+}

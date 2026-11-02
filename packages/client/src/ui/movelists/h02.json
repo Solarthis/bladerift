@@ -1,0 +1,73 @@
+{
+  "hero": 2,
+  "name": "Gilgamesh",
+  "weapon": "Gate of Treasures",
+  "style": "A stately king who never hurries: he keeps his distance, lets the golden volleys and the piercing Gate Shot do the fighting, and steps in only for the throw.",
+  "moves": [
+    {
+      "name": "Gate Volley",
+      "input": "LIGHT, LIGHT",
+      "kind": "normal",
+      "damage": [42, 58],
+      "notes": "The first press opens one gate for one blade (42). The second opens two gates whose blades share 58. Pressing on in time continues the string, and it cycles back to one blade after two. Each shot adds heat, and an overheated Gate fires nothing until it has cooled."
+    },
+    {
+      "name": "Gate Charge",
+      "input": "HEAVY (hold)",
+      "kind": "heavy",
+      "damage": "70 to 170 in total, shared by 2 to 9 blades",
+      "notes": "A tap is the Gate Volley step. Hold for at least 1/6 s to open two gates, up to nine at a full hold (1 s). Holding LIGHT charges the same volley. The volley fires as soon as you let go."
+    },
+    {
+      "name": "Air Volley",
+      "input": "LIGHT, LIGHT, LIGHT (air)",
+      "kind": "air",
+      "damage": [36, 31, 47],
+      "notes": "Each swing fires a single blade. The first two lift the one they hit so it floats, and the third sends it away. HEAVY in the air starts the same string, since the Gate has no plunge."
+    },
+    {
+      "name": "Gate Shot",
+      "input": "SPECIAL",
+      "kind": "special",
+      "damage": 88,
+      "notes": "A golden gate opens behind him and fires one colossal treasured blade that pierces straight through whatever it hits. Cooldown 342 ticks (about 5.7 s) for an Archer."
+    },
+    {
+      "name": "Gate Step",
+      "input": "DODGE",
+      "kind": "dodge",
+      "notes": "He steps into a golden gate and out of another: a near-instant step (6 ticks) along the stick. Invulnerable for the first 10 ticks. In the air it uses one air-dash charge."
+    },
+    {
+      "name": "Throw",
+      "input": "→+HEAVY (close)",
+      "kind": "throw",
+      "damage": 140,
+      "notes": "Grabs a grounded opponent in reach when the stick points at them, and a guard does not stop it. They can break the hold by pressing LIGHT or HEAVY within 8 ticks."
+    },
+    {
+      "name": "Vault of Ages",
+      "input": "ART",
+      "kind": "art",
+      "damage": "11 relics of 22, then 6 spears of 24",
+      "notes": "Needs a full Rift gauge. Golden portals around the opponent fire relics at them for about half a second, then six heavy spears fire at once from every side. The spears knock hard."
+    }
+  ],
+  "combos": [
+    {
+      "name": "Gate pressure",
+      "input": "LIGHT, LIGHT, SPECIAL",
+      "notes": "Two-blade volley into the piercing Gate Shot. Holds the range while the skill recharges."
+    },
+    {
+      "name": "Charged juggle",
+      "input": "HEAVY (hold), JUMP, LIGHT, LIGHT, LIGHT (air)",
+      "notes": "Release a longer charge close in. The last blade of the volley lifts them a little, so jump in with the air volley while they are still airborne."
+    },
+    {
+      "name": "Throw and volley",
+      "input": "→+HEAVY (close), SPECIAL",
+      "notes": "The throw sends them back and stuns them, and the Gate Shot flies after them while they reel. If they land close, use LIGHT, LIGHT instead."
+    }
+  ]
+}

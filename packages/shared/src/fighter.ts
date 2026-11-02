@@ -5,10 +5,10 @@
  * hits, projectiles, burning and rounds are the World's job (server-authoritative).
  */
 import { ArenaDef, surfaceBelow } from './arena';
-import { DT, FIGHTER, HITSTOP, PHYS } from './constants';
+import { DT, FIGHTER, HITSTOP, PHYS, THROW } from './constants';
 import { Btn, InputCmd } from './input';
 import { dodgeOf, Loadout, Move, SKILLS, WEAPONS } from './weapons';
-import { ArtId, ARTS, classOf, ClassDef, ClassId, RIFT } from './classes';
+import { ArtId, ARTS, classOf, ClassDef, ClassId, EX_SPECIAL, RIFT } from './classes';
 import { artIdOf, heroClass } from './heroes';
 
 export const enum Act {
@@ -31,6 +31,10 @@ export const enum Act {
   Down = 13,
   /** Rising from a knockdown, FIGHTER.getUpTicks, invulnerable (then Free). */
   GetUp = 14,
+  /** The thrower, holding its grabbed victim (THROW): frozen until the World lands the throw, then it recovers. */
+  Throw = 15,
+  /** Grabbed by a throw (THROW): frozen; a press of LIGHT or HEAVY in the first THROW.tech ticks breaks the hold. */
+  Held = 16,
 }
 
 /** Move index codes beyond the combo steps. */
@@ -48,6 +52,13 @@ export const AIR_STRING = [MOVE_AIR, MOVE_AIR2, MOVE_AIR3];
 export const isAirMove = (move: number) => move === MOVE_AIR || move === MOVE_AIR2 || move === MOVE_AIR3;
 /** The launcher: down + light on the ground, a rising swing that pops the opponent up to float (launcherOf()). */
 export const MOVE_LAUNCH = 17;
+/** The throw: the heavy on the ground with the stick toward a grounded opponent in reach (throwOpen()); no box, the grab is
+ * World.checkThrow's, the throw itself World.landThrow's (THROW). */
+export const MOVE_THROW = 18;
+export const THROW_MOVE: Move = {
+  startup: THROW.startup, active: 1, recovery: THROW.recovery, dmg: THROW.dmg, box: { x: 0, y: 0, w: 0, h: 0 }, kbX: THROW.kbX, kbY: THROW.kbY,
+  stun: THROW.stun, breaksGuard: true, grab: true, shake: 0.5,
+};
 
 /**
  * The Sun Crescent: a big overhead cleave whose arc flies off as a crescent of gold light (World: CRESCENT), on a cooldown
@@ -162,6 +173,9 @@ export interface FighterState {
   air: number;
   /** Juggled by an air string: floats down slowly while in hit-stun, for this many ticks. */
   float: number;
+  /** The EX special (EX_SPECIAL): ticks left of the empowered hero special it is casting (Act.Skill; 0 = not an EX cast).
+   * Set to the whole skill length when cast, so the World reads it at the spawn tick and on a dash's active frames. */
+  ex: number;
 }
 
 /** Every state field, in wire order (protocol.ts sends the whole state to its owner for prediction). */
@@ -170,7 +184,7 @@ export const STATE_KEYS: (keyof FighterState)[] = [
   'charge', 'rollCd', 'skillCd', 'invuln', 'stun', 'slowT', 'rootT', 'burnT', 'flask', 'hp', 'prevBtn', 'moveSeq', 'blockT',
   'lock', 'jumpHeld', 'spawn', 'wall', 'slide', 'wallT', 'wallSide', 'wlock', 'dash', 'rollAir', 'fast', 'crouch', 'coyote',
   'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil', 'hitstop', 'pause', 'fall', 'heat', 'reload',
-  'air', 'float',
+  'air', 'float', 'ex',
 ];
 
 export function newFighterState(x: number, y: number, face: number, load: { cls: number; hero?: number } = { cls: 0 }): FighterState {
@@ -181,8 +195,19 @@ export function newFighterState(x: number, y: number, face: number, load: { cls:
     flask: FIGHTER.flasks, hp: C.hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
     wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
     ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0, heat: 0, reload: 0, air: 0, float: 0,
+    ex: 0,
   };
 }
+
+/** Ticks a hero special lasts: its startup, a dash's active frames, and its recovery. */
+export const skillTicks = (sk: { kind: string; startup: number; recovery: number; active?: number }) =>
+  sk.startup + (sk.kind === 'dash' ? sk.active ?? 0 : 0) + sk.recovery;
+
+/** Is this fighter casting its hero special as the EX special (startEx)? */
+export const castingEx = (s: { act: number; ex: number }) => s.act === Act.Skill && s.ex > 0;
+
+/** A hero special's damage: the table's, or the EX special's multiple of it when it is cast as EX (EX_SPECIAL.dmg). */
+export const exDamage = (s: { act: number; ex: number }, dmg: number) => (castingEx(s) ? Math.round(dmg * EX_SPECIAL.dmg) : dmg);
 
 /** Frozen this tick (hit-stop or superpause): stepFighter only counts the freeze down and buffers presses. */
 export const isFrozen = (s: { hitstop: number; pause: number }) => s.hitstop > 0 || s.pause > 0;
@@ -280,6 +305,7 @@ export function moveOf(weapon: number, move: number): Move | null {
   if (move === MOVE_CHARGED) return heavyOf(weapon);
   if (move === MOVE_ART) return ART_FANG;
   if (move === MOVE_CRESCENT) return SUN_CRESCENT;
+  if (move === MOVE_THROW) return THROW_MOVE;
   return w.combo[move] ?? w.combo[0];
 }
 
@@ -366,13 +392,20 @@ function startAttack(s: FighterState, slot: number, move: number) {
   s.confirm = 0;
 }
 
+/** A throw can start (THROW): the stick points at the opponent, who is throwable at the start of the tick, in reach and level. */
+function throwOpen(s: FighterState, cmd: InputCmd): boolean {
+  if (!FOE || !FOE.throwable || s.rootT > 0) return false;
+  const dx = FOE.x - s.x;
+  return Math.abs(dx) <= THROW.range && Math.abs(FOE.y - s.y) < FIGHTER.h && Math.abs(cmd.moveX) > 0.5 && Math.sign(cmd.moveX) === Math.sign(dx);
+}
+
 /** Try to start the buffered action; returns true if it started (the buffer is consumed). */
 function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Loadout): boolean {
   const b = s.buf;
   if (!b) return false;
   const C = heroClass(load);
   if (b === Buf.Special) {
-    if (!startArt(s, C, artIdOf(load))) return false;
+    if (!startArt(s, C, artIdOf(load)) && !startEx(s, load)) return false;
     s.buf = 0;
     s.bufT = 0;
     return true;
@@ -394,6 +427,9 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     } else if (heavy && !s.ground) {
       if (w.plunge) startAttack(s, slot, MOVE_PLUNGE);
       else airAttack(s, slot);
+    } else if (heavy && s.ground && throwOpen(s, cmd)) {
+      // the throw: B with the stick toward a throwable opponent in reach (a guard does not stop it)
+      startAttack(s, slot, MOVE_THROW);
     } else if (heavy && hasCrescent(load) && !s.reload) {
       // the Sun Crescent while it is ready (cooling down, B is the plain heavy cleave below)
       startAttack(s, slot, MOVE_CRESCENT);
@@ -430,6 +466,8 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     s.skillCd = Math.round(sk.cooldown * C.skillCd);
     s.spawn = 0;
     s.crouch = 0;
+    // (a plain cast is never EX: a leftover EX count from an interrupted cast must not empower it)
+    s.ex = 0;
   } else if (b === Buf.Roll) {
     // every hero's own dodge (DODGES): on the ground on a cooldown, in the air once per air-dash charge
     if (s.ground ? s.rollCd > 0 : s.dash >= C.dashes) return false;
@@ -529,6 +567,24 @@ function startArt(s: FighterState, C: ClassDef, artId: ArtId): boolean {
   return true;
 }
 
+/**
+ * Start the EX special (EX_SPECIAL): with the gauge at EX_SPECIAL.cost up to (not including) RIFT.max, the hero's own special
+ * goes off empowered. It spends the cost, ignores the skill cooldown and does not start it, and `ex` counts the cast down
+ * (the World reads it for the damage and the super armour through the startup). No superpause: it is a skill, not an Art.
+ */
+function startEx(s: FighterState, load: Loadout): boolean {
+  if (s.rift < EX_SPECIAL.cost || s.rift >= RIFT.max) return false;
+  const sk = SKILLS[load.skill] ?? SKILLS[0];
+  s.rift -= EX_SPECIAL.cost;
+  s.act = Act.Skill;
+  s.actT = 0;
+  s.spawn = 0;
+  s.crouch = 0;
+  s.charge = 0;
+  s.ex = skillTicks(sk);
+  return true;
+}
+
 function jump(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef): boolean {
   if (s.rootT > 0) return false;
   if (s.ground && cmd.moveY > 0.5 && onPlatform(s, arena)) {
@@ -580,11 +636,14 @@ export interface FoeView {
   solid?: boolean;
   /** They step out of the overlap themselves (bodyYields): this fighter then takes only half of it. */
   yields?: boolean;
+  /** Can a throw grab them (isThrowable) at the start of this tick. */
+  throwable?: boolean;
 }
 
 /** Does this body block the other's (it is on its feet or in the air, not dodging, lying down or in a Rift Art)? */
 export const bodySolid = (s: { act: number }) =>
-  s.act !== Act.Roll && s.act !== Act.Down && s.act !== Act.KO && s.act !== Act.Win && s.act !== Act.Ledge && s.act !== Act.Climb && s.act !== Act.Art;
+  s.act !== Act.Roll && s.act !== Act.Down && s.act !== Act.KO && s.act !== Act.Win && s.act !== Act.Ledge && s.act !== Act.Climb && s.act !== Act.Art &&
+  s.act !== Act.Throw && s.act !== Act.Held;
 
 /** Does this body step out of an overlap itself? Not while swinging: an attacker holds its ground (its own prediction
  * then never depends on where the defender was knocked to), and the defender steps out of the whole overlap. */
@@ -664,7 +723,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     return;
   }
 
-  for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm', 'float'] as const) if (s[k] > 0) s[k]--;
+  for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm', 'float', 'ex'] as const) if (s[k] > 0) s[k]--;
   if (s.bufT > 0 && --s.bufT === 0) s.buf = 0;
   if (s.heat > 0) s.heat--;
   if (s.reload && s.heat <= FIGHTER.heatReady) s.reload = 0;
@@ -860,12 +919,13 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         if (!sk.vy) s.vx = s.face * (sk.vx ?? 0) * speedK;
       } else s.vx = approach(s.vx, 0, (s.ground ? PHYS.groundDecel : PHYS.airDecel) * DT);
       if (s.actT === sk.startup) s.spawn = 1;
-      const len = sk.startup + (sk.kind === 'dash' ? (sk.active ?? 0) : 0) + sk.recovery;
+      const len = skillTicks(sk);
       // a leap ends when it lands
       const landed = sk.kind === 'dash' && !!sk.vy && s.ground && s.actT > sk.startup + 4;
       if (s.actT >= len || landed) {
         s.act = Act.Free;
         s.actT = 0;
+        s.ex = 0;
       }
       break;
     }
@@ -937,8 +997,8 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       // (a swing that connected cancels into the next one two ticks into its hit window, so a string runs hit, freeze,
       // a couple of frames of motion, hit: the MUGEN rhythm; a whiff waits out a third of its recovery)
       const chainAt = s.confirm > 0 ? Math.min(end, m.startup + 2) : end + Math.ceil(rec * 0.35);
-      // any attack can be cancelled into the Rift Art
-      if (s.buf === Buf.Special && s.move !== MOVE_ART && startArt(s, C, ART)) {
+      // any attack can be cancelled into the Rift Art (or, with the gauge part full, the EX special)
+      if (s.buf === Buf.Special && s.move !== MOVE_ART && (startArt(s, C, ART) || startEx(s, load))) {
         s.buf = 0;
         break;
       }
@@ -991,6 +1051,30 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         s.actT = 0;
         if (ART === ArtId.BloodFrenzy) s.frenzy = 360;
         s.charge = 0;
+      }
+      break;
+    }
+    case Act.Held: {
+      // grabbed (a throw): frozen; a press of LIGHT or HEAVY in the first THROW.tech ticks breaks the hold and both are pushed
+      // apart (World.stepThrows sees the Stun and pushes the thrower back); otherwise the World throws it at THROW.hold
+      s.vx = 0;
+      if (s.actT <= THROW.tech && (press & (Btn.A | Btn.B)) !== 0) {
+        const dir = FOE ? (s.x >= FOE.x ? 1 : -1) : -s.face;
+        s.act = Act.Stun;
+        s.actT = 0;
+        s.stun = THROW.techStun;
+        s.fall = 0;
+        s.invuln = 0;
+        s.vx = dir * THROW.techKb;
+      }
+      break;
+    }
+    case Act.Throw: {
+      // the thrower holds its victim (frozen); the World lands the throw at THROW.hold, then the throw recovers
+      s.vx = 0;
+      if (s.actT >= THROW.hold + THROW.after) {
+        s.act = Act.Free;
+        s.actT = 0;
       }
       break;
     }
@@ -1194,5 +1278,14 @@ function grabLedge(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef)
 export const isBlocking = (s: FighterState) => s.act === Act.Block || (s.act === Act.Free && !!s.crouch && !!s.ground);
 /** The guard is the crouch guard (not the Shield's block). */
 export const isCrouchGuard = (s: FighterState) => s.act === Act.Free && !!s.crouch && !!s.ground;
+
+/**
+ * Can a throw grab this fighter (THROW)? Grounded, not invulnerable, not frenzied (super armour), not mid-Art, and standing,
+ * guarding, swinging (but not an Art's swing), charging, healing or casting a skill. Airborne, stunned, lying down, rolling,
+ * climbing or already held fighters cannot be grabbed.
+ */
+export const isThrowable = (s: FighterState) =>
+  !!s.ground && s.invuln <= 0 && s.frenzy <= 0 && !(s.act === Act.Attack && s.move === MOVE_ART) &&
+  (s.act === Act.Free || s.act === Act.Attack || s.act === Act.Block || s.act === Act.Charge || s.act === Act.Heal || s.act === Act.Skill);
 
 

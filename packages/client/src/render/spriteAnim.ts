@@ -135,6 +135,28 @@ export interface SpritePose {
 
 const clampIdx = (i: number, n: number) => Math.max(0, Math.min(n - 1, Math.floor(i)));
 
+/** The lift (world units, up) that sets a frame drawn `deg` about the body centre down on the ground line: the lowest
+ * corner of its box, turned the way the view turns it (the view mirrors the angle with the facing, not the height).
+ * Scaled by the knockdown tilt, so a fall eases onto the floor. */
+function floorDy(meta: SpriteAtlasMeta, frame: string, deg: number): number {
+  const f = meta.frames[frame];
+  if (!f) return 0;
+  const s = STAND_WORLD / (meta.base ?? meta.native);
+  const p = meta.native * BODY_CENTRE * s;
+  const th = (deg * Math.PI) / 180;
+  const sn = Math.sin(th);
+  const cs = Math.cos(th);
+  let low = -Infinity;
+  for (const px of [0, f.w]) {
+    for (const py of [0, f.h]) {
+      const x = (px - f.ax) * s;
+      const y = (py - f.ay) * s + p;
+      low = Math.max(low, x * sn + y * cs);
+    }
+  }
+  return p - low;
+}
+
 /** The landing squash lasts this long (s); the landing drawing shows for LAND_HOLD (s): 1 crouch drawing, ~4 frames. */
 const LAND_SQUASH = 0.12;
 const LAND_HOLD = 0.075;
@@ -144,6 +166,15 @@ const JITTER_BLOCK = 1.5;
 /** A knockdown's floor bounce: ticks and height (world units). */
 const BOUNCE_T = 10;
 const BOUNCE_H = 4;
+/** World units from the feet to the crown of a reference-height standing sprite (the body box is FIGHTER.h; hair and
+ * helmets sit above it). Taller or smaller heroes keep the same pixels-per-unit, so their size differences show. */
+export const STAND_WORLD = FIGHTER.h * 1.12;
+/** The body's centre as a fraction of its standing height above the feet: the pivot of the knockdown tilt. */
+export const BODY_CENTRE = 0.42;
+/** The throw (MOVE_THROW in packages/shared/src/fighter.ts): a grab, then the toss. Numeric until the shared move exports it. */
+const MOVE_THROW = 18;
+/** The K.O. tips a hero with no lying drawing this far back onto the floor (degrees, negative = backward). */
+const KO_TIP = -80;
 
 /** The animation and frame for a fighter right now; falls back through simpler animations if the atlas lacks one. */
 export function spriteFrameFor(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta): string {
@@ -197,6 +228,25 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         const ph = attackPhase(10, 24, 14, t, 4, true);
         pose.dx = ph.lunge * LUNGE_HEAVY;
         return pick('art', Math.min(n - 1, (n >= 6 ? 2 : 0) + (ph.stance ? 3 : ph.idx)), 'heavy');
+      }
+      if (v.move === MOVE_THROW) {
+        // the throw: the grab (heavy frame 0) holds through the startup, the toss strikes the heavy drawing through its active
+        // window and hold, the recovery follows, then the stance returns (the victim shows its hurt drawings)
+        const tm = moveOf(w, v.move);
+        const st = tm?.startup ?? 8;
+        const n = A.heavy?.frames.length ?? 1;
+        const ph = attackPhase(st, tm?.active ?? 6, tm?.recovery ?? 16, t, n, true);
+        if (t < st) {
+          // the body coils into the grab and leans back
+          const k = Math.min(1, t / Math.max(1, st));
+          pose.sy = 1 - 0.06 * k;
+          pose.dx = -3 * k;
+          pose.rot = -3 * k;
+          return pick('heavy', 0, 'combo2');
+        }
+        pose.dx = ph.lunge * LUNGE_HEAVY;
+        if (ph.stance && v.ground) return pick('idle', 0);
+        return pick('heavy', ph.idx, 'combo2');
       }
       const m = moveOf(w, v.move);
       const name = v.move === MOVE_AIR ? 'airAttack' : isAirMove(v.move) ? comboAnim(w, lookMove(w, v.move) === MOVE_AIR ? 0 : lookMove(w, v.move)) : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : comboAnim(w, lookMove(w, v.move));
@@ -309,21 +359,30 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
       return pick('art', idx, 'heavy');
     }
     case Act.KO: {
-      // the defeat plays through and holds its last drawing. The final blow pops the fighter up: in the air it staggers
-      // (frames 0-1), then the collapse and the lying pose follow once it is down, with a bump on the floor.
-      const fps = A.ko?.fps ?? 6;
-      let s = t / 60;
-      if (!v.ground) s = Math.min(s, 1.99 / fps);
-      else if (ctx.land >= 0 && ctx.land < s) {
-        s = Math.min(s, 1 / fps + ctx.land);
-        bounce(ctx.land * 60);
+      // the defeat: in the air the blow's hurt drawing (rising: launched; falling: knockFall), tipping back as it goes. Once it
+      // touches down the lying drawing (down) plays and holds for the rest of the K.O. (it never stands back up), with a
+      // small bounce and settle on the floor.
+      if (!v.ground) {
+        const rise = v.vy < 0;
+        pose.rot = -(rise ? Math.min(18, 4 + t * 1.2) : Math.max(0, 14 - Math.max(0, v.vy) / 40));
+        return rise ? pick('launched', 0, 'hitHeavy') : pick('knockFall', 0, 'launched', 'hitHeavy');
       }
-      return timed('ko', s, false, 'down', 'hitHeavy');
+      // seconds on the floor since the K.O. began (a defeat on the ground counts from its first tick)
+      const since = Math.max(0, Math.min(t / 60, ctx.land));
+      bounce(since * 60);
+      if (A.down) return timed('down', since, false, 'hitHeavy');
+      // no lying drawing: the last hurt drawing tips back onto the floor (KO_TIP), easing over the first few ticks
+      const k = Math.min(1, since / 0.12);
+      const frame = pick('hitHeavy', 0, 'hitLight');
+      pose.rot = KO_TIP * k;
+      pose.dy += floorDy(meta, frame, KO_TIP) * k;
+      return frame;
     }
-    case Act.Win:
-      // the winner lands first, then strikes the pose and holds it
+    case Act.Win: {
+      // the winner lands first, then strikes the victory pose once and holds its last drawing (idle if the atlas lacks one)
       if (!v.ground) return pick('fall', 0, 'apex', 'idle');
-      return timed('victory', ctx.land >= 0 ? Math.min(t / 60, ctx.land) : t / 60, false, 'idle');
+      return timed('victory', Math.max(0, Math.min(t / 60, ctx.land)), false, 'idle');
+    }
     default: {
       if (ctx.introT !== undefined && A.intro) return timed('intro', ctx.introT, false);
       if (v.slide) return pick('wallSlide', 0, 'fall');

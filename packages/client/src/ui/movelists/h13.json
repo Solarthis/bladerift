@@ -1,0 +1,22 @@
+{
+  "hero": 13,
+  "name": "Brynhildr",
+  "weapon": "Valkyrie Shield",
+  "style": "A shield-maiden who never takes a step back: walk up behind the tower shield, bash and shove the foe off their feet, and let the Shield Rebound and the Bulwark ring of fire keep them out.",
+  "moves": [
+    { "name": "Shield Bash", "input": "LIGHT", "kind": "normal", "damage": [40], "notes": "A quick jab with the rim of the shield that holds the opponent close. Each tap is one bash; a bash that hits can be followed by the next tap at once." },
+    { "name": "Shield Guard", "input": "LIGHT (hold)", "kind": "normal", "notes": "Raises the tower shield and walks slowly behind it. A hit on the guard does only chip damage, and the Shielder takes half of it. A hit that lands in the first 16 ticks of the guard is parried and stuns the attacker, a wider parry window than other heroes have. Let go within the first 10 ticks and the press comes out as a bash instead." },
+    { "name": "Rising Bash", "input": "↓+LIGHT", "kind": "launcher", "damage": [42], "notes": "A rising swing with the rim of the shield that pops the opponent up to float, with no knockdown. Jump right after it connects to go after them." },
+    { "name": "Shield Air Bash", "input": "LIGHT, LIGHT, LIGHT (air)", "kind": "air", "damage": [45, 38, 59], "notes": "Three air bashes. The first two keep the opponent floating close, and the third knocks them down. The Shield has no plunge, so HEAVY in the air starts this same string." },
+    { "name": "Shield Shove", "input": "HEAVY", "kind": "heavy", "damage": [87], "notes": "The shield's second bash, made heavier: a full-body shove that breaks guards, so a guard does not stop it. Slow to start, and it knocks the opponent far back. With the stick toward a grounded opponent in reach, HEAVY becomes the throw instead." },
+    { "name": "Shield Throw", "input": "→+HEAVY (close)", "kind": "throw", "damage": [140], "notes": "Grabs a grounded opponent in front of you and in reach, and a guard does not stop it. The victim can break free by pressing LIGHT or HEAVY in the first 8 ticks of the grab." },
+    { "name": "Shield Rebound", "input": "SPECIAL", "kind": "special", "damage": [60], "notes": "The tower shield is hurled and comes spinning back. It turns around halfway through its flight and hits the first thing it reaches, on the way out or back. Cooldown about 6 seconds." },
+    { "name": "Bulwark", "input": "ART", "kind": "art", "notes": "Rift Art, ready at a full Rift gauge. Two seconds untouchable inside a ring of fire that reflects projectiles back at whoever threw them, and staggers any attacker who swings into it." },
+    { "name": "Shield Slide", "input": "DODGE", "kind": "dodge", "notes": "A low slide behind the tower shield, in the direction of the stick (or the way she faces). Invulnerable for its first 12 ticks (about 0.2 seconds). On the ground it has a cooldown, a little longer than most heroes' rolls; in the air it uses your one air-dash charge." }
+  ],
+  "combos": [
+    { "name": "Launch and juggle", "input": "↓+LIGHT, JUMP, LIGHT, LIGHT, LIGHT (air)", "notes": "The rising bash pops them up to float. Jump right after it connects and finish with the air bashes; the last one knocks them down. Damage per hit before combo scaling: 42, then 45, 38, 59." },
+    { "name": "Bash and shove", "input": "LIGHT, LIGHT, HEAVY", "notes": "Two bashes, then the shove on the hit: 40, 40, then 87 before combo scaling. Once a bash hits they are stunned, so the HEAVY shoves rather than throws. The shove breaks guards, so it is the answer to a guarding opponent." },
+    { "name": "Bash and Rebound", "input": "LIGHT, SPECIAL", "notes": "The bash stuns them for longer than the Rebound takes to come out, so at close range the shield should reach them while they are still stunned." }
+  ]
+}

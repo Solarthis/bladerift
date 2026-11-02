@@ -4,9 +4,9 @@
  * is there (or for a hero without one) the game keeps drawing the rig.
  */
 import Phaser from 'phaser';
-import { Act, FIGHTER } from '@bladerift/shared';
+import { Act } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
-import { hurtLevel, spritePoseFor, type SpriteAtlasMeta, type SpriteCtx, type SpritePose } from './spriteAnim';
+import { BODY_CENTRE, hurtLevel, spritePoseFor, STAND_WORLD, type SpriteAtlasMeta, type SpriteCtx, type SpritePose } from './spriteAnim';
 import { heroEnergy } from './fxmap';
 import { atlasLoading, hasAtlas, heroAtlas } from './atlasStore';
 
@@ -14,10 +14,6 @@ import { atlasLoading, hasAtlas, heroAtlas } from './atlasStore';
 const SMEAR_LIFE = 0.11;
 
 export { SPRITE_IDS } from './atlasStore';
-
-/** World units from the feet to the crown of a reference-height standing sprite (the body box is FIGHTER.h; hair and
- * helmets sit above it). Taller or smaller heroes keep the same pixels-per-unit, so their size differences show. */
-const STAND_WORLD = FIGHTER.h * 1.12;
 
 const metas = new Map<number, SpriteAtlasMeta>();
 const pending = new Map<number, Promise<SpriteAtlasMeta | null>>();
@@ -225,7 +221,7 @@ export class SpriteFighterView {
     const r = Phaser.Math.DegToRad(this.rot);
     this.img.setRotation(r);
     if (!r) return;
-    const p = this.meta.native * 0.42 * this.scale;
+    const p = this.meta.native * BODY_CENTRE * this.scale;
     this.img.x -= p * Math.sin(r);
     this.img.y += p * (Math.cos(r) - 1);
   }
