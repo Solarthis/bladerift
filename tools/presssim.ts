@@ -12,7 +12,7 @@
 // It also flags swings cut short (the move ends before its full length with no hit taken, no chain and no walk-out).
 import { ROUND } from '../packages/shared/src/constants';
 import { Act, moveOf, MOVE_PLUNGE } from '../packages/shared/src/fighter';
-import { heroClass, HEROES, sanitizeLoadout } from '../packages/shared/src/heroes';
+import { heroClass, HEROES, sanitizeLoadout, weaponAt } from '../packages/shared/src/heroes';
 import { Btn, type InputCmd } from '../packages/shared/src/input';
 import { World } from '../packages/shared/src/world';
 
@@ -112,7 +112,7 @@ function run(h: number, sc: Scenario, tapAt: number, btn: number, len = 150): Tr
     if ((s.act === Act.Charge || s.act === Act.Block) && lastAct !== s.act) started = 1;
     // (a plunge skips to its recovery when it lands, so it is never "short")
     if (lastAct === Act.Attack && s.act !== Act.Attack && curMove >= 0 && curMove !== MOVE_PLUNGE && !hit && !started && s.moveSeq === lastSeq) {
-      const m = moveOf(a.load.weapons[s.slot], curMove);
+      const m = moveOf(weaponAt(a.load, s.slot), curMove);
       if (m) {
         const ran = world.tick - moveStart;
         const rec = m.recovery * heroClass(a.load).recovery;

@@ -51,148 +51,148 @@
    "anchorX": 173
   },
   "alt-a:0": {
-   "h": 422,
-   "feetDrift": -2,
+   "h": 434,
+   "feetDrift": 0,
    "spill": 0,
-   "anchorX": 150
+   "anchorX": 205
   },
   "alt-a:1": {
-   "h": 416,
+   "h": 428,
    "feetDrift": 0,
-   "spill": 5952,
-   "anchorX": 189
+   "spill": 9828,
+   "anchorX": 227
   },
   "alt-a:2": {
-   "h": 432,
-   "feetDrift": 1,
-   "spill": 43534,
-   "anchorX": 191
+   "h": 409,
+   "feetDrift": 0,
+   "spill": 18956,
+   "anchorX": 223
   },
   "alt-a:3": {
-   "h": 428,
-   "feetDrift": 3,
-   "spill": 0,
-   "anchorX": 159
+   "h": 432,
+   "feetDrift": 1,
+   "spill": 1530,
+   "anchorX": 200
   },
   "alt-a:4": {
-   "h": 484,
+   "h": 460,
    "feetDrift": -1,
-   "spill": 0,
-   "anchorX": 137
+   "spill": 4185,
+   "anchorX": 188
   },
   "alt-a:5": {
-   "h": 446,
+   "h": 407,
    "feetDrift": 0,
-   "spill": 4451,
-   "anchorX": 163
+   "spill": 7500,
+   "anchorX": 205
   },
   "alt-a:6": {
-   "h": 423,
+   "h": 411,
    "feetDrift": 0,
-   "spill": 6907,
-   "anchorX": 134
+   "spill": 10244,
+   "anchorX": 174
   },
   "alt-a:7": {
    "h": 438,
    "feetDrift": 0,
    "spill": 0,
-   "anchorX": 149
+   "anchorX": 200
   },
   "alt-b:0": {
-   "h": 407,
-   "feetDrift": 1,
-   "spill": 3024,
-   "anchorX": 183
+   "h": 446,
+   "feetDrift": -4,
+   "spill": 0,
+   "anchorX": 178
   },
   "alt-b:1": {
-   "h": 394,
-   "feetDrift": -5,
-   "spill": 12531,
-   "anchorX": 207
+   "h": 451,
+   "feetDrift": 1,
+   "spill": 9274,
+   "anchorX": 212
   },
   "alt-b:2": {
-   "h": 391,
+   "h": 433,
    "feetDrift": -1,
-   "spill": 744,
-   "anchorX": 204
+   "spill": 22206,
+   "anchorX": 227
   },
   "alt-b:3": {
-   "h": 403,
-   "feetDrift": 1,
+   "h": 453,
+   "feetDrift": 2,
    "spill": 0,
-   "anchorX": 190
+   "anchorX": 201
   },
   "alt-b:4": {
-   "h": 464,
+   "h": 456,
    "feetDrift": null,
    "spill": 0,
-   "anchorX": 191
+   "anchorX": 165
   },
   "alt-b:5": {
-   "h": 365,
+   "h": 484,
    "feetDrift": null,
-   "spill": 6302,
-   "anchorX": 192
-  },
-  "alt-b:6": {
-   "h": 341,
-   "feetDrift": null,
-   "spill": 3243,
-   "anchorX": 179
-  },
-  "alt-b:7": {
-   "h": 427,
-   "feetDrift": null,
-   "spill": 0,
-   "anchorX": 184
-  },
-  "alt-c:0": {
-   "h": 489,
-   "feetDrift": -1,
-   "spill": 0,
-   "anchorX": 162
-  },
-  "alt-c:1": {
-   "h": 465,
-   "feetDrift": 0,
-   "spill": 9071,
-   "anchorX": 189
-  },
-  "alt-c:2": {
-   "h": 430,
-   "feetDrift": 0,
-   "spill": 14425,
+   "spill": 957,
    "anchorX": 199
   },
-  "alt-c:3": {
-   "h": 474,
+  "alt-b:6": {
+   "h": 461,
+   "feetDrift": null,
+   "spill": 104602,
+   "anchorX": 164
+  },
+  "alt-b:7": {
+   "h": 458,
+   "feetDrift": null,
+   "spill": 0,
+   "anchorX": 208
+  },
+  "alt-c:0": {
+   "h": 492,
    "feetDrift": 0,
    "spill": 0,
-   "anchorX": 210
+   "anchorX": 156
+  },
+  "alt-c:1": {
+   "h": 472,
+   "feetDrift": 0,
+   "spill": 541,
+   "anchorX": 211
+  },
+  "alt-c:2": {
+   "h": 461,
+   "feetDrift": 0,
+   "spill": 5569,
+   "anchorX": 206
+  },
+  "alt-c:3": {
+   "h": 481,
+   "feetDrift": 0,
+   "spill": 0,
+   "anchorX": 168
   },
   "alt-c:4": {
-   "h": 439,
-   "feetDrift": 0,
+   "h": 457,
+   "feetDrift": -2,
    "spill": 0,
-   "anchorX": 181
+   "anchorX": 145
   },
   "alt-c:5": {
-   "h": 467,
-   "feetDrift": 0,
-   "spill": 1196,
-   "anchorX": 180
+   "h": 464,
+   "feetDrift": -1,
+   "spill": 1061,
+   "anchorX": 170
   },
   "alt-c:6": {
-   "h": 441,
-   "feetDrift": 0,
+   "h": 473,
+   "feetDrift": 1,
    "spill": 0,
-   "anchorX": 153
+   "anchorX": 175
   },
   "alt-c:7": {
-   "h": 433,
-   "feetDrift": 0,
-   "spill": 713,
-   "anchorX": 146
+   "h": 473,
+   "feetDrift": 1,
+   "spill": 0,
+   "anchorX": 179
   },
   "art:0": {
    "h": 521,

@@ -372,9 +372,9 @@ export const WEAPONS: WeaponDef[] = [
     blurb: 'Wide, brutal swings; the third slams the ground and breaks guards.',
     base: WeaponId.Hammer,
     combo: [
-      { startup: 8, active: 6, recovery: 14, dmg: 110, box: b(-4, -68, 70, 64), kbX: 260, kbY: 90, stun: 26, step: 60, shake: 0.35 },
-      { startup: 8, active: 6, recovery: 14, dmg: 114, box: b(-4, -68, 70, 64), kbX: 260, kbY: 90, stun: 26, step: 60, shake: 0.35 },
-      { startup: 17, active: 7, recovery: 28, dmg: 170, box: b(-34, -40, 136, 40), kbX: 220, kbY: 420, stun: 42, breaksGuard: true, shake: 0.85 },
+      { startup: 7, active: 6, recovery: 13, dmg: 118, box: b(-4, -68, 70, 64), kbX: 260, kbY: 90, stun: 26, step: 60, shake: 0.35 },
+      { startup: 7, active: 6, recovery: 13, dmg: 122, box: b(-4, -68, 70, 64), kbX: 260, kbY: 90, stun: 26, step: 60, shake: 0.35 },
+      { startup: 15, active: 7, recovery: 25, dmg: 180, box: b(-34, -40, 136, 40), kbX: 220, kbY: 420, stun: 42, breaksGuard: true, shake: 0.85 },
     ],
     air: { startup: 10, active: 8, recovery: 16, dmg: 102, box: b(-12, -66, 66, 72), kbX: 230, kbY: 140, stun: 28, shake: 0.35 },
     plunge: { startup: 12, active: 40, recovery: 22, dmg: 156, box: b(-40, -28, 100, 40), kbX: 250, kbY: 360, stun: 38, plunge: true, shake: 0.85 },
@@ -447,9 +447,9 @@ export const WEAPONS: WeaponDef[] = [
     blurb: 'Long fencing thrusts that crit at the point. Hold to charge a running lunge.',
     base: WeaponId.Lance,
     combo: [
-      { startup: 5, active: 3, recovery: 10, dmg: 54, box: b(10, -52, 72, 18), kbX: 120, kbY: 30, stun: 19, step: 120, tipCrit: true },
-      { startup: 5, active: 3, recovery: 10, dmg: 56, box: b(10, -58, 72, 22), kbX: 120, kbY: 40, stun: 19, step: 120, tipCrit: true },
-      { startup: 9, active: 5, recovery: 18, dmg: 88, box: b(8, -54, 84, 22), kbX: 280, kbY: 120, stun: 28, step: 200, tipCrit: true, shake: 0.35 },
+      { startup: 6, active: 3, recovery: 11, dmg: 50, box: b(10, -52, 72, 18), kbX: 120, kbY: 30, stun: 19, step: 120, tipCrit: true },
+      { startup: 6, active: 3, recovery: 11, dmg: 52, box: b(10, -58, 72, 22), kbX: 120, kbY: 40, stun: 19, step: 120, tipCrit: true },
+      { startup: 9, active: 5, recovery: 18, dmg: 82, box: b(8, -54, 84, 22), kbX: 280, kbY: 120, stun: 28, step: 200, tipCrit: true, shake: 0.35 },
     ],
     air: { startup: 5, active: 6, recovery: 10, dmg: 56, box: b(4, -48, 70, 24), kbX: 140, kbY: 100, stun: 19, tipCrit: true },
     charged: {
@@ -545,7 +545,7 @@ export const WEAPONS: WeaponDef[] = [
     id: WeaponId.ValkyrieSpear,
     name: 'Valkyrie Spear',
     short: 'Spear',
-    blurb: 'Thrusts past the rim of the shield. Hold to hurl the spear (it returns to her hand).',
+    blurb: 'Thrusts past the rim of the shield. Hold to hurl the spear.',
     base: WeaponId.Lance,
     combo: [
       { startup: 7, active: 4, recovery: 13, dmg: 64, box: b(14, -50, 88, 20), kbX: 200, kbY: 40, stun: 21, step: 60 },

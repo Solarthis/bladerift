@@ -170,21 +170,23 @@ describe('stance on the wire', () => {
 
 describe('bots and the stance', () => {
   it('bots switch stance during a fight', () => {
-    const w = new World({ arenaId: 'training', wins: 2, roundTime: 90 });
-    const a = w.addFighter(1, 0, 'A', sanitizeLoadout({ hero: 2 }), true);
-    const b = w.addFighter(2, 1, 'B', sanitizeLoadout({ hero: 3 }), true);
-    const ba = new BotBrain(1, 11, 'hard');
-    const bb = new BotBrain(2, 12, 'hard');
-    w.start();
     let swaps = 0;
-    for (let t = 0; t < 60 * 60 && w.phase !== 'end'; t++) {
-      a.inputs.push(ba.think(w));
-      b.inputs.push(bb.think(w));
-      const before = [a.s.act, b.s.act];
-      w.step();
-      if (a.s.act === Act.Swap && before[0] !== Act.Swap) swaps++;
-      if (b.s.act === Act.Swap && before[1] !== Act.Swap) swaps++;
+    for (let seed = 1; seed <= 3; seed++) {
+      const w = new World({ arenaId: 'training', wins: 2, roundTime: 90 });
+      const a = w.addFighter(1, 0, 'A', sanitizeLoadout({ hero: 2 }), true);
+      const b = w.addFighter(2, 1, 'B', sanitizeLoadout({ hero: 3 }), true);
+      const ba = new BotBrain(1, seed * 7, 'hard');
+      const bb = new BotBrain(2, seed * 13, 'hard');
+      w.start();
+      for (let t = 0; t < 60 * 90 && w.phase !== 'end'; t++) {
+        a.inputs.push(ba.think(w));
+        b.inputs.push(bb.think(w));
+        const before = [a.s.act, b.s.act];
+        w.step();
+        if (a.s.act === Act.Swap && before[0] !== Act.Swap) swaps++;
+        if (b.s.act === Act.Swap && before[1] !== Act.Swap) swaps++;
+      }
     }
-    expect(swaps).toBeGreaterThan(2);
+    expect(swaps).toBeGreaterThan(4);
   });
 });

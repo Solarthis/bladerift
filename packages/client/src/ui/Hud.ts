@@ -1,4 +1,4 @@
-import { ARTS, classOf, FIGHTER, GameEvent, hasCrescent, heroClass, heroOf, isRanged, RIFT, RosterEntry, SKILLS, WEAPONS } from '@bladerift/shared';
+import { ARTS, classOf, FIGHTER, GameEvent, hasCrescent, heroClass, heroOf, isRanged, RIFT, RosterEntry, SKILLS, slotFor, WEAPONS } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import { colorOf, css } from './colors';
 import { artIconOf, skillIcon, weaponIcon } from './icons';
@@ -226,7 +226,9 @@ export class Hud {
       }
       s.lastHp = hp;
       // ranged heroes: the heat their shots build, red while the weapon cools from an overheat
-      const ranged = !!f && !!WEAPONS[f.weapons[0]] && isRanged(WEAPONS[f.weapons[0]]);
+      // (the weapon in hand: a stance weapon that shoots, like Cu Chulainn's darts, builds heat too)
+      const wIn = f ? WEAPONS[f.weapons[slotFor(0, f.stance ?? 0)]] : undefined;
+      const ranged = !!wIn && isRanged(wIn);
       s.root.classList.toggle('ranged', ranged);
       if (ranged && f) {
         s.heatFill.style.width = Math.min(1, f.heat / FIGHTER.heatMax) * 100 + '%';

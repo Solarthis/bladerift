@@ -279,8 +279,9 @@ export class BotBrain {
   private unstuckT = 0;
   /** Ticks in a row the Rift gauge has been full without its Art being used. */
   private fullT = 0;
-  /** Ticks until the next look at the stance (STANCE: which weapon suits the range). */
+  /** Ticks until the next look at the stance (STANCE: which weapon suits the range), and the stance refreshMode spaced for. */
   private stanceT = 60;
+  private modeStance = 0;
 
   constructor(readonly id: number, seed: number, readonly level: BotDifficulty = 'normal') {
     this.rng = new Rng(seed);
@@ -447,6 +448,11 @@ export class BotBrain {
 
   /** Pick the weapon to space for, every so often: a melee weapon, or the bow. */
   private refreshMode(me: Fighter) {
+    // (a stance change swaps the weapons: space for the new one at once)
+    if (me.s.stance !== this.modeStance) {
+      this.modeStance = me.s.stance;
+      this.modeT = 0;
+    }
     if (this.modeT > 0) {
       this.modeT--;
       return;
@@ -470,7 +476,7 @@ export class BotBrain {
    */
   private stance(me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
     if (this.level === 'easy' || this.prev & Btn.Stance || this.vulnerable(foe) || --this.stanceT > 0) return false;
-    this.stanceT = 70 + this.rng.int(110);
+    this.stanceT = 60 + this.rng.int(90);
     const now = wpn(me, 0);
     const other = weaponAt(me.load, slotFor(0, me.s.stance ? 0 : 1));
     const reachNow = reachOf(now) + HALF;
@@ -478,7 +484,7 @@ export class BotBrain {
     let want = false;
     if (isBow(now) !== isBow(other)) want = isBow(now) ? g.dist < 130 : g.dist > 300;
     else if (!isBow(now)) want = g.dist > reachNow + 50 ? reachOther > reachNow + 10 : g.dist < reachNow * 0.6 && WEAPONS[other].combo[0].startup < WEAPONS[now].combo[0].startup;
-    if (!want && this.rng.next() < 0.12) want = true;
+    if (!want && this.rng.next() < 0.25) want = true;
     if (!want || this.rng.next() >= T.attack + 0.25) return false;
     // (not into a swing of theirs: the change takes STANCE.flip ticks before anything can cancel it)
     if (swingAt(me, foe) || g.dist < 50 + STANCE.flip * 4) return false;
@@ -830,7 +836,7 @@ export class BotBrain {
     }
     // the Sun Crescent (Richard's heavy) flung from middle range while it is ready
     if (
-      hasCrescent(me.load) && s.ground && !s.reload && g.facing && Math.abs(g.dy) < 40 && g.dist > 90 && g.dist < 320 &&
+      hasCrescent(me.load) && !s.stance && s.ground && !s.reload && g.facing && Math.abs(g.dy) < 40 && g.dist > 90 && g.dist < 320 &&
       !(this.prev & Btn.B) && this.rng.next() < (vuln ? T.punish : T.ranged * 0.6)
     ) {
       cmd.buttons |= Btn.B;
