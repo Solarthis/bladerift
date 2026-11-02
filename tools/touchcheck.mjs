@@ -3,6 +3,7 @@
 // 1. Every attack tile takes the taps on its whole face (no HUD element sits over it).
 // 2. A thumb held on Light through a K.O. (the touch controls fade under it) is let go: after the next round's intro the
 //    sim no longer reads Light as held, and one fresh tap starts an attack.
+// 3. A held Heavy lets go when the app is hidden; a tap on the Block tile raises the guard with a perfect-block window.
 import { chromium } from 'playwright';
 
 const arg = (k, d) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1] ?? d;
@@ -134,6 +135,21 @@ await wait(150);
 const bDown = await p.evaluate(() => document.querySelector('.touch .tb-b').classList.contains('down'));
 check(!bDown, 'a held Heavy is let go when the app is hidden');
 await touch('touchEnd', pb, 2);
+// the Block tile raises the guard, with a perfect-block window (Act.Guard = 17, charge 0 or 1)
+await wait(400);
+const pg = await centre('.touch .tb-block');
+let guarded = null;
+await touch('touchStart', pg, 3);
+for (let i = 0; i < 10 && !guarded; i++) {
+  await wait(20);
+  const g = await p.evaluate(() => {
+    const f = [...window.__room.world.fighters.values()].find((x) => x.seat === 0);
+    return f.s.act === 17 ? { charge: f.s.charge } : null;
+  });
+  if (g) guarded = g;
+}
+await touch('touchEnd', pg, 3);
+check(!!guarded && guarded.charge !== 2, `a tap on the Block tile raises the guard with a perfect-block window (${JSON.stringify(guarded)})`);
 
 check(errs.length === 0, `no page errors${errs.length ? ': ' + errs.join(' | ') : ''}`);
 await b.close();

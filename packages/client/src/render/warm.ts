@@ -70,7 +70,7 @@ function posesFor(hero: number, weapons: [number, number], skill: number) {
   // the heal sip, the ledge sway (a quantised wobble over its period), the win and the block
   for (let t = 0; t <= 16; t += 2) push(view({ act: Act.Heal, actTf: t }));
   for (let i = 0; i <= 10; i++) push(view({ act: Act.Ledge, actTf: 10 }), { time: i * 0.1, runPhase: 0 });
-  for (const act of [Act.Win, Act.Block]) push(view({ act, actTf: 10 }));
+  for (const act of [Act.Win, Act.Block, Act.Guard]) push(view({ act, actTf: 10 }));
   return out.map((p) => {
     const { x: _x, y: _y, ...rest } = p as Record<string, unknown>;
     void _x;

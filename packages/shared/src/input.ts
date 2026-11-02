@@ -7,6 +7,8 @@ export const Btn = {
   Heal: 32,
   /** Rift Art (class special, needs a full Rift gauge). */
   Special: 64,
+  /** Block (every hero, PARRY): hold to guard; pressed just before a hit lands, a perfect block parries it. */
+  Block: 128,
 } as const;
 
 /** One tick of fighter intent. Analog axes are quantized to int8 on the wire. */

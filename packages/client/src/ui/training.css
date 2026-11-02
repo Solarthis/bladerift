@@ -82,6 +82,7 @@
 .tr-b-roll { background: #f2ecdc; }
 .tr-b-heal { background: #ff9ccb; }
 .tr-b-art { background: #ffd98a; }
+.tr-b-block { background: #9fe3f0; }
 .tr-f {
   flex: none;
   min-width: 2.2em;

@@ -104,6 +104,19 @@ Row 1: (1) VAULT OF AGES: a golden rift portal with many legendary weapons (swor
 Row 2: (5) GRIM FOG: a gentleman's silhouette in a peaked cap dissolving into grey fog; (6) STAMPEDE: a burning warhorse charging, mane of fire;
        (7) NIGHT HUNT: a colossal shadow wolf-hound leaping with glowing purple eyes; (8) a plain golden rift crack on violet (spare).`,
   },
+  'icons-guard': {
+    ref: 'icons-abilities.png',
+    prompt: `${ICON_RULES.replace('exact 4 x 4 grid', 'exact 4 x 2 grid').replace('1024x1024, so every icon is 256x256', '1024x512, so every icon is 256x256')}
+Match the attached sheet's frame and style exactly. Every cell is a variation on ONE idea, BLOCK AND PERFECT BLOCK (a parry), so the best can be
+picked; keep each one bold and readable at 48 px:
+Row 1: (1) a steel-gauntleted forearm raised in guard, a sword blade striking it and glancing off in a bright white-blue starburst at the point
+       of contact; (2) a small round steel buckler catching a blade edge-on, a ring of white sparks bursting from the clash; (3) two crossed
+       forearms in heavy bracers held up in guard, a white-blue flash where an incoming blade meets them; (4) a sword held flat overhead in a
+       high guard, another blade deflected off it with a crisp white parry star.
+Row 2: (5) a raised gauntlet palm-out with a glowing white-blue hexagonal ward rippling in front of it; (6) a blade bouncing off a steel bracer
+       with a white circular shockwave; (7) a kite shield silhouette with a bright parry star at its rim; (8) a guarded fist and forearm with
+       cyan motion lines showing a deflected strike.`,
+  },
   'icons-abilities': {
     ref: 'skills.png',
     prompt: `${ICON_RULES}

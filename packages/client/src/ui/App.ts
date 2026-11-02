@@ -484,14 +484,14 @@ export class App {
       <div class="card howto-keys">
         <h3>Controls</h3>
         <table><tr><th></th><th>Keyboard</th><th>Player 1</th><th>Player 2</th></tr>
-          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo; an air combo in the air)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Rift Art', 'special')}
+          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo; an air combo in the air)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Block · perfect block (parry)', 'block')}${row('Rift Art', 'special')}
         </table>
-        <p class="howto-pad">Phone: ${controlPrefs().leftHanded ? 'joystick on the right, buttons on the left' : 'joystick on the left, buttons on the right'}. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, triggers Rift Art).</p>
+        <p class="howto-pad">Phone: ${controlPrefs().leftHanded ? 'joystick on the right, buttons on the left' : 'joystick on the left, buttons on the right'}. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, LT block, RT Rift Art).</p>
       </div>
       <div class="card howto-rules" data-keep="howto">
         <h3>How to win</h3>
         <p>Knock your opponent out to win the round. Win the number of rounds set in the lobby (1, 2 or 3) to take the match. If time runs out, more health wins.</p>
-        <p><b>Guard and parry:</b> hold <b>down</b> on the ground to guard against hits from the side you face (you take a little chip damage; heavy attacks break it). Press down <b>just before</b> a hit lands to <b>parry</b>: a melee attacker is staggered, and a shot flies straight back at whoever fired it. Swinging a melee weapon into a shot cuts it out of the air, so you can fight your way in against archers and casters.</p>
+        <p><b>Block and perfect block:</b> hold <b>Block</b> (or <b>down</b> on the ground) to guard against hits from the side you face: you take a little chip damage, and guard breakers, unblockable moves and Rift Arts get through. Press <b>Block just before</b> a hit lands for a <b>perfect block</b>: it parries <b>any</b> attack, from any side and even in the air, Rift Arts included. You take nothing, a melee attacker is staggered so you can punish, and an ordinary shot flies straight back at whoever fired it (unblockable shots and Rift Art volleys are turned aside). The timing is tight (about 1/8 s): pressing again within 3/4 s only guards, and a perfect block that catches nothing costs a little Rift gauge, so guessing has a price. Throws still beat a block. Swinging a melee weapon into a shot cuts it out of the air, so you can fight your way in against archers and casters.</p>
         <p><b>Classes and Rift Arts:</b> every hero fights with its own weapon, special, dodge and Rift Art. The Rift gauge under your health fills slowly on its own and fast when you hit or get hit; when it glows, unleash the Art. The Assassin's <b>Flash Step</b> even works while you are being comboed.</p>
         <ul>
           <li><b>Combos:</b> keep pressing a weapon button to chain its strikes.</li>

@@ -117,7 +117,7 @@ export function decodeInputs(data: Uint8Array): InputCmd[] {
   const n = r.u8();
   if (n > 8) throw new RangeError('too many inputs');
   const out: InputCmd[] = [];
-  for (let i = 0; i < n; i++) out.push({ seq: r.u32(), moveX: r.i8() / 127, moveY: r.i8() / 127, buttons: r.u8() & 0x7f, viewTick: r.u32() });
+  for (let i = 0; i < n; i++) out.push({ seq: r.u32(), moveX: r.i8() / 127, moveY: r.i8() / 127, buttons: r.u8() & 0xff, viewTick: r.u32() });
   return out;
 }
 
@@ -246,7 +246,7 @@ export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Arra
     switch (e.t) {
       case 'hit': w.u8(e.a).u8(e.v).u16(Math.min(65535, Math.max(0, Math.round(e.amt)))).u8(e.w).u8(e.crit ? 1 : 0).u16(encX(e.x)).u16(encY(e.y)).u8(Math.min(255, e.n)).u8(Math.min(255, e.hs)); break;
       case 'block': w.u8(e.a).u8(e.v).u16(Math.min(65535, Math.max(0, e.amt))).u16(encX(e.x)).u16(encY(e.y)).u8(Math.min(255, e.hs)); break;
-      case 'parry': w.u8(e.a).u8(e.v).u16(encX(e.x)).u16(encY(e.y)); break;
+      case 'parry': w.u8(e.a).u8(e.v).u16(encX(e.x)).u16(encY(e.y)).u8(e.k); break;
       case 'swing': w.u8(e.p).u8(e.w).u8(e.m); break;
       case 'shoot': w.u8(e.p).u8(e.kind); break;
       case 'boom': w.u16(encX(e.x)).u16(encY(e.y)); break;
@@ -326,7 +326,7 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
     switch (t) {
       case EV.hit: events.push({ t: 'hit', a: r.u8(), v: r.u8(), amt: r.u16(), w: r.u8(), crit: r.u8() === 1, x: decX(r.u16()), y: decY(r.u16()), n: r.u8(), hs: r.u8() }); break;
       case EV.block: events.push({ t: 'block', a: r.u8(), v: r.u8(), amt: r.u16(), x: decX(r.u16()), y: decY(r.u16()), hs: r.u8() }); break;
-      case EV.parry: events.push({ t: 'parry', a: r.u8(), v: r.u8(), x: decX(r.u16()), y: decY(r.u16()) }); break;
+      case EV.parry: events.push({ t: 'parry', a: r.u8(), v: r.u8(), x: decX(r.u16()), y: decY(r.u16()), k: r.u8() }); break;
       case EV.swing: events.push({ t: 'swing', p: r.u8(), w: r.u8(), m: r.u8() }); break;
       case EV.shoot: events.push({ t: 'shoot', p: r.u8(), kind: r.u8() }); break;
       case EV.boom: events.push({ t: 'boom', x: decX(r.u16()), y: decY(r.u16()) }); break;

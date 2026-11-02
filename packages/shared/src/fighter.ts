@@ -5,7 +5,7 @@
  * hits, projectiles, burning and rounds are the World's job (server-authoritative).
  */
 import { ArenaDef, surfaceBelow } from './arena';
-import { DT, FIGHTER, HITSTOP, PHYS, THROW } from './constants';
+import { DT, FIGHTER, HITSTOP, PARRY, PHYS, THROW } from './constants';
 import { Btn, InputCmd } from './input';
 import { dodgeOf, Loadout, Move, SKILLS, WEAPONS } from './weapons';
 import { ArtId, ARTS, classOf, ClassDef, ClassId, EX_SPECIAL, RIFT } from './classes';
@@ -35,6 +35,10 @@ export const enum Act {
   Throw = 15,
   /** Grabbed by a throw (THROW): frozen; a press of LIGHT or HEAVY in the first THROW.tech ticks breaks the hold. */
   Held = 16,
+  /** Holding the BLOCK button (PARRY): a guard, and for its first PARRY.window ticks a perfect block that parries any hit.
+   * `charge`: 0 a press that opened the window, 1 the riposte after a parried hit (the window open again), 2 a plain guard
+   * (the window closed, a press too soon after the last, or BLOCK held as an action ended). Any action cancels it. */
+  Guard = 17,
 }
 
 /** Move index codes beyond the combo steps. */
@@ -86,6 +90,7 @@ const enum Buf {
   Heal = 5,
   Jump = 6,
   Special = 7,
+  Block = 8,
 }
 
 export interface FighterState {
@@ -125,6 +130,8 @@ export interface FighterState {
   moveSeq: number;
   /** Ticks the guard has been up (parry window = the first few). */
   blockT: number;
+  /** Ticks until a BLOCK press opens a perfect-block window again (PARRY.rearm). */
+  parryCd: number;
   /** Frozen (round intro / KO): inputs are ignored while > 0. */
   lock: number;
   jumpHeld: number;
@@ -184,7 +191,7 @@ export const STATE_KEYS: (keyof FighterState)[] = [
   'charge', 'rollCd', 'skillCd', 'invuln', 'stun', 'slowT', 'rootT', 'burnT', 'flask', 'hp', 'prevBtn', 'moveSeq', 'blockT',
   'lock', 'jumpHeld', 'spawn', 'wall', 'slide', 'wallT', 'wallSide', 'wlock', 'dash', 'rollAir', 'fast', 'crouch', 'coyote',
   'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil', 'hitstop', 'pause', 'fall', 'heat', 'reload',
-  'air', 'float', 'ex',
+  'air', 'float', 'ex', 'parryCd',
 ];
 
 export function newFighterState(x: number, y: number, face: number, load: { cls: number; hero?: number } = { cls: 0 }): FighterState {
@@ -195,7 +202,7 @@ export function newFighterState(x: number, y: number, face: number, load: { cls:
     flask: FIGHTER.flasks, hp: C.hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
     wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
     ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0, heat: 0, reload: 0, air: 0, float: 0,
-    ex: 0,
+    ex: 0, parryCd: 0,
   };
 }
 
@@ -267,6 +274,8 @@ function bufferPresses(s: FighterState, press: number) {
   if (press & Btn.B) { s.buf = Buf.B; s.bufT = t; }
   if (press & Btn.A) { s.buf = Buf.A; s.bufT = t; }
   if (press & Btn.Special) { s.buf = Buf.Special; s.bufT = t; }
+  // (a perfect block is all timing: a press is never held over a long recovery to go off late)
+  if (press & Btn.Block) { s.buf = Buf.Block; s.bufT = FIGHTER.buffer; }
 }
 
 export const copyState = (s: FighterState): FighterState => ({ ...s });
@@ -524,6 +533,20 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     s.crouch = 0;
   } else if (b === Buf.Jump) {
     if (!jump(s, cmd, arena, C)) return false;
+  } else if (b === Buf.Block) {
+    // (pressed again while the window is still open, or in the riposte: the press waits for the window to close, then
+    // raises the guard afresh; that is a new window only after a parry, see the rearm below)
+    if (isParrying(s)) return false;
+    // the guard; a perfect block (the parry window) only if the last press was long enough ago (no mashing)
+    s.act = Act.Guard;
+    s.actT = 0;
+    s.blockT = 0;
+    s.charge = s.parryCd > 0 ? 2 : 0;
+    s.parryCd = PARRY.rearm;
+    s.crouch = 0;
+    s.fast = 0;
+    // squared up to the opponent (a perfect block meets the blow from either side; the World turns it to the blow)
+    if (FOE && Math.abs(FOE.x - s.x) > 2) s.face = FOE.x > s.x ? 1 : -1;
   }
   s.buf = 0;
   s.bufT = 0;
@@ -723,10 +746,12 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
     if (s.pause > 0) s.pause--;
     else s.hitstop--;
     bufferPresses(s, press);
+    // (a perfect block's press is all timing: its buffer keeps counting through the freeze)
+    if (s.buf === Buf.Block && s.bufT > 0 && --s.bufT === 0) s.buf = 0;
     return;
   }
 
-  for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm', 'float', 'ex'] as const) if (s[k] > 0) s[k]--;
+  for (const k of ['rollCd', 'skillCd', 'invuln', 'slowT', 'rootT', 'comboWin', 'drop', 'coyote', 'wallT', 'wlock', 'ledgeCd', 'confirm', 'float', 'ex', 'parryCd'] as const) if (s[k] > 0) s[k]--;
   if (s.bufT > 0 && --s.bufT === 0) s.buf = 0;
   if (s.heat > 0) s.heat--;
   if (s.reload && s.heat <= FIGHTER.heatReady) s.reload = 0;
@@ -962,6 +987,27 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       }
       break;
     }
+    case Act.Guard: {
+      // any action cancels the guard (another BLOCK press raises it afresh: a perfect block if the press is not too soon)
+      if (tryBuffered(s, cmd, arena, load)) break;
+      // the window closes: after a riposte, quietly; a window that parried nothing costs a slice of the Rift gauge
+      if (s.actT >= PARRY.window && s.charge !== 2) {
+        if (s.charge === 0) s.rift = Math.max(0, s.rift - RIFT.max * PARRY.whiffRift);
+        s.charge = 2;
+      }
+      s.blockT++;
+      s.fast = 0;
+      if (s.ground) s.vx = approach(s.vx, ax * FIGHTER.blockSpeed * speedK, PHYS.groundDecel * DT);
+      else s.vx = approach(s.vx, 0, PHYS.airDecel * DT);
+      // let go: the guard drops (a quick tap still parried through its window: the window runs from the press)
+      if (!(btn & Btn.Block) && s.actT >= PARRY.window) {
+        s.act = Act.Free;
+        s.actT = 0;
+        s.charge = 0;
+        s.blockT = 0;
+      }
+      break;
+    }
     case Act.Attack: {
       const m = moveOf(load.weapons[s.slot], s.move)!;
       const end = m.startup + m.active;
@@ -1105,7 +1151,16 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
         }
         break;
       }
-      // crouching is the guard (every hero): blockT counts its ticks, so a guard raised just before a hit parries it
+      // BLOCK still held as an action ends: the guard goes up again (a plain guard: only a fresh press can parry)
+      if (btn & Btn.Block) {
+        s.act = Act.Guard;
+        s.actT = PARRY.window;
+        s.charge = 2;
+        s.blockT = 0;
+        s.crouch = 0;
+        break;
+      }
+      // crouching is the guard (every hero): blockT counts its ticks (parrying is the PARRY button's, not a fresh crouch)
       const wasCrouched = s.crouch;
       s.crouch = s.ground && cmd.moveY > 0.5 && Math.abs(ax) < 0.35 ? 1 : 0;
       s.blockT = s.crouch ? (wasCrouched ? Math.min(s.blockT + 1, 9999) : 1) : 0;
@@ -1293,17 +1348,20 @@ function grabLedge(s: FighterState, cmd: InputCmd, arena: ArenaDef, C: ClassDef)
 
 /** Is the fighter guarding this tick (for hits that arrive now)? */
 /** Guarding: the Shield's block, or any hero crouching on the ground (hits from the front are blocked). */
-export const isBlocking = (s: FighterState) => s.act === Act.Block || (s.act === Act.Free && !!s.crouch && !!s.ground);
+export const isBlocking = (s: FighterState) => s.act === Act.Block || s.act === Act.Guard || (s.act === Act.Free && !!s.crouch && !!s.ground);
 /** The guard is the crouch guard (not the Shield's block). */
 export const isCrouchGuard = (s: FighterState) => s.act === Act.Free && !!s.crouch && !!s.ground;
+/** Is a perfect block open this tick (PARRY): a hit that arrives now is parried. */
+export const isParrying = (s: { act: number; actT: number; charge: number }) => s.act === Act.Guard && s.charge !== 2 && s.actT < PARRY.window;
 
 /**
  * Can a throw grab this fighter (THROW)? Grounded, not invulnerable, not frenzied (super armour), not mid-Art, and standing,
- * guarding, swinging (but not an Art's swing), charging, healing or casting a skill. Airborne, stunned, lying down, rolling,
+ * guarding, parrying, swinging (but not an Art's swing), charging, healing or casting a skill. Airborne, stunned, lying down, rolling,
  * climbing or already held fighters cannot be grabbed.
  */
 export const isThrowable = (s: FighterState) =>
   !!s.ground && s.invuln <= 0 && s.frenzy <= 0 && !(s.act === Act.Attack && s.move === MOVE_ART) &&
-  (s.act === Act.Free || s.act === Act.Attack || s.act === Act.Block || s.act === Act.Charge || s.act === Act.Heal || s.act === Act.Skill);
+  (s.act === Act.Free || s.act === Act.Attack || s.act === Act.Block || s.act === Act.Charge || s.act === Act.Heal || s.act === Act.Skill ||
+    s.act === Act.Guard);
 
 

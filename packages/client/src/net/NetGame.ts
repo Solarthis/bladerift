@@ -1,7 +1,7 @@
 import {
   ArenaDef, copyState, FighterState, GameEvent, getArena, InputCmd, Loadout, MatchSettings, NetFighter, NetProjectile, NetTrap, Phase,
   Act, bodySolid, bodyYields, FoeView, SNAPSHOT_INTERVAL, Snapshot, stepFighter, TICK_RATE, ArtId, artIdOf, bodyBox, ClassId, currentMove, FIGHTER, hitstopFor, isActive,
-  isFrozen, isThrowable, meleeConnect, meleeCrit, moveBox, moveDamage, MOVE_ART,
+  isFrozen, isParrying, isThrowable, meleeConnect, meleeCrit, moveBox, moveDamage, MOVE_ART,
 } from '@bladerift/shared';
 
 /**
@@ -267,12 +267,13 @@ export class NetGame {
     if (!o || o.act === Act.KO || o.invuln) return;
     if (!overlaps(moveBox(m, s.x, s.y, s.face), bodyBox(o.x, o.y, o.crouch))) return;
     this.judgedSeq = s.moveSeq;
-    // a Bulwark or a parry turns the swing back: the server decides those
+    // a Bulwark or a parry (a perfect block, a Shield parry) turns the swing back: the server decides those
     if (o.act === Act.Art && artIdOf({ hero: o.hero, cls: o.cls }) === ArtId.Bulwark) return;
+    if (isParrying(o)) return;
     const mc = meleeCrit(s, load, m, o.x, o.face);
     let blocked = false;
-    if (o.act === Act.Block && mc.front && !m.breaksGuard) {
-      if (o.blockT <= FIGHTER.parryWindow * (o.cls === ClassId.Shielder ? 1.6 : 1)) return;
+    if ((o.act === Act.Block || o.act === Act.Guard || (o.act === Act.Free && o.crouch && o.ground)) && mc.front && !m.breaksGuard) {
+      if (o.act === Act.Block && o.blockT <= FIGHTER.parryWindow * (o.cls === ClassId.Shielder ? 1.6 : 1)) return;
       blocked = true;
     }
     const hs = hitstopFor(moveDamage(s, load, m), mc.crit, s.move === MOVE_ART, blocked);

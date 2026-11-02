@@ -48,8 +48,8 @@ export const GENERAL_CONTROLS: GeneralControl[] = [
   { name: 'Throw break', input: 'LIGHT or HEAVY', notes: 'Press either attack in the first moment of a grab (8 ticks) to break free.' },
   { name: 'EX', input: 'ART', notes: 'At half the Rift gauge: the hero’s EX special.' },
   { name: 'Rift Art', input: 'ART', notes: 'At a full Rift gauge: the hero’s Rift Art.' },
-  { name: 'Guard', input: '↓ (hold)', notes: 'Hold down on the ground to crouch-guard. Some chip damage still gets through.' },
-  { name: 'Parry', input: '↓ (hold)', notes: 'Start the guard within 1/6 s (10 ticks) before the hit lands. The attacker is stunned.' },
+  { name: 'Block', input: 'BLOCK (hold)', notes: 'Guards hits from the front for a little chip damage (holding ↓ on the ground crouch-guards too). Guard breakers, unblockables and Rift Arts get through.' },
+  { name: 'Perfect block', input: 'BLOCK (just before the hit)', notes: 'Press BLOCK within 8 ticks (about 1/8 s) before ANY attack lands to parry it: from any side, in the air, guard breakers, shots and Rift Arts too. No damage, a melee attacker is staggered and you can punish at once. Pressing again within 3/4 s only guards, a perfect block that catches nothing costs a little Rift gauge, and throws still beat it.' },
   { name: 'Dodge', input: 'DODGE', notes: 'Roll out of the way. Invulnerable for the first part of the roll.' },
 ];
 

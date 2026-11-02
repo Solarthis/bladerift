@@ -9,8 +9,8 @@
  */
 
 /** Fighter actions that can be remapped on the keyboard (the solo scheme in input/Controls.ts). */
-export type KeyAction = 'left' | 'right' | 'down' | 'jump' | 'a' | 'b' | 'skill' | 'roll' | 'heal' | 'special';
-export const KEY_ACTIONS: readonly KeyAction[] = ['left', 'right', 'down', 'jump', 'a', 'b', 'skill', 'roll', 'heal', 'special'];
+export type KeyAction = 'left' | 'right' | 'down' | 'jump' | 'a' | 'b' | 'skill' | 'roll' | 'heal' | 'special' | 'block';
+export const KEY_ACTIONS: readonly KeyAction[] = ['left', 'right', 'down', 'jump', 'a', 'b', 'skill', 'roll', 'heal', 'special', 'block'];
 
 /** Graphics quality. 'low' trades the extra background and particle work for frame rate. */
 export type Quality = 'high' | 'low';
@@ -185,10 +185,16 @@ export function applyPrefsToDocument() {
 export function withKeyOverrides(base: Record<KeyAction, string[]>): Record<KeyAction, string[]> {
   const o = prefs().keys;
   const out: Record<KeyAction, string[]> = { ...base };
+  const taken = new Set<string>();
   for (const a of KEY_ACTIONS) {
     const codes = o[a];
-    if (codes) out[a] = [...codes];
+    if (codes) {
+      out[a] = [...codes];
+      for (const c of codes) taken.add(c);
+    }
   }
+  // (as Controls does: a default key another action was remapped to is dropped from the action that kept its defaults)
+  for (const a of KEY_ACTIONS) if (!o[a]) out[a] = out[a].filter((c) => !taken.has(c));
   return out;
 }
 

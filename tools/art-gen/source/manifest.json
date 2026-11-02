@@ -312,6 +312,14 @@
       "ref": "weapons.png",
       "seconds": 58,
       "at": "2026-10-31T21:43:59.792Z"
+    },
+    {
+      "name": "icons-guard",
+      "ok": true,
+      "prompt": "Rules for the whole sheet:\n- A uniform set of SQUARE game ability icons for a dark-fantasy duelling game, laid out as an exact 4 x 2 grid of equal square cells\n  (image size 1024x512, so every icon is 256x256 and fills its cell edge to edge).\n- EVERY icon shares the same frame: a thin bevelled dark-iron square border with small gold corner studs, and a deep, richly\n  shaded background inside it (each icon may tint its background to its theme). The subject is painted large, centred and\n  readable at 48 px: bold silhouette, strong rim light, painterly hand-painted style matching the attached reference.\n- NO text, NO letters, NO numbers, NO labels anywhere. Icons never bleed into each other; keep the grid perfectly aligned.\nMatch the attached sheet's frame and style exactly. Every cell is a variation on ONE idea, BLOCK AND PERFECT BLOCK (a parry), so the best can be\npicked; keep each one bold and readable at 48 px:\nRow 1: (1) a steel-gauntleted forearm raised in guard, a sword blade striking it and glancing off in a bright white-blue starburst at the point\n       of contact; (2) a small round steel buckler catching a blade edge-on, a ring of white sparks bursting from the clash; (3) two crossed\n       forearms in heavy bracers held up in guard, a white-blue flash where an incoming blade meets them; (4) a sword held flat overhead in a\n       high guard, another blade deflected off it with a crisp white parry star.\nRow 2: (5) a raised gauntlet palm-out with a glowing white-blue hexagonal ward rippling in front of it; (6) a blade bouncing off a steel bracer\n       with a white circular shockwave; (7) a kite shield silhouette with a bright parry star at its rim; (8) a guarded fist and forearm with\n       cyan motion lines showing a deflected strike.",
+      "ref": "icons-abilities.png",
+      "seconds": 83,
+      "at": "2026-11-02T13:08:45.448Z"
     }
   ]
 }

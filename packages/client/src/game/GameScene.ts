@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, type ArenaDef, ArtId, surfaceBelow, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, MOVE_THROW, moveOf, NetProjectile, NetStrike, NetTrap, type RosterEntry, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, type ArenaDef, ArtId, PARRY, PARRY_KIND, surfaceBelow, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, MOVE_THROW, moveOf, NetProjectile, NetStrike, NetTrap, type RosterEntry, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
@@ -388,6 +388,8 @@ interface FighterView {
   /** In hit-stop this frame (the sim's per-fighter `hitstop` when the snapshot carries it, else the client freeze). */
   frozen: boolean;
   flashUntil: number;
+  /** When the last perfect-block window opened (performance.now(); its ring is drawn once). */
+  guardAt?: number;
   lastSeq: number;
   runPhase: number;
   lastX: number;
@@ -980,7 +982,19 @@ export class GameScene extends Phaser.Scene {
     // a throw has no drawings of its own: the thrower shows the throw's toss (move 18) and the held victim the hurt pose
     const anim: ViewFighter = v.act === Act.Throw ? { ...v, act: Act.Attack, move: MOVE_THROW } : v.act === Act.Held ? { ...v, act: Act.Stun } : v;
     const pose = poseFor({ ...anim, actTf: t }, { time: this.clock, runPhase: fv.runPhase, land: this.clock - fv.landAt });
-    const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : 0;
+    // a BLOCK press that opened a perfect-block window: a quick ring and a fading glint over its ticks (a plain guard shows none)
+    const perfectOpen = v.act === Act.Guard && v.charge !== 2 && v.actT < PARRY.window;
+    if (perfectOpen && v.actT <= 1 && now - (fv.guardAt ?? 0) > 120) {
+      fv.guardAt = now;
+      const gx = v.x;
+      const gy = v.y - FIGHTER.h * 0.55;
+      this.addAdd(0.16, (g, p) => {
+        g.lineStyle(2.5 * (1 - p) + 0.5, 0xbfe8ff, 0.9 * (1 - p));
+        g.strokeCircle(gx, gy, 30 - 12 * easeOut3(p));
+      });
+    }
+    const glint = perfectOpen ? 0.32 * (1 - v.actT / PARRY.window) : 0;
+    const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : glint;
     // (two frames of white, then the blow's colour)
     if (fv.sprite) fv.sprite.flashColor = now - (fv.flashAt ?? 0) < 34 || fv.flashColor === undefined ? 0xffffff : fv.flashColor;
     const tint = v.slowed ? 0xffffd2a8 : 0;
@@ -1989,7 +2003,9 @@ export class GameScene extends Phaser.Scene {
         {
           // the word over the defender: PARRY! for a guard timed just right, CUT! for a shot cut down by a swing
           const d = find(e.a);
-          if (d) this.addFx(FX.critWord, d.x, d.y - FIGHTER.h - 16, false, 1.1, { text: d.act === Act.Attack ? 'CUT!' : 'PARRY!', label: '' }, 31, 32, 0.45);
+          // (a volley parried in one riposte shows its word once)
+          const word = e.k === PARRY_KIND.cut ? 'CUT!' : e.k === PARRY_KIND.perfect ? 'PERFECT!' : e.k === PARRY_KIND.chained ? '' : 'PARRY!';
+          if (d && word) this.addFx(FX.critWord, d.x, d.y - FIGHTER.h - 16, false, 1.1, { text: word, label: '' }, 31, 32, 0.45);
         }
         if (e.v === 255) {
           // a shot cut out of the air or parried back: a bright clang and sparks, nobody staggers
@@ -2012,7 +2028,8 @@ export class GameScene extends Phaser.Scene {
         this.impact(e.x, e.y, 1, 1.1, { arc: 0xffffff, rim: 0x7ac8ff, spark: 0xbfe8ff }, false, false);
         sfx.play('shieldBreak', { x: e.x, y: e.y });
         const fv = this.views.get(e.v);
-        if (fv) fv.stunnedUntil = performance.now() + (FIGHTER.parryStun / TICK_RATE) * 1000;
+        const stun = e.k === PARRY_KIND.shield ? FIGHTER.parryStun : PARRY.stun;
+        if (fv) fv.stunnedUntil = performance.now() + (stun / TICK_RATE) * 1000;
         for (const id of [e.a, e.v]) {
           const f = this.views.get(id);
           if (f) f.freezeUntil = performance.now() + 140;

@@ -631,6 +631,7 @@ html[data-left-handed='true'] .tbuttons {
 .tb-jump { right: var(--step); bottom: var(--step); }
 .tb-art { right: var(--step); bottom: calc(var(--step) * 2); }
 .tb-roll { right: calc(var(--step) * 2); bottom: 0; }
+.tb-block { right: calc(var(--step) * 2); bottom: var(--step); }
 .tb-art.ready { border-width: 2px; }
 .tb-art i { filter: grayscale(0.85) brightness(0.5); }
 .tb-art.ready i { filter: none; }

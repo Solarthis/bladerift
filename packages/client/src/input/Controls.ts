@@ -1,6 +1,6 @@
 /**
  * Fighter input: keyboard (one player, or two sharing a keyboard), gamepads and touch (floating joystick + a thumb
- * cluster of seven tiles: two weapons, skill, jump, roll, heal and the Rift Art). Each local fighter reads one
+ * cluster of eight tiles: two weapons, skill, jump, roll, block, heal and the Rift Art). Each local fighter reads one
  * InputSource per tick.
  *
  * The player prefs that shape input (read defensively, see controlPrefs()): `keys` (a solo keyboard remap), `touchScale`,
@@ -29,6 +29,7 @@ export interface KeyMap {
   roll: string[];
   heal: string[];
   special: string[];
+  block: string[];
 }
 
 /** A keyboard remap: per solo action, the KeyboardEvent.code values that replace its default keys (up to four). */
@@ -38,24 +39,24 @@ export const KEYMAPS: Record<KeyScheme, KeyMap> = {
   solo: {
     left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], down: ['KeyS', 'ArrowDown'], jump: ['KeyW', 'ArrowUp', 'Space'],
     a: ['KeyJ', 'KeyZ'], b: ['KeyK', 'KeyX'], skill: ['KeyL', 'KeyC'], roll: ['ShiftLeft', 'ShiftRight', 'KeyI'], heal: ['KeyH', 'KeyQ'],
-    special: ['KeyU', 'KeyV', 'KeyE'],
+    special: ['KeyU', 'KeyV', 'KeyE'], block: ['KeyO', 'KeyF'],
   },
   p1: {
     left: ['KeyA'], right: ['KeyD'], down: ['KeyS'], jump: ['KeyW'], a: ['KeyF'], b: ['KeyG'], skill: ['KeyH'], roll: ['ShiftLeft'], heal: ['KeyR'],
-    special: ['KeyT'],
+    special: ['KeyT'], block: ['KeyY'],
   },
   p2: {
     left: ['ArrowLeft'], right: ['ArrowRight'], down: ['ArrowDown'], jump: ['ArrowUp'], a: ['Comma', 'Numpad1'], b: ['Period', 'Numpad2'],
     skill: ['Slash', 'Numpad3'], roll: ['ShiftRight', 'Numpad0'], heal: ['Quote', 'NumpadAdd'],
-    special: ['Backslash', 'Numpad4', 'Enter'],
+    special: ['Backslash', 'Numpad4', 'Enter'], block: ['Semicolon', 'Numpad5'],
   },
 };
 
 /** Human-readable key names for the how-to screen. */
 export const KEY_LABEL: Record<KeyScheme, Record<keyof KeyMap, string>> = {
-  solo: { left: 'A / ←', right: 'D / →', down: 'S / ↓', jump: 'W / ↑ / Space', a: 'J', b: 'K', skill: 'L', roll: 'Shift', heal: 'H', special: 'U / E' },
-  p1: { left: 'A', right: 'D', down: 'S', jump: 'W', a: 'F', b: 'G', skill: 'H', roll: 'Left Shift', heal: 'R', special: 'T' },
-  p2: { left: '←', right: '→', down: '↓', jump: '↑', a: ', or Num 1', b: '. or Num 2', skill: '/ or Num 3', roll: 'Right Shift / Num 0', heal: "' or Num +", special: '\\ / Num 4 / Enter' },
+  solo: { left: 'A / ←', right: 'D / →', down: 'S / ↓', jump: 'W / ↑ / Space', a: 'J', b: 'K', skill: 'L', roll: 'Shift', heal: 'H', special: 'U / E', block: 'O / F' },
+  p1: { left: 'A', right: 'D', down: 'S', jump: 'W', a: 'F', b: 'G', skill: 'H', roll: 'Left Shift', heal: 'R', special: 'T', block: 'Y' },
+  p2: { left: '←', right: '→', down: '↓', jump: '↑', a: ', or Num 1', b: '. or Num 2', skill: '/ or Num 3', roll: 'Right Shift / Num 0', heal: "' or Num +", special: '\\ / Num 4 / Enter', block: '; / Num 5' },
 };
 
 /** Every key a fighter uses: none of them may scroll the page or press a focused button during a duel. */
@@ -128,10 +129,16 @@ export function controlPrefs(): ControlPrefs {
 /** The solo bindings with a remap merged over the defaults: an action the remap names uses its new keys only. */
 function soloWith(keys: KeyOverrides): KeyMap {
   const m: KeyMap = { ...KEYMAPS.solo };
+  const taken = new Set<string>();
   for (const action of Object.keys(keys) as (keyof KeyMap)[]) {
     const codes = keys[action];
-    if (codes) m[action] = codes;
+    if (codes) {
+      m[action] = codes;
+      for (const c of codes) taken.add(c);
+    }
   }
+  // (an action left on its defaults gives up a key the player remapped to something else: a new default never doubles up)
+  for (const action of Object.keys(m) as (keyof KeyMap)[]) if (!keys[action]) m[action] = m[action].filter((c) => !taken.has(c));
   return m;
 }
 
@@ -219,6 +226,7 @@ export class KeyboardSource implements InputSource {
     if (any(m.roll)) b |= Btn.Roll;
     if (any(m.heal)) b |= Btn.Heal;
     if (any(m.special)) b |= Btn.Special;
+    if (any(m.block)) b |= Btn.Block;
     return { moveX: (any(m.right) ? 1 : 0) - (any(m.left) ? 1 : 0), moveY: any(m.down) ? 1 : 0, buttons: b };
   }
   destroy() {}
@@ -241,7 +249,8 @@ export class GamepadSource implements InputSource {
     if (btn(0) || btn(12)) b |= Btn.Jump;
     if (btn(2)) b |= Btn.A;
     if (btn(3)) b |= Btn.B;
-    if (btn(7) || btn(6)) b |= Btn.Special;
+    if (btn(7)) b |= Btn.Special;
+    if (btn(6)) b |= Btn.Block;
     if (btn(5)) b |= Btn.Skill;
     if (btn(1)) b |= Btn.Roll;
     if (btn(4)) b |= Btn.Heal;
@@ -297,12 +306,13 @@ const BUTTONS: { id: string; bit: number; label: string; cls: string }[] = [
   { id: 'skill', bit: Btn.Skill, label: '', cls: 'tb-skill' },
   { id: 'jump', bit: Btn.Jump, label: '', cls: 'tb-jump' },
   { id: 'roll', bit: Btn.Roll, label: '', cls: 'tb-roll' },
+  { id: 'block', bit: Btn.Block, label: '', cls: 'tb-block' },
   { id: 'heal', bit: Btn.Heal, label: '', cls: 'tb-heal' },
   { id: 'art', bit: Btn.Special, label: '', cls: 'tb-art' },
 ];
 
 /** A tile's column on the 3x3 grid, counted from the right as hud.css places it (mirrored when left-handed). */
-const COLUMN: Record<string, number> = { a: 0, b: 0, heal: 0, skill: 1, jump: 1, art: 1, roll: 2 };
+const COLUMN: Record<string, number> = { a: 0, b: 0, heal: 0, skill: 1, jump: 1, art: 1, roll: 2, block: 2 };
 
 /** The first time a device's Art glows, one hint says how to use it. Kept in localStorage, guarded. */
 const HINT_KEY = 'bladerift.hint.artHold.v1';
@@ -628,6 +638,7 @@ export class TouchSource implements InputSource {
     set('jump', 'assets/art/i-jump.jpg');
     set('roll', 'assets/art/i-roll.jpg');
     set('heal', 'assets/art/i-heal.jpg');
+    set('block', 'assets/art/i-block.jpg');
     const cd = (id: string, v: number) => this.btnEls.get(id)!.style.setProperty('--cd', String(Math.max(0, Math.min(1, v))));
     cd('skill', s.skillCd);
     cd('roll', s.rollCd);

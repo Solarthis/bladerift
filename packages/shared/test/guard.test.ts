@@ -1,7 +1,7 @@
-// The guard every hero has (hold down on the ground), the parry (a guard raised just before the hit) and the swing
-// that cuts projectiles out of the air.
+// The guard every hero has (hold down on the ground, or hold BLOCK), the perfect block (BLOCK pressed just before the
+// hit: a parry) and the swing that cuts projectiles out of the air. parry.test.ts covers the perfect block in depth.
 import { describe, expect, it } from 'vitest';
-import { Act, Btn, FIGHTER, InputCmd, ROUND, sanitizeLoadout, World } from '../src/index';
+import { Act, Btn, InputCmd, PARRY, ROUND, sanitizeLoadout, World } from '../src/index';
 
 const cmd = (moveX = 0, moveY = 0, buttons = 0): InputCmd => ({ seq: 0, moveX, moveY, buttons, viewTick: 0 });
 
@@ -37,16 +37,16 @@ describe('guard and parry', () => {
     expect(fa.s.act).not.toBe(Act.Stun);
   });
 
-  it('a guard raised just before a bolt lands parries it back at the caster', () => {
+  it('a perfect block just before a bolt lands parries it back at the caster', () => {
     const { fa, fb, run, w } = duel(6, 320);
     const hpA = fa.s.hp;
     const hpB = fb.s.hp;
-    // A presses down a few ticks before the bolt arrives: scan for the bolt's distance each tick
+    // A presses BLOCK a few ticks before the bolt arrives: scan for the bolt's distance each tick
     let parried = false;
     for (let i = 0; i < 90; i++) {
       const bolt = w.projectiles.find((p) => p.owner === fb.id);
       const close = !!bolt && Math.abs(bolt.x - fa.s.x) < 70;
-      run(1, () => cmd(0, close ? 1 : 0), () => cmd(0, 0, i === 10 ? Btn.A : 0));
+      run(1, () => cmd(0, 0, close ? Btn.Block : 0), () => cmd(0, 0, i === 10 ? Btn.A : 0));
       if (w.projectiles.some((p) => p.owner === fa.id)) parried = true;
     }
     expect(parried).toBe(true);
@@ -54,12 +54,21 @@ describe('guard and parry', () => {
     expect(fb.s.hp).toBeLessThan(hpB);
   });
 
-  it('a guard raised just before a melee hit staggers the attacker', () => {
+  it('a perfect block just before a melee hit staggers the attacker', () => {
     const { fa, fb, run } = duel(0, 50);
     const startup = 5;
-    run(12, (i) => cmd(0, i >= startup - 3 ? 1 : 0), (i) => cmd(0, 0, i === 0 ? Btn.A : 0));
+    run(12, (i) => cmd(0, 0, i >= startup - 3 ? Btn.Block : 0), (i) => cmd(0, 0, i === 0 ? Btn.A : 0));
     expect(fb.s.act).toBe(Act.Stun);
-    expect(fb.s.stun).toBeGreaterThan(FIGHTER.guardParryStun - 15);
+    expect(fb.s.stun).toBeGreaterThan(PARRY.stun - 15);
+    expect(fa.s.act).not.toBe(Act.Stun);
+  });
+
+  it('a crouch guard raised just before a melee hit only blocks it (parrying is for the BLOCK button)', () => {
+    const { fa, fb, run } = duel(0, 50);
+    const hp0 = fa.s.hp;
+    run(12, (i) => cmd(0, i >= 2 ? 1 : 0), (i) => cmd(0, 0, i === 0 ? Btn.A : 0));
+    expect(fb.s.act).not.toBe(Act.Stun);
+    expect(fa.s.hp).toBeLessThan(hp0);
     expect(fa.s.act).not.toBe(Act.Stun);
   });
 

@@ -51,7 +51,7 @@
       "input": "ART (full Rift gauge)",
       "kind": "art",
       "damage": 185,
-      "notes": "The Rift Art: the barbed spear's unstoppable lunge across the arena. It cannot be blocked or parried, so guarding does not stop it."
+      "notes": "The Rift Art: the barbed spear's unstoppable lunge across the arena. No guard stops it: only a perfect block parries it."
     },
     {
       "name": "Pole Vault",

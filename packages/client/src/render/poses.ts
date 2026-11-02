@@ -442,6 +442,9 @@ export function poseFor(v: ViewFighter, ctx: PoseCtx): Pose {
       const qv = v.charge > 30 ? q(Math.sin(ctx.time * 60) * 0.6, 0.3) : 0;
       return { ...base, weapon: 'spear', two: true, crouch: 6, lean: -3, fx: 2 + qv, fy: -22, sa: 0, ffx: 10, fbx: -9 };
     }
+    case Act.Guard:
+      // the BLOCK guard: the hero's own weapon brought up across the body, knees bent
+      return { ...base, crouch: 5, lean: 2, fx: 12, fy: -32, sa: -1.3, bx: 10, by: -30, ffx: 10, fbx: -8 };
     case Act.Block:
       return { ...hold(WeaponId.Shield), weapon: w === WeaponId.Shield ? undefined : HOLD[v.weapons[v.slot ^ 1]]?.weapon, crouch: 5, lean: 2, bx: 13, by: -26, sb: 0, ffx: 10, fbx: -8 };
     case Act.Ledge:

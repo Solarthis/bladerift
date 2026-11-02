@@ -3,9 +3,9 @@
  * status effects. Runs on the server and, for practice / same-device play, inside the browser.
  */
 import { ArenaDef, getArena, solidAt, surfaceBelow } from './arena';
-import { DT, FIGHTER, PHYS, ROUND, THROW, TICK_RATE } from './constants';
+import { DT, FIGHTER, PARRY, PHYS, ROUND, THROW, TICK_RATE } from './constants';
 import {
-  Act, bodySolid, bodyYields, castingEx, copyState, currentMove, exDamage, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isAirMove, isFrozen, isThrowable, meleeConnect, meleeCrit, moveDamage, MOVE_AIR3, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
+  Act, bodySolid, bodyYields, castingEx, copyState, currentMove, exDamage, FighterState, FoeView, hitstopFor, isActive, isBlocking, isCrouchGuard, isAirMove, isParrying, isFrozen, isThrowable, meleeConnect, meleeCrit, moveDamage, MOVE_AIR3, MOVE_ART, MOVE_CHARGED, newFighterState, stepFighter,
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
@@ -47,6 +47,10 @@ export type ProjKind = 'arrow' | 'bomb' | 'frost' | 'arcane' | 'orb' | 'wave' | 
 export const PROJ_KINDS: ProjKind[] = ['arrow', 'bomb', 'frost', 'arcane', 'orb', 'wave', 'relic', 'hand', 'steed'];
 
 /** Caster's Thunder Call: a strike aimed at the opponent shortly before it lands (the marker is shown meanwhile). */
+/** What a 'parry' event was: a perfect block (the first of a chain, or one caught in its riposte), a Shield parry, a swing
+ * cutting a shot out of the air, or Bulwark turning a swing back. */
+export const PARRY_KIND = { perfect: 0, chained: 1, shield: 2, cut: 3, bulwark: 4 } as const;
+
 export interface Strike {
   id: number;
   owner: number;
@@ -111,7 +115,8 @@ export type GameEvent =
   | { t: 'hit'; a: number; v: number; amt: number; w: number; crit: boolean; x: number; y: number; n: number; hs: number }
   /** v blocked a's hit (chip amt); hs = the hit-stop on both (melee) or v (projectiles). */
   | { t: 'block'; a: number; v: number; amt: number; x: number; y: number; hs: number }
-  | { t: 'parry'; a: number; v: number; x: number; y: number }
+  /** a parried (v: the staggered attacker, 255 none); k: PARRY_KIND */
+  | { t: 'parry'; a: number; v: number; x: number; y: number; k: number }
   | { t: 'swing'; p: number; w: number; m: number }
   | { t: 'shoot'; p: number; kind: number }
   | { t: 'boom'; x: number; y: number }
@@ -274,8 +279,10 @@ export class World {
   private casting: Fighter[] = [];
   /** The hit-stop the last applyHit set (0: none, e.g. a parry). */
   private lastStop = 0;
-  /** The last applyHit was a parried projectile: the projectile flies back at its owner. */
+  /** The last applyHit was parried (a perfect block, or a Shield parry): a shot flies back or is turned aside, a swing stops short. */
   private lastParry = false;
+  /** The last parry came in the riposte of an earlier one (a volley): a shot is turned aside, not sent back. */
+  private lastParryChained = false;
 
   constructor(readonly settings: MatchSettings) {
     this.arena = getArena(settings.arenaId);
@@ -415,7 +422,7 @@ export class World {
       const mb = moveBox(m, f.s.x, f.s.y, f.s.face);
       const pb = { x: Math.min(px, p.x) - 6, y: Math.min(py, p.y) - 8, w: Math.abs(p.x - px) + 12, h: Math.abs(p.y - py) + 16 };
       if (!overlap(mb, pb)) continue;
-      this.events.push({ t: 'parry', a: f.id, v: 255, x: p.x, y: p.y }); // (v 255: a shot, nobody staggered)
+      this.events.push({ t: 'parry', a: f.id, v: 255, x: p.x, y: p.y, k: PARRY_KIND.cut }); // (v 255: a shot, nobody staggered)
       return true;
     }
     return false;
@@ -555,7 +562,7 @@ export class World {
     f.histTick[h] = this.tick;
     f.histX[h] = f.s.x;
     f.histY[h] = f.s.y;
-    f.histFlags[h] = (f.s.invuln > 0 ? 1 : 0) | (isBlocking(f.s) ? 2 : 0) | (f.s.crouch ? 4 : 0);
+    f.histFlags[h] = (f.s.invuln > 0 ? 1 : 0) | (isBlocking(f.s) ? 2 : 0) | (f.s.crouch ? 4 : 0) | (isParrying(f.s) ? 8 : 0);
     f.histBlockT[h] = Math.min(65535, f.s.blockT);
     f.histFace[h] = f.s.face;
   }
@@ -576,16 +583,18 @@ export class World {
     return vt;
   }
 
-  /** The defender as the attacker saw it at `tick` (position, invulnerability, guard). */
+  /** The defender as the attacker saw it at `tick` (position, invulnerability, guard, perfect block). */
   private seenAt(d: Fighter, tick: number) {
     if (tick < this.tick) {
       const i = ((tick % HIST) + HIST) % HIST;
       if (d.histTick[i] === tick) {
         const fl = d.histFlags[i];
-        return { x: d.histX[i], y: d.histY[i], invuln: !!(fl & 1), blocking: !!(fl & 2), crouch: !!(fl & 4), blockT: d.histBlockT[i], face: d.histFace[i] };
+        return {
+          x: d.histX[i], y: d.histY[i], invuln: !!(fl & 1), blocking: !!(fl & 2), crouch: !!(fl & 4), parry: !!(fl & 8), blockT: d.histBlockT[i], face: d.histFace[i],
+        };
       }
     }
-    return { x: d.s.x, y: d.s.y, invuln: d.s.invuln > 0, blocking: isBlocking(d.s), crouch: !!d.s.crouch, blockT: d.s.blockT, face: d.s.face };
+    return { x: d.s.x, y: d.s.y, invuln: d.s.invuln > 0, blocking: isBlocking(d.s), crouch: !!d.s.crouch, parry: isParrying(d.s), blockT: d.s.blockT, face: d.s.face };
   }
 
   // ------------------------------------------------------------ combat
@@ -623,8 +632,8 @@ export class World {
     });
     if (veiled && landed) a.s.veil = 0;
     // the attacker freezes with the defender (melee hit-stop), a lunge brakes, a landed hit can be cancelled into a jump
-    // or chained at once, and a plunge pogos (shared with the client's prediction)
-    meleeConnect(a.s, a.load, m, this.lastStop);
+    // or chained at once, and a plunge pogos (shared with the client's prediction); a parried swing only staggers
+    if (!this.lastParry) meleeConnect(a.s, a.load, m, this.lastStop);
   }
 
   /**
@@ -717,12 +726,53 @@ export class World {
     if (d.s.act !== Act.Art) d.s.rift = Math.min(RIFT.max, d.s.rift + amt * RIFT.perTaken);
   }
 
+  /**
+   * A blow the defender parried with a perfect block (PARRY): no damage. The parrier freezes, turns to the blow and its
+   * window opens again (the riposte); a swing or body blow staggers its attacker (a Rift Art caught this way ends there).
+   * The projectile loop reads lastParry to send a shot back or turn it aside.
+   */
+  private parried(a: Fighter | undefined, d: Fighter, melee: boolean, art: boolean, dirX: number, x: number, y: number) {
+    const ds = d.s;
+    this.lastParry = true;
+    const stagger = melee && !!a && a.s.act !== Act.KO;
+    // (a blow caught in the riposte of an earlier parry: the same volley or string; only the first parry of a chain pays)
+    const chained = ds.act === Act.Guard && ds.charge === 1;
+    this.lastParryChained = chained;
+    this.events.push({ t: 'parry', a: d.id, v: stagger ? a!.id : 255, x, y, k: chained ? PARRY_KIND.chained : PARRY_KIND.perfect });
+    if (ds.act !== Act.Art && !chained) ds.rift = Math.min(RIFT.max, ds.rift + RIFT.max * (art ? PARRY.artRift : PARRY.rift));
+    d.comboHits = 0;
+    // (judged on the perfect block as the attacker saw it: the riposte only if the guard is still up now)
+    if (ds.act === Act.Guard) {
+      ds.actT = 0;
+      ds.charge = 1;
+      ds.parryCd = 0;
+      ds.face = dirX > 0 ? -1 : 1;
+      ds.vx = dirX * 60;
+      ds.hitstop = Math.max(ds.hitstop, PARRY.freeze);
+    }
+    if (!stagger) return;
+    const s = a!.s;
+    s.act = Act.Stun;
+    s.actT = 0;
+    s.stun = PARRY.stun;
+    s.fall = 0;
+    s.float = 0;
+    s.charge = 0;
+    s.confirm = 0;
+    s.invuln = 0;
+    s.vx = -dirX * 120;
+    s.hitstop = Math.max(s.hitstop, PARRY.freeze);
+  }
+
   private applyHit(
     a: Fighter | undefined,
     d: Fighter,
     h: {
       dmg: number; kbX: number; kbY: number; stun: number; pull?: boolean; breaksGuard?: boolean; crit: boolean; w: number; x: number; y: number; front: boolean;
-      guard?: { blocking: boolean; blockT: number }; melee?: boolean;
+      /** The defender's guard and perfect block as the attacker saw them (lag compensation; default: as they are now). */
+      guard?: { blocking: boolean; blockT: number; parry?: boolean };
+      /** A swing or body blow (default): parried, its attacker staggers. False for shots, blasts, strikes and traps. */
+      melee?: boolean;
       /** An air string's swing (not its finisher): the one it hits floats while juggled. */
       juggle?: boolean;
       /** A launcher: the launch never knocks down (the one it pops floats instead). */
@@ -747,19 +797,26 @@ export class World {
         a.s.stun = 30;
         a.s.fall = 0;
         a.s.vx = -dirX * 260;
-        this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y });
+        this.events.push({ t: 'parry', a: d.id, v: a.id, x: h.x, y: h.y, k: PARRY_KIND.bulwark });
       }
       return false;
     }
     const art = h.art ?? (h.w >= 104 && h.w < 200);
     const hsDmg = h.hsDmg ?? h.dmg;
+    // a perfect block (PARRY) parries any blow, from any side: guard-breakers, unblockables, blasts, strikes and Rift Arts too
+    // (judged in the defender's favour: open as the attacker saw it, or open now)
+    if (h.guard?.parry || isParrying(ds)) {
+      this.parried(a, d, h.melee !== false, art, dirX, h.x, h.y);
+      return false;
+    }
     h = { ...h, dmg: a ? Math.round(h.dmg * this.dmgScale(a)) : h.dmg };
     const guard = h.guard ?? { blocking: isBlocking(ds), blockT: ds.blockT };
     if (guard.blocking && h.front && !h.breaksGuard) {
       const crouchGuard = isCrouchGuard(ds);
       const parryWin = FIGHTER.parryWindow * (DC.id === ClassId.Shielder ? 1.6 : 1);
-      if (guard.blockT <= parryWin) {
-        this.events.push({ t: 'parry', a: d.id, v: h.melee === false || !a ? 255 : a.id, x: h.x, y: h.y });
+      // (the Shield's fresh block parries what it can block; a crouch guard or a held BLOCK guard only blocks)
+      if (ds.act === Act.Block && guard.blockT <= parryWin) {
+        this.events.push({ t: 'parry', a: d.id, v: h.melee === false || !a ? 255 : a.id, x: h.x, y: h.y, k: PARRY_KIND.shield });
         // a parry is worth a slice of the Rift gauge
         if (d.s.act !== Act.Art) d.s.rift = Math.min(RIFT.max, d.s.rift + RIFT.max * 0.06);
         if (h.melee === false) {
@@ -770,7 +827,7 @@ export class World {
         if (a) {
           a.s.act = Act.Stun;
           a.s.actT = 0;
-          a.s.stun = crouchGuard ? FIGHTER.guardParryStun : FIGHTER.parryStun;
+          a.s.stun = FIGHTER.parryStun;
           a.s.fall = 0;
           a.s.vx = -dirX * 120;
           a.s.charge = 0;
@@ -1052,9 +1109,13 @@ export class World {
           const w = p.kind === 'arrow' ? WeaponId.Bow : p.kind === 'arcane' ? WeaponId.Staff : p.kind === 'wave' && !p.art ? WeaponId.Sword : p.kind === 'wave' || p.kind === 'relic' || p.kind === 'hand' || p.kind === 'steed' ? 106 : 101;
           const kbY = p.kbY ?? (p.kind === 'wave' || p.kind === 'steed' ? 280 : p.kind === 'hand' ? 0 : p.heavy ? 160 : 40);
           const landed = this.applyHit(owner, f, { dmg: p.dmg, kbX: p.kb, kbY, stun: p.stun, crit: p.heavy, w, x: p.x, y: p.y, front, melee: false, breaksGuard: !!p.unblockable, art: !!p.art });
-          if (this.lastParry && !p.art && !p.pierce) {
-            // parried: back the way it came, now the parrier's
-            this.reflect(p, f);
+          if (this.lastParry) {
+            // parried: a shot a guard could stop flies back the way it came, now the parrier's; anything else is turned aside
+            if (!p.art && !p.pierce && !p.unblockable && !this.lastParryChained) {
+              this.reflect(p, f);
+              continue;
+            }
+            dead = true;
             continue;
           }
           // the Phantom Hand crushes the heart it grasps and feeds its master
@@ -1114,7 +1175,7 @@ export class World {
       const R = orb ? 62 : B.radius;
       if (dx * dx + dy * dy > (R + 14) ** 2) continue;
       const landed = this.applyHit(owner, f, { dmg: orb ? p.dmg : B.dmg, kbX: 240, kbY: 260, stun: orb ? p.stun : 26, crit: false, w: orb ? WeaponId.Staff : 100, x: f.s.x, y: f.s.y - FIGHTER.h / 2, front: false, melee: false });
-      if (!orb) f.s.burnT = Math.max(f.s.burnT, B.burnTicks);
+      if (!orb && !this.lastParry) f.s.burnT = Math.max(f.s.burnT, B.burnTicks);
       if (landed && p.slow) f.s.slowT = Math.max(f.s.slowT, p.slow);
     }
   }
@@ -1219,7 +1280,7 @@ export class World {
             if (Math.abs(o.s.x - s.x) < 60 && Math.abs(o.s.y - s.y) < 60 && o.s.invuln <= 0) {
               const dmg = Math.round((last ? 32 : 15) * C.backstab);
               this.applyHit(f, o, { dmg, kbX: last ? 340 : 20, kbY: last ? 280 : 0, stun: last ? 36 : 14, crit: true, w: 104, x: o.s.x, y: o.s.y - 28, front: false, breaksGuard: true });
-              s.confirm = PHYS.confirmTicks;
+              if (!this.lastParry) s.confirm = PHYS.confirmTicks;
             }
           }
           break;
@@ -1250,8 +1311,10 @@ export class World {
         if (st.kind === 1) {
           // the chains bind: rooted where they stand
           this.applyHit(owner, o, { dmg: 120, kbX: 0, kbY: 0, stun: 24, crit: false, w: 107, x: st.x, y: o.s.y - 30, front: false, melee: false, breaksGuard: true });
-          o.s.rootT = Math.max(o.s.rootT, 110);
-          o.s.vx = 0;
+          if (!this.lastParry) {
+            o.s.rootT = Math.max(o.s.rootT, 110);
+            o.s.vx = 0;
+          }
         } else {
           this.applyHit(owner, o, { dmg: 105, kbX: 80, kbY: 320, stun: 30, crit: false, w: 105, x: st.x, y: o.s.y - 30, front: false, melee: false, breaksGuard: true });
         }
@@ -1267,9 +1330,11 @@ export class World {
       for (const f of this.fighters.values()) {
         if (f.id === t.owner || f.s.act === Act.KO || !f.s.ground || f.s.invuln > 0) continue;
         if (Math.abs(f.s.x - t.x) < T.w / 2 + FIGHTER.w / 2 - 4 && Math.abs(f.s.y - t.y) < 4) {
-          f.s.rootT = T.root;
-          this.applyHit(this.fighters.get(t.owner), f, { dmg: T.dmg, kbX: 0, kbY: 0, stun: 12, crit: false, w: 102, x: t.x, y: t.y - 10, front: false });
-          f.s.vx = 0;
+          this.applyHit(this.fighters.get(t.owner), f, { dmg: T.dmg, kbX: 0, kbY: 0, stun: 12, crit: false, w: 102, x: t.x, y: t.y - 10, front: false, melee: false });
+          if (!this.lastParry) {
+            f.s.rootT = T.root;
+            f.s.vx = 0;
+          }
           this.events.push({ t: 'trap', v: f.id, x: t.x, y: t.y });
           return false;
         }

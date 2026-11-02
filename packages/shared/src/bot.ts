@@ -8,7 +8,7 @@
 import { DT, FIGHTER, THROW } from './constants';
 import { ArtId, classOf, EX_SPECIAL, RIFT } from './classes';
 import { solidAt, surfaceBelow } from './arena';
-import { Act, currentMove, FLASH, hasCrescent, isBlocking, isThrowable, MOVE_LAUNCH } from './fighter';
+import { Act, currentMove, FLASH, hasCrescent, isBlocking, isParrying, isThrowable, MOVE_LAUNCH } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
 import { Box, dodgeOf, Loadout, Move, SKILL_FX, SKILLS, SkillDef, WEAPONS, WeaponId } from './weapons';
@@ -17,12 +17,13 @@ import { bodyBox, Fighter, moveBox, Projectile, ProjKind, World } from './world'
 
 /** The practice and training levels: `cpu` is the regular duel AI (the normal tuning); the `dummy-*` levels are training
  * dummies that do not plan at all (see BotBrain.think). */
-export const BOT_LEVELS = ['easy', 'normal', 'hard', 'cpu', 'dummy-stand', 'dummy-guard', 'dummy-jump'] as const;
+export const BOT_LEVELS = ['easy', 'normal', 'hard', 'cpu', 'dummy-stand', 'dummy-guard', 'dummy-jump', 'dummy-swing'] as const;
 export type BotDifficulty = (typeof BOT_LEVELS)[number];
-export type DummyLevel = 'dummy-stand' | 'dummy-guard' | 'dummy-jump';
+export type DummyLevel = 'dummy-stand' | 'dummy-guard' | 'dummy-jump' | 'dummy-swing';
 export const isDummyLevel = (l: BotDifficulty): l is DummyLevel => l.startsWith('dummy-');
-/** Ticks between a dummy-jump's jumps. */
+/** Ticks between a dummy-jump's jumps, and between a dummy-swing's swings (practice for the perfect block). */
 const DUMMY_JUMP_EVERY = 90;
+const DUMMY_SWING_EVERY = 80;
 
 interface Tune {
   /** Ticks from noticing a swing or shot to answering it. */
@@ -31,6 +32,11 @@ interface Tune {
   dodge: number;
   /** Of the answers to a swing, chance to raise the shield instead of rolling (when it can parry). */
   parry: number;
+  /** Of the answers to a swing, shot, strike or close Rift Art, chance to try a perfect block (BLOCK just before it lands),
+   * and how far off its timing may be: the press aims `perfectLead` ticks before the blow, give or take `perfectErr`. */
+  perfect: number;
+  perfectLead: number;
+  perfectErr: number;
   /** Chance a roll goes through the opponent rather than away from them. */
   through: number;
   /** Per-tick chance to swing when in reach. */
@@ -67,15 +73,15 @@ interface Tune {
 
 const TUNE: Record<'easy' | 'normal' | 'hard', Tune> = {
   easy: {
-    react: 24, dodge: 0.2, parry: 0, through: 0.2, attack: 0.3, punish: 0.45, chain: 0.3, ranged: 0.12, skill: 0.01,
+    react: 24, dodge: 0.2, parry: 0, perfect: 0.15, perfectLead: 3, perfectErr: 7, through: 0.2, attack: 0.3, punish: 0.45, chain: 0.3, ranged: 0.12, skill: 0.01,
     heal: 0.25, healBelow: 0.4, windup: 14, spaceMul: 0.5, spaceAdd: 0, retreat: 0.3, climb: 0.02, drop: 0.02, hop: 0.01, dash: 0.05, wall: 0.2, commit: 26,
   },
   normal: {
-    react: 12, dodge: 0.55, parry: 0.35, through: 0.5, attack: 0.45, punish: 0.85, chain: 0.7, ranged: 0.35, skill: 0.04,
+    react: 12, dodge: 0.55, parry: 0.35, perfect: 0.35, perfectLead: 3, perfectErr: 4, through: 0.5, attack: 0.45, punish: 0.85, chain: 0.7, ranged: 0.35, skill: 0.04,
     heal: 0.5, healBelow: 0.45, windup: 3, spaceMul: 0.85, spaceAdd: 0, retreat: 0.5, climb: 0.05, drop: 0.05, hop: 0.03, dash: 0.25, wall: 0.6, commit: 16,
   },
   hard: {
-    react: 5, dodge: 0.92, parry: 0.8, through: 0.85, attack: 0.7, punish: 1, chain: 0.95, ranged: 0.7, skill: 0.12,
+    react: 5, dodge: 0.92, parry: 0.8, perfect: 0.45, perfectLead: 3, perfectErr: 2, through: 0.85, attack: 0.7, punish: 1, chain: 0.95, ranged: 0.7, skill: 0.12,
     heal: 0.9, healBelow: 0.55, windup: 0, spaceMul: 1, spaceAdd: 4, retreat: 0.7, climb: 0.12, drop: 0.12, hop: 0.06, dash: 0.6, wall: 0.95, commit: 12,
   },
 };
@@ -106,11 +112,15 @@ interface ShotMemory {
   answer: boolean;
   block: boolean;
   through: boolean;
+  /** a perfect block, pressed this many ticks before it arrives (-1: not one) */
+  perfect: number;
 }
 interface Plan {
   seq: number;
   at: number;
   block: boolean;
+  /** a perfect block, pressed this many ticks before the blow (-1: not one) */
+  perfect: number;
 }
 interface Geo {
   dist: number;
@@ -204,6 +214,25 @@ function incomingShot(w: World, me: Fighter, foe: Fighter): Shot | null {
   return best;
 }
 
+/**
+ * The next blow that is not a swing or a shot: a locked-on strike coming down on us (returned as 1000 + its id; the brain
+ * reads its ticks), or a close Rift Art about to land its blow (ticks until it does: the roar, the flurry's first cut).
+ * -1 when there is none.
+ */
+function artBlowIn(w: World, me: Fighter, foe: Fighter): number {
+  const s = me.s;
+  for (const st of w.strikes) {
+    if (st.owner !== foe.id || !st.aimed || Math.abs(st.x - s.x) > 40 || st.at - w.tick > 30) continue;
+    return 1000 + st.id;
+  }
+  const o = foe.s;
+  if (o.act !== Act.Art || Math.abs(o.x - s.x) > 140) return -1;
+  const art = HEROES[foe.load.hero]?.art;
+  const at = art === ArtId.BloodFrenzy ? 12 : art === ArtId.FlashStep ? 14 : -1;
+  if (at < 0 || o.actT > at) return -1;
+  return o.pause + at - o.actT;
+}
+
 export class BotBrain {
   private seq = 0;
   private rng: Rng;
@@ -258,6 +287,7 @@ export class BotBrain {
       // a training dummy never plans: it stands still, holds the crouch guard, or jumps on a fixed beat
       if (this.level === 'dummy-guard') cmd.moveY = 1;
       if (this.level === 'dummy-jump' && cmd.seq % DUMMY_JUMP_EVERY === 0) cmd.buttons = Btn.Jump;
+      if (this.level === 'dummy-swing') this.dummySwing(w, cmd);
       this.prev = cmd.buttons;
       return cmd;
     }
@@ -267,7 +297,7 @@ export class BotBrain {
     if (me && foe && w.phase === 'fight' && me.s.lock === 0) {
       this.act(w, me, foe, cmd);
       // taps are taps: a jump, skill, roll or flask press is never sent two ticks running (a held button would be ignored)
-      cmd.buttons &= ~(this.prev & (Btn.Jump | Btn.Skill | Btn.Roll | Btn.Heal));
+      cmd.buttons &= ~(this.prev & (Btn.Jump | Btn.Skill | Btn.Roll | Btn.Heal | Btn.Block));
       if (me.s.rift >= RIFT.max && !(this.prev & Btn.Special) && this.wantArt(w, me, foe)) cmd.buttons |= Btn.Special;
     } else this.reset();
     this.idleT = cmd.moveX === 0 && cmd.buttons === 0 ? this.idleT + 1 : 0;
@@ -323,9 +353,32 @@ export class BotBrain {
     }
   }
 
+  /** Ticks until the strike with this id comes down. */
+  private strikeTicks(w: World, id: number): number {
+    const st = w.strikes.find((x) => x.id === id);
+    return st ? st.at - w.tick : 999;
+  }
+
   /** Can the fighter roll now: a ground roll off cooldown, or another air dash this airtime. */
   private canRoll(me: Fighter): boolean {
     return me.s.ground ? me.s.rollCd === 0 : me.s.dash < heroClass(me.load).dashes;
+  }
+
+  /** The dummy that swings: it walks into reach and throws one light swing on a fixed beat, for perfect-block practice. */
+  private dummySwing(w: World, cmd: InputCmd) {
+    const me = w.fighters.get(this.id);
+    const foe = me ? w.opponent(me) : undefined;
+    if (!me || !foe || w.phase !== 'fight' || me.s.lock > 0 || me.s.act !== Act.Free) return;
+    const dx = foe.s.x - me.s.x;
+    const reach = reachOf(me.load.weapons[0]) + HALF;
+    if (Math.abs(dx) > reach) cmd.moveX = Math.sign(dx) * 0.6;
+    else if (me.s.face !== Math.sign(dx)) cmd.moveX = Math.sign(dx) * 0.3;
+    else if (cmd.seq % DUMMY_SWING_EVERY === 0) cmd.buttons = Btn.A;
+  }
+
+  /** A perfect-block press's lead: ticks before the blow to press BLOCK (the difficulty's aim, give or take its error). */
+  private perfectLead(T: Tune): number {
+    return T.perfectLead + Math.round((this.rng.next() * 2 - 1) * T.perfectErr);
   }
 
   private reset() {
@@ -372,8 +425,9 @@ export class BotBrain {
       this.chain(me, foe, g, cmd, T);
       return;
     }
-    // rolling, stunned, healing, casting, or a charge we did not start: nothing to decide
-    if (s.act !== Act.Free) return;
+    // rolling, stunned, healing, casting, or a charge we did not start: nothing to decide (a riposte after a perfect
+    // block is free to punish: any action cancels it)
+    if (s.act !== Act.Free && !(s.act === Act.Guard && s.charge === 1)) return;
     if (this.react(w, me, foe, g, cmd, T)) return;
     if (!s.ground && this.air(w, me, foe, g, cmd, T)) return;
     if (this.heal(w, me, foe, g, cmd, T)) return;
@@ -473,14 +527,22 @@ export class BotBrain {
       this.answered = sw.seq;
       if (this.rng.next() < T.dodge) {
         const canBlock = shieldSlot >= 0 && !sw.move.breaksGuard;
-        this.plan = { seq: sw.seq, at: w.tick + T.react, block: canBlock && this.rng.next() < T.parry };
+        const perfect = this.rng.next() < T.perfect && me.s.parryCd <= T.react ? this.perfectLead(T) : -1;
+        this.plan = { seq: sw.seq, at: w.tick + T.react, block: perfect < 0 && canBlock && this.rng.next() < T.parry, perfect };
       }
     }
     if (this.plan) {
       const P = this.plan;
       if (!sw || sw.seq !== P.seq) this.plan = null;
       else if (w.tick < P.at) return true; // reacting: stand still
-      else {
+      else if (P.perfect >= 0) {
+        // the blow lands sw.at ticks on; the press counts from the next tick
+        if (sw.at - 1 <= P.perfect) {
+          cmd.buttons |= Btn.Block;
+          this.plan = null;
+        }
+        return true;
+      } else {
         if (!P.block && !this.canRoll(me) && shieldSlot >= 0 && !sw.move.breaksGuard) P.block = true;
         if (P.block) {
           if (!s.ground) this.plan = null;
@@ -498,17 +560,46 @@ export class BotBrain {
       }
     }
 
-    for (const id of this.shots.keys()) if (!w.projectiles.some((p) => p.id === id)) this.shots.delete(id);
+    // a strike about to come down on us, or a close Rift Art about to land its blow: a perfect block, if we try one
+    const art = artBlowIn(w, me, foe);
+    if (art >= 0) {
+      // (one decision per strike, and one per Rift Art cast: keyed by the tick the cast began)
+      const key = art >= 1000 ? -1 - (art - 1000) : -1e6 - (w.tick - foe.s.actT - foe.s.pause);
+      let mem = this.shots.get(key);
+      if (!mem) {
+        mem = { t: w.tick, answer: false, block: false, through: false, perfect: this.rng.next() < T.perfect * 1.2 && s.parryCd <= 10 ? this.perfectLead(T) : -1 };
+        this.shots.set(key, mem);
+      }
+      const ticks = art >= 1000 ? this.strikeTicks(w, art - 1000) : art;
+      if (mem.perfect >= 0 && ticks - 1 <= mem.perfect) {
+        cmd.buttons |= Btn.Block;
+        mem.perfect = -1;
+        return true;
+      }
+    }
+    for (const id of this.shots.keys()) if (id >= 0 && !w.projectiles.some((p) => p.id === id)) this.shots.delete(id);
+    if (this.shots.size > 64) for (const id of [...this.shots.keys()]) if (id < 0) this.shots.delete(id);
     const shot = incomingShot(w, me, foe);
     if (!shot || this.bored) return false;
     let m = this.shots.get(shot.id);
     if (!m) {
       // (against a zoner, a melee fighter dodges its shots forward: backing off only gives it the range it wants)
       const rush = isRanged(foe.load) && !isRanged(me.load);
-      m = { t: w.tick, answer: this.rng.next() < T.dodge, block: this.rng.next() < T.parry, through: this.rng.next() < T.through || rush };
+      m = {
+        t: w.tick, answer: this.rng.next() < T.dodge, block: this.rng.next() < T.parry, through: this.rng.next() < T.through || rush,
+        perfect: this.rng.next() < T.perfect && s.parryCd <= T.react ? this.perfectLead(T) : -1,
+      };
       this.shots.set(shot.id, m);
     }
     if (!m.answer || w.tick - m.t < T.react) return false;
+    if (m.perfect >= 0 && shot.kind !== 'bomb') {
+      if (shot.ticks - 1 <= m.perfect) {
+        cmd.buttons |= Btn.Block;
+        m.perfect = -1;
+        return true;
+      }
+      return false;
+    }
     if (shot.kind === 'bomb') {
       if (shot.ticks <= 4) return false;
       cmd.moveX = shot.away; // get out from under the blast
@@ -661,7 +752,7 @@ export class BotBrain {
       return true;
     }
     // a guard that has only just gone up still parries: do not walk into it
-    const guardFresh = o.act === Act.Block && o.blockT < 14 && !vuln && !this.bored;
+    const guardFresh = ((o.act === Act.Block && o.blockT < 14) || isParrying(o)) && !vuln && !this.bored;
     const order = [this.slot, 1 - this.slot];
     let inReach = false;
     if (!guardFresh && Math.abs(g.dy) < 50) {

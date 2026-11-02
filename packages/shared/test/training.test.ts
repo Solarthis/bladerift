@@ -338,9 +338,9 @@ describe('room: training and survival settings through the lobby', () => {
       a.cmd({ op: 'botLevel', level });
       expect(room.botLevel).toBe(level);
     }
-    expect(BOT_LEVELS).toEqual(expect.arrayContaining(['dummy-stand', 'dummy-guard', 'dummy-jump', 'cpu']));
+    expect(BOT_LEVELS).toEqual(expect.arrayContaining(['dummy-stand', 'dummy-guard', 'dummy-jump', 'dummy-swing', 'cpu']));
     a.cmd({ op: 'botLevel', level: 'ultra' as BotDifficulty });
-    expect(room.botLevel).toBe('dummy-jump');
+    expect(room.botLevel).toBe('dummy-swing');
   });
 
   it('a training match runs with the chosen bot hero and the flags on the World', () => {

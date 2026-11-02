@@ -105,17 +105,21 @@ def square_icons(name, names, size=160, rows=4):
     img = cv2.imread(os.path.join(SRC, name + '.png'), cv2.IMREAD_COLOR)
     h, w = img.shape[:2]
     for i, n in enumerate(names):
+        if n is None:  # a spare cell
+            continue
         r, c = divmod(i, 4)
         cell = img[r * h // rows:(r + 1) * h // rows, c * w // 4:(c + 1) * w // 4]
         cell = cv2.resize(cell, (size, size), interpolation=cv2.INTER_AREA)
         cv2.imwrite(os.path.join(OUT, n + '.jpg'), cell, [cv2.IMWRITE_JPEG_QUALITY, 88])
-    print(name, len(names), 'icons')
+    print(name, len([n for n in names if n]), 'icons')
 
 
 square_icons('icons-abilities', ['i-jump', 'i-roll', 'i-heal', 'i-art', 'a-cleave', 'a-hail', 'a-fang', 'a-thunder',
                                  'a-flash', 'a-frenzy', 'a-bulwark', 'k-bomb', 'k-frost', 'k-trap', 'k-blink', 'i-attack'])
 square_icons('icons-gear', ['g-sword', 'g-scythe', 'g-lance', 'g-daggers', 'g-hammer', 'g-bow', 'g-shield', 'g-staff',
                             'c-saber', 'c-archer', 'c-lancer', 'c-caster', 'c-assassin', 'c-berserker', 'c-shielder', 'c-blank'])
+# the BLOCK tile: the sheet holds eight takes on the guard, the third is used (the rest are spares)
+square_icons('icons-guard', [None, None, 'i-block'], rows=2)
 square_icons('icons-arts2', ['a-vault', 'a-chains', 'a-fate', 'a-hand', 'a-fog', 'a-stampede', 'a-hunt', 'a-spare'], rows=2)
 # per-hero specials (k-NN, skill id = hero id) and dodges (d-NN, hero id); the sheets' last cells are spare
 square_icons('icons-specials', ['k-%02d' % i for i in range(14)])

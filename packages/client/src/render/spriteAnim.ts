@@ -284,6 +284,7 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
     case Act.Charge:
       return pick('heavy', 0, 'combo2');
     case Act.Block:
+    case Act.Guard:
       return pick('guard', 0, 'idle');
     case Act.Ledge:
       return pick('ledge', 0, 'fall');

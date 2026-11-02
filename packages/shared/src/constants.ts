@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 15;
+export const PROTOCOL_VERSION = 16;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -100,12 +100,11 @@ export const FIGHTER = {
   /** Superpause: when a Rift Art starts, both fighters (and projectiles, strikes, traps, burning, the clock) freeze this
    * many ticks; the caster's Art timeline (and its invulnerability) starts after it. */
   superpause: 45,
-  /** A block this young parries; a parried attacker is stunned for parryStun ticks. */
+  /** A Shield block this young parries; a parried attacker is stunned for parryStun ticks. */
   parryWindow: 10,
   parryStun: 54,
-  /** The crouch guard (every hero: hold down on the ground): a parried attacker is stunned this long; damage through
-   * the guard is chip x guardChip (the Shield's block stays the better guard). */
-  guardParryStun: 40,
+  /** The crouch guard (every hero: hold down on the ground) blocks hits from the front; damage through it is chip x
+   * guardChip (the BLOCK button's guard and the Shield's block take plain chip). Parrying is the BLOCK button's (PARRY). */
   guardChip: 1.6,
   /** A melee swing cuts enemy projectiles out of the air from a tick before its hit window to `deflectLate` ticks after. */
   deflectLate: 4,
@@ -126,6 +125,35 @@ export const FIGHTER = {
   /** A press made while the fighter is busy (mid-swing, dodging, staggered, healing) is kept this long instead, so a tap
    * early in a slow swing still becomes the next swing at the chain point rather than expiring unseen (ticks). */
   bufferBusy: 36,
+} as const;
+
+/**
+ * Block and the perfect block (the BLOCK button: every hero, on the ground or in the air; Act.Guard).
+ * - Held, it guards: hits from the front that a guard can stop are blocked for chip damage (FIGHTER.chip), as the Shield
+ *   blocks; guard-breakers, unblockables, Rift Arts and hits from behind get through. On the ground the hero can edge
+ *   along (FIGHTER.blockSpeed).
+ * - A perfect block: for the first `window` ticks after the press, every attack that reaches the hero is parried: swings
+ *   and guard-breakers, finishers and plunges, specials, shots of every kind (unblockable and piercing ones included),
+ *   blasts, traps, strikes and Rift Arts, from the front, from behind or from above. Only a throw's grab gets through: a
+ *   throw beats a parry the way it beats a guard (and a tech breaks the throw).
+ * - A parried swing or body blow staggers its attacker for `stun` ticks (a Rift Art caught this way ends there); a parried
+ *   shot an ordinary guard could stop flies back at whoever fired it, and any other shot or blast is turned aside. Both
+   *   fighters freeze `freeze` ticks; the parrier turns to the blow and the window opens again (the riposte: hits that keep
+ *   coming are parried too, and any action cancels it at once). The first parry of a chain fills `rift` of the Rift gauge
+ *   (`artRift` for a Rift Art's blow) and sends back an ordinary shot; the rest of a volley is only turned aside.
+ * - No mashing: a press opens the window only if the last press was `rearm` or more ticks ago (each press restarts that
+ *   count; a parry clears it, so a string of blows can be parried one after another). Any other press just guards. A
+ *   window that parries nothing costs `whiffRift` of the Rift gauge, so guessing has a price. The press is buffered only
+ *   FIGHTER.buffer ticks (counted through freezes too), never longer.
+ */
+export const PARRY = {
+  window: 8,
+  rearm: 45,
+  whiffRift: 0.05,
+  stun: 44,
+  freeze: 10,
+  rift: 0.06,
+  artRift: 0.15,
 } as const;
 
 /**
