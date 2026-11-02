@@ -227,13 +227,22 @@ describe('K.O. launch', () => {
 });
 
 describe('survival: the health carried between matches', () => {
-  it('each seat starts the match at its startHp (clamped to its class; 0 or less is full health)', () => {
-    const w = new World({ arenaId: 'bridge', wins: 2, roundTime: 90, carryHp: true, startHp: [700, 0] });
+  it('each seat starts the match at its startHp (clamped to its class; a negative value is full health)', () => {
+    const w = new World({ arenaId: 'bridge', wins: 2, roundTime: 90, carryHp: true, startHp: [700, -1] });
     const fa = w.addFighter(1, 0, 'A', sanitizeLoadout({ hero: 0 }));
     const fb = w.addFighter(2, 1, 'B', DEFENDER);
     w.start();
     expect(fa.s.hp).toBe(700);
     expect(fb.s.hp).toBe(heroClass(fb.load).hp);
+  });
+
+  it('a carried 0 health (a fighter who ended at 0) starts the next match at 1, not at full', () => {
+    const w = new World({ arenaId: 'bridge', wins: 2, roundTime: 90, carryHp: true, startHp: [0, 1] });
+    const fa = w.addFighter(1, 0, 'A', sanitizeLoadout({ hero: 0 }));
+    const fb = w.addFighter(2, 1, 'B', DEFENDER);
+    w.start();
+    expect(fa.s.hp).toBe(1);
+    expect(fb.s.hp).toBe(1);
   });
 
   it('a startHp above the class maximum is clamped to it, and the fighter starts full', () => {

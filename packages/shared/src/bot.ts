@@ -378,7 +378,7 @@ export class BotBrain {
     if (!s.ground && this.air(w, me, foe, g, cmd, T)) return;
     if (this.heal(w, me, foe, g, cmd, T)) return;
     if (this.skill(w, me, foe, g, cmd, T)) return;
-    if (this.exSkill(me, foe, g, cmd)) return;
+    if (this.exSkill(w, me, foe, g, cmd)) return;
     // while a swing of theirs can reach us, our own swing would only trade: answer it instead
     if (!swingAt(me, foe) && this.attack(me, foe, g, cmd, T)) return;
     this.platforms(w, me, g, cmd, T);
@@ -621,11 +621,14 @@ export class BotBrain {
 
   /**
    * The EX special (EX_SPECIAL): with the gauge between its cost and a full Rift gauge, the hero's special goes off as an EX
-   * cast when the opponent is in its range, on the cooldown-free button (Btn.Special). Half the time when it can.
+   * cast when the opponent is in its range, on the cooldown-free button (Btn.Special). Half the time when it can, but only
+   * when the Rift Art cannot fill in the time left (the gauge is the Art's first: an EX spend would starve it every round).
    */
-  private exSkill(me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd): boolean {
+  private exSkill(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd): boolean {
     const s = me.s;
     if (s.rift < EX_SPECIAL.cost || s.rift >= RIFT.max || this.prev & Btn.Special) return false;
+    // ticks the gauge needs to brim on its passive gain alone, against the ticks left on the clock
+    if ((RIFT.max - s.rift) / RIFT.passive <= w.timeLeft / DT) return false;
     const sk = SKILLS[me.load.skill];
     if (!sk || swingAt(me, foe) || !skillInRange(sk, g)) return false;
     if (this.rng.next() >= 0.5) return false;

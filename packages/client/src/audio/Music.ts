@@ -41,7 +41,12 @@ const DUCK_RELEASE = 0.3;
 /** A 44-byte WAV with no samples. Playing it inside a gesture unlocks the element for later tracks (iOS). */
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA=';
 
+/** Wait, in ms, before a failed manifest fetch is tried again (the same retry gap as Samples.ts). */
+const MANIFEST_RETRY_MS = 30_000;
+
 let manifestP: Promise<AudioManifest | null> | null = null;
+/** Time before which a failed manifest is not fetched again. */
+let manifestRetryAt = 0;
 
 /** URL of a file in the audio pack. Manifest paths are relative to the audio folder. */
 export function audioUrl(file: string): string {
@@ -49,14 +54,24 @@ export function audioUrl(file: string): string {
 }
 
 /**
- * Fetches the audio manifest once and caches the result. Resolves to null when it is missing or unreadable, which
- * turns every music and voice call into a silent no-op.
+ * Fetches the audio manifest and caches a good result. Resolves to null when it is missing or unreadable, which turns
+ * every music and voice call into a silent no-op. A null is not cached: the next call after a short wait fetches again.
  */
 export function loadAudioManifest(): Promise<AudioManifest | null> {
-  manifestP ??= fetch(audioUrl('manifest.json'))
+  if (manifestP) return manifestP;
+  if (Date.now() < manifestRetryAt) return Promise.resolve(null);
+  const p: Promise<AudioManifest | null> = fetch(audioUrl('manifest.json'))
     .then((r) => (r.ok ? (r.json() as Promise<AudioManifest>) : null))
-    .catch(() => null);
-  return manifestP;
+    .catch(() => null)
+    .then((m) => {
+      if (!m) {
+        manifestRetryAt = Date.now() + MANIFEST_RETRY_MS;
+        if (manifestP === p) manifestP = null;
+      }
+      return m;
+    });
+  manifestP = p;
+  return p;
 }
 
 /** Clamps to 0..1. Non-finite values count as 0. */
@@ -181,13 +196,19 @@ function onVisibility() {
   }
 }
 
+/** True when `id` is audible or already loading. */
+function tuned(gr: Graph | null, id: string): boolean {
+  return !!gr && (gr.live?.id === id || gr.slots.some((s) => s.pending && s.id === id));
+}
+
 /** Makes `id` the wanted track (null: silence). The audible track fades out as the new one starts. */
 function request(id: string | null, sec: number) {
   want = id;
   const gr = getGraph();
   if (!gr) return; // no AudioContext yet: unlock() asks again
+  // A track still loading is superseded by any new request, even one for the track that is already audible.
+  for (const s of gr.slots) if (s.pending && s.id !== id) halt(s);
   if (id === null) {
-    for (const s of gr.slots) if (s.pending) halt(s);
     if (gr.live) {
       const old = gr.live;
       gr.live = null;
@@ -197,9 +218,9 @@ function request(id: string | null, sec: number) {
   }
   void loadAudioManifest().then((m) => {
     if (want !== id) return; // superseded or stopped meanwhile
-    if (gr.live?.id === id) return; // already audible
+    if (tuned(gr, id)) return; // already audible or loading
     const e = m?.music?.[id];
-    if (!e || typeof e.file !== 'string') return; // not in the pack: keep what plays
+    if (!e || typeof e.file !== 'string') return; // not in the pack (or no manifest yet): keep what plays
     load(gr, id, e, sec);
   });
 }
@@ -217,7 +238,10 @@ function load(gr: Graph, id: string, e: MusicEntry, sec: number) {
   const level = typeof e.gain === 'number' ? e.gain : 1;
   const onReady = () => {
     s.off();
-    if (s.token === token) activate(gr, s, level, sec);
+    if (s.token !== token) return;
+    // Only the track still wanted may start: a track superseded while it loaded is dropped.
+    if (want === id) activate(gr, s, level, sec);
+    else halt(s);
   };
   const onError = () => {
     s.off();
@@ -258,7 +282,8 @@ export const music = {
    * @param opts.fade crossfade length in seconds (default 0.8)
    */
   play(id: string, opts: { fade?: number } = {}): void {
-    if (id === want) return;
+    // Asking for the wanted track does nothing unless it is neither audible nor loading (a failed load is retried).
+    if (id === want && tuned(graphRef, id)) return;
     request(id, opts.fade ?? FADE);
   },
 

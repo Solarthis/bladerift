@@ -1,7 +1,8 @@
 /**
  * Embers (the burning castle keep, the arena "embers"): the back wall's broken windows and the lanterns on it glow and
- * shimmer, a smoke bank rolls along the top of the wall out of the gap in the stonework, and in the air behind the
- * fighters embers rise off the fire, ash drifts down and now and then a burst of sparks breaks off a window or a lantern.
+ * shimmer, flame tongues lick up out of the windows and the lanterns' sills, a smoke bank rolls along the top of the wall out
+ * of the gap in the stonework, and in the air behind the fighters embers rise off the fire, ash drifts down and now and then a
+ * burst of sparks breaks off a window or a lantern.
  * Everything is procedural: small pixel textures made once, pooled sprites whose state lives in typed arrays, a fixed-seed
  * LCG for every random choice, and no allocation per frame.
  */
@@ -34,7 +35,7 @@ const ASH_N = 80;
 const SPARK_N = 48;
 const SMOKE_N = 20;
 /** Spawns per second at full quality. */
-const EMBER_RATE = 12;
+const EMBER_RATE = 20;
 const ASH_RATE = 5;
 const SMOKE_RATE = 1.2;
 const EMBER_TINTS = [0xff7a2a, 0xffb050, 0xff5a1a, 0xffd890];
@@ -59,6 +60,9 @@ function hash(s: string): number {
   }
   return h >>> 0;
 }
+
+/** Smooth 0..1 step (clamped), for soft edges. */
+const smoothstep = (e: number): number => (e <= 0 ? 0 : e >= 1 ? 1 : e * e * (3 - 2 * e));
 
 /** Ordered dither: quantises `v` (0..1) to four steps, choosing the step by the 4x4 threshold at pixel (x, y). */
 function dither(v: number, x: number, y: number): number {
@@ -89,6 +93,14 @@ function paint(scene: Phaser.Scene, key: string, w: number, h: number, alpha: (x
 
 /** The textures this stage uses (shared keys, prefixed so they do not clash with other stages). */
 function makeTextures(scene: Phaser.Scene): void {
+  // a flame tongue: pointed at the top, round at the foot (its base sits on the sill, so it grows up out of the window)
+  paint(scene, 'embers-fx-tongue', 10, 24, (x, y) => {
+    const v = (y + 0.5) / 24;
+    const hw = v < 0.6 ? 0.5 * Math.pow(v / 0.6, 0.6) : 0.5 * Math.sqrt(Math.max(0, 1 - ((v - 0.6) / 0.4) ** 2));
+    if (hw <= 0) return 0;
+    const d = Math.abs((x + 0.5) / 10 - 0.5) / hw;
+    return smoothstep(1 - d) * (0.5 + 0.5 * (1 - d)) * (0.6 + 0.4 * v);
+  });
   // a soft glow, stepped into bands by the dither: a window's fire, a lantern's halo
   paint(scene, 'embers-fx-glow', 32, 32, (x, y) => {
     const d = Math.hypot(x - 15.5, y - 15.5) / 16;
@@ -114,6 +126,17 @@ function makeTextures(scene: Phaser.Scene): void {
     for (const [cx, cy, r] of blobs) v = Math.max(v, 1 - Math.hypot(x - cx, y - cy) / r);
     return dither(v * 0.9, x, y);
   });
+}
+
+/** A flame tongue fixed to the wall: its base point (world), its size (world units), its flicker phase and its brightness. */
+interface Tongue {
+  img: Phaser.GameObjects.Image;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  ph: number;
+  a: number;
 }
 
 /**
@@ -278,6 +301,52 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
     }
   }
 
+  // ---- the fire's light on the floor at the wall's foot, under each window and lantern (it flickers with the fire)
+  const floorFire: { img: Phaser.GameObjects.Image; a: number; ph: number }[] = [];
+  for (let k = COPY_MIN; k <= COPY_MAX; k++) {
+    for (const w of WINDOWS) {
+      const img = scene.add
+        .image(wx(k, w.u), ctx.wallBase + 12, 'embers-fx-glow')
+        .setDepth(-18.7)
+        .setScrollFactor(FAR, 1)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setTint(0xff6a24)
+        .setScale((w.w * tw * 2.4) / 32, 0.45);
+      glowIm.push(img);
+      floorFire.push({ img, a: 0.26 * w.k, ph: R() * 6.2832 });
+    }
+    for (const l of LAMPS) {
+      const img = scene.add
+        .image(wx(k, l.u), ctx.wallBase + 12, 'embers-fx-glow')
+        .setDepth(-18.7)
+        .setScrollFactor(FAR, 1)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setTint(0xffb050)
+        .setScale(0.9, 0.35);
+      glowIm.push(img);
+      floorFire.push({ img, a: 0.3, ph: R() * 6.2832 });
+    }
+  }
+
+  // ---- flame tongues: licking up out of each window's sill and each lantern, flaring on their own rhythm (wall-fixed)
+  const tongues: Tongue[] = [];
+  const tongueAt = (k: number, u: number, v: number, w: number, h: number, a: number): void => {
+    const img = scene.add
+      .image(wx(k, u), wy(v), 'embers-fx-tongue')
+      .setOrigin(0.5, 1)
+      .setDepth(-19.73)
+      .setScrollFactor(FAR, 1)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setTint(R() < 0.5 ? 0xff7a2a : 0xffb050);
+    glowIm.push(img);
+    tongues.push({ img, x: img.x, y: img.y, w: w / 10, h: h / 24, ph: R() * 6.2832, a });
+  };
+  for (let k = COPY_MIN; k <= COPY_MAX; k++) {
+    for (const w of WINDOWS)
+      for (let j = 0; j < (q < 1 ? 2 : 3); j++) tongueAt(k, w.u + (R() - 0.5) * w.w * 0.8, w.v + w.h / 2, 7 + R() * 4, H * w.h * (0.8 + 0.6 * R()), 0.32 * w.k);
+    for (const l of LAMPS) tongueAt(k, l.u, l.v + 0.02, 4.5, 11 + R() * 4, 0.7);
+  }
+
   // ---- wall-fixed smoke: rolls along the top of the wall out of the gap, and drifts over the rest of it
   const smoke = new Pool(scene, Math.round(SMOKE_N * q), 'embers-fx-smoke', -19.65, FAR, 1, false);
   // ---- air layer (behind the fighters, scroll 1): embers, ash, sparks
@@ -338,7 +407,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
     embers.g[i] = -3; // buoyant: it slows as it cools
     embers.drag[i] = 0.5;
     embers.a0[i] = 0.35 + R() * 0.45;
-    const s = 0.55 + R() * 0.5;
+    const s = 0.8 + R() * 0.6;
     embers.sx[i] = s;
     embers.sy[i] = s;
     embers.grow[i] = -0.5;
@@ -435,12 +504,25 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
       // glows: the fire flickers, breathes, and the heat shimmers sideways
       for (let i = 0; i < G; i++) {
         const p = gp[i];
-        const flick = 0.8 + 0.12 * Math.sin(t * 1.9 + p) + 0.08 * Math.sin(t * 4.7 + p * 2.3) + 0.05 * Math.sin(t * 11.3 + p * 0.7);
+        const flick = 0.72 + 0.2 * Math.sin(t * 1.9 + p) + 0.12 * Math.sin(t * 4.7 + p * 2.3) + 0.08 * Math.sin(t * 11.3 + p * 0.7);
         const br = 1 + 0.06 * Math.sin(t * 1.1 + p * 1.3);
         const im = glowIm[i];
         im.setPosition(gx0[i] + 0.7 * Math.sin(t * 7.1 + p * 1.9), gy0[i]);
         im.setAlpha(ga[i] * flick);
         im.setScale(gsx[i] * br, gsy[i] * br);
+      }
+
+      // the light on the floor: swells and sinks with the fire above it
+      for (const f of floorFire) {
+        const s = Math.sin(t * 2.3 + f.ph) * 0.6 + Math.sin(t * 6.7 + f.ph * 1.3) * 0.4;
+        f.img.setAlpha(f.a * (0.7 + 0.3 * s));
+      }
+
+      // flame tongues: each rises out of its sill and sways, flaring and sinking
+      for (const z of tongues) {
+        const s1 = Math.sin(t * 7.1 + z.ph) * 0.6 + Math.sin(t * 15.7 + z.ph * 1.7) * 0.4;
+        const s2 = Math.sin(t * 5.3 + z.ph * 0.6);
+        z.img.setPosition(z.x + 0.8 * s2, z.y).setScale(z.w * (1 + 0.15 * s2), z.h * (1 + 0.3 * s1)).setAlpha(z.a * (0.7 + 0.3 * s1));
       }
 
       // spawns

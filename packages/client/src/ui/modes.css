@@ -13,13 +13,18 @@
   min-height: 0;
 }
 
-/* header */
+/* header: sticks to the top of the screen, so Quit and the title stay reachable when a long tower is scrolled */
 .md-hdr {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   flex: none;
   display: flex;
   align-items: center;
   gap: clamp(8px, 1.6vw, 14px);
   min-width: 0;
+  padding: 4px 0 6px;
+  background: linear-gradient(rgba(13, 10, 20, 0.96) 80%, rgba(13, 10, 20, 0));
 }
 .md-hdr h2 {
   margin: 0;
@@ -31,6 +36,22 @@
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
 }
 .md-title { min-width: 0; }
+/* the boss chip: shown while the boss rung is scrolled out of sight under the header */
+.md-peek {
+  flex: none;
+  min-height: 0;
+  margin-left: auto;
+  padding: 3px 10px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #1a1206;
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+  border: 1px solid var(--gold-hi);
+  border-radius: 999px;
+}
+.md-peek[hidden] { display: none; }
 .md-sub {
   display: block;
   margin-top: 2px;
@@ -50,13 +71,21 @@
   font-size: 18px;
 }
 
-/* ladder tower */
+/* ladder tower. The rung height follows the screen height, so the whole tower fits a laptop, a tablet and a phone in
+   landscape; only a screen shorter than the tower scrolls (ui/modes.ts brings the stage to fight into view). */
+.md-ladder {
+  --rung: clamp(32px, 8.8vh, 100px);
+  --rung-gap: clamp(3px, 1.4vh, 14px);
+  --no-w: clamp(20px, 3.2vh, 30px);
+  --pad-l: clamp(6px, 1vh, 10px);
+}
 .md-tower {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--rung-gap);
   position: relative;
 }
 .md-rung {
@@ -64,36 +93,38 @@
   display: flex;
   align-items: center;
   gap: clamp(8px, 1.6vw, 14px);
-  min-height: 84px;
-  margin: 0 0 16px;
-  padding: 8px 12px 8px 10px;
+  min-height: var(--rung);
+  margin: 0;
+  padding: 4px 12px 4px var(--pad-l);
   border-radius: var(--radius);
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
   box-shadow: var(--shadow-drop);
 }
-/* the climb: a short rail between each rung and the next one above it */
+/* the climb: a short rail from each rung to the one above it, across the gap */
 .md-rung:not(:last-child)::after {
   content: '';
   position: absolute;
-  left: 27px;
+  left: calc(var(--pad-l) + var(--no-w) / 2 - 1px);
   top: 100%;
-  height: 16px;
+  height: var(--rung-gap);
   width: 2px;
   background: var(--line-strong);
 }
 .md-no {
   flex: none;
-  width: 30px;
+  width: var(--no-w);
   text-align: center;
   font-family: var(--display);
-  font-size: 22px;
+  font-size: clamp(14px, 2.8vh, 22px);
   line-height: 1;
   color: var(--dim);
 }
+/* the portrait fills the rung's height (3:4), so a shorter screen gets smaller faces, not a taller tower */
 .md-face {
   flex: none;
-  width: clamp(54px, 10vw, 74px);
+  height: calc(var(--rung) - 14px);
+  width: auto;
   aspect-ratio: 3 / 4;
   object-fit: cover;
   object-position: 50% 14%;
@@ -106,12 +137,20 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 1px;
 }
+.md-namerow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 .md-nm {
+  min-width: 0;
   font-family: var(--display);
   font-weight: 400;
-  font-size: clamp(16px, 2.6vh, 20px);
+  font-size: clamp(13px, 2.4vh, 20px);
   line-height: 1.1;
   color: var(--ink);
   white-space: nowrap;
@@ -142,15 +181,15 @@
   color: var(--dim);
 }
 .md-boss {
-  align-self: flex-start;
-  margin-top: 3px;
+  flex: none;
   font-size: 11px;
   font-weight: 800;
+  line-height: 1.5;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #1a1206;
   background: linear-gradient(180deg, var(--gold-hi), var(--gold));
-  padding: 1px 8px;
+  padding: 0 8px;
   border-radius: 999px;
 }
 
@@ -190,11 +229,10 @@
 
 /* rung states */
 .md-rung.is-boss {
-  min-height: 96px;
   border-color: rgba(233, 182, 74, 0.7);
   background: linear-gradient(180deg, rgba(233, 182, 74, 0.16), rgba(255, 255, 255, 0.03));
 }
-.md-rung.is-boss .md-face { width: clamp(62px, 11vw, 84px); border-color: var(--gold); }
+.md-rung.is-boss .md-face { border-color: var(--gold); }
 .md-rung.is-cleared .md-face { filter: saturate(0.4) brightness(0.72); }
 .md-rung.is-cleared .md-no { color: var(--green); }
 .md-rung.is-lost { border-color: rgba(224, 69, 60, 0.7); }
@@ -214,20 +252,25 @@
   50% { box-shadow: 0 0 0 1px var(--gold) inset, 0 0 22px rgba(233, 182, 74, 0.42), var(--shadow-drop); }
 }
 
-/* footer action */
+/* footer action: sticks to the bottom, so the fight button is always in reach */
 .md-foot {
   position: sticky;
   bottom: 0;
   flex: none;
   display: flex;
   justify-content: center;
-  padding: 12px 0 2px;
+  padding: 10px 0 2px;
   background: linear-gradient(transparent, rgba(13, 10, 20, 0.92) 34%);
 }
 .md-go {
   width: min(100%, 320px);
   min-width: 0;
 }
+/* the ladder's header and footer carry the screen's top and bottom padding (safe areas included), so a sticky bar sits
+   flush with the screen edge and covers the rungs that scroll beneath it */
+.md-ladder { padding-top: 0; padding-bottom: 0; }
+.md-ladder .md-hdr { padding-top: max(clamp(6px, 2vh, 14px), env(safe-area-inset-top, 0px)); }
+.md-ladder .md-foot { padding-bottom: max(clamp(6px, 2vh, 16px), env(safe-area-inset-bottom, 0px)); }
 
 /* survival */
 .md-body {
@@ -300,7 +343,7 @@
   align-items: center;
   gap: 14px;
 }
-.md-next .md-face { width: clamp(84px, 14vw, 116px); }
+.md-next .md-face { height: auto; width: clamp(84px, 14vw, 116px); }
 
 /* run over */
 .md-over {
@@ -349,11 +392,8 @@
   .md-body { grid-template-columns: minmax(0, 1fr); }
   .md-streak { flex-direction: row; gap: 12px; justify-content: flex-start; text-align: left; }
   .md-num { font-size: 44px; }
-  .md-rung { min-height: 72px; gap: 8px; padding: 6px 8px 6px 6px; margin-bottom: 14px; }
-  .md-rung:not(:last-child)::after { left: 19px; }
-  .md-no { width: 22px; font-size: 18px; }
-  .md-rung .md-face { width: 50px; }
-  .md-rung.is-boss .md-face { width: 58px; }
+  .md-rung { gap: 8px; padding-right: 8px; }
+  .md-no { font-size: 18px; }
   .md-stamp { font-size: 12px; padding: 4px 7px; border-width: 2px; }
   .md-tag { font-size: 10px; padding: 2px 6px; }
   .md-meta { font-size: 11px; }
@@ -363,11 +403,27 @@
   .md-hdr h2 { font-size: 24px; }
 }
 
-/* short screens (landscape phones) keep the tower compact */
-@media (max-height: 480px) {
-  .md-rung { min-height: 60px; margin-bottom: 12px; }
-  .md-rung:not(:last-child)::after { height: 12px; }
-  .md-rung .md-face { width: 44px; }
+/* a window under 600px high drops the epithet line, so a laptop-height window still fits the tower */
+@media (max-height: 600px) {
+  .md-ladder .md-ep { display: none; }
+}
+
+/* short screens (landscape phones): a one-line header, a slim footer and smaller rung text, so the tower still fits */
+@media (max-height: 500px) {
+  .md-hdr { gap: 10px; padding: 2px 0 4px; }
+  .md-back { min-height: 34px; min-width: 72px; padding: 4px 12px; font-size: 16px; }
+  .md-title { display: flex; align-items: baseline; gap: 10px; }
+  .md-hdr h2 { font-size: 20px; }
+  .md-sub { margin-top: 0; font-size: 12px; }
+  .md-foot { padding: 4px 0 0; }
+  .md-foot .md-go { min-height: 36px; padding: 4px 14px; font-size: 16px; }
+  .md-ladder .md-info { gap: 0; }
+  .md-ladder .md-nm { line-height: 1.15; }
+  .md-ladder .md-meta { font-size: 11px; line-height: 1.2; }
+  .md-ladder .md-rung { gap: 8px; padding-top: 0; padding-bottom: 0; }
+  .md-ladder .md-boss { font-size: 9px; line-height: 1.6; padding: 0 6px; }
+  .md-ladder .md-stamp { font-size: 12px; padding: 3px 7px; border-width: 2px; }
+  .md-ladder .md-tag { font-size: 10px; padding: 1px 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

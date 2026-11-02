@@ -499,7 +499,7 @@ const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: num
 function aboutMe(e: GameEvent, me: number) {
   switch (e.t) {
     case 'hit': case 'block': return e.v === me || e.a === me;
-    case 'parry': return e.a === me || e.v === me;
+    case 'parry': case 'throw': case 'tech': return e.a === me || e.v === me;
     case 'swing': case 'shoot': case 'roll': case 'heal': case 'blink': case 'ex': return e.p === me;
     case 'trap': return e.v === me;
     case 'ko': return e.v === me || e.a === me;

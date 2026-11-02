@@ -152,6 +152,10 @@ export class App {
   /** The match in progress: its label on the VS card, and its counters. */
   private label = 'Practice';
   private stat: MatchStat = { startedAt: 0, bestCombo: 0, liveCombo: 0, perfects: 0, totalDamage: 0, tookDamage: false };
+  /** The K.O. has faded the HUD and the touch controls; the next round's intro brings them back. */
+  private koHidden = false;
+  /** A local match holds still (its room skips ticks) while the leave card or the move list is open. */
+  private localHold = false;
 
   start() {
     this.fit();
@@ -311,7 +315,8 @@ export class App {
   /** Applies the channel volumes (Settings: master x channel) to the music, the sample pack and the announcer. */
   private applyVolumes(p: Prefs = prefs()) {
     music.setVolume(p.volume * p.musicVol);
-    samples.setVolume(p.volume * p.sfxVol);
+    // (the sfx master gain already carries p.volume: Sfx routes the samples through it)
+    samples.setVolume(p.sfxVol);
     announcer.setVolume(p.volume * p.voiceVol);
   }
 
@@ -680,6 +685,7 @@ export class App {
     this.leave(true);
     this.mode = kind;
     this.room = localRoom(kind === 'practice' ? 'Practice' : 'Same device');
+    this.holdLocal(this.room);
     const a = new Session({ kind: 'local', room: this.room, owns: true }, this.profiles[0]);
     this.sessions = [a];
     if (kind === 'practice') this.room.botOn = true;
@@ -873,6 +879,7 @@ export class App {
       if (g0) for (const f of g0.fighters(performance.now())) prefetchHeroSprites(f.hero, this.game!.textures);
       this.show('game');
       this.stat = { startedAt: performance.now(), bestCombo: 0, liveCombo: 0, perfects: 0, totalDamage: 0, tookDamage: false };
+      this.koHidden = false;
       if (this.trainingOn) this.mountTrainingUi();
       else this.dropTraining();
       const inputs: LocalPlayer[] = [];
@@ -887,6 +894,7 @@ export class App {
           const src: (KeyboardSource | GamepadSource | TouchSource)[] = [new KeyboardSource('solo' as KeyScheme), pads(0)];
           if (isTouchDevice()) {
             this.touch = new TouchSource(this.ui);
+            this.touch.root.classList.toggle('faded', this.koHidden);
             src.push(this.touch);
           }
           const input: InputSource = new MergedSource(src);
@@ -910,6 +918,8 @@ export class App {
         const g = this.sessions[0]?.game;
         if (g) {
           this.hud.update(g, this.sessions[0].roster, this.sessions[0].rtt, (now - last) / 1000);
+          // the next round's intro brings the HUD and the touch controls back (the K.O. banners run first)
+          if (this.koHidden && g.phase === 'intro') this.fadeHud(false);
           if (this.touch) {
             const f = g.fighters(now).find((x) => x.self);
             if (f) {
@@ -942,18 +952,13 @@ export class App {
     switch (e.t) {
       case 'fight':
         this.stat.tookDamage = false;
-        this.hud?.setHidden(false);
+        this.fadeHud(false);
         break;
       case 'round': {
-        // the K.O. slow-mo hides the HUD (its banners stay up)
-        if (e.why === 0) this.hud?.setHidden(true);
-        const hud = this.hud;
-        const say = (text: string, color?: string) => setTimeout(() => this.hud === hud && hud?.announceResult(text, color), 1400);
-        if (e.winner === 255) say('DRAW');
-        else if (e.winner === mySeat && !this.stat.tookDamage && e.why === 0) {
-          this.stat.perfects++;
-          say('PERFECT', '#ffd84a');
-        }
+        // the K.O. slow-mo fades the HUD (its banners stay up) until the next round's intro. The result words (PERFECT,
+        // DOUBLE K.O., TIME OVER) belong to the K.O. sequence in the scene, so the DOM does not draw them again.
+        if (e.why === 0) this.fadeHud(true);
+        if (e.winner === mySeat && !this.stat.tookDamage && e.why === 0) this.stat.perfects++;
         break;
       }
       case 'hit':
@@ -993,7 +998,7 @@ export class App {
       onDummy: (mode) => this.setDummy(mode),
       onInfiniteRift: (on) => this.setInfinite(on),
       onReset: () => this.restartTraining(),
-      onMoveList: () => showMoveList(this.ui, this.profiles[0].load.hero, () => {}),
+      onMoveList: () => this.openMoveList(),
     });
     this.trainingEl = this.ui.lastElementChild as HTMLElement;
   }
@@ -1022,8 +1027,9 @@ export class App {
     if (r.world) r.world.settings.infiniteRift = on;
   }
 
-  /** Reset: the same training match again, both fighters back at their start. */
+  /** Reset: the same training match again, both fighters back at their start (the readout starts from zero). */
   private restartTraining() {
+    this.training?.reset();
     this.startFight({ arenaId: this.train.arena, botLevel: this.train.level, training: true, infiniteRift: this.train.infinite, label: 'Training' });
   }
 
@@ -1046,6 +1052,7 @@ export class App {
     this.label = o.label ?? 'Practice';
     const room = localRoom('Practice');
     this.room = room;
+    this.holdLocal(room);
     room.settings = {
       ...room.settings,
       arenaId: o.arenaId,
@@ -1243,7 +1250,35 @@ export class App {
     this.inputs = [];
   }
 
+  /** Fades the HUD and the touch controls together: the K.O. fades them, the next round's intro brings them back. */
+  private fadeHud(on: boolean) {
+    this.koHidden = on;
+    this.hud?.setHidden(on);
+    this.touch?.root.classList.toggle('faded', on);
+  }
+
+  /**
+   * A local room (practice, arcade, survival, training, same device) runs its own tick loop. Its tick is skipped while an
+   * in-match overlay is open (see localHold), so the bot and the clock wait for the player. Online rooms are not wrapped.
+   */
+  private holdLocal(room: Room) {
+    const step = room.tick.bind(room);
+    room.tick = () => {
+      if (!this.localHold) step();
+    };
+  }
+
+  /** The move list opened from a match (the leave card or the training menu): the local match holds still until it closes. */
+  private openMoveList() {
+    this.localHold = true;
+    showMoveList(this.ui, this.profiles[0].load.hero, () => {
+      this.localHold = false;
+    });
+  }
+
   private confirmLeave() {
+    // the local match holds still while the card is up; Keep fighting (or the move list's Close) resumes it
+    this.localHold = true;
     const el = document.createElement('div');
     el.className = 'modal';
     el.innerHTML = `<div class="card"><h3>Leave the duel?</h3><div class="row"><button data-x="stay" class="primary">Keep fighting</button><button data-x="moves">Move list</button><button data-x="go">Leave</button></div></div>`;
@@ -1252,11 +1287,14 @@ export class App {
       const x = (e.target as HTMLElement).dataset.x;
       if (x === 'moves') {
         el.remove();
-        showMoveList(this.ui, this.profiles[0].load.hero, () => {});
+        this.openMoveList();
         return;
       }
       if (x === 'go') this.leave();
-      if (x) el.remove();
+      if (x) {
+        el.remove();
+        this.localHold = false;
+      }
     });
   }
 
@@ -1267,6 +1305,7 @@ export class App {
     this.listener?.stop();
     this.listener = null;
     this.direct = false;
+    this.localHold = false;
     for (const s of this.sessions) s.close();
     this.sessions = [];
     this.room = null;

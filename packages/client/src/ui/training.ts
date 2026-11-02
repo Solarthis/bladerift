@@ -3,7 +3,7 @@ import { Btn } from '@bladerift/shared';
 /**
  * TRAINING mode overlay for a practice match (settings { training: true }). Three parts, all pointer-transparent except
  * the menu: an input history column on the left (last inputs as arrows and button glyphs, with frame counts), a damage
- * panel at the top centre (last hit, combo damage, combo hits, best combo) and a compact menu at the top right (dummy
+ * panel at the top centre (last hit, combo damage, combo hits, best combo) and a compact menu tab under it (dummy
  * behaviour, infinite gauge, reset positions, move list). Styles: ui/training.css (imported from main.ts).
  */
 
@@ -22,6 +22,8 @@ export interface Training {
   pushInput(buttons: number, moveX: number, moveY: number): void;
   /** Report a landed hit. damage is the hit's damage; combo is the running hit count of the combo (1 on the first hit). */
   setHit(info: { damage: number; combo: number }): void;
+  /** A fresh match: zeroes the last, combo, hits and best counters (the menu's choices stay). */
+  reset(): void;
   destroy(): void;
 }
 
@@ -74,6 +76,7 @@ export function mountTraining(root: HTMLElement, opts: TrainingOpts): Training {
   el.className = 'training';
   el.innerHTML = `
     <div class="tr-inputs" aria-label="Input history"></div>
+    <div class="tr-top">
     <div class="tr-dmg" aria-label="Damage">
       <div class="tr-cell"><span>LAST</span><b class="tr-last">0</b></div>
       <div class="tr-cell tr-combo-cell"><span>COMBO</span><b class="tr-cdmg">0</b></div>
@@ -92,6 +95,7 @@ export function mountTraining(root: HTMLElement, opts: TrainingOpts): Training {
           <button type="button" data-act="moves">Move list</button>
         </div>
       </div>
+    </div>
     </div>`;
   root.appendChild(el);
 
@@ -175,6 +179,20 @@ export function mountTraining(root: HTMLElement, opts: TrainingOpts): Training {
     endTimer = window.setTimeout(() => dmgPanel.classList.add('ended'), COMBO_GAP_MS);
   };
 
+  const reset = () => {
+    window.clearTimeout(endTimer);
+    last = 0;
+    comboHits = 0;
+    comboDmg = 0;
+    best = 0;
+    lastAt = -Infinity;
+    lastEl.textContent = '0';
+    cdmgEl.textContent = '0';
+    hitsEl.textContent = '0';
+    bestEl.textContent = '0';
+    dmgPanel.classList.remove('ended');
+  };
+
   // ---- menu
   const setDummy = (mode: DummyMode) => {
     el.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => {
@@ -232,6 +250,7 @@ export function mountTraining(root: HTMLElement, opts: TrainingOpts): Training {
   return {
     pushInput,
     setHit,
+    reset,
     destroy() {
       window.clearTimeout(endTimer);
       el.removeEventListener('click', onClick);

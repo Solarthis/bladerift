@@ -1,8 +1,9 @@
 /**
  * The moonlit bridge at night, as seen from its back wall (stage FX for the 'bridge' arena): clouds drifting across the
  * moon, a faint moon halo, the parapet lanterns flickering, distant lights in the town and behind the arches twinkling,
- * sea mist rolling low along the far floor, and the odd bat far off in the sky. All procedural: a few canvas textures made
- * once, pooled images, and a seeded LCG for every choice (no Math.random, no per-frame allocation). It stays faint and sits
+ * sea mist rolling low along the far floor, the odd bat far off in the sky, and snow falling through the air behind the
+ * fighters. The lanterns' light lies warm on the walk below the parapet. All procedural: a few canvas textures made once,
+ * pooled images, and a seeded LCG for every choice (no Math.random, no per-frame allocation). It stays faint and sits
  * behind the fighters; 'low' quality keeps about a third of the particles.
  */
 import type Phaser from 'phaser';
@@ -20,6 +21,7 @@ const DISTANT: [number, number][] = [
 /** Tints for the twinkles: warm lamp light, and a few cool moonlit ones. */
 const TWINKLE_TINT = [0xffd27a, 0xffb35c, 0xfff0d0, 0xbfd4ff];
 const GLOW = 'bf-glow';
+const FLAKE = 'bf-flake';
 const MIST = 'bf-mist';
 const CLOUD_KEYS = ['bf-cloud-0', 'bf-cloud-1', 'bf-cloud-2'];
 /** Bat silhouettes, wings up and wings down. */
@@ -59,6 +61,8 @@ function makeTextures(scene: Phaser.Scene): void {
   };
   // a soft round glow: lanterns, twinkles, the moon halo
   paint(GLOW, 64, 64, (g) => blob(g, 32, 32, 32, 1, 1, 1));
+  // a snowflake: a small, hard-centred dot
+  paint(FLAKE, 8, 8, (g) => blob(g, 4, 4, 4, 1, 1, 1));
   // cloud banks: a row of puffs, three variants
   for (let v = 0; v < CLOUD_KEYS.length; v++) {
     const r = lcg(0x1d2c + v * 7919);
@@ -103,8 +107,19 @@ function makeTextures(scene: Phaser.Scene): void {
 
 interface Glow {
   o: Phaser.GameObjects.Image;
+  /** The warm light the lantern throws on the walk at the wall's foot (none for the moon). */
+  pool: Phaser.GameObjects.Image;
   ph: number;
   base: number;
+}
+/** A falling snowflake in the air (world position, drift, fall speed, phase). */
+interface Flake {
+  o: Phaser.GameObjects.Image;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  ph: number;
 }
 interface Dot {
   o: Phaser.GameObjects.Image;
@@ -174,13 +189,15 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
     add(picX(MOON.u, k), picY(MOON.v), GLOW, -19.84, FAR).setScale(1.4).setTint(0xcfdcff).setAlpha(0.2).setBlendMode('ADD');
   }
 
-  // ---- the parapet lanterns: a warm glow that flickers (on 'low' only the copies near the middle)
+  // ---- the parapet lanterns: a warm glow that guttering flickers, and the light each throws on the walk below
+  // (on 'low' only the copies near the middle)
   const glows: Glow[] = [];
   for (const k of copies) {
     if (low && Math.abs(k) > 1) continue;
     for (const b of lanterns) {
-      const o = add(picX(b.u, k), picY(b.v), GLOW, -19.7, FAR).setScale(0.7).setTint(0xffb866).setBlendMode('ADD');
-      glows.push({ o, ph: rnd() * 6.28, base: 0.3 + rnd() * 0.12 });
+      const o = add(picX(b.u, k), picY(b.v), GLOW, -19.7, FAR).setScale(1).setTint(0xffb866).setBlendMode('ADD');
+      const pool = add(picX(b.u, k), wallBase + 12, GLOW, -18.7, FAR).setScale(1.5, 0.4).setTint(0xffb866).setBlendMode('ADD');
+      glows.push({ o, pool, ph: rnd() * 6.28, base: 0.34 + rnd() * 0.14 });
     }
   }
 
@@ -196,7 +213,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
   };
   const dots: Dot[] = [];
   for (let i = 0; i < count(36); i++) {
-    const o = add(0, 0, GLOW, -19.72, FAR).setScale(0.1).setBlendMode('ADD').setAlpha(0);
+    const o = add(0, 0, GLOW, -19.72, FAR).setScale(0.13).setBlendMode('ADD').setAlpha(0);
     const d: Dot = { o, life: 0, freq: 1, ph: 0, peak: 0.5 };
     place(d);
     d.life *= rnd(); // stagger the respawns
@@ -211,7 +228,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
     const x = X0 + rnd() * (X1 - X0);
     const y = picY(0.05 + rnd() * 0.2);
     const o = add(x, y, CLOUD_KEYS[i % CLOUD_KEYS.length], -19.82, FAR).setScale(w / 256, h / 64).setTint(0xb4c4e6);
-    clouds.push({ o, w, x, y, speed: 1.2 + rnd() * 2.4, ph: rnd() * 6.28, base: 0.2 + rnd() * 0.12 });
+    clouds.push({ o, w, x, y, speed: 2 + rnd() * 3, ph: rnd() * 6.28, base: 0.3 + rnd() * 0.15 });
   }
 
   // ---- sea mist rolling low along the far floor, behind the fighters
@@ -222,24 +239,39 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
     const x = -100 + rnd() * (W + 200);
     const y = floor - 46 + rnd() * 60;
     const o = add(x, y, MIST, -18.5, 1).setScale(w / 256, h / 64).setTint(0x9fb6d8);
-    mists.push({ o, w, x, y, speed: 4 + rnd() * 8, ph: rnd() * 6.28, base: 0.1 + rnd() * 0.06 });
+    mists.push({ o, w, x, y, speed: 4 + rnd() * 8, ph: rnd() * 6.28, base: 0.16 + rnd() * 0.08 });
+  }
+
+  // ---- snow: a slow fall of flakes through the air behind the fighters, drifting side to side (scroll 1, world space)
+  const flakes: Flake[] = [];
+  for (let i = 0; i < count(56); i++) {
+    const o = add(0, 0, FLAKE, 7.3, 1).setTint(0xe6eeff).setAlpha(0.55);
+    flakes.push({ o, x: rnd() * W, y: wallTop + rnd() * (floor - wallTop), vx: (rnd() - 0.5) * 6, vy: 16 + rnd() * 18, ph: rnd() * 6.28 });
   }
 
   // ---- bats, now and then, far off across the sky above the wall
   const bats: Bat[] = [];
-  for (let i = 0; i < count(3); i++) {
-    const o = add(0, 0, BAT_KEYS[0], -19.78, FAR).setScale(0.2).setTint(0x1c2640).setAlpha(0);
+  for (let i = 0; i < count(4); i++) {
+    const o = add(0, 0, BAT_KEYS[0], -19.78, FAR).setScale(0.22).setTint(0x1c2640).setAlpha(0);
     bats.push({ o, on: false, x: 0, y: 0, vx: 0, ph: 0, flap: 0, up: true });
   }
-  let batClock = 8 + rnd() * 10;
+  let batClock = 6 + rnd() * 8;
   let t = 0;
   let dead = false;
 
   return {
-    update(dt: number): void {
+    update(dt: number, cam: Phaser.Cameras.Scene2D.Camera): void {
       if (dead) return;
       const h = Math.min(Math.max(dt, 0), 0.1);
       t += h;
+      // the view in world units (with a margin): the snow falls across it and wraps at its edges
+      const z = cam.zoom || 1;
+      const hw = scene.scale.width / z / 2 + 60;
+      const hh = scene.scale.height / z / 2 + 60;
+      const vx0 = cam.midPoint.x - hw;
+      const vx1 = cam.midPoint.x + hw;
+      const vy0 = cam.midPoint.y - hh;
+      const vy1 = cam.midPoint.y + hh;
 
       for (const c of clouds) {
         c.x += c.speed * h;
@@ -256,9 +288,23 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
       }
 
       for (const g of glows) {
-        // three slow sines, one quicker: a lantern guttering rather than pulsing
-        const n = Math.sin(t * 9.1 + g.ph) * 0.5 + Math.sin(t * 23.7 + g.ph * 1.7) * 0.3 + Math.sin(t * 4.3 + g.ph * 0.6) * 0.2;
-        g.o.setAlpha(g.base * (0.85 + 0.15 * n));
+        // three slow sines, one quicker: a lantern guttering rather than pulsing; its light on the walk goes with it
+        const n = Math.sin(t * 13.3 + g.ph) * 0.5 + Math.sin(t * 23.7 + g.ph * 1.7) * 0.3 + Math.sin(t * 4.3 + g.ph * 0.6) * 0.2;
+        g.o.setAlpha(g.base * (0.7 + 0.3 * n));
+        g.pool.setAlpha(g.base * 0.6 * (0.7 + 0.3 * n));
+      }
+
+      // snow: each flake falls, sways, and wraps back to the top of the view when it leaves the bottom or a side
+      for (const f of flakes) {
+        f.y += f.vy * h;
+        f.x += (f.vx + 9 * Math.sin(t * 0.9 + f.ph)) * h;
+        if (f.y > vy1) {
+          f.y = vy0 - rnd() * 60;
+          f.x = vx0 + rnd() * (vx1 - vx0);
+          f.vy = 16 + rnd() * 18;
+        } else if (f.x < vx0 - 20) f.x += vx1 - vx0 + 40;
+        else if (f.x > vx1 + 20) f.x -= vx1 - vx0 + 40;
+        f.o.setPosition(f.x, f.y).setAlpha(0.4 + 0.2 * Math.sin(t * 2.6 + f.ph));
       }
 
       for (const d of dots) {
@@ -271,7 +317,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
 
       batClock -= h;
       if (batClock <= 0) {
-        batClock = (low ? 2.2 : 1) * (8 + rnd() * 12);
+        batClock = (low ? 2.2 : 1) * (6 + rnd() * 8);
         for (const b of bats) {
           if (b.on) continue;
           const dir = rnd() < 0.5 ? 1 : -1;
@@ -298,7 +344,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
           b.up = !b.up;
           b.o.setTexture(b.up ? BAT_KEYS[0] : BAT_KEYS[1]);
         }
-        b.o.setPosition(b.x, b.y + Math.sin(t * 1.3 + b.ph) * 2.5).setAlpha(0.55);
+        b.o.setPosition(b.x, b.y + Math.sin(t * 1.3 + b.ph) * 2.5).setAlpha(0.8);
       }
     },
     destroy(): void {

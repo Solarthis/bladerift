@@ -21,11 +21,11 @@ const base = (over: Partial<CameraInput> = {}): CameraInput => ({
   ...over,
 });
 
-/** Run `seconds` of frames with the same input and return the last frame. */
+/** Run `seconds` of frames with the same input and return a copy of the last frame (update() reuses its object). */
 function run(cam: FightCamera, input: CameraInput, seconds: number) {
   let f = cam.update(input);
   for (let i = 1; i < Math.round(seconds / DT); i++) f = cam.update(input);
-  return f;
+  return { ...f };
 }
 
 /** Screen x (px) of a world x, for a frame with the given view size. */
@@ -50,14 +50,14 @@ describe('FightCamera framing', () => {
     expect(screenY(FLOOR, f, 720) / 720).toBeCloseTo(0.75, 3);
   });
 
-  it('frames close fighters larger on touch phones (24% of the view height) and puts the floor at 72%', () => {
+  it('frames close fighters larger on touch phones (20% of the view height; the drawn sprite is about 25%) and puts the floor at 72%', () => {
     const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
     const input = base({ viewW: 844, viewH: 390, touch: true, padLeft: 100, padRight: 200 });
     const f = run(cam, input, 2);
     const share = (FIGHTER.h * f.zoom) / 390;
-    expect(share).toBeGreaterThanOrEqual(0.22);
-    expect(share).toBeLessThanOrEqual(0.26);
-    expect(share).toBeCloseTo(0.24, 3);
+    expect(share).toBeGreaterThanOrEqual(0.18);
+    expect(share).toBeLessThanOrEqual(0.22);
+    expect(share).toBeCloseTo(0.2, 3);
     expect(screenY(FLOOR, f, 390) / 390).toBeCloseTo(0.72, 3);
   });
 
@@ -72,7 +72,7 @@ describe('FightCamera framing', () => {
     expect(Math.abs(after.zoom - fit)).toBeLessThan(0.05);
     const settled = run(cam, parted, 3);
     expect(settled.zoom).toBeCloseTo(fit, 4);
-    // both fighters sit inside the 95-unit margins, on screen
+    // both fighters sit inside the margins (CAMERA.margin units beyond each), on screen
     expect(screenX(100, settled, 1280)).toBeGreaterThanOrEqual(CAMERA.margin * settled.zoom - 1e-6);
     expect(screenX(1000, settled, 1280)).toBeLessThanOrEqual(1280 - CAMERA.margin * settled.zoom + 1e-6);
   });
@@ -99,12 +99,29 @@ describe('FightCamera framing', () => {
     const f = run(cam, base({ fighters: [{ x: 600, y: FLOOR }, { x: 600, y: FLOOR }] }), 4);
     expect(f.zoom).toBeCloseTo((720 * 0.19) / FIGHTER.h, 3);
   });
+
+  it('frames a round intro at the close size on its first frame (the spawns are 400 units apart)', () => {
+    // the hall's spawns: the intro is at the fight framing from the first frame, not eased in from a wide view
+    const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
+    const first = { ...cam.update(base({ fighters: [{ x: 420, y: FLOOR }, { x: 820, y: FLOOR }] })) };
+    expect((FIGHTER.h * first.zoom) / 720).toBeCloseTo(0.19, 6);
+    const later = run(cam, base({ fighters: [{ x: 420, y: FLOOR }, { x: 820, y: FLOOR }] }), 1);
+    expect(later.zoom).toBeCloseTo(first.zoom, 9);
+  });
+
+  it('snaps a fresh round from a wide shot straight to the close framing (reset, no easing)', () => {
+    const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
+    run(cam, base({ fighters: [{ x: 100, y: FLOOR }, { x: 1000, y: FLOOR }] }), 3); // wide
+    cam.reset();
+    const f = cam.update(base({ fighters: [{ x: 420, y: FLOOR }, { x: 820, y: FLOOR }] }));
+    expect((FIGHTER.h * f.zoom) / 720).toBeCloseTo(0.19, 6);
+  });
 });
 
 describe('FightCamera horizontal', () => {
   it('stays perfectly still while both fighters are inside the middle half of the usable width', () => {
     const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
-    const first = cam.update(base());
+    const first = { ...cam.update(base()) };
     // the zone is 25% of the usable width either side of the centre: about +-122 units at this zoom
     let prev = first.x;
     for (let i = 0; i < 180; i++) {
@@ -117,9 +134,17 @@ describe('FightCamera horizontal', () => {
 
   it('pushes the frame once a fighter leaves the dead zone', () => {
     const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
-    const first = cam.update(base());
+    const first = { ...cam.update(base()) };
     const f = run(cam, base({ fighters: [{ x: 900, y: FLOOR }, { x: 940, y: FLOOR }] }), 3);
     expect(f.x).toBeGreaterThan(first.x + 100);
+  });
+
+  it('pans a reset straight to the new fighters on its first frame', () => {
+    const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
+    run(cam, base({ fighters: [{ x: 100, y: FLOOR }, { x: 120, y: FLOOR }] }), 3);
+    cam.reset();
+    const f = cam.update(base({ fighters: [{ x: 420, y: FLOOR }, { x: 820, y: FLOOR }] }));
+    expect(f.x).toBeCloseTo(620, 6);
   });
 
   it('clamps the view 50 units past the left and right arena walls', () => {
@@ -152,10 +177,25 @@ describe('FightCamera horizontal', () => {
 
   it('zooms out to fit the fighters between the pads, not across the whole view', () => {
     const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
-    // 1000 px view, 500 px usable: the fit (500 / 210 = 2.38 px per unit) is tighter than the touch target (2.77)
-    const input = base({ viewW: 1000, viewH: 600, touch: true, padLeft: 250, padRight: 250, fighters: [{ x: 500, y: FLOOR }, { x: 520, y: FLOOR }] });
+    // 1000 px view, 500 px usable: the fit (500 / 280 = 1.79 px per unit) is tighter than the touch target (2.77),
+    // and tighter than the fit across the whole view (1000 / 280 = 3.57)
+    const input = base({ viewW: 1000, viewH: 600, touch: true, padLeft: 250, padRight: 250, fighters: [{ x: 500, y: FLOOR }, { x: 700, y: FLOOR }] });
     const f = run(cam, input, 2);
-    expect(f.zoom).toBeCloseTo(Math.min((600 * 0.24) / FIGHTER.h, 500 / (20 + 2 * CAMERA.margin)), 4);
+    expect(f.zoom).toBeCloseTo(500 / (200 + 2 * CAMERA.margin), 4);
+  });
+
+  it('keeps a fighter pushed to either wall clear of the touch pads', () => {
+    const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
+    const VW = 844;
+    const pads = { viewW: VW, viewH: 390, touch: true, padLeft: 100, padRight: 200 };
+    const half = FIGHTER.w / 2;
+    // the stick (left, 100 px) and the button cluster (right, 200 px) cover the screen's ends: the body must stay between them
+    const left = run(cam, base({ ...pads, fighters: [{ x: 20, y: FLOOR }, { x: 40, y: FLOOR }] }), 3);
+    expect(screenX(20 - half, left, VW)).toBeGreaterThanOrEqual(100);
+    expect(screenX(40 + half, left, VW)).toBeLessThanOrEqual(VW - 200 + 1e-6);
+    const right = run(cam, base({ ...pads, fighters: [{ x: ARENA_W - 20, y: FLOOR }, { x: ARENA_W - 40, y: FLOOR }] }), 3);
+    expect(screenX(ARENA_W - 40 - half, right, VW)).toBeGreaterThanOrEqual(100 - 1e-6);
+    expect(screenX(ARENA_W - 20 + half, right, VW)).toBeLessThanOrEqual(VW - 200);
   });
 });
 
@@ -174,6 +214,33 @@ describe('FightCamera vertical', () => {
     const high = run(cam, jump, 3);
     expect(high.y).toBeLessThan(ground.y - 100);
     expect(screenY(300 - FIGHTER.h, high, 720)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('keeps a fast rise in view: the highest drawn head stays 10% of the view below the top on every frame', () => {
+    const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
+    const ground = run(cam, base(), 2);
+    // a 185-unit rise in 0.2 s (smoothstep), then held: the camera must catch it on the way up
+    const rise = 185;
+    let f = { ...ground };
+    for (let i = 1; i <= 12 + 60; i++) {
+      const u = Math.min(1, i / 12);
+      const lift = rise * u * u * (3 - 2 * u);
+      f = { ...cam.update(base({ fighters: [{ x: 600, y: FLOOR - lift }, { x: 640, y: FLOOR }] })) };
+      // the drawn head (the body box plus the hair and crest) is 10% of the view below the top edge
+      expect(screenY(FLOOR - lift - FIGHTER.h - CAMERA.drawnHead, f, 720)).toBeGreaterThanOrEqual(0.1 * 720 - 1e-6);
+    }
+    expect(f.y).toBeLessThan(ground.y - 60);
+  });
+
+  it('does not move the camera on any frame of a small hop', () => {
+    const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
+    const ground = run(cam, base(), 2);
+    // a 100-unit hop (under the 110-unit lift line) up over 0.3 s and back down over 0.3 s
+    for (let i = 1; i <= 36; i++) {
+      const u = i <= 18 ? i / 18 : (36 - i) / 18;
+      const f = cam.update(base({ fighters: [{ x: 600, y: FLOOR - 100 * u * u * (3 - 2 * u) }, { x: 640, y: FLOOR }] }));
+      expect(f.y).toBeCloseTo(ground.y, 6);
+    }
   });
 
   it('keeps the head of a touch-view fighter on screen when it lifts', () => {
@@ -196,7 +263,7 @@ describe('FightCamera robustness', () => {
 
   it('returns finite values with no fighters, zero dt or a huge dt', () => {
     const cam = new FightCamera({ arenaW: ARENA_W, floor: FLOOR });
-    const empty = cam.update(base({ fighters: [] }));
+    const empty = { ...cam.update(base({ fighters: [] })) };
     for (const v of [empty.zoom, empty.x, empty.y]) expect(Number.isFinite(v)).toBe(true);
     const still = cam.update(base({ dt: 0 }));
     expect(still).toEqual(empty);

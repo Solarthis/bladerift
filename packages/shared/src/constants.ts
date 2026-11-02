@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 13;
+export const PROTOCOL_VERSION = 14;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -167,7 +167,7 @@ export const HITSTOP = {
 
 export const ROUND = {
   introTicks: 150,
-  koTicks: 150,
+  koTicks: 210,
   defaultTime: 120,
   defaultWins: 2,
 } as const;

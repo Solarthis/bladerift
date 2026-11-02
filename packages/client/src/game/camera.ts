@@ -5,30 +5,41 @@
  *
  * The framing rules (measured off the MUGEN reference, docs/feel/mugen-reference.md section 5):
  * - Zoom is fixed on the fighters' size: a standing fighter (FIGHTER.h) is `heightShare` of the view height (19% on
- *   desktop, 24% on touch phones). The camera zooms out only as far as needed to keep both fighters, with `margin`
+ *   desktop, 20% on touch phones, where the drawn sprite stands about 25% tall). The camera zooms out only as far as needed to keep both fighters, with `margin`
  *   world units beyond each, inside the usable width between the touch pads. It never zooms out past the arena.
+ * - A fresh round (reset()) frames the fighters on its first frame, with no easing in from the last shot or a wide default.
  * - Zoom-out is quick (8/s). Zoom-in waits 0.6 s of wanting it, then eases slowly (2/s), so the frame never breathes.
  * - Horizontal: a dead zone (the middle half of the usable width) in which the camera does not move at all. A fighter
  *   that leaves it pushes the frame just far enough to bring it back to the edge of the zone.
  * - Vertical: the floor sits at 75% of the view height (72% on touch, so more of the floor shows above the buttons).
- *   The camera rises only when a fighter is more than `liftAbove` units above the floor, and never lets the highest
- *   head leave the top of the view.
- * - The view never shows more than `wallSlack` units past the arena walls. An arena narrower than the view is centred.
+ *   The camera rises only when a fighter is more than `liftAbove` units above the floor. A rise is followed at `riseRate`
+ *   and a hard limit keeps the highest head `headShare` of the view height below the top edge, however fast it rose.
+ * - Walls: the usable area between the pads never shows more than `wallSlack` units past the arena walls, so a fighter
+ *   pushed to a wall stays clear of the touch controls. An arena narrower than the view is centred.
  */
 import { FIGHTER } from '@bladerift/shared';
 
 /** The tuning, in one place. World units unless noted. */
 export const CAMERA = {
   /** A standing fighter's height as a share of the view height: desktop 19% (18-20%), touch 24% (22-26%). */
-  heightShare: { desktop: 0.19, touch: 0.24 },
+  heightShare: { desktop: 0.19, touch: 0.2 },
   /** The floor line's place down the view (share of its height from the top): desktop 75%, touch 72%. */
   floorShare: { desktop: 0.75, touch: 0.72 },
-  /** Units kept clear beyond each fighter's x, on both sides, when zooming out to fit both. */
-  margin: 95,
+  /**
+   * Units kept clear beyond each fighter's x, on both sides, when zooming out to fit both. 40 (about 100 px at the desktop
+   * close zoom): the fighters' spawn spread (about 400 units) then fits at the close zoom, so a round opens on the fight
+   * framing. A wider margin (it was 95) framed the intro at 15-17% of the view height.
+   */
+  margin: 40,
   /** A fighter this far above the floor starts to lift the camera. */
   liftAbove: 110,
-  /** Units kept clear above the highest fighter's head when the camera lifts (a touch view's floor is lower on screen). */
-  headroom: 6,
+  /**
+   * The drawn head reaches this far above the body box's top (FIGHTER.h): the hair, crest and raised arms of the jump
+   * poses. Measured on hero 0 over a rise: the painted top sat 45-71 units above the feet, so 24 covers the tallest pose.
+   */
+  drawnHead: 24,
+  /** The drawn head is kept this share of the view height below the top edge: a hard limit while the camera rises. */
+  headShare: 0.1,
   /** Half-width of the horizontal dead zone, as a share of the usable width (0.25 = the middle half). */
   deadShare: 0.25,
   /** How far the view may show past the arena walls. */
@@ -41,8 +52,10 @@ export const CAMERA = {
   zoomInWait: 0.6,
   /** Horizontal pan ease rate (per second), once a fighter has left the dead zone. */
   panRate: 8,
-  /** Vertical ease rate (per second). */
+  /** Vertical ease rate (per second) when the camera falls back down. */
   liftRate: 6,
+  /** Vertical ease rate (per second) when the camera rises for a jump: quick, so a fast rise is not left behind. */
+  riseRate: 14,
   /** Longest frame step taken, in seconds: a stalled tab must not jump the camera. */
   maxDt: 0.25,
 } as const;
@@ -95,6 +108,8 @@ export class FightCamera {
   private cy = 0;
   /** Seconds the closer zoom has been wanted. */
   private zoomInWait = 0;
+  /** The frame update() returns: one object, rewritten each call (no per-frame allocation). */
+  private readonly frame: CameraFrame = { zoom: 1, x: 0, y: 0 };
 
   constructor(opts: FightCameraOpts) {
     this.arenaW = opts.arenaW;
@@ -107,7 +122,10 @@ export class FightCamera {
     this.zoomInWait = 0;
   }
 
-  /** Advance the camera by one frame and return where it looks. */
+  /**
+   * Advance the camera by one frame and return where it looks. The returned object is the camera's own and is rewritten by
+   * the next update(), so copy it (`{ ...cam.update(input) }`) to keep a frame across calls.
+   */
   update(input: CameraInput): CameraFrame {
     const dt = Number.isFinite(input.dt) ? clamp(input.dt, 0, CAMERA.maxDt) : 0;
     const vw = Math.max(1, input.viewW);
@@ -166,27 +184,40 @@ export class FightCamera {
     else if (maxX > this.fc + dz) target = maxX - dz;
     this.fc = easeTo(this.fc, target, CAMERA.panRate, dt);
 
-    // vertical: the floor at its share of the view, lifted only for a high fighter, and the head kept in view
-    this.cy = easeTo(this.cy, this.verticalTarget(minY, vh / this.zoom, floorShare), CAMERA.liftRate, dt);
+    // vertical: the floor at its share of the view, lifted only for a high fighter. A rise is followed quickly and a fall
+    // slowly; the head limit is then a hard cap, so the highest head never leaves the top, however fast it rose
+    const h = vh / this.zoom;
+    const cyTarget = this.verticalTarget(minY, h, floorShare);
+    const rate = cyTarget < this.cy ? CAMERA.riseRate : CAMERA.liftRate;
+    this.cy = Math.min(easeTo(this.cy, cyTarget, rate, dt), this.headLimit(minY, h));
 
-    // the view centre sits this far from the usable centre (the pads shift the frame towards the open side)
+    // the view centre sits this far from the usable centre (the pads shift the frame towards the open side). The usable
+    // area (between the pads) is kept within wallSlack of the walls, so a fighter at a wall is never under a pad.
     const off = (padR - padL) / 2 / this.zoom;
-    const halfW = vw / this.zoom / 2;
-    let x = this.fc + off;
-    if (halfW * 2 >= this.arenaW + 2 * CAMERA.wallSlack) x = this.arenaW / 2;
-    else x = clamp(x, halfW - CAMERA.wallSlack, this.arenaW + CAMERA.wallSlack - halfW);
-    return { zoom: this.zoom, x, y: this.cy };
+    const uhW = useW / 2 / this.zoom;
+    let x: number;
+    if (uhW * 2 >= this.arenaW + 2 * CAMERA.wallSlack) x = this.arenaW / 2 + off;
+    else x = clamp(this.fc + off, uhW - CAMERA.wallSlack + off, this.arenaW + CAMERA.wallSlack - uhW + off);
+    const out = this.frame;
+    out.zoom = this.zoom;
+    out.x = x;
+    out.y = this.cy;
+    return out;
   }
 
   /**
    * The view-centre y that frames the floor at its share and lifts for the highest fighter (feet at `minY`) when the
-   * fighter is above the lift line, or when its head would leave the top of a view `h` units tall.
+   * fighter is above the lift line, or when its head would come within `headShare` of the top of a view `h` units tall.
    */
   private verticalTarget(minY: number, h: number, floorShare: number): number {
     const below = (floorShare - 0.5) * h; // how far the floor line sits below the view centre
     const floorCy = this.floor - below;
     const liftCy = minY + CAMERA.liftAbove - below;
-    const headCy = minY - FIGHTER.h - CAMERA.headroom + h / 2;
-    return Math.min(floorCy, liftCy, headCy);
+    return Math.min(floorCy, liftCy, this.headLimit(minY, h));
+  }
+
+  /** The highest view-centre y that keeps the highest drawn head `headShare` of a view `h` units tall below the top edge. */
+  private headLimit(minY: number, h: number): number {
+    return minY - FIGHTER.h - CAMERA.drawnHead - CAMERA.headShare * h + h / 2;
   }
 }

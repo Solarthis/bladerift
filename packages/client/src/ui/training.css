@@ -1,7 +1,8 @@
-/* TRAINING overlay (ui/training.ts). Three corners of the HUD layer, all small: the input history down the left edge
-   (below the fighter panel, left of the touch stick ring), the damage strip under the clock at the top centre, and
-   the menu tab at the top right. Nothing sits over the middle of the screen, and the thumb cluster at the bottom right
-   is never covered. Sizes follow the visible height like hud.css (--u is 1% of --app-h). */
+/* TRAINING overlay (ui/training.ts). Two parts, both small: the input history down the left edge (below the fighter
+   panel, left of the touch stick ring), and a column at the top centre under the clock holding the damage strip and
+   the menu tab. The column is centred, so it never sits over either fighter's name plate or life bar at any size, and
+   the thumb cluster at the bottom right is never covered. Sizes follow the visible height like hud.css (--u is 1% of
+   --app-h). */
 
 /* styles.css makes every direct child of #ui take pointer events; the overlay root is pointer-transparent and only
    the menu takes taps */
@@ -92,11 +93,19 @@
 }
 
 /* ------------------------------------------------------------------ damage strip (top centre, under the clock) */
-.tr-dmg {
+/* the top-centre column: the damage strip, then the menu tab (its open list hangs below) */
+.tr-top {
   position: absolute;
   left: 50%;
   top: calc(var(--u) * 13);
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 24px);
+}
+.tr-dmg {
   display: grid;
   grid-template-columns: repeat(4, minmax(44px, auto));
   gap: 0 clamp(8px, calc(var(--u) * 2.2), 16px);
@@ -135,16 +144,12 @@
   to { transform: none; }
 }
 
-/* ------------------------------------------------------------------ menu (top right) */
-/* A small tab that opens a short list. The list stays above the touch thumb cluster (its top row starts about 170 px
-   from the bottom on a 390-px phone). */
+/* ------------------------------------------------------------------ menu (under the damage strip) */
+/* A small tab that opens a short list under the strip, between the two name plates. */
 .tr-menu-wrap {
-  position: absolute;
-  top: max(4px, env(safe-area-inset-top));
-  right: max(6px, env(safe-area-inset-right));
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 4px;
   pointer-events: auto;
 }

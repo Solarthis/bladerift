@@ -541,6 +541,8 @@ export class GameScene extends Phaser.Scene {
   private shot: { tgt: ZoomShot; t: number; inS: number; holdS: number; outS: number; w0: number } | null = null;
   /** The follow camera's framing (game/camera.ts): one per match, reset at each match's start. */
   private fightCam: FightCamera | null = null;
+  /** The fighters' feet for the follow camera, reused each frame (their x and y are copied in, not allocated). */
+  private camFeet: { x: number; y: number }[] = [];
   /** K.O. slow motion: the visual time scale and the fighters' display lag behind real time (s). */
   private slowT = -1;
   /** The slow motion's scale and length (s), as playKoSequence asks for them (0.25x for 0.4 s by default). */
@@ -688,7 +690,11 @@ export class GameScene extends Phaser.Scene {
     // each round is announced once, as its intro begins (the FIGHT! call comes with the 'fight' event)
     if (g.phase !== this.lastPhase) {
       this.lastPhase = g.phase;
-      if (g.phase === 'intro') this.announceRound(g);
+      if (g.phase === 'intro') {
+        // each round opens on its own framing (not eased from the last round's K.O. shot)
+        this.fightCam?.reset();
+        this.announceRound(g);
+      }
     }
 
     // fighters: the primary game's view, with each local player's own predicted fighter
@@ -1730,6 +1736,8 @@ export class GameScene extends Phaser.Scene {
     const need = g.settings.wins;
     const final = need > 1 && g.wins[0] === need - 1 && g.wins[1] === need - 1;
     announcer.say(final ? 'finalRound' : `round${Math.min(3, g.round)}`);
+    // READY comes on the Hud 2.0 s into the intro (the last half second, before FIGHT at 2.5 s): the line lands just before it
+    announcer.say('ready', { delay: 1.9 });
   }
 
   /** A fighter's roster entry (name, colours): the primary session's, else any local player's. */
@@ -2190,11 +2198,13 @@ export class GameScene extends Phaser.Scene {
         const lose = won ? list.find((f) => f.seat === (e.winner ^ 1)) : undefined;
         const spot = this.koSpot;
         this.koSpot = null;
-        const perfect = !!win && !this.roundHurt.get(win.id);
+        // a clock win is never PERFECT (App counts one only for a K.O. win), and the clock ending gets no K.O. slow motion
         const timeOver = e.why === 1;
+        const perfect = !timeOver && !!win && !this.roundHurt.get(win.id);
         const draw = !won;
         const r = win ? this.rosterOf(win.id) : undefined;
-        const winName = win ? r?.name || 'Winner' : '';
+        // the banner names the hero, as an arcade fighter does (the profile name is often a placeholder such as "ME")
+        const winName = win ? heroOf(win.hero).name : '';
         const winColor = accentOf(r?.look?.accent ?? 0);
         const x = spot?.x ?? lose?.x ?? this.arenaW / 2;
         const y = spot?.y ?? (lose ? lose.y - 30 : this.floor - FIGHTER.h);
@@ -2202,14 +2212,16 @@ export class GameScene extends Phaser.Scene {
         const matchOver = won && !!this.game0 && this.game0.wins[e.winner] >= this.game0.settings.wins;
         const handle = playKoSequence(this, {
           x, y, perfect, timeOver, draw, artFinish: !!spot?.art, winnerName: winName, winnerColor: winColor,
-          onSlowmo: (s, ms) => this.requestSlowmo(s, ms),
+          // (a clock end has no K.O. to slow down for)
+          onSlowmo: timeOver ? undefined : (s, ms) => this.requestSlowmo(s, ms),
         });
         this.koHandle = handle;
         // an Art's finish gets its own white-out (cinematic.ts); the K.O. sequence skips its flash for it
         if (spot?.art) koCinematic(this, { x, y, attackerId: spot.a, whiteout: true, camera: null });
         if (timeOver) announcer.say('timeOver');
         else if (draw) announcer.say('draw');
-        if (perfect) announcer.say('perfect', { delay: 0.35 });
+        else announcer.say('ko', { delay: 0.1 });
+        if (perfect) announcer.say('perfect', { delay: 1.0 });
         if (won && !matchOver) {
           // the round's banner once the K.O. has played
           handle.done.then(() => {
@@ -2228,7 +2240,7 @@ export class GameScene extends Phaser.Scene {
         }
         const w = list.find((f) => f.seat === e.winner);
         const r = w ? this.rosterOf(w.id) : undefined;
-        playRoundWinner(this, { name: r?.name || 'Winner', color: accentOf(r?.look?.accent ?? 0), finalWin: true });
+        playRoundWinner(this, { name: w ? heroOf(w.hero).name : 'Winner', color: accentOf(r?.look?.accent ?? 0), finalWin: true });
         break;
       }
     }
@@ -3226,9 +3238,16 @@ export class GameScene extends Phaser.Scene {
     const pad = this.touchInsets(vw);
     // the follow frame (game/camera.ts): the zoom on the fighters' size, the dead zones, the lift and the wall clamp
     if (this.fightCam) {
+      const feet = this.camFeet;
+      while (feet.length < list.length) feet.push({ x: 0, y: 0 });
+      feet.length = list.length;
+      for (let i = 0; i < list.length; i++) {
+        feet[i].x = list[i].x;
+        feet[i].y = list[i].y;
+      }
       const frame = this.fightCam.update({
         dt, viewW: vw, viewH: vh, padLeft: pad.left, padRight: pad.right,
-        touch: pad.right > 0, fighters: list.map((q) => ({ x: q.x, y: q.y })),
+        touch: pad.right > 0, fighters: feet,
       });
       this.camZoom = frame.zoom;
       this.camX = frame.x;
@@ -3238,17 +3257,22 @@ export class GameScene extends Phaser.Scene {
     let z = this.camZoom;
     let x = this.camX;
     let y = this.camY;
+    let shotW = 0;
     if (this.shot) {
       this.shot.t += dt;
       const w = this.shotWeight();
+      shotW = w;
       const s = this.shot;
       if (s.t >= s.inS + s.holdS + (s.outS <= 0.02 ? 0 : s.outS)) this.shot = null;
       if (w > 0) {
-        const zt = this.camZoom * s.tgt.zoom;
+        // (never closer than a fighter at about 28% of the view: on a phone the follow camera is already close, and a
+        // 1.7x K.O. push on top of it framed only the ring and cut the winner off)
+        const zt = Math.max(this.camZoom, Math.min(this.camZoom * s.tgt.zoom, vh / (FIGHTER.h * 3.6)));
         const f = s.tgt.id !== undefined ? list.find((q) => q.id === s.tgt.id) : undefined;
         // (the follow frame's centre, without the touch pads' shift)
         const tx = f ? f.x : s.tgt.x ?? this.camX - (pad.right - pad.left) / 2 / this.camZoom;
-        const ty = f ? f.y - 34 : s.tgt.y ?? this.camY;
+        // (a followed fighter's shot keeps the floor in view, so the one standing on it is not cut off at the bottom)
+        const ty = f ? Math.max(f.y - 34, this.floor + 14 - vh / zt / 2) : s.tgt.y ?? this.camY;
         z = this.camZoom + (zt - this.camZoom) * w;
         x = this.camX + (tx + (pad.right - pad.left) / 2 / zt - this.camX) * w;
         y = this.camY + (ty - this.camY) * w;
@@ -3256,13 +3280,17 @@ export class GameScene extends Phaser.Scene {
     }
     const halfW = vw / z / 2;
     const halfH = vh / z / 2;
-    x = Phaser.Math.Clamp(x, halfW - 50, this.arenaW + 50 - halfW);
+    // (the follow frame is already clamped by game/camera.ts, which keeps the room between the touch pads clear of the
+    // walls; only a shot is clamped to the view edges here)
+    // (blended by the shot's weight, so letting go of a shot never jumps)
+    const shooting = shotW > 0;
+    if (shooting) x += (Phaser.Math.Clamp(x, halfW - 50, this.arenaW + 50 - halfW) - x) * shotW;
     // (touch: a little more floor shows below the fighters, lifting them above the button cluster's lower rows)
     y = Math.min(y, this.floor + Math.min(300, pad.right ? Math.max(135, 0.27 * halfH * 2) : 0.25 * halfH * 2) - halfH);
     // the shake is an offset after the clamp (vertical only)
     const sy = this.shakeOffset(dt, vh / z);
     cam.setZoom(z);
-    cam.centerOn(halfW * 2 > this.arenaW + 100 ? this.arenaW / 2 : x, y + sy);
+    cam.centerOn(shooting && halfW * 2 > this.arenaW + 100 ? this.arenaW / 2 : x, y + sy);
     const me = list.find((f) => f.self);
     if (me) sfx.setListener(me.x, me.y);
   }

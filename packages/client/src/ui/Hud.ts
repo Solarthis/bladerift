@@ -3,7 +3,6 @@ import type { NetGame, ViewFighter } from '../net/NetGame';
 import { colorOf, css } from './colors';
 import { artIconOf, skillIcon, weaponIcon } from './icons';
 import { preloadCinematic } from '../game/cinematic';
-import { quotesOf } from './quotes';
 
 const asset = (n: string) => `assets/art/${n}.jpg`;
 /** Hero portraits are h-00..h-13, and HeroDef.portrait is the index. */
@@ -22,8 +21,6 @@ const CHIPS = [
 const COMBO_MIN = 2;
 const COMBO_GAP_MS = 1300;
 const COMBO_HOLD_MS = 1500;
-/** How long the K.O. banner holds. */
-const KO_MS = 2000;
 /** Intro seconds left: the VS card first, then ROUND N, then READY. */
 const INTRO_VS = 1.4;
 const INTRO_ROUND = 0.5;
@@ -297,8 +294,8 @@ export class Hud {
         this.showBanner('FIGHT!', 900, 'fight', undefined, true);
         break;
       case 'round':
+        // no banner here: the K.O. and TIME OVER words belong to the scene (game/koSequence.ts), one owner for each
         this.resetCombos();
-        this.showBanner(e.why === 1 ? 'TIME!' : 'K.O.', KO_MS, e.why === 1 ? 'ko time' : 'ko', undefined, true);
         break;
       case 'hit':
         this.countHit(e, g);
@@ -311,14 +308,7 @@ export class Hud {
         this.showBanner(ARTS[e.art]?.name.toUpperCase() ?? 'RIFT ART', 1100, 'art', accent, true);
         break;
       }
-      case 'match': {
-        const f = g.fighters().find((x) => x.seat === e.winner);
-        const name = (f ? roster.get(f.id)?.name : '') || 'Winner';
-        // the winner's hero has the last word
-        const said = f ? ` · “${quotesOf(f.hero).win}”` : '';
-        this.showBanner('WINNER!', 4000, 'win', undefined, true, name.toUpperCase() + said);
-        break;
-      }
+      // no 'match' banner: the match-end WINNER word belongs to the scene (GameScene playRoundWinner, finalWin)
     }
   }
 

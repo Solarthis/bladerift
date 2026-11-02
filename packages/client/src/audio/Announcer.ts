@@ -47,15 +47,29 @@ function getOut(): Out | null {
   return out;
 }
 
-/** Fetches and decodes one voice line, once. Resolves to null if the file is missing or undecodable. */
+/**
+ * Fetches and decodes one voice line, once. Resolves to null if the file is missing or undecodable. A 404 or an
+ * undecodable file is cached as null. A network error or a server error is not: the entry is dropped, so a later
+ * say() fetches the line again.
+ */
 function decode(ctx: AudioContext, id: string, file: string): Promise<AudioBuffer | null> {
   let p = cache.get(id);
   if (!p) {
-    p = fetch(audioUrl(file))
-      .then((r) => (r.ok ? r.arrayBuffer() : null))
-      .then((b) => (b ? ctx.decodeAudioData(b) : null))
-      .catch(() => null);
-    cache.set(id, p);
+    // undefined = transient failure (not cached); null = definitive (cached).
+    const req: Promise<AudioBuffer | null | undefined> = fetch(audioUrl(file))
+      .then(async (r) => {
+        if (r.status === 404) return null;
+        if (!r.ok) return undefined;
+        const bytes = await r.arrayBuffer();
+        return await ctx.decodeAudioData(bytes).catch(() => null);
+      })
+      .catch(() => undefined);
+    const mine: Promise<AudioBuffer | null> = req.then((buf) => {
+      if (buf === undefined && cache.get(id) === mine) cache.delete(id);
+      return buf ?? null;
+    });
+    p = mine;
+    cache.set(id, mine);
   }
   return p;
 }

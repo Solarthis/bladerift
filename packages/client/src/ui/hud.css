@@ -595,8 +595,11 @@
 /* Settings > Touch: --touch-scale (0.8..1.3) sizes the tiles and the stick; --touch-opacity (0.3..1) sets the tiles' rest
    opacity. Controls.ts also writes both as inline styles on the root and the tiles (the same values), which win over these
    rules, so the opacity is applied once, per element, and never twice through a container. */
+/* The tile is also capped at 18u (18% of the app height) so a large Size never reaches the top-corner HUD (the combo
+   counter, the rift row, the first-glow bubble). !important is needed: Controls.ts writes the
+   same --tb inline on this element, and an inline value beats a normal rule. */
 .touch {
-  --tb: calc(clamp(56px, calc(var(--u) * 16.5), 74px) * var(--touch-scale, 1));
+  --tb: min(calc(clamp(56px, calc(var(--u) * 16.5), 74px) * var(--touch-scale, 1)), calc(var(--u) * 18)) !important;
   --tg: 8px;
   --step: calc(var(--tb) + var(--tg));
 }

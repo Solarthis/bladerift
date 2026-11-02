@@ -177,6 +177,25 @@ describe('EX special: damage, armour and the wire', () => {
     expect(hit!.hs).toBeGreaterThan(0);
   });
 
+  it('a grab cannot break an EX caster\'s startup (the armour holds against throws too)', () => {
+    for (const hero of [0, 1, 2]) {
+      const { w, fa, fb } = setup(hero, 30);
+      fa.s.rift = 600;
+      let grabbed = false;
+      const tick = (ca: { moveX?: number; buttons?: number }, cb: { moveX?: number; buttons?: number }) => {
+        fa.inputs.push({ seq: fa.lastSeq + 1, moveX: ca.moveX ?? 0, moveY: 0, buttons: ca.buttons ?? 0, viewTick: w.tick });
+        fb.inputs.push({ seq: fb.lastSeq + 1, moveX: cb.moveX ?? 0, moveY: 0, buttons: cb.buttons ?? 0, viewTick: w.tick });
+        w.step();
+        grabbed ||= w.events.some((e) => e.t === 'throw' && e.v === fa.id) || fa.s.act === Act.Held;
+      };
+      tick({ buttons: Btn.Special }, {});
+      // B presses heavy toward A on the next tick, so its grab would land inside A's startup
+      tick({}, { moveX: -1, buttons: Btn.B });
+      for (let i = 0; i < 40; i++) tick({}, {});
+      expect(grabbed, `hero ${hero}: grabbed inside the EX startup`).toBe(false);
+    }
+  });
+
   it('a plain cast after an EX count is left over is never EX (the count is cleared)', () => {
     const { w, fa } = setup(0, 200);
     // a stale count with no EX cast behind it (as after an interrupted EX special)
@@ -231,8 +250,9 @@ describe('EX special: damage, armour and the wire', () => {
 });
 
 describe('EX special: bots spend it half the time when it can', () => {
-  /** A bot caster of `hero` in front of a dummy, its gauge held at `rift` each tick; the EX casts it makes. */
-  function botCasts(hero: number, rift: number, ticks: number, seed: number): number {
+  /** A bot caster of `hero` in front of a dummy, its gauge held at `rift` and the clock at `left` seconds each tick; the EX
+   * casts it makes. */
+  function botCasts(hero: number, rift: number, ticks: number, seed: number, left = 90): number {
     const w = new World({ arenaId: 'bridge', wins: 2, roundTime: 90 });
     const fa = w.addFighter(1, 0, 'A', sanitizeLoadout({ hero }), true);
     w.addFighter(2, 1, 'B', DEFENDER);
@@ -245,6 +265,7 @@ describe('EX special: bots spend it half the time when it can', () => {
     let casts = 0;
     for (let i = 0; i < ticks; i++) {
       fa.s.rift = rift;
+      w.timeLeft = left;
       fa.inputs.push(bot.think(w));
       w.step();
       casts += w.events.filter((e) => e.t === 'ex' && e.p === 1).length;
@@ -252,13 +273,18 @@ describe('EX special: bots spend it half the time when it can', () => {
     return casts;
   }
 
-  it('a bot at 60% gauge spends it on EX when the opponent is in range', () => {
-    expect(botCasts(0, 600, 1200, 7), 'aura hero').toBeGreaterThan(0);
-    expect(botCasts(1, 600, 1200, 7), 'archer').toBeGreaterThan(0);
+  it('a bot at 60% gauge spends it on EX once the Art cannot fill in the time left', () => {
+    expect(botCasts(0, 600, 1200, 7, 5), 'aura hero').toBeGreaterThan(0);
+    expect(botCasts(1, 600, 1200, 7, 5), 'archer').toBeGreaterThan(0);
+  });
+
+  it('a bot whose Art can still fill in the time left keeps the gauge for it', () => {
+    expect(botCasts(0, 600, 1200, 7, 90), 'aura hero').toBe(0);
+    expect(botCasts(1, 600, 1200, 7, 90), 'archer').toBe(0);
   });
 
   it('a bot below 50% never spends the gauge on EX', () => {
-    expect(botCasts(0, 400, 1200, 7)).toBe(0);
-    expect(botCasts(1, 400, 1200, 7)).toBe(0);
+    expect(botCasts(0, 400, 1200, 7, 5)).toBe(0);
+    expect(botCasts(1, 400, 1200, 7, 5)).toBe(0);
   });
 });

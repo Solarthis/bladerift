@@ -98,6 +98,14 @@
     "winner": {
       "file": "voice/winner.mp3",
       "gain": 1
+    },
+    "ko": {
+      "file": "voice/ko.mp3",
+      "gain": 1
+    },
+    "continue": {
+      "file": "voice/continue.mp3",
+      "gain": 1
     }
   },
   "sfx": {
@@ -319,6 +327,16 @@
       {
         "file": "sfx/fire-0.mp3",
         "gain": 0.5
+      }
+    ],
+    "wind": [
+      {
+        "file": "sfx/wind-0.mp3",
+        "gain": 0.8
+      },
+      {
+        "file": "sfx/wind-1.mp3",
+        "gain": 0.8
       }
     ]
   }

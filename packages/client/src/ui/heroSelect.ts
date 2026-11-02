@@ -59,11 +59,17 @@ const GROUPS: Group[] = CLASSES.map((cls, i) => ({
 }));
 /** Reading order of every hero (the left and right keys follow it, wrapping). */
 const ORDER: number[] = GROUPS.flatMap((g) => g.heroes.map((h) => h.id));
-/** Where each face sits on the grid: a row, and an x in tile units (a single champion sits in the middle of its cell). */
-const SPOT = new Map<number, { row: number; x: number }>();
-for (const g of GROUPS) g.heroes.forEach((h, s) => SPOT.set(h.id, { row: g.row, x: g.col * 2 + (g.heroes.length === 1 ? 0.5 : s) }));
+/**
+ * Where each face sits on the grid: a visual row (a class row, then its True champion over its False one) and a column.
+ * A single champion has the row of the top slot.
+ */
+const SPOT = new Map<number, { row: number; col: number }>();
+for (const g of GROUPS) g.heroes.forEach((h, s) => SPOT.set(h.id, { row: g.row * 2 + s, col: g.col }));
 
-/** The cursor's next hero. Left and right follow the reading order; up and down take the nearest column in that row. */
+/**
+ * The cursor's next hero. Left and right follow the reading order. Up and down go to the nearest row that holds a face
+ * in that direction (so a True champion steps down to its own False one), then to the nearest column in that row.
+ */
 function step(from: number, dir: Dir): number {
   if (dir === 'left' || dir === 'right') {
     const i = ORDER.indexOf(from);
@@ -71,13 +77,20 @@ function step(from: number, dir: Dir): number {
   }
   const p = SPOT.get(from);
   if (!p) return from;
-  const row = p.row + (dir === 'down' ? 1 : -1);
+  const down = dir === 'down';
+  let row: number | undefined;
+  for (const id of ORDER) {
+    const q = SPOT.get(id);
+    if (!q || (down ? q.row <= p.row : q.row >= p.row)) continue;
+    if (row === undefined || (down ? q.row < row : q.row > row)) row = q.row;
+  }
+  if (row === undefined) return from;
   let best = from;
   let bestD = Infinity;
   for (const id of ORDER) {
     const q = SPOT.get(id);
     if (!q || q.row !== row) continue;
-    const d = Math.abs(q.x - p.x);
+    const d = Math.abs(q.col - p.col);
     if (d < bestD) {
       best = id;
       bestD = d;

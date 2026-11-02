@@ -174,6 +174,9 @@ function gameTab(p: Prefs, opts: SettingsOptions): string {
   </section>
   <section class="card st-card"><h3>About</h3>
     <div class="st-row"><span class="st-name">Version <b>${esc(opts.version)}</b></span>${update}</div>
+    <p class="st-credits">Music, voice and sounds: Kenney, Emma_MA, beardalaxy, Juhani Junkala, HydroGene, nene, MintoDog,
+      cynicmusic, pmiller, StarNinjas, BMacZero, artisticdude, PagDev, untamedpixels (CC0). "K.O." and "Continue" voice:
+      Alba MacKenna, CC-BY 4.0. Effects: PixelFX (MIT), after Hugo Duprez's Sprite Fusion VFX.</p>
   </section>`;
 }
 

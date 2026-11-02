@@ -333,7 +333,7 @@ const STICK_OFF = 0.24;
 const STICK_FULL = 0.8;
 /** The down push that reads as down (the stick's units: 1 = the full radius). */
 const DOWN = 0.6;
-/** A button held or tapped in the last CHORD_MS (ms) reads the stick with the looser thresholds below, so a push down
+/** A button pressed or tapped in the last CHORD_MS (ms) reads the stick with the looser thresholds below, so a push down
  * (launcher: down + Light) or forward (throw: forward + Heavy) lands together with the tap, even a frame late. */
 const CHORD_MS = 160;
 const CHORD_ON = 0.2;
@@ -379,7 +379,7 @@ export class TouchSource implements InputSource {
         <b class="stick-arrow"></b><div class="stick-knob"></div>
       </div></div>
       <div class="tbuttons">${BUTTONS.map((b) => `<div class="tb ${b.cls}" data-b="${b.id}"><i></i><span>${b.label}</span><em></em></div>`).join('')}</div>
-      <div class="touch-hint" role="note">Hold the art tile when it glows</div>`;
+      <div class="touch-hint" role="note">Tap the art tile when it glows</div>`;
     parent.appendChild(this.root);
     this.zone = this.root.querySelector<HTMLElement>('.stick-zone')!;
     this.knob = this.root.querySelector('.stick-knob')!;
@@ -466,7 +466,8 @@ export class TouchSource implements InputSource {
     // a hook for the stylesheet (the hint's pointer and any other side-specific art)
     this.root.classList.toggle('lefty', this.left);
     // hud.css sizes a tile with --tb (and --step follows it); an inline value wins over that rule
-    this.root.style.setProperty('--tb', `calc(clamp(56px, calc(var(--u) * 16.5), 74px) * ${this.scale})`);
+    // (capped at 18u, as hud.css caps it, so a large size never pushes the cluster up over the combo counter)
+    this.root.style.setProperty('--tb', `min(calc(clamp(56px, calc(var(--u) * 16.5), 74px) * ${this.scale}), calc(var(--u) * 18))`);
     // the stick is scaled as a whole around its centre, which sits on the touch point
     this.base.style.setProperty('scale', String(this.scale));
     // mirror: the stick zone on the right; the cluster and the hint on the left, each tile keeping its row
@@ -507,9 +508,9 @@ export class TouchSource implements InputSource {
     return STICK_R * this.scale;
   }
 
-  /** A button held or tapped within CHORD_MS. */
+  /** A button pressed or tapped within CHORD_MS: a press opens the window, and a button held longer does not keep it open. */
   private chord(): boolean {
-    return this.pressed.size > 0 || performance.now() < this.chordUntil;
+    return performance.now() < this.chordUntil;
   }
 
   /** The joystick shows where it reads: an arrow out to the knob, and the cardinal chevrons it lights. */

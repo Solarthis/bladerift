@@ -285,10 +285,9 @@ export function renderLadder(root: HTMLElement, run: ArcadeRun, onFight: (stage:
         <span class="md-no">${stageNo}</span>
         <img class="md-face" src="${faceUrl(o.heroId)}" alt="" loading="lazy" draggable="false">
         <div class="md-info">
-          <b class="md-nm">${esc(hero.name)}</b>
+          <div class="md-namerow"><b class="md-nm">${esc(hero.name)}</b>${o.boss ? '<span class="md-boss">Final boss</span>' : ''}</div>
           <span class="md-ep">${esc(hero.epithet)}</span>
           <span class="md-meta">${esc(cap(o.botLevel))} bot · ${esc(arena)}</span>
-          ${o.boss ? '<span class="md-boss">Final boss</span>' : ''}
         </div>
         ${stamp}
       </li>`;
@@ -305,6 +304,7 @@ export function renderLadder(root: HTMLElement, run: ArcadeRun, onFight: (stage:
       <header class="md-hdr">
         <button class="md-back" data-act="quit" type="button">Quit</button>
         <div class="md-title"><h2>Arcade ladder</h2><span class="md-sub">${esc(sub)}</span></div>
+        <button class="md-peek" data-act="top" type="button" hidden>Boss ▲</button>
       </header>
       <ol class="md-tower" aria-label="Opponents, boss at the top">${rungs}</ol>
       <footer class="md-foot">${action}</footer>
@@ -320,13 +320,40 @@ export function renderLadder(root: HTMLElement, run: ArcadeRun, onFight: (stage:
     onFight(run.current());
   });
 
-  // bring the stage to fight into view (the boss tile is at the top of a long tower)
+  // A tower that fits the screen does not scroll (the CSS sizes the rungs to the screen height). A taller one scrolls
+  // so the stage to fight is clear of the sticky header and the footer, and the boss rung at the top shows as well when
+  // both fit in the band between them; otherwise the stage to fight sits at the bottom of the band.
   const screen = root.querySelector<HTMLElement>('.modes-screen');
   const focus = root.querySelector<HTMLElement>('.is-current, .is-lost');
-  if (screen && focus) {
-    const r = focus.getBoundingClientRect();
-    const s = screen.getBoundingClientRect();
-    screen.scrollTop += r.top - s.top - screen.clientHeight / 2 + r.height / 2;
+  const hdr = root.querySelector<HTMLElement>('.md-hdr');
+  const boss = root.querySelector<HTMLElement>('.md-rung.is-boss');
+  const peek = root.querySelector<HTMLButtonElement>('.md-peek');
+  const max = screen ? screen.scrollHeight - screen.clientHeight : 0;
+  if (screen && focus && max > 0) {
+    const foot = root.querySelector<HTMLElement>('.md-foot');
+    const PAD = 8;
+    // top and bottom of an element in scroll-content coordinates (the screen is freshly drawn, so it is at scrollTop 0)
+    const base = screen.getBoundingClientRect().top;
+    const at = (el: HTMLElement) => {
+      const r = el.getBoundingClientRect();
+      return { top: r.top - base, bottom: r.bottom - base };
+    };
+    const bandTop = (hdr?.offsetHeight ?? 0) + PAD;
+    const bandBottom = screen.clientHeight - (foot?.offsetHeight ?? 0) - PAD;
+    const f = at(focus);
+    const b = at(boss ?? focus);
+    const y = f.bottom - b.top <= bandBottom - bandTop ? b.top - bandTop : f.bottom - bandBottom;
+    screen.scrollTop = clamp(y, 0, max);
+  }
+  // the boss chip shows while the boss rung is scrolled out of sight under the header (tap: back to the top)
+  if (screen && boss && peek) {
+    const sync = () => {
+      const under = hdr ? hdr.getBoundingClientRect().bottom : 0;
+      peek.hidden = boss.getBoundingClientRect().bottom > under + 12;
+    };
+    sync();
+    screen.addEventListener('scroll', sync, { passive: true });
+    peek.addEventListener('click', () => screen.scrollTo({ top: 0, behavior: 'smooth' }));
   }
 }
 

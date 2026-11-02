@@ -1,11 +1,12 @@
 /**
  * The gothic throne hall's stage elements, laid on the wall picture the way render/arena.ts lays it out (the copies, the
- * lamp positions from render/arenaLights.json "hall"): candle flames on the sconces and the chandelier with a soft halo
- * under each sconce, the odd smoke wisp and ember rising from a candle, the chandelier catching the light now and then,
- * and dust specks falling down the centre window's shaft.
+ * lamp positions from render/arenaLights.json "hall"): candle flames on the sconces (each with a whiter core) and the
+ * chandelier with a breathing halo under each sconce, moths fluttering round the candles, the odd smoke wisp and ember
+ * rising from a candle, the chandelier catching the light now and then, and dust specks falling down the centre window's
+ * shaft.
  *
  * Procedural only: small canvas textures made once, fixed pools (nothing is allocated per frame), a seeded LCG for every
- * random choice. The wall-fixed items scroll with the wall (FAR) at depths -19.66 .. -19.6, under the floor strips (-19);
+ * random choice. The wall-fixed items scroll with the wall (FAR) at depths -19.66 .. -19.57, under the floor strips (-19);
  * the dust is air at 7.5, behind the fighters, with the window shafts (7.4). Low quality keeps a third of the particles
  * and drops the halos.
  */
@@ -25,8 +26,8 @@ const SHAFT_COPIES = [-4, -2, 0, 2, 4];
  */
 const SHAFT = { u: 0.5, v: 0.36, w: 0.1, dx: 160, p0: 0.78, p1: 1.1 };
 /** Halo radii (world units): under a sconce, and around the chandelier. */
-const R_SCONCE = 9;
-const R_CHANDELIER = 18;
+const R_SCONCE = 28;
+const R_CHANDELIER = 46;
 /** A chandelier glint: how long one flash lasts (s) and its size (world units). */
 const GLINT_T = 0.55;
 const GLINT_S = 4;
@@ -42,6 +43,8 @@ const HALL = (LIGHTS as Record<string, Lamp[]>).hall ?? [];
 
 interface Flame {
   img: Img;
+  /** The bright core inside the flame (a smaller, whiter flame that flickers out of step with the outer one). */
+  core: Img;
   x: number;
   y: number;
   sx: number;
@@ -50,6 +53,8 @@ interface Flame {
 }
 interface Halo {
   img: Img;
+  /** The light pool on the floor at the wall's foot under a sconce (none under the chandelier). */
+  pool: Img | null;
   x: number;
   y: number;
   s: number;
@@ -96,6 +101,15 @@ interface Candle {
   x: number;
   y: number;
 }
+/** A moth circling a candle: its orbit (centre = candle index, radius, angular speed), wing-beat phase, and the time left on this candle. */
+interface Moth {
+  img: Img;
+  ci: number;
+  r: number;
+  w: number;
+  ph: number;
+  left: number;
+}
 
 const smooth = (e: number) => (e <= 0 ? 0 : e >= 1 ? 1 : e * e * (3 - 2 * e));
 
@@ -132,6 +146,14 @@ function paintTextures(scene: Phaser.Scene): void {
   });
   // a speck of dust or an ember
   paint(scene, 'hall-speck', 4, 4, (u, v) => smooth(1 - 2.4 * Math.hypot(u - 0.5, v - 0.5)));
+  // a moth seen from below: two wings, a thin body, dark (tinted at use)
+  paint(scene, 'hall-moth', 16, 10, (u, v) => {
+    const x = (u - 0.5) * 2;
+    const y = (v - 0.5) * 2;
+    const wing = (cx: number, cy: number) => 1 - Math.hypot((x - cx) / 0.5, (y - cy) / 0.7);
+    const body = Math.max(0, 1 - Math.abs(x) / 0.1) * Math.max(0, 1 - Math.abs(y) / 0.75);
+    return Math.min(1, Math.max(0, Math.max(wing(-0.5, -0.15), wing(0.5, -0.15), body) * 2.5));
+  });
   // a chandelier glint: a bright core with thin four-point spikes
   paint(scene, 'hall-glint', 11, 11, (u, v) => {
     const dx = (u - 0.5) * 2;
@@ -207,10 +229,11 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
       if (low && i % 3 !== 0) continue;
       const x = xOf(k, L.u);
       const y = yOf(L.v);
-      const fw = Math.max(1.6, L.size * tw * 1.4);
+      const fw = Math.max(2.4, L.size * tw * 2.2);
       const fh = fw * 2;
       const img = make('hall-flame', x, y, -19.6, true, parseInt(L.c.slice(1), 16), true).setOrigin(0.5, 0.7);
-      flames.push({ img, x, y, sx: fw / 8, sy: fh / 16, ph: rnd() * 6.283 });
+      const core = make('hall-flame', x, y, -19.59, true, 0xfff1d0, true).setOrigin(0.5, 0.7);
+      flames.push({ img, core, x, y, sx: fw / 8, sy: fh / 16, ph: rnd() * 6.283 });
       if (L.v >= 0.2) candles.push({ x, y: y - 0.7 * fh });
     }
 
@@ -235,11 +258,13 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
         const x = xOf(k, g.u);
         const y = yOf(g.v);
         const img = make('hall-glow', x, y, -19.62, true, g.c, true);
-        halos.push({ img, x, y, s: (2 * R) / 48, a: g.chand ? 0.07 : 0.12, ph: rnd() * 6.283 });
+        // a sconce's light also lies on the floor under the wall (flat, at the foot of the wall, on the wall's parallax)
+        const pool = g.chand ? null : make('hall-glow', x, wallBase + 12, -18.7, true, g.c, true).setScale((2 * R) / 48 * 1.8, (2 * R) / 48 * 0.45);
+        halos.push({ img, pool, x, y, s: (2 * R) / 48, a: g.chand ? 0.14 : 0.22, ph: rnd() * 6.283 });
       }
 
   // ---- the chandelier's glints: a few at a time, each flashing now and then on a spot of the chandelier
-  const glints: Glint[] = Array.from({ length: third(3) }, () => ({
+  const glints: Glint[] = Array.from({ length: third(4) }, () => ({
     img: make('hall-glint', 0, 0, -19.61, true, 0xfff3d6, true).setScale(0),
     left: 0.5 + rnd() * 4,
     on: false,
@@ -257,7 +282,17 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
     sp: 0,
     s0: 2,
     s1: 7,
-    peak: 0.14,
+    peak: 0.22,
+  }));
+
+  // ---- moths: dark, fluttering round the candles on the wall (they go round one candle, then another)
+  const moths: Moth[] = Array.from({ length: third(4) }, () => ({
+    img: make('hall-moth', 0, 0, -19.57, false, 0x2a221e, true).setScale(0.7),
+    ci: -1,
+    r: 0,
+    w: 0,
+    ph: 0,
+    left: 0,
   }));
 
   // ---- embers: the odd spark lifting off a sconce's flame
@@ -303,13 +338,18 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
   let t = 0;
   let dead = false;
   const pickCandle = (): Candle | undefined => {
-    if (candles.length === 0) return undefined;
-    for (let tries = 0; tries < 4; tries++) {
-      const c = candles[Math.floor(rnd() * candles.length)];
-      if (c && onWall(c.x)) return c;
-    }
-    return undefined;
+    const i = pickIdx();
+    return i < 0 ? undefined : candles[i];
   };
+  /** The index of a candle in view (a few tries), or -1. */
+  function pickIdx(): number {
+    if (candles.length === 0) return -1;
+    for (let tries = 0; tries < 4; tries++) {
+      const i = Math.floor(rnd() * candles.length);
+      if (candles[i] && onWall(candles[i].x)) return i;
+    }
+    return -1;
+  }
 
   return {
     update(dt: number, cam: Phaser.Cameras.Scene2D.Camera): void {
@@ -325,22 +365,59 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
       // candle flames: each flickers on its own phases, with a little sway
       for (const f of flames) {
         const on = onWall(f.x);
-        if (f.img.visible !== on) f.img.setVisible(on);
+        if (f.img.visible !== on) {
+          f.img.setVisible(on);
+          f.core.setVisible(on);
+        }
         if (!on) continue;
+        // the outer flame: a strong flicker, taller and shorter, leaning a little
         const a = 0.5 * Math.sin(t * 11 + f.ph) + 0.3 * Math.sin(t * 17.3 + f.ph * 1.9) + 0.2 * Math.sin(t * 5.7 + f.ph * 0.7);
-        f.img.setPosition(f.x + 0.15 * Math.sin(t * 6.1 + f.ph), f.y);
-        f.img.setScale(f.sx * (1 + 0.1 * a), f.sy * (1 + 0.16 * a));
-        f.img.setAlpha(0.6 + 0.2 * a);
+        f.img.setPosition(f.x + 0.2 * Math.sin(t * 6.1 + f.ph), f.y);
+        f.img.setScale(f.sx * (1 + 0.16 * a), f.sy * (1 + 0.26 * a));
+        f.img.setAlpha(0.8 + 0.2 * a);
+        // the core: its own quicker flutter, so the flame never settles into one shape
+        const b = 0.6 * Math.sin(t * 13.7 + f.ph * 2.1) + 0.4 * Math.sin(t * 7.9 + f.ph);
+        f.core.setPosition(f.x + 0.12 * Math.sin(t * 8.3 + f.ph), f.y);
+        f.core.setScale(f.sx * 0.5 * (1 + 0.2 * b), f.sy * 0.55 * (1 + 0.3 * b));
+        f.core.setAlpha(0.65 + 0.3 * b);
       }
 
       // the halos under the sconces and the chandelier breathe with the flames
       for (const hl of halos) {
         const on = onWall(hl.x);
-        if (hl.img.visible !== on) hl.img.setVisible(on);
+        if (hl.img.visible !== on) {
+          hl.img.setVisible(on);
+          hl.pool?.setVisible(on);
+        }
         if (!on) continue;
         const a = 0.6 * Math.sin(t * 6 + hl.ph) + 0.4 * Math.sin(t * 13.1 + hl.ph * 2);
-        hl.img.setAlpha(hl.a * (1 + 0.25 * a));
-        hl.img.setScale(hl.s * (1 + 0.04 * a));
+        hl.img.setAlpha(hl.a * (1 + 0.6 * a));
+        hl.img.setScale(hl.s * (1 + 0.12 * a));
+        if (hl.pool) hl.pool.setAlpha(hl.a * 0.7 * (1 + 0.6 * a));
+      }
+
+      // moths: each circles one candle in view for a few seconds (a flat ellipse, its wings beating), then goes to another
+      for (const m of moths) {
+        m.left -= h;
+        if (m.left <= 0) {
+          m.ci = pickIdx();
+          m.r = 5 + rnd() * 6;
+          m.w = (rnd() < 0.5 ? -1 : 1) * (1.4 + rnd() * 1.2);
+          m.ph = rnd() * 6.283;
+          m.left = m.ci < 0 ? 0.5 + rnd() * 0.5 : 6 + rnd() * 6;
+        }
+        if (m.ci < 0) {
+          m.img.setVisible(false);
+          continue;
+        }
+        const c = candles[m.ci];
+        const an = m.ph + t * m.w;
+        const flip = -Math.sin(an) * m.w >= 0 ? 1 : -1;
+        const beat = 0.35 + 0.65 * Math.abs(Math.cos(t * 15 + m.ph));
+        m.img
+          .setVisible(true)
+          .setPosition(c.x + Math.cos(an) * m.r, c.y + 8 + Math.sin(an * 2) * m.r * 0.3)
+          .setScale(0.7 * flip, 0.7 * beat);
       }
 
       // chandelier glints: a quick four-point flash, then quiet for a while
@@ -377,7 +454,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
       // candle smoke: a new wisp now and then from a sconce in view, rising, widening and fading
       puffTimer -= h;
       if (puffTimer <= 0) {
-        puffTimer = (low ? 3 : 1.4) + rnd() * (low ? 3 : 2.2);
+        puffTimer = (low ? 3 : 1) + rnd() * (low ? 3 : 1.6);
         const c = pickCandle();
         const q = idle(puffs);
         if (c && q) {

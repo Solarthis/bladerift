@@ -26,6 +26,14 @@ const SILENCE_DB = -50;
  */
 const PEAK_DB = { music: -3, voice: -1, sfx: -1 };
 const BITRATE = { music: 128, voice: 96, sfx: 96 };
+/** Encoder delay LAME adds at the start (samples). Decoders skip it, together with DECODER_DELAY, via the LAME tag. */
+const LAME_DELAY = 576;
+/** Decoder delay that decoders skip after the encoder delay (samples). */
+const DECODER_DELAY = 529;
+/** A `maxSeconds` cut on a one-shot ends in a linear fade of this length, not at full level. */
+const FADE_OUT_SECONDS = 0.75;
+/** MPEG-1 Layer III bitrates in kbps, by the header's 4-bit index. */
+const MPEG1_L3_KBPS = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320];
 const KINDS = ['music', 'voice', 'sfx'];
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const DEFAULT_PLAN = 'tools/audio/plan.json';
@@ -48,8 +56,9 @@ const lamejs = loadLamejs();
 
 /**
  * Parse and validate the plan into a flat list of encode jobs, one per output file.
+ * `src` is one path, or an array of paths that are joined end to end (in order) before rendering.
  * @param {string} planPath
- * @returns {Array<{kind: string, id: string, file: string, src: string, gain: number, loop: boolean, trimStart: number, maxSeconds: number | null}>}
+ * @returns {Array<{kind: string, id: string, file: string, srcs: string[], gain: number, loop: boolean, trimStart: number, maxSeconds: number | null}>}
  */
 function readPlan(planPath) {
   if (!existsSync(planPath)) throw new Error(`plan not found: ${planPath}`);
@@ -65,9 +74,12 @@ function readPlan(planPath) {
       const entries = kind === 'sfx' ? spec : [spec];
       entries.forEach((entry, n) => {
         const where = `plan: ${kind} "${id}"${kind === 'sfx' ? `[${n}]` : ''}`;
-        if (typeof entry?.src !== 'string') throw new Error(`${where}: src must be a path string`);
-        const src = resolve(root, entry.src);
-        if (!existsSync(src)) throw new Error(`${where}: source not found: ${src}`);
+        const list = Array.isArray(entry?.src) ? entry.src : [entry?.src];
+        if (list.length === 0 || list.some((s) => typeof s !== 'string')) {
+          throw new Error(`${where}: src must be a path string or a non-empty array of path strings`);
+        }
+        const srcs = list.map((s) => resolve(root, s));
+        for (const src of srcs) if (!existsSync(src)) throw new Error(`${where}: source not found: ${src}`);
         const gain = entry.gain ?? 1;
         const trimStart = entry.trimStart ?? 0;
         const maxSeconds = entry.maxSeconds ?? null;
@@ -81,7 +93,7 @@ function readPlan(planPath) {
           kind,
           id,
           file,
-          src,
+          srcs,
           gain,
           loop: kind === 'music' ? entry.loop ?? true : false,
           trimStart,
@@ -164,6 +176,35 @@ async function decodeFile(page, absPath) {
     window.__last = null;
   });
   return { sampleRate: info.sampleRate, channels };
+}
+
+/**
+ * Decode several source files and join them end to end. All parts must share a sample rate and channel count.
+ * @param {import('playwright').Page} page
+ * @param {string[]} paths
+ * @returns {Promise<{ sampleRate: number, channels: Float32Array[] }>}
+ */
+async function decodeFiles(page, paths) {
+  const parts = [];
+  for (const p of paths) parts.push(await decodeFile(page, p));
+  if (parts.length === 1) return parts[0];
+  const first = parts[0];
+  for (const [i, part] of parts.entries()) {
+    if (part.sampleRate !== first.sampleRate || part.channels.length !== first.channels.length) {
+      throw new Error(`${paths[i]}: sample rate or channel count differs from ${paths[0]}`);
+    }
+  }
+  const channels = first.channels.map((_, c) => {
+    const total = parts.reduce((n, p) => n + p.channels[c].length, 0);
+    const out = new Float32Array(total);
+    let at = 0;
+    for (const p of parts) {
+      out.set(p.channels[c], at);
+      at += p.channels[c].length;
+    }
+    return out;
+  });
+  return { sampleRate: first.sampleRate, channels };
 }
 
 /**
@@ -295,7 +336,68 @@ function copyBytes(a) {
 }
 
 /**
- * Encode planar Float32 channels (already at SAMPLE_RATE) to MP3.
+ * Reads the header of the MPEG-1 Layer III frame at `off`. lamejs writes only this kind at 44.1 kHz.
+ * @param {Buffer} buf
+ * @param {number} off
+ * @returns {{ len: number, kbps: number, mono: boolean, crc: boolean }} frame length in bytes and header facts
+ */
+function frameAt(buf, off) {
+  const sync = off + 4 <= buf.length && buf[off] === 0xff && (buf[off + 1] & 0xe0) === 0xe0;
+  if (!sync) throw new Error(`mp3: no frame sync at byte ${off}`);
+  const version = (buf[off + 1] >> 3) & 3;
+  const layer = (buf[off + 1] >> 1) & 3;
+  const rate = (buf[off + 2] >> 2) & 3;
+  if (version !== 3 || layer !== 1 || rate !== 0) throw new Error('mp3: expected MPEG-1 Layer III at 44.1 kHz');
+  const kbps = MPEG1_L3_KBPS[buf[off + 2] >> 4];
+  const pad = (buf[off + 2] >> 1) & 1;
+  return {
+    len: Math.floor((144000 * kbps) / SAMPLE_RATE) + pad,
+    kbps,
+    mono: (buf[off + 3] >> 6) === 3,
+    crc: (buf[off + 1] & 1) === 0,
+  };
+}
+
+/**
+ * Puts a LAME gapless tag in front of the MP3 frames. The tag is a silent first frame (an "Info" header, which LAME
+ * uses for constant-bitrate files) that carries the encoder delay and the end padding. Decoders that read it, as
+ * browsers do, skip the delay and the padding, so the file plays exactly its own length. Without it every decoded
+ * file starts and ends with about 25 ms of silence, which gaps a loop at each wrap.
+ * @param {Buffer} body the encoded MP3 frames, starting on a frame boundary
+ * @param {number} kbps
+ * @param {number} sampleCount PCM samples that were encoded
+ * @returns {Buffer} the tag frame followed by `body`
+ */
+function withGaplessTag(body, kbps, sampleCount) {
+  const head = frameAt(body, 0);
+  let frames = 0;
+  for (let off = 0; off < body.length; off += frameAt(body, off).len) frames++;
+  // Decoders drop LAME_DELAY + DECODER_DELAY at the start and `padding` samples at the end.
+  const padding = frames * 1152 - LAME_DELAY - DECODER_DELAY - sampleCount;
+  if (padding < 0 || padding > 0xfff) throw new Error(`mp3: end padding ${padding} out of range`);
+
+  const tag = Buffer.alloc(head.len); // zeros: a silent frame apart from its header
+  body.copy(tag, 0, 0, 4);
+  const at = 4 + (head.crc ? 2 : 0) + (head.mono ? 17 : 32); // after the side info
+  tag.write('Info', at, 'ascii');
+  tag.writeUInt32BE(0x3, at + 4); // flags: frame count and byte count are present
+  tag.writeUInt32BE(frames, at + 8);
+  tag.writeUInt32BE(body.length, at + 12);
+  const lame = at + 16;
+  tag.write('LAME3.100', lame, 'ascii');
+  // Offsets are from the start of the LAME extension (the version string), as in LAME's VbrTag layout.
+  tag[lame + 9] = 0x01; // tag revision 0, VBR method 1 (constant bitrate)
+  tag[lame + 20] = kbps; // bitrate, for constant-bitrate files
+  const delayPad = (LAME_DELAY << 12) | padding; // 12 bits each
+  tag[lame + 21] = (delayPad >> 16) & 0xff;
+  tag[lame + 22] = (delayPad >> 8) & 0xff;
+  tag[lame + 23] = delayPad & 0xff;
+  tag.writeUInt32BE(body.length, lame + 28); // music length in bytes
+  return Buffer.concat([tag, body]);
+}
+
+/**
+ * Encode planar Float32 channels (already at SAMPLE_RATE) to MP3, with a gapless tag.
  * @param {Float32Array[]} chans one or two channels of equal length
  * @param {number} kbps
  * @param {number} gain linear multiplier applied before quantising
@@ -316,7 +418,18 @@ function encodeMp3(chans, kbps, gain) {
   }
   const tail = enc.flush();
   if (tail.length) parts.push(copyBytes(tail));
-  return Buffer.concat(parts);
+  return withGaplessTag(Buffer.concat(parts), kbps, n);
+}
+
+/**
+ * Fades the last `n` samples of every channel linearly to silence.
+ * @param {Float32Array[]} chans
+ * @param {number} n
+ */
+function fadeOut(chans, n) {
+  const len = chans[0].length;
+  const m = Math.min(n, len);
+  for (const c of chans) for (let i = 0; i < m; i++) c[len - m + i] *= (m - 1 - i) / m;
 }
 
 /**
@@ -351,11 +464,15 @@ async function render(job, dec, page) {
     if (bounds) chans = chans.map((c) => c.subarray(bounds[0], bounds[1]));
     else console.warn(`warning: ${job.file} is below ${SILENCE_DB} dB everywhere, left untrimmed`);
   }
+  let cut = false;
   if (job.maxSeconds !== null) {
     const limit = Math.round(job.maxSeconds * SAMPLE_RATE);
+    cut = chans[0].length > limit;
     chans = chans.map((c) => c.subarray(0, Math.min(limit, c.length)));
   }
   const out = job.kind === 'music' ? toStereo(chans) : [toMono(chans)];
+  // A cut loop keeps its level: it wraps at the cut, so a fade would dip at every loop point. A cut one-shot fades out.
+  if (cut && !job.loop) fadeOut(out, Math.round(FADE_OUT_SECONDS * SAMPLE_RATE));
   const n = out[0].length;
   if (n === 0) throw new Error(`${job.file}: no audio left after trimming`);
   const peak = peakOf(out);
@@ -418,7 +535,7 @@ async function main() {
     await page.setContent('<!doctype html><title>audio decode</title>');
     await page.evaluate(installDecoder, { decodeRate: DECODE_RATE, sampleRate: SAMPLE_RATE });
     for (const job of jobs) {
-      const dec = await decodeFile(page, job.src);
+      const dec = await decodeFiles(page, job.srcs);
       const { mp3, seconds, peakDb } = await render(job, dec, page);
       rendered.push({ job, mp3, seconds });
       console.log(`  ${job.file.padEnd(24)} ${String(mp3.length).padStart(8)} B  ${seconds.toFixed(2)} s  peak ${peakDb.toFixed(2)} dBFS`);

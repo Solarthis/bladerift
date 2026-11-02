@@ -21,14 +21,15 @@ export interface MatchSettings {
   /** Training: a fighter's health and flasks refill TRAINING.refillTicks after the combo against it ends, the round clock
    * does not run and nobody can be K.O.'d (health floors at 1). */
   training?: boolean;
-  /** The Rift gauge stays full (every Rift Art and EX special is available). */
+  /** The Rift gauge stays full: every Rift Art is ready, but the EX special never is (a full gauge starts the Art, and EX
+   * needs a gauge below full). */
   infiniteRift?: boolean;
   /** The practice bot's hero (-1 or unset: a random one). */
   botHero?: number;
   /** Survival: each match starts with the health the previous one ended with (see startHp). */
   carryHp?: boolean;
-  /** Health to start the match with, per seat (used when carryHp is on; a value of 0 or less, or a missing one, is full
-   * health). The room fills it in when a match ends. */
+  /** Health to start the match with, per seat (used when carryHp is on; a negative value, or a missing one, is full health,
+   * and 0 starts at 1 health). The room fills it in when a match ends. */
   startHp?: number[];
 }
 
@@ -308,13 +309,14 @@ export class World {
   }
 
   /** Begin the first round (call once both seats are filled, or for a solo warm-up). With carryHp, each seat starts the
-   * match at its startHp (clamped to 1..its class's health; a value of 0 or less means full health). */
+   * match at its startHp (clamped to 1..its class's health; a negative value means full health). A carried 0 (a fighter
+   * that ended at 0) starts at 1, not at full. */
   start() {
     this.resetRound();
     if (this.settings.carryHp && this.settings.startHp) {
       for (const f of this.fighters.values()) {
         const hp = this.settings.startHp[f.seat];
-        if (typeof hp === 'number' && hp > 0) f.s.hp = Math.min(heroClass(f.load).hp, Math.max(1, Math.round(hp)));
+        if (typeof hp === 'number' && hp >= 0) f.s.hp = Math.min(heroClass(f.load).hp, Math.max(1, Math.round(hp)));
       }
     }
   }
@@ -632,7 +634,9 @@ export class World {
   private checkThrow(a: Fighter, d: Fighter) {
     const seen = this.seenAt(d, this.validViewTick(a, a.lastCmd.viewTick));
     const dx = seen.x - a.s.x;
-    if (!a.s.ground || seen.invuln || !isThrowable(d.s)) return;
+    // an EX caster's startup is armoured (exArmour in hit): a grab cannot break it either
+    const exStartup = castingEx(d.s) && d.s.actT <= (SKILLS[d.load.skill]?.startup ?? 0);
+    if (!a.s.ground || seen.invuln || !isThrowable(d.s) || exStartup) return;
     if (dx * a.s.face <= 0 || Math.abs(dx) > THROW.range || Math.abs(seen.y - a.s.y) >= FIGHTER.h) return;
     d.lastHitSeq = a.s.moveSeq;
     d.comboHits = 0;

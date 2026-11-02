@@ -1,8 +1,9 @@
 /**
  * The crypt's stage FX (render/stageFx): a damp underground room. Green-teal mist creeps along the floor, water drips
  * from the vault and each drop splashes in a small ring on the stones, the candles in the niches of the wall picture
- * flicker (placed from arenaLights.json on every mirrored copy of the wall), and a few faint wisps drift through the air
- * behind the fighters.
+ * flicker (placed from arenaLights.json on every mirrored copy of the wall, each throwing a pool of light on the floor below),
+ * green fungus specks on the stones glow and die down, one or two spiders lower on their threads, and a few faint wisps drift
+ * through the air behind the fighters.
  *
  * Procedural only: the sprites are painted once onto canvas textures, every object is pooled, the randomness is a seeded
  * LCG and nothing allocates per frame. Everything stays low in contrast so it never competes with the fighters; 'low'
@@ -17,6 +18,8 @@ const K_GLOW = 'fx-crypt-glow';
 const K_DROP = 'fx-crypt-drop';
 const K_RING = 'fx-crypt-ring';
 const K_FLAME = 'fx-crypt-flame';
+const K_SPIDER = 'fx-crypt-spider';
+const K_THREAD = 'fx-crypt-thread';
 
 /** The wall picture's mirrored copies, as render/arena.ts lays them out (odd copies are flipped, so their lamps mirror too). */
 const COPIES = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
@@ -61,9 +64,28 @@ interface Wisp {
 interface Candle {
   glow: Phaser.GameObjects.Image;
   core: Phaser.GameObjects.Image;
+  /** The light the candle throws on the floor at the wall's foot below it. */
+  pool: Phaser.GameObjects.Image;
   ph: number;
   gs: number;
   cs: number;
+}
+/** A fungus speck on the wall that glows and dies down (wall-fixed): its phase, rate and peak. */
+interface Speck {
+  img: Phaser.GameObjects.Image;
+  ph: number;
+  rate: number;
+  peak: number;
+}
+/** A spider dangling on a thread across the wall: its column, the thread's top and the lowest point, and its swing. */
+interface Spider {
+  body: Phaser.GameObjects.Image;
+  thread: Phaser.GameObjects.Image;
+  x: number;
+  top: number;
+  bottom: number;
+  ph: number;
+  per: number;
 }
 
 /** A seeded linear congruential generator (no Math.random): each call returns the next value in [0, 1). */
@@ -116,6 +138,36 @@ function paintTextures(scene: Phaser.Scene): void {
     g.beginPath();
     g.ellipse(32, 16, 27, 12, 0, 0, Math.PI * 2);
     g.stroke();
+    tex.refresh();
+  }
+  if (!scene.textures.exists(K_THREAD)) {
+    const tex = scene.textures.createCanvas(K_THREAD, 2, 2)!;
+    tex.context.fillStyle = '#ffffff';
+    tex.context.fillRect(0, 0, 2, 2);
+    tex.refresh();
+  }
+  if (!scene.textures.exists(K_SPIDER)) {
+    // a spider seen from above: an abdomen, a head, and four pairs of jointed legs
+    const tex = scene.textures.createCanvas(K_SPIDER, 16, 14)!;
+    const g = tex.context;
+    g.fillStyle = '#ffffff';
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.ellipse(8, 9, 2.8, 3, 0, 0, Math.PI * 2);
+    g.fill();
+    g.beginPath();
+    g.ellipse(8, 4.5, 1.9, 1.7, 0, 0, Math.PI * 2);
+    g.fill();
+    for (const s of [-1, 1])
+      for (let j = 0; j < 4; j++) {
+        const y = 7 + j * 1.2;
+        g.beginPath();
+        g.moveTo(8 + s * 2, y);
+        g.lineTo(8 + s * 5, y - 2 + j * 0.4);
+        g.lineTo(8 + s * 7.5, y + 1.5);
+        g.stroke();
+      }
     tex.refresh();
   }
   if (!scene.textures.exists(K_FLAME)) {
@@ -176,14 +228,42 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
         .setScrollFactor(FAR, 1)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setTint(0xfff0c4);
-      candles.push({ glow, core, ph: rnd() * 6.283, gs: (H * 0.26) / 128, cs: (H * 0.022) / 24 });
+      const pool = sprite(K_GLOW, -18.7)
+        .setPosition(x, wallBase + 12)
+        .setScrollFactor(FAR, 1)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setTint(color)
+        .setScale(0.8, 0.22);
+      candles.push({ glow, core, pool, ph: rnd() * 6.283, gs: (H * 0.4) / 128, cs: (H * 0.024) / 24 });
     }
+  }
+
+  // ---- fungus on the wall: green specks that glow, brighten and die down, each on its own rhythm (wall-fixed)
+  const specks: Speck[] = [];
+  for (let i = 0; i < count(30); i++) {
+    const k = COPIES[Math.floor(rnd() * COPIES.length)];
+    const u = rnd();
+    const x = W / 2 + k * tw + ((k % 2 === 0 ? u : 1 - u) - 0.5) * tw;
+    const y = wallTop + H * (0.4 + rnd() * 0.5);
+    const img = sprite(K_GLOW, -19.66).setPosition(x, y).setScrollFactor(FAR, 1).setBlendMode(Phaser.BlendModes.ADD).setTint(0x7dffb0).setScale(0.04 + rnd() * 0.03).setAlpha(0);
+    specks.push({ img, ph: rnd() * 6.283, rate: 0.6 + rnd() * 1.4, peak: 0.45 + rnd() * 0.4 });
+  }
+
+  // ---- spiders: one or two hang on a thread across the wall, lowering and climbing back up now and then
+  const spiders: Spider[] = [];
+  for (const k of [-2, 1]) {
+    if (quality === 'low' && k !== 1) continue;
+    const x = W / 2 + k * tw + (rnd() - 0.5) * tw * 0.3;
+    const top = wallTop - 2;
+    const thread = sprite(K_THREAD, -19.6).setPosition(x, top).setOrigin(0.5, 0).setTint(0xd8e0d4).setAlpha(0.35).setScrollFactor(FAR, 1);
+    const body = sprite(K_SPIDER, -19.62).setScale(0.75).setTint(0x9aa59c).setScrollFactor(FAR, 1);
+    spiders.push({ body, thread, x, top, bottom: wallBase - 8, ph: rnd() * 6.283, per: 9 + rnd() * 6 });
   }
 
   // ---- drips: fall from the wall's top to a landing on the floor, then splash; each drip slot waits before its next drop
   const drops: Drop[] = [];
-  for (let i = 0; i < count(22); i++) {
-    const img = sprite(K_DROP, 7.2).setScale(0.3).setTint(0xa8f2e0).setAlpha(0.6).setVisible(false);
+  for (let i = 0; i < count(30); i++) {
+    const img = sprite(K_DROP, 7.2).setScale(0.3).setTint(0xa8f2e0).setAlpha(0.8).setVisible(false);
     drops.push({ img, x: 0, y: 0, vy: 0, land: 0, wait: 0.2 + rnd() * 3 });
   }
 
@@ -208,7 +288,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
     p.vx = (rnd() * 2 - 1) * 9;
     p.life = 8 + rnd() * 7;
     p.age = initial ? rnd() * p.life : 0;
-    p.a = 0.1 + rnd() * 0.08;
+    p.a = 0.16 + rnd() * 0.1;
     p.s = (tw * (0.9 + rnd() * 0.7)) / 128;
   };
   const puffs: Puff[] = [];
@@ -220,7 +300,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
 
   // ---- faint wisps: pale ghostly blobs drifting through the air behind the fighters
   const wisps: Wisp[] = [];
-  for (let i = 0; i < count(5); i++) {
+  for (let i = 0; i < count(7); i++) {
     wisps.push({
       img: sprite(K_GLOW, 7.3).setTint(0xb8f5e6).setBlendMode(Phaser.BlendModes.ADD),
       cx: rnd() * W,
@@ -229,7 +309,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
       ph: rnd() * 6.283,
       sp: 0.3 + rnd() * 0.35,
       amp: 12 + rnd() * 20,
-      a: 0.08 + rnd() * 0.06,
+      a: 0.12 + rnd() * 0.08,
       w: H * (0.35 + rnd() * 0.25),
     });
   }
@@ -242,9 +322,24 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
 
       // candles: a layered flicker, each flame out of step with the others
       for (const c of candles) {
-        const f = 0.8 + 0.1 * Math.sin(t * 6.3 + c.ph) + 0.06 * Math.sin(t * 13.1 + c.ph * 2.3) + 0.08 * (rnd() - 0.5);
-        c.glow.setAlpha(0.42 * f).setScale(c.gs * (0.95 + 0.1 * f));
+        const f = 0.7 + 0.2 * Math.sin(t * 6.3 + c.ph) + 0.12 * Math.sin(t * 13.1 + c.ph * 2.3) + 0.1 * (rnd() - 0.5);
+        c.glow.setAlpha(0.55 * f).setScale(c.gs * (0.92 + 0.16 * f));
         c.core.setAlpha(0.85 * f).setScale(c.cs * (0.9 + 0.2 * f), c.cs * (0.9 + 0.3 * f));
+        c.pool.setAlpha(0.3 * f);
+      }
+
+      // fungus: each speck swells, shines and goes dark again
+      for (const s of specks) {
+        const p = Math.sin(t * s.rate + s.ph);
+        s.img.setAlpha(p > 0 ? s.peak * p * p * p : 0);
+      }
+
+      // spiders: each lowers on its thread to its lowest point, then climbs back, swaying a little
+      for (const sp of spiders) {
+        const k = 0.5 - 0.5 * Math.cos((t / sp.per) * Math.PI * 2 + sp.ph);
+        const y = sp.top + (sp.bottom - sp.top) * k;
+        sp.body.setPosition(sp.x + 1.2 * Math.sin(t * 1.7 + sp.ph), y).setRotation(0.08 * Math.sin(t * 2.4 + sp.ph));
+        sp.thread.setScale(0.5, Math.max(1, y - sp.top) / 2);
       }
 
       // drips: fall with gravity, stretch as they speed up, splash on landing, then wait for the next drop
@@ -280,7 +375,7 @@ export const build: BuildStageFx = (ctx: StageCtx): StageFx => {
         r.age += step;
         const p = Math.min(1, r.age / r.life);
         const s = (H * (0.08 + 0.14 * p)) / 64;
-        r.img.setScale(s, s * 0.55).setAlpha(0.32 * (1 - p));
+        r.img.setScale(s, s * 0.55).setAlpha(0.45 * (1 - p));
       }
 
       // mist: each puff fades in, drifts and fades out, then starts again somewhere along the floor

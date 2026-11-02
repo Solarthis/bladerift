@@ -1,0 +1,459 @@
+[
+ {
+  "severity": "major",
+  "file": "packages/shared/src/fighter.ts",
+  "line": 576,
+  "title": "EX at 50% gauge starves Rift Arts (Arts/round ~0.9 to ~0.03)",
+  "evidence": "startEx (fighter.ts:575-576) fires on any Special press with rift in [500,1000), so a human pressing Special at 600 gets EX (verified: rift 600 -> act Skill, ex 19, rift 101). bot.ts exSkill (626-637) fires it on 50% of ticks in range, so bots cast 1.2-2.2 EX per fighter-round. Same probe (.cache/gate/qa-sim-balance.mjs) on 0255f0e vs HEAD: Rift Arts per fighter-round 0.53-1.03 at base vs 0.00-0.08 at HEAD (Brynhildr 1.03 -> 0.46), EX 0 at base. tools/duelsim.ts --seeds=1 round win%: Humbaba 46.2 -> 33.7, Dumas 55.2 -> 40.5 (outside the 43-56% target from commit 8c00646). Outputs: scratchpad\\qa\\sim-duelsim-base.txt, scratchpad\\qa\\sim-duelsim.txt, scratchpad\\qa\\sim-balance-base.txt, scratchpad\\qa\\sim-balance-head.txt.",
+  "fix": "Give EX its own input (or a double-tap) so the Special press keeps meaning Art at full gauge, or raise EX_SPECIAL.cost so the 1000 Art stays reachable. Have bot.ts exSkill (line 628) stop spending below RIFT.max unless the Art is out of reach, then re-run tools/duelsim.ts.",
+  "area": "sim"
+ },
+ {
+  "severity": "major",
+  "file": "packages/shared/src/world.ts",
+  "line": 296,
+  "title": "infiniteRift makes the EX special unreachable",
+  "evidence": "World pins rift to RIFT.max every tick (world.ts:296 addFighter, :1302 stepTraining). startEx requires rift < RIFT.max (fighter.ts:576), so the Special press always starts the Art. Verified with .cache/gate/qa-sim-checks.mjs: infiniteRift true -> act 12 (Art), ex 0, sawEx false, sawArt true; control with rift 600 -> act 7 (Skill), ex 19, sawEx true. The MatchSettings doc (world.ts:24) says 'every Rift Art and EX special is available', which is false.",
+  "fix": "Either let infiniteRift keep a gauge that can still choose EX (for example pin it at RIFT.max - 1 for EX, or give training a way to pick EX), or correct the world.ts:24 comment and the sim-settings report so the limitation is stated.",
+  "area": "sim"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/shared/src/world.ts",
+  "line": 805,
+  "title": "EX super armour is bypassed by a throw",
+  "evidence": "exArmour (world.ts:805) stops hits from flinching during the EX startup, but isThrowable (fighter.ts:1287-1289) does not exclude an EX caster, although it excludes frenzy and Piercing Fang. Verified with .cache/gate/qa-sim-exthrow.mjs (output scratchpad\\qa\\sim-exthrow2.txt): A casts EX, B grabs at A actT <= startup for heroes 0, 1 and 2; A goes to act 16 (Held), takes 129-140 damage with normal hit-stop (hs 11, armour gives 0), and the 500 gauge is lost.",
+  "fix": "In World.checkThrow (world.ts ~line 640) reject a victim where castingEx(d.s) && d.s.actT <= the skill's startup, the same test as exArmour, so a grab cannot break the armoured startup; otherwise state the exception in the EX docs.",
+  "area": "sim"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/shared/src/world.ts",
+  "line": 317,
+  "title": "A carried 0 HP restarts the next match at full health",
+  "evidence": "room.ts:514 stores Math.max(0, hp) (0 for a lost human seat) in settings.startHp, and World.start() (world.ts:317) applies it only when hp > 0. Verified with .cache/gate/qa-sim-carry.mjs (output scratchpad\\qa\\sim-carry.txt): startHp [0,-1] gives hpA 1890 = class max, while startHp [1,-1] gives hpA 1. Any match that follows a carryHp match (rematch from results, or the next fight) restarts a fighter that ended at 0 health at full health.",
+  "fix": "Store a lost seat as 1 (the minimum) in room.ts:514, or change the sentinel for 'full health' to -1 in World.start() so that 0 carries as 0-clamped-to-1 health.",
+  "area": "sim"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/net/NetGame.ts",
+  "line": 499,
+  "title": "Your own throw and tech appear at the opponent's delayed time",
+  "evidence": "drainEvents (NetGame.ts:477-483) holds every event not in aboutMe until its tick is near the render time, and aboutMe (499-510) lists hit, block, parry, swing, shoot, roll, heal, blink, ex, trap, ko but not 'throw' or 'tech' (both fall through to default false). So the thrower's grab and the victim's tech press show with the interpolation delay, while the same hit feedback is immediate. Read from the code, not played in a browser.",
+  "fix": "Add case 'throw': case 'tech': return e.a === me || e.v === me; to aboutMe (NetGame.ts:499-510) so the local player's grab and tech show at once.",
+  "area": "sim"
+ },
+ {
+  "severity": "major",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/ui/App.ts",
+  "line": 314,
+  "title": "SFX gain applies the master volume twice",
+  "evidence": "Scripted run .cache/gate/qa-audio2.mjs T3 (master 0.5, sfxVol 0.8, musicVol 0.6, voiceVol 0.37): samples.volume = 0.4 because App.applyVolumes sets samples.setVolume(p.volume * p.sfxVol) (App.ts:314). The Sfx master gain is also 0.5 (set from prefs().volume at App.ts:177 and App.ts:559; Sfx.ts initGraph sets master.gain = _volume). Samples feed Sfx.mix -> compressor -> master (Samples.ts:186, Sfx.ts ~520-525), so a sample reaches the output at 0.5 x 0.4 = 0.2. Measured destination gains: music 0.3 (correct), voice 0.185 (correct). Synth path is squared too: Sfx.ts:289 scales by samples.volume / SFX_VOLUME_DEFAULT on top of the master node. Sfx.syncSampleVolume (Sfx.ts ~1907) sets sfxVol only, which contradicts applyVolumes.",
+  "fix": "In App.ts applyVolumes use samples.setVolume(p.sfxVol), since the master already sits on Sfx's master gain. Then Samples.volume and Sfx.ts:289 carry only the channel volume.",
+  "area": "audio"
+ },
+ {
+  "severity": "major",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/audio/Music.ts",
+  "line": 56,
+  "title": "One failed manifest fetch silences music and announcer for the whole session",
+  "evidence": "Scripted run .cache/gate/qa-audio2.mjs T5: the first manifest.json request is aborted. Samples recovers on its own (samples.done=true after the second manifest fetch), but after recovery music.play() starts nothing (zero media-play events over 3+ s; manifest fetched twice in total). Cause: `manifestP ??= fetch(...).then(...).catch(() => null)` caches the null permanently (Music.ts:56-58). Announcer.line() returns when the manifest is null (Announcer.ts:66-69), so voice lines are silent too. Samples.ts retries after RETRY_MS = 30 s (Samples.ts:87, 201).",
+  "fix": "In loadAudioManifest, when the result is null, clear manifestP and set a retry time (the Samples.ts RETRY_MS pattern) so later calls refetch the manifest.",
+  "area": "audio"
+ },
+ {
+  "severity": "major",
+  "file": "C:/Users/vascu/Projects/bladerift/docs/LICENSES.md",
+  "line": 13,
+  "title": "Shipped audio pack has no licence or credit entries",
+  "evidence": "docs/LICENSES.md has no audio rows. Line 13 says sound effects are 'Synthesized at runtime ... no recordings or samples', which is now false: packages/client/public/assets/audio/ ships 69 recorded files (music/, voice/, sfx/) built from tools/audio/plan.json. Every shipped source is CC0 (Kenney voice/SFX/UI/jingles, StarNinjas, BMacZero, artisticdude, Junkala/SubspaceAudio, Emma_MA, HydroGene, MintoDog, cynicmusic, pmiller, Davieplier, PagDev per .cache/assets/*/SOURCES.md), and the CC-BY Alba pack is not in the plan, so no in-game attribution is legally required. But docs/overhaul/maps/assets.json records Davieplier (battle1.mp3, shipped as stage-embers) as 'Author asks for credit', and the brief requires each asset's source, author and licence to be recorded.",
+  "fix": "Add an 'Audio pack' section to docs/LICENSES.md with one row per shipped source (author, CC0 link, requested credit lines such as Davieplier's). Replace the line 13 'no recordings or samples' wording.",
+  "area": "audio"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/audio/Music.ts",
+  "line": 200,
+  "title": "A track still loading can start after a newer request",
+  "evidence": "Scripted run .cache/gate/qa-audio5.mjs (select.mp3 delayed 1.5 s by a route): play('select') while title is live, then play('title') 300 ms later. request('title') returns early at Music.ts:200 because title is already live, so nothing cancels the pending select load. Select's canplay then calls activate() (Music.ts:191) with no check against `want` (onReady at Music.ts:218-221). Select starts, title is faded and paused (media-pause title), and title never resumes. The title screen then plays the select theme until the next music.play. A same-track return with no delay (qa-audio.mjs D1) does not reproduce, because the manifest had not resolved yet.",
+  "fix": "In request(), before the early return for the live track, halt any pending slot whose id differs from the wanted id. In onReady, activate only when want === id, otherwise halt that slot.",
+  "area": "audio"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/public/assets/audio/manifest.json",
+  "line": 1,
+  "title": "Every looping music track has a 6-70 ms silent seam",
+  "evidence": "Scripted decode of the shipped music (.cache/gate/qa-audio4.mjs, threshold -50 dBFS): title lead silence 24.4 ms (about 1105 samples, the LAME encoder delay), stage-hall 6.3 + 21.6 ms tail, stage-crypt 50.4 + 24.2 ms, stage-embers 38.2 + 21.3 ms on a 19 s loop, stage-grove 9.3 + 11.1 ms. tools/audio/README.md (Known limitations) says lamejs writes no gapless header, and build.mjs does not trim music. Loops use the element loop attribute (Music.ts ~235), so every wrap plays the silence.",
+  "fix": "In tools/audio/build.mjs, write a LAME/Xing gapless tag for music (or trim the encoder delay and padding the encoder adds), then rebuild the pack.",
+  "area": "audio"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/tools/audio/plan.json",
+  "line": 1,
+  "title": "stage-embers is a 19-second loop, not the 1.5-3 minute brief target",
+  "evidence": "plan.json maps stage-embers to .cache/assets/music-select/battle1.mp3. The shipped stage-embers.mp3 decodes to 18.99 s (.cache/gate/qa-audio4.mjs), so the arena loops every 19 s. The brief asks for 1.5-3 minute battle themes (.cache/assets/music-embers/SOURCES.md), and all those candidates were rejected on licence, so this file was used as the fallback.",
+  "fix": "Source a licensed 1.5-3 minute track for stage-embers, or record the short loop as an accepted exception in the brief, then rebuild the pack.",
+  "area": "audio"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/tools/audio/build.mjs",
+  "line": 354,
+  "title": "Victory fanfare is cut at 20 s with no fade",
+  "evidence": "plan.json sets victory (cynicmusic-Victory1_1.mp3, 56.7 s source) to maxSeconds 20. build.mjs:354-355 hard-truncates. The shipped victory.mp3 decodes to 20.04 s, and its last 200 ms sit at -19.1 dB against -17.3 dB for the first 200 ms (.cache/gate/qa-audio4.mjs), so it stops at full level rather than fading. It is played once on match end (App.ts ~1200).",
+  "fix": "When maxSeconds truncates, fade the last 0.5-1 s in build.mjs (around line 354), or pick a source that ends naturally at 20 s.",
+  "area": "audio"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/game/GameScene.ts",
+  "line": 1729,
+  "title": "The 'ready' and 'gameOver' voice lines are in the pack but never played",
+  "evidence": "Scripted arcade runs (.cache/gate/qa-audio.mjs C8, qa-audio2.mjs T6): across the round intro, fight, forfeit and direct round events, no announcer.say('ready') and no 'gameOver' call happens. A grep of packages/client/src finds no say call for either. manifest.json lists voice/ready.mp3 and voice/gameOver.mp3. The intro plays 'round1' then 'fight' only (GameScene.ts:1729-1733 and :2178-2181).",
+  "fix": "Say 'ready' between the round line and 'fight' in announceRound (GameScene.ts:1729), and say 'gameOver' where the run-over card is shown (App.ts ~1160, renderRunOver).",
+  "area": "audio"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/audio/Announcer.ts",
+  "line": 57,
+  "title": "A transient voice fetch error silences that line for the session",
+  "evidence": "From code reading (not reproduced in the browser): decode() maps any fetch or decode failure to null (Announcer.ts:57) and caches that promise (line 58), so a network error is never retried. A 404 is cached the same way, which is intended, but a network blip is not. Samples.ts retries after 30 s and Announcer does not.",
+  "fix": "Remove the map entry when the result is null or the request throws (cache only successful decodes), so a later say() refetches the line.",
+  "area": "audio"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/Hud.ts",
+  "line": 301,
+  "title": "K.O. word drawn twice: DOM Hud banner and canvas koSequence",
+  "evidence": "Desktop K.O. run (scratchpad/qa/ko-ko-desk-004..016.jpg, crop-ko-desk-006-012.png): a crisp DOM 'K.O.' (Hud.onEvent 'round', KO_MS 2000) sits on top of the canvas K.O. from playKoSequence (GameScene.ts ~2203), offset, with its own shadow. Probe log in qa-ko-run desk: hud=K.O.[hud-banner on ko] and K.O. text both active 448-1900 ms. Same on 844x390 (ko-ko-m844-001..005).",
+  "fix": "Stop Hud.onEvent from showing the K.O. banner for 'round' when the scene runs playKoSequence (or drop the canvas K.O. word); keep one owner for the K.O. word.",
+  "area": "ko"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/App.ts",
+  "line": 951,
+  "title": "PERFECT drawn twice, and the DOM copy stacks over the K.O. word",
+  "evidence": "App.onFightEvent 'round' calls announceResult('PERFECT') after 1.4 s; GameScene's koSequence also draws PERFECT under the K.O. From ~1.9 s to 3.5 s both show: DOM gold PERFECT over the red K.O. and canvas PERFECT under it (ko-ko-desk-017..022.jpg, probe lines 'PERFECT@640,407' and hud=PERFECT[hud-banner on result]). Also at 844x390 (ko-ko-m844-003..005).",
+  "fix": "Remove the App.ts PERFECT announceResult (and the DRAW one) now that koSequence owns the round-result words, or remove PERFECT from koSequence and keep the DOM one.",
+  "area": "ko"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/App.ts",
+  "line": 951,
+  "title": "DOM PERFECT overlaps the canvas ROUND WINNER banner",
+  "evidence": "ko-sheet desk frames 025-029 (sheet-ko-desk-d.png): the 'PERFECT' DOM plate sits over the 'ME WINS' slanted banner, so both words are unreadable at once. Same at 844x390 (sheet-ko-m844-a.png frames 006-007).",
+  "fix": "Follows from the PERFECT fix: one result word at a time, or delay the DOM result until the playRoundWinner banner has finished (about 2.35 s after the K.O.).",
+  "area": "ko"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/Hud.ts",
+  "line": 301,
+  "title": "Clock end shows two words: DOM 'TIME!' over canvas 'TIME OVER'",
+  "evidence": "time-over runs (log-time-desk.txt, ko-time-m667 #003-#011): Hud banner 'TIME!' (Hud.ts 301) sits on top of canvas 'TIME OVER' from koSequence for about 2 s. The DOM plate covers the middle of the canvas word on 667x375.",
+  "fix": "Show only one clock-end word: the Hud 'TIME!' banner should be skipped when koSequence handles timeOver (see the duplicate K.O. finding).",
+  "area": "ko"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/App.ts",
+  "line": 951,
+  "title": "Time-out draw shows 'TIME OVER' and 'DRAW' in the same place",
+  "evidence": "draw scenario (log-draw-desk.txt, ko-draw-desk frames 015-021): the App's announceResult('DRAW') replaces the DOM banner at about 1.4 s while the canvas 'TIME OVER' keeps its place. Draw wording is not decided in one place: koSequence gives 'TIME OVER' priority over 'DOUBLE K.O.', and App.ts says 'DRAW'.",
+  "fix": "Pick one wording for a time-out draw (koSequence and App.ts both read the same round event) and make App.ts stop announcing it when koSequence already shows the result.",
+  "area": "ko"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/Hud.ts",
+  "line": 319,
+  "title": "Match end shows two WINNER banners",
+  "evidence": "match-desk frames 044-058 (sheet-match-desk-end.png): the DOM 'WINNER!' banner with the 'ME \u00b7 quote' sub-line (Hud.ts 319, 4000 ms) is drawn over the canvas 'WINNER!!' from playRoundWinner (GameScene.ts ~2231). The pink stripe of the canvas plate shows under the DOM word.",
+  "fix": "Keep one match-end banner: remove the Hud 'WINNER!' call (or the canvas playRoundWinner finalWin call) and keep the quote line in whichever stays.",
+  "area": "ko"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/game/koSequence.ts",
+  "line": 287,
+  "title": "PERFECT shown on a clock win, which the App does not count as a perfect",
+  "evidence": "time scenario (log-time-desk.txt): winner took no damage, round ended on the clock; canvas 'TIME OVER' plus 'PERFECT@640,416' (also ko-time-m667 #003-#011). App.ts 957 counts a perfect only when why === 0. koSequence sets perfect with no timeOver check; GameScene.ts ~2195 sets perfect = !!win && !roundHurt.",
+  "fix": "In GameScene 'round' (GameScene.ts ~2195) set perfect = !timeOver && ..., so a clock win never shows PERFECT and the stat and the word agree.",
+  "area": "ko"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/App.ts",
+  "line": 945,
+  "title": "HUD stays hidden through the next round's intro",
+  "evidence": "desk timeline (qa-ko-run desk): faded=true from the K.O. (448 ms) to the next FIGHT! (5436 ms), covering ROUND 2 and READY. Frames ko-ko-desk-026..046 show no health bars, round counter or clock. mugen-reference.md section 6 says the HUD slides in with READY.",
+  "fix": "Unhide the HUD when the intro starts (App.ts 'round' or the scene's 'intro' phase), not only on 'fight'; it can stay hidden only while the ROUND WINNER banner is up.",
+  "area": "ko"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/ui/Hud.ts",
+  "line": 282,
+  "title": "ROUND 2 banner waits about 1.1 s with nothing on screen",
+  "evidence": "desk timeline: phase 'intro' starts at 2.90 s but the ROUND 2 banner only appears at 3.98 s. Hud.ts 282-284 hides the banner while the VS band is up (vsOn, round > 1, left > 1.4 s), but the band sits inside the hidden HUD, so the viewer sees only the fading ME WINS banner (frames 026-033).",
+  "fix": "Do not gate the round banner on vsOn when the HUD is hidden, or show the VS band (or the ROUND banner) as soon as the intro phase starts.",
+  "area": "ko"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/game/GameScene.ts",
+  "line": 2213,
+  "title": "ROUND 2 banner lands on top of the ME WINS banner still sliding out",
+  "evidence": "desk frame ko-ko-desk-034 (sheet-ko-desk-d.png): 'ME WINS' is still leaving to the left (playRoundWinner runs to 1.4 s after the K.O. starts) while the DOM 'ROUND 2' slams in at the centre, so the two overlap.",
+  "fix": "Delay the intro banner until the round-winner banner has finished, or start the winner banner earlier so it clears before the intro (2.5 s after the K.O.).",
+  "area": "ko"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/game/GameScene.ts",
+  "line": 2166,
+  "title": "K.O. slow motion also fires on a clock end",
+  "evidence": "time scenario: timeScale 0.25 from the round event (log-time-desk: ts=0.25 at 154-629 ms), though no fighter was K.O.'d and the loser stays standing (act0).",
+  "fix": "Pass a scale of 1 (no slow motion) from playKoSequence when timeOver is true, or only request slow motion when the round ended by K.O.",
+  "area": "ko"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/render/spriteAnim.ts",
+  "line": 362,
+  "title": "Loser sprite alternates between lying and upright during the K.O. hold (needs checking)",
+  "evidence": "desk frames 026..033 (crop-loser-desk.png): the loser lies flat at 026-027 and 030-033 but is drawn upright at 028-029, while still act8 hp0. Possibly the KO branch (down drawing vs KO_TIP fallback) switching; not confirmed in code.",
+  "fix": "Check the Act.KO branch in spriteAnim.ts (lines 362-378): the lying drawing should hold once it lands; confirm which drawing the upright frames use.",
+  "area": "ko"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/ui/App.ts",
+  "line": 945,
+  "title": "Touch buttons stay on screen during the K.O. on phones",
+  "evidence": "ko-ko-m844-000..008 and ko-ko-m667 frames: the HUD is faded, but the touch controls (attack and skill buttons, joystick) stay fully visible over the K.O. word and the ROUND WINNER banner.",
+  "fix": "Fade the touch layer with the HUD (touch.show is called every frame from App's loop; hide it while setHidden(true) is active).",
+  "area": "ko"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/game/koSequence.ts",
+  "line": 260,
+  "title": "DOUBLE K.O. word is unreachable in play",
+  "evidence": "The sim's knockOut always ends the round with a winner (packages/shared/src/world.ts 851-866: endRound(a ? a.seat : d.seat ^ 1, 0)). A draw only comes from a time-out (world.ts ~1356), which shows TIME OVER first, so 'DOUBLE K.O.' never shows.",
+  "fix": "Remove the DOUBLE K.O. branch from koSequence.ts (line 260) or keep it with a comment that it only applies to a forced event.",
+  "area": "ko"
+ },
+ {
+  "severity": "major",
+  "file": "C:\\Users\\vascu\\Projects\\bladerift\\packages\\client\\src\\game\\camera.ts",
+  "title": "Fighters drawn 20-30% of view height, above the 18-20% desktop and 22-26% phone targets",
+  "evidence": "Painted alpha-bounds of the standing sprite (qa-camera.mjs, scratchpad/qa/camera-*.json, close state): 1280x720 desk 23.4% and 20.4%; 1920x1080 desk 23.6%; 844x390 touch 29.6% and 30.2%; 667x375 touch 29.6% and 27.6%. Cause: closeZoom is sized from FIGHTER.h = 52 (shared constants.ts:62) while the hero sprite paints about 56-65 world units tall (idle frame 64.2 units, scale 0.331). Screenshots camera-1280x720-desk-close.png and camera-844x390-touch-close.png show the same overshoot.",
+  "fix": "Scale heightShare by 52 / painted height (about 60): desktop 0.19 -> about 0.165, touch 0.24 -> about 0.21 in CAMERA.heightShare, or derive the size from the sprite's native frame height instead of FIGHTER.h.",
+  "area": "camera"
+ },
+ {
+  "severity": "major",
+  "file": "C:\\Users\\vascu\\Projects\\bladerift\\packages\\client\\src\\game\\camera.ts",
+  "title": "Touch stick and buttons cover fighters when pushed to an arena wall",
+  "evidence": "Wall clamp in FightCamera.update ignores the pad insets. At 844x390 wall-right, fighter painted box [621,165,724,281] overlaps .touch .tbuttons [629,175,838,384]; screenshot camera-844x390-touch-wall-right.png shows the knight's sword and torso behind the skill tiles. At 667x375 wall-left, fighter box [107,158,213,269] overlaps .touch .stick-base [58,193,182,317]; screenshot camera-667x375-touch-wall-left.png shows the Lion's legs under the stick knob. Also 844x390 apart: fighter box x 605-638 overlaps the buttons from x 629. GameScene.touchInsets reserves only 70% of the cluster width and 45% of the stick width (GameScene.ts about line 3280), so the reserved zone is too narrow even before the wall clamp. Close-range framing is clear (fighters at x 320-488 px, clear of pads at 629+).",
+  "fix": "Make the wall clamp pad-aware in camera.ts: allow the view centre to shift by padLeft/zoom and padRight/zoom so a fighter at the wall stays outside the pad strips. Also raise the touchInsets factors in GameScene.ts toward 1.0 so the reserved strip matches the drawn controls.",
+  "area": "camera"
+ },
+ {
+  "severity": "major",
+  "file": "C:\\Users\\vascu\\Projects\\bladerift\\packages\\client\\src\\game\\camera.ts",
+  "title": "Vertical lift lags a fast rise, so the head leaves the top of the view",
+  "evidence": "Teleport probe (qa-camera-lift-tp.mjs, placing the seat-0 fighter 160 units above the floor): 844x390 touch head clearance -54.3 units at t=0, -29.9 at 92 ms, -6.8 at 194 ms, first positive at about 290 ms; 1280x720 desk clearance -5.8 at t=0, positive at about 100 ms. The head clearance uses FIGHTER.h = 52; the painted head sits about 12 units higher still, so the visible clipping is worse. Ease rate CAMERA.liftRate = 6/s is too slow for rising fighters. A real single jump peaks near 106 units (below liftAbove 110), so this shows only on ledges and double jumps.",
+  "fix": "Lift faster than the settle: use about 14/s when the target is above the current centre (rising) and keep 6/s for settling down, so the head stays inside the top edge through a fast rise.",
+  "area": "camera"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/App.ts",
+  "line": 1246,
+  "title": "In-match menu does not pause the local match",
+  "evidence": "Opening the HUD II menu (leave dialog) or its Move list does not stop the sim. In a 1.5 s hold with the dialog open, window.__room.world.tick went 369 -> 462 on desktop and 320 -> 411 on mobile (flows-modes QA, arcade stage 1 vs bot). Logs: C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/modes-d.log line 12 and modes-m.log line 12. The bot keeps fighting while the player reads the Move list or decides to stay.",
+  "fix": "For local rooms (practice, arcade, survival, training, two players), freeze the room tick while the leave dialog or the in-match Move list is open and resume on Keep fighting or Close; the online room must keep running. Set the flag in confirmLeave and clear it in every close path.",
+  "area": "flows"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/modes.ts",
+  "line": 329,
+  "title": "Arcade ladder opens scrolled past its Quit button",
+  "evidence": "renderLadder scrolls the whole .modes-screen so the current rung is centred, which pushes the header out of view. Measured on open: the Quit button (.md-ladder .md-back) sits at top -375 px on 1280x720 and -409 px on 844x390, with the header also off-screen; scrollTop is 393 and 417. The Fight button stays visible. Screenshots: C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/flows-modes-d-02-ladder-hard.png and flows-modes-m-05-ladder-stage2.png. Quit is only reachable by scrolling up.",
+  "fix": "Keep the back control in view: make .md-hdr sticky inside .modes-screen (modes.css), or scroll only the .md-tower list instead of the whole screen.",
+  "area": "flows"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/ui/training.ts",
+  "line": 232,
+  "title": "Training readout keeps old numbers after Reset",
+  "evidence": "Before Reset the readout reads LAST 87 / COMBO 421 / HITS 5 / BEST 5. After Reset, with the match restarted and the menu kept, it reads the same values. Logs: C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/modes-d.log lines 63 and 67 (also modes-m.log). The handle returned by mountTraining has no reset, and App.restartTraining does not clear the counters.",
+  "fix": "Add a reset() to the object returned by mountTraining that zeroes the hit, combo, best and last counters, and call it from restartTraining in App.ts before the new fight starts. If keeping the numbers across Reset is intended, say so in the training docs.",
+  "area": "flows"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/ui/training.css",
+  "line": 156,
+  "title": "TRAINING tab covers the right fighter's name plate",
+  "evidence": "In a training match at 1280x720 the TRAINING tab sits over the right fighter's name and portrait corner; only 'ASHI' is readable. Screenshot: C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/flows-modes-d-14-training-hits.png. Already listed in integrate-app.md; still present.",
+  "fix": "Move .tr-menu-wrap below the right name plate or into the lower-right corner, clear of the HUD row, so the opponent's name stays visible.",
+  "area": "flows"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/ui/heroSelect.css",
+  "line": 315,
+  "title": "Hero face names break mid-word on phones",
+  "evidence": "On the hero select at 844x390 the face-tile names split inside words: 'Gilgames h', 'Alexandr e Dumas', 'Brynhild r', 'Hashashi n', 'Humbab a'. Screenshot: C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/flows-menus-m-02-fighter.png. The tile label (.hsel-tile .hsel-nm) uses overflow-wrap: anywhere, so long names break anywhere.",
+  "fix": "Stop breaking inside words in .hsel-tile .hsel-nm (use overflow-wrap: normal, with a smaller font size or ellipsis at short heights) so each name wraps on whole words or fits on one line.",
+  "area": "flows"
+ },
+ {
+  "severity": "major",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/ui/training.css",
+  "line": 143,
+  "title": "TRAINING tab and open menu cover the right fighter's name plate and life bar",
+  "evidence": "Rect check: .tr-tab sits at [1179,4,1274,34] at 1280x720 and overlaps .hp-name [1062,11,1207,41] and .hp-side.right [852,6,1272,146]; at 1920x1080 the tab [1819,4,1914,34] covers .hp-name [1723,11,1847,41]. The open .tr-menu [1078,38,196,146] sits over the right life bar. Screenshots: C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/screens-1280x720-13-training-menu.png (BRANNOC name cut by the tab), screens-844x390-13-training-menu.png (GRIMS name and right HP bar covered), screens-667x375-13-training-menu.png (VEX name covered). Probe: .cache/gate/qa-screens.mjs, data in screens-report-1280.json, -1920.json, -844.json, -667.json.",
+  "fix": ".tr-menu-wrap is pinned with top: max(4px, env(safe-area-inset-top)) and right: max(6px, ...) (training.css:143-144), on top of the right .hp-side. Move the TRAINING toggle and its menu below the HUD bars (for example above the touch buttons at bottom-right, or under .hud-mid) so the right name plate and life bar stay readable at 667x375 through 1920x1080.",
+  "area": "screens"
+ },
+ {
+  "severity": "major",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/ui/heroSelect.css",
+  "line": 250,
+  "title": "Hero select face tiles are far too small at every size",
+  "evidence": "Measured .hsel-tile size: 68px at 1280x720 (faces panel 661x631), 90px at 1920x1080 (panel 832x988, grid vertically centred with about 350px empty above and below), 40px at 844x390, 30px at 667x375. Cause: .hsel-group max-width: 220px (line 250) with each group a 2-column .hsel-slots grid inside four equal .hsel-faces columns (lines 236-242), so tiles cannot grow with the panel. Screenshots: screens-1280x720-02-hero.png, screens-1920x1080-02-hero.png, screens-844x390-02-hero.png, screens-667x375-02-hero.png (faces unreadable at 667). Not MUGEN-like: faces should be the dominant element.",
+  "fix": "Size .hsel-tile from the panel's available height (for example width: min(100%, calc((100vh - header) / rows)) with the rows known) and drop the 220px group cap so the 4x2 roster fills .hsel-faces; keep align-content: center only once the grid is near panel height.",
+  "area": "screens"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/ui/heroSelect.css",
+  "line": 355,
+  "title": "Hero info column clips the last line of the signature-weapon note",
+  "evidence": ".hsel-info has overflow: hidden (line 355). At 1280x720 scrollHeight 652 vs clientHeight 631, and the .hsel-note last line '(a plunge in the air).' is cut at the panel bottom (screenshot C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/screens-1280x720-03-hero-selected.png). At 667x375 the column is also short by 7px (sh=324/317). Matches the note in docs/overhaul/reports/integrate-app.md.",
+  "fix": "Tighten the info stack under a max-height media query (shorten .hsel-lore or the .hsel-it blurb clamp, or hide .hsel-note below about 760px tall), or change .hsel-info to overflow-y: auto so the last line can be scrolled to.",
+  "area": "screens"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/ui/modes.ts",
+  "line": 325,
+  "title": "Arcade ladder opens scrolled down, hiding its header, Quit button and top boss rung",
+  "evidence": "modes.ts:325-330 scrolls .modes-screen so the current rung is centred. Measured at 1280x720: .md-wrap top -379 on open and 14 after scrollTop = 0; the .md-hdr (Quit plus title) and the boss rung are off screen. Same at 844x390 (top -409) and 667x375 (top -409). The header is not sticky (.md-hdr in modes.css:17 has no position rule), unlike .md-foot which is sticky. Screenshot: screens-1280x720-08-ladder.png shows no header and the boss rung cut off.",
+  "fix": "Make .md-hdr position: sticky; top: 0 with a background (as .md-foot already does) so Quit and the title stay reachable, and centre the current rung with a smaller offset so the boss rung is not pushed out of the first screen.",
+  "area": "screens"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/ui/heroSelect.css",
+  "line": 324,
+  "title": "Hero tile names are crushed to 7.5px and truncated at 844x390",
+  "evidence": ".hsel-tile .hsel-nm uses font-size clamp(7.5px, 13cqw, 13px) (lines 315-324), so at a 40px tile the names are unreadable: 'Richard Lionhe...' and fragments such as 'h' or 'a' for Gilgamesh and Alexandre Dumas (screenshot C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/screens-844x390-02-hero.png). The 667x375 case hides names entirely through the max-width: 760px rule.",
+  "fix": "Fix the tile size first (see the hero tile finding); at small heights show the name only for the selected or hovered tile in the info column instead of cramming every label under a 40px face.",
+  "area": "screens"
+ },
+ {
+  "severity": "major",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/input/Controls.ts",
+  "line": 512,
+  "title": "Loose stick chord stays on for the whole hold of any button",
+  "evidence": "chord() returns `this.pressed.size > 0 || performance.now() < this.chordUntil`, so the 160 ms window (CHORD_MS, comment at lines 336-337) never closes while a finger is on a button. Local input intents recorded by .cache/gate/qa-touch.mjs (844x390, default and lefty) show: no button, thumb 0.24 of the radius to the right gives [0,0,0]; with Light held, the same thumb gives [0.6,0,2] and the fighter moved x 420 -> 440 in about 350 ms. With Heavy held and the thumb 0.35 down for 0.7 s, intents were [0,1,4] (down read) against moveY 0 with no button. Effects: holding Heavy to charge walks the fighter; a low-resting thumb during a hold makes the next press a launcher (fighter.ts:419 reads moveY>0.5 when the buffer is consumed) and turns Jump into a drop-through (fighter.ts:590). Log lines: 'creep: Light held, thumb 0.24 right (intents) [[0,0,2],[0.6,0,2]]' and 'thumb 0.35 down, Heavy held 0.7 s (intents) [[0,0,4],[0,1,4]]'.",
+  "fix": "Make chord() return only `performance.now() < this.chordUntil` (drop `this.pressed.size > 0`), so the window is CHORD_MS after each press as the comment states. If a held-button chord is wanted, record the press time per pointer and apply the window to that press only.",
+  "area": "touch"
+ },
+ {
+  "severity": "major",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/ui/hud.css",
+  "line": 599,
+  "title": "Size 1.3 thumb cluster covers the HUD combo counter",
+  "evidence": "--tb clamps to 74px before the scale is applied, so Settings Size 1.3 gives 84px tiles at 390px height and a cluster top at y=117 (1.0: y=175) at 844x390, and y=112 at 667x375. The combo counter (.combo-big, top 29u, about 38-39px tall, hud.css:336-337) then sits under the heal and Art tiles. Screenshot C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/touch-combo-667x375-big.png shows '12 HITS!' drawn over the heal and skill tiles (right-handed). Screenshot .../qa/touch-combo-844x390-lefty-big.png shows the player's own counter (left side, seat 0) covered by the heal and Art tiles in left-handed mode. At default size (1.0) the layout is clear. The same formula is duplicated at Controls.ts:469.",
+  "fix": "Cap the scaled tile by height in both places: `--tb: min(calc(clamp(56px, calc(var(--u) * 16.5), 74px) * var(--touch-scale, 1)), calc(var(--u) * 18))` (hud.css:599, and the inline value in Controls.ts refresh()). At 18u the cluster top stays at about y 150-157 on both test sizes, below the counter's bottom edge (about 146-152). Alternatively lower the Size max in ui/prefs.ts (0.8..1.3) to about 1.15.",
+  "area": "touch"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/input/Controls.ts",
+  "line": 382,
+  "title": "Art hint says hold, but a tap fires the Art",
+  "evidence": "The hint reads 'Hold the art tile when it glows'. At a full gauge a 45 ms tap on the Art tile started the Art (act 12, pause 26-27; qa-touch.mjs gesture 9 passes with a tap). The sim buffers Btn.Special on press (packages/shared/src/fighter.ts:266), so no hold is needed. Screenshot: C:/Users/vascu/AppData/Local/Temp/claude/C--/3e5d6721-b735-4f36-b275-bbd396a973d7/scratchpad/qa/touch-art-ready-844x390-default.png.",
+  "fix": "Change the copy at Controls.ts:382 to 'Tap the art tile when it glows'.",
+  "area": "touch"
+ },
+ {
+  "severity": "minor",
+  "file": "C:/Users/vascu/Projects/bladerift/packages/client/src/ui/hud.css",
+  "line": 657,
+  "title": "First-glow hint bubble covers the opponent's rift readout at Size 1.3",
+  "evidence": "The bubble sits above the Art tile. At 667x375 with touchScale 1.3, its box (x 358-572, y 75-107) overlaps the right-hand rift readout (.rift-pct, '0%', about 77x12 px) in the layout probe (touch-hint vs rift-pct ix 81, iy 12). It is shown once per device for 5 s, so the impact is small. At 844x390 at default size it does not overlap.",
+  "fix": "The cap in the Size finding (hud.css:599) raises the cluster's top edge to about y 150, which moves the bubble below the rift row (about y 108-140). No separate change is needed if that cap lands.",
+  "area": "touch"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/game/koSequence.ts",
+  "line": 414,
+  "title": "Round-result banner rebuilds its plate geometry every frame",
+  "evidence": "playRoundWinner's step (koSequence.ts:414-431) calls plate.clear() and then fillPoints/strokePoints/fillPoints, each building fresh Phaser.Math.Vector2 objects and arrays, for every frame of the 1.4 s banner (about 12 Vector2 and 3 arrays per frame, plus full Graphics re-tessellation). The plate's local geometry does not change over the banner: w = tw + pad*2 with tw = t.width*fit, and t.width, fit and pad are constant for the banner's life, so only the pinned position changes (off). Measured context: the desktop run for all five arenas showed no growth in children, displayList or textureKeys across rounds, so this is churn, not a leak.",
+  "fix": "Draw the plate once before start() (its w, h, sk and stripe depend only on the banner's constant size) and move it each frame with pin(plate, ...) only; keep the step to positioning and the text fit.",
+  "area": "perf"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/game/GameScene.ts",
+  "line": 3231,
+  "title": "Fight camera input allocates per frame",
+  "evidence": "GameScene.ts:3229-3231 passes fighters: list.map((q) => ({ x: q.x, y: q.y })) into FightCamera.update on every frame, allocating a new array and one object per fighter (2 per frame at 60 Hz). game/camera.ts also returns a new { zoom, x, y } object from update() every frame (camera.ts, end of update()). Both are small, but they are per-frame allocations in the new camera path, which the review asked to be allocation-free on the hot path.",
+  "fix": "Keep a reusable feet array on the scene (two {x,y} objects updated in place each frame) and pass that, or let FightCamera.update read the fighters' x/y directly from the list; have update() write zoom/x/y into a mutable field on FightCamera instead of returning a new object.",
+  "area": "perf"
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/game/GameScene.ts",
+  "line": 3220,
+  "title": "Frame stalls at fight start not attributed to stage FX",
+  "evidence": "Desktop 1280x720, high quality, first 5 s of fight (qa-perf.mjs output in scratchpad/qa/perf-*-desk-high.jsonl and the console runs): max frame grove 533 ms, embers 200 ms, bridge 133 ms, crypt 117 ms, hall 67 ms; late-fight windows max 33-66 ms. Diagnosis (qa-perf-diag.mjs, crypt, 12 s fight): with arenaView.update disabled the stalls remain (10 frames over 40 ms, max 150 ms) versus 7 frames over 40 ms with stage FX on (max 266 ms), so the arena's own update is not the cause. Arena update cost is small: 0.04-0.41 ms per frame on desktop, 0.2-0.35 ms on the throttled phone. Steady phone frame time with CPU throttling 4x is about 30 ms for both hall and crypt (software GL, so absolute values are not device numbers). Cause not isolated; this is measurement evidence, not a confirmed defect in a specific file.",
+  "fix": "Record a Chrome Performance trace over the first 3 s of a fight on a real device or with GPU raster enabled to attribute the stalls before changing code; do not change the stage FX on these numbers alone.",
+  "area": "perf"
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/Hud.ts",
+  "title": "Duplicate K.O./WINNER!/TIME! banners",
+  "evidence": "docs/overhaul/reports/integrate-scene.md: Hud.onEvent still fires its own K.O., TIME!, WINNER! banners alongside game/koSequence.ts",
+  "fix": "Remove the Hud K.O./TIME/WINNER banners (keep ROUND n / READY / FIGHT); koSequence owns the K.O. and the winner banner."
+ },
+ {
+  "severity": "major",
+  "file": "packages/client/src/ui/App.ts",
+  "title": "PERFECT/DRAW shown twice",
+  "evidence": "App calls hud.announceResult(PERFECT/DRAW) after the K.O., and koSequence already shows PERFECT / DOUBLE K.O.",
+  "fix": "Remove the App announceResult calls for PERFECT and DRAW."
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/ui/heroSelect.css",
+  "title": "Hero select: face tiles small, info column clips at 1280x720",
+  "evidence": "scratchpad/integ/app-d-02-hero-select.png",
+  "fix": "Make the face grid tiles much larger (fill the centre column, ~2x), keep everything on one screen; let the info column fit (smaller line height or scroll inside)."
+ },
+ {
+  "severity": "minor",
+  "file": "packages/client/src/ui/training.css",
+  "title": "TRAINING tab overlaps the right fighter plate",
+  "evidence": "integrate-app.md",
+  "fix": "Move the training menu tab below the HUD plates (top right under the rift bar) on desktop and phones."
+ }
+]

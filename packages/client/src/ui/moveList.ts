@@ -45,7 +45,7 @@ export const GENERAL_CONTROLS: GeneralControl[] = [
   { name: 'Launcher', input: '↓+LIGHT', notes: 'Launches a grounded opponent into the air.' },
   { name: 'Air combo', input: 'LIGHT, LIGHT, LIGHT (air)', notes: 'Light swings in the air. The first few hold a juggled opponent up for more hits.' },
   { name: 'Throw', input: '→+HEAVY (close)', notes: 'Grabs an opponent at close range.' },
-  { name: 'Throw break', input: '→+HEAVY (close)', notes: 'Press the throw input as the grab lands to break free.' },
+  { name: 'Throw break', input: 'LIGHT or HEAVY', notes: 'Press either attack in the first moment of a grab (8 ticks) to break free.' },
   { name: 'EX', input: 'ART', notes: 'At half the Rift gauge: the hero’s EX special.' },
   { name: 'Rift Art', input: 'ART', notes: 'At a full Rift gauge: the hero’s Rift Art.' },
   { name: 'Guard', input: '↓ (hold)', notes: 'Hold down on the ground to crouch-guard. Some chip damage still gets through.' },

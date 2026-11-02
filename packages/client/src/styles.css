@@ -923,6 +923,11 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 
 /* ------------------------------------------------------------------ touch controls */
 .touch { position: absolute; inset: 0; pointer-events: none; }
+/* the K.O. fades the touch controls with the HUD (App.fadeHud): faded, they show nothing and take no touches */
+.touch { transition: opacity 0.25s ease-out; }
+.touch.faded { opacity: 0; }
+.touch.faded,
+.touch.faded * { pointer-events: none !important; }
 .stick-zone { position: absolute; left: 0; top: 22%; bottom: 0; width: 46%; pointer-events: auto; touch-action: none; }
 .stick-base {
   position: fixed;

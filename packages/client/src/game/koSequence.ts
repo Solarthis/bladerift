@@ -18,9 +18,10 @@
  *     0        onSlowmo(0.25, 450): the sim's K.O. slow motion
  *     0-400    the huge red word slams in (scale 2.6 to 1 with a back-ease overshoot); a white light disc and a ring
  *              expand behind it (0-700); a second, smaller ring bursts from the victim (0-500)
- *     400-2000 holds
+ *     400-1650 holds
  *     260-560  "PERFECT" (gold) slams in under it, when perfect
- *     2000-2350 everything fades out, then the sequence ends
+ *     1650-2000 everything fades out, then the sequence ends (the round banner follows, ending by 3.4 s, before
+ *              the next round's intro at ROUND.koTicks = 3.5 s)
  * Timeline of playRoundWinner: slides in 0-260, holds to 1150, slides out to the left by 1400.
  *
  * Everything is in screen space: each object is pinned to a screen point and counter-scaled by 1/zoom every frame, the
@@ -40,7 +41,10 @@ export interface KoSequenceOpts {
   perfect: boolean;
   /** The round ended on the clock: the word is "TIME OVER" (wins over the draw wording). */
   timeOver: boolean;
-  /** Both fighters went down together: the word is "DOUBLE K.O.". */
+  /**
+   * Both fighters went down together: the word is "DOUBLE K.O.". The sim never gets here in play: its K.O. always
+   * names a winner, and a draw only comes from the clock (timeOver wins over it). Kept for a forced event only.
+   */
   draw: boolean;
   /** An Art landed the finish: cinematic.ts already white-outs the screen, so the flash is skipped. */
   artFinish: boolean;
@@ -80,7 +84,7 @@ const FLASH_MS = 300;
 const FLASH_ALPHA = 0.8;
 const SLAM_MS = 400;
 const SLAM_FROM = 2.6;
-const HOLD_END_MS = 2000;
+const HOLD_END_MS = 1650;
 const FADE_MS = 350;
 const KO_TOTAL_MS = HOLD_END_MS + FADE_MS;
 const RING_MS = 700;
@@ -257,6 +261,7 @@ export function playKoSequence(scene: Phaser.Scene, o: KoSequenceOpts): KoHandle
   const H = scene.scale.height;
   const cx = W / 2;
   const ky = H * 0.42;
+  // (DOUBLE K.O. only for a forced draw that is not a clock end: unreachable from the sim, see KoSequenceOpts.draw)
   const word = o.timeOver ? 'TIME OVER' : o.draw ? 'DOUBLE K.O.' : 'K.O.';
   const size = Math.round(H * 0.3);
   const tint = mix(0xffffff, o.winnerColor, 0.35);
@@ -389,6 +394,8 @@ export function playRoundWinner(scene: Phaser.Scene, o: RoundWinnerOpts): KoHand
   const plate = scene.add.graphics().setScrollFactor(0).setDepth(DEPTH_TEXT - 0.1);
   const t = bigWord(scene, word, size, BANNER_TEXT, BANNER_EDGE_CSS, Math.round(size * 0.12));
   t.setAlpha(1);
+  /** The width the plate was last drawn at (-1: not yet). */
+  let plateW = -1;
 
   return start(scene, BANNER_TOTAL_MS, [plate, t], [t], (time) => {
     const c = scene.cameras.main;
@@ -410,27 +417,31 @@ export function playRoundWinner(scene: Phaser.Scene, o: RoundWinnerOpts): KoHand
     const tw = t.width * fit;
     const w = tw + pad * 2;
 
-    // the plate, drawn in its own local px (pinned at scale 1)
-    plate.clear();
-    const xl = (y: number) => -w / 2 + sk * (1 - (2 * (y + h / 2)) / h);
-    const xr = (y: number) => w / 2 + sk * (1 - (2 * (y + h / 2)) / h);
-    plate.fillStyle(BANNER_BODY, 0.92);
-    plate.fillPoints(
-      [new Phaser.Math.Vector2(-w / 2 + sk, -h / 2), new Phaser.Math.Vector2(w / 2 + sk, -h / 2), new Phaser.Math.Vector2(w / 2 - sk, h / 2), new Phaser.Math.Vector2(-w / 2 - sk, h / 2)],
-      true,
-    );
-    plate.lineStyle(3, BANNER_EDGE, 1);
-    plate.strokePoints(
-      [new Phaser.Math.Vector2(-w / 2 + sk, -h / 2), new Phaser.Math.Vector2(w / 2 + sk, -h / 2), new Phaser.Math.Vector2(w / 2 - sk, h / 2), new Phaser.Math.Vector2(-w / 2 - sk, h / 2)],
-      true,
-      true,
-    );
-    const yT = h / 2 - stripeH;
-    plate.fillStyle(o.color, 1);
-    plate.fillPoints(
-      [new Phaser.Math.Vector2(xl(yT), yT), new Phaser.Math.Vector2(xr(yT), yT), new Phaser.Math.Vector2(xr(h / 2), h / 2), new Phaser.Math.Vector2(xl(h / 2), h / 2)],
-      true,
-    );
+    // the plate, drawn in its own local px (pinned at scale 1). Its shape depends only on its width, which is fixed for the
+    // banner's life (the text settles once the face loads), so it is drawn when the width changes and moved otherwise
+    if (w !== plateW) {
+      plateW = w;
+      plate.clear();
+      const xl = (y: number) => -w / 2 + sk * (1 - (2 * (y + h / 2)) / h);
+      const xr = (y: number) => w / 2 + sk * (1 - (2 * (y + h / 2)) / h);
+      plate.fillStyle(BANNER_BODY, 0.92);
+      plate.fillPoints(
+        [new Phaser.Math.Vector2(-w / 2 + sk, -h / 2), new Phaser.Math.Vector2(w / 2 + sk, -h / 2), new Phaser.Math.Vector2(w / 2 - sk, h / 2), new Phaser.Math.Vector2(-w / 2 - sk, h / 2)],
+        true,
+      );
+      plate.lineStyle(3, BANNER_EDGE, 1);
+      plate.strokePoints(
+        [new Phaser.Math.Vector2(-w / 2 + sk, -h / 2), new Phaser.Math.Vector2(w / 2 + sk, -h / 2), new Phaser.Math.Vector2(w / 2 - sk, h / 2), new Phaser.Math.Vector2(-w / 2 - sk, h / 2)],
+        true,
+        true,
+      );
+      const yT = h / 2 - stripeH;
+      plate.fillStyle(o.color, 1);
+      plate.fillPoints(
+        [new Phaser.Math.Vector2(xl(yT), yT), new Phaser.Math.Vector2(xr(yT), yT), new Phaser.Math.Vector2(xr(h / 2), h / 2), new Phaser.Math.Vector2(xl(h / 2), h / 2)],
+        true,
+      );
+    }
     pin(plate, c, Wn, Hn, tx, cy, 1);
 
     pin(t, c, Wn, Hn, tx, cy, fit);

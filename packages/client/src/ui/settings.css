@@ -81,6 +81,7 @@
 .st .st-row + .st-row { border-top: 1px solid var(--line); }
 .st .st-name { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 800; line-height: 1.2; }
 .st .st-row small { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--dim); }
+.st .st-credits { margin: 8px 0 2px; font-size: 11px; line-height: 1.45; color: var(--dim); }
 .st .st-ctl { display: flex; align-items: center; gap: 10px; flex: 0 1 48%; min-width: 0; }
 .st .st-ctl input[type='range'] {
   flex: 1 1 auto;
