@@ -9,7 +9,7 @@ import {
 } from './fighter';
 import { Btn, emptyInput, InputCmd } from './input';
 import { ArtId, ClassId, classOf, RIFT } from './classes';
-import { artIdOf, heroClass } from './heroes';
+import { artIdOf, heroClass, weaponAt } from './heroes';
 import { Box, gatePortal, Loadout, Move, SKILL_FX, SKILLS, WEAPONS, WeaponId } from './weapons';
 
 export interface MatchSettings {
@@ -545,7 +545,7 @@ export class World {
       let art = false;
       if (s.act === Act.Attack && s.actT === 0) {
         if (s.move === MOVE_ART) art = true;
-        else this.events.push({ t: 'swing', p: f.id, w: f.load.weapons[s.slot], m: s.move });
+        else this.events.push({ t: 'swing', p: f.id, w: weaponAt(f.load, s.slot), m: s.move });
       }
       if (s.act === Act.Art && s.actT === 0 && before !== Act.Art) art = true;
       if (castingEx(s) && before !== Act.Skill) this.events.push({ t: 'ex', p: f.id, skill: f.load.skill });
@@ -626,11 +626,14 @@ export class World {
     const iy = Math.max(box.y, seen.y - FIGHTER.h) + Math.min(box.h, FIGHTER.h) / 2;
     const landed = this.applyHit(a, d, {
       dmg, hsDmg: base, art: a.s.move === MOVE_ART, kbX: m.kbX, kbY: m.kbY, stun: m.stun, pull: !!m.pull, breaksGuard: !!m.breaksGuard, crit: mc.crit,
-      w: a.load.weapons[a.s.slot], x: ix, y: iy, front: mc.front, guard: seen,
+      w: weaponAt(a.load, a.s.slot), x: ix, y: iy, front: mc.front, guard: seen,
       juggle: (isAirMove(a.s.move) && a.s.move !== MOVE_AIR3) || !!m.launcher,
       lift: !!m.launcher,
     });
     if (veiled && landed) a.s.veil = 0;
+    // a swing that burns (fire breath) or slows (the Pale Rider's shadow) leaves it on what it hit
+    if (landed && m.burn) d.s.burnT = Math.max(d.s.burnT, m.burn);
+    if (landed && m.slow) d.s.slowT = Math.max(d.s.slowT, m.slow);
     // the attacker freezes with the defender (melee hit-stop), a lunge brakes, a landed hit can be cancelled into a jump
     // or chained at once, and a plunge pogos (shared with the client's prediction); a parried swing only staggers
     if (!this.lastParry) meleeConnect(a.s, a.load, m, this.lastStop);
@@ -691,7 +694,7 @@ export class World {
   private landThrow(a: Fighter, d: Fighter) {
     d.s.invuln = 0;
     this.applyHit(a, d, {
-      dmg: THROW.dmg, kbX: THROW.kbX, kbY: THROW.kbY, stun: THROW.stun, crit: false, w: a.load.weapons[a.s.slot],
+      dmg: THROW.dmg, kbX: THROW.kbX, kbY: THROW.kbY, stun: THROW.stun, crit: false, w: weaponAt(a.load, a.s.slot),
       x: (a.s.x + d.s.x) / 2, y: d.s.y - FIGHTER.h / 2, front: true, breaksGuard: true,
     });
     // (the thrower recovers from here: stepFighter's Act.Throw ends THROW.after ticks on)
@@ -935,7 +938,7 @@ export class World {
     s.spawn = 0;
     if (s.act === Act.Attack) {
       const m = currentMove(s, f.load);
-      const w = WEAPONS[f.load.weapons[s.slot]];
+      const w = WEAPONS[weaponAt(f.load, s.slot)];
       if (m?.crescent) {
         // the Sun Crescent: the cleave's arc flies on, low and level, for a mid-range distance (CRESCENT)
         this.projectiles.push({

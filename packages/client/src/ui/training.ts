@@ -42,6 +42,7 @@ const GLYPHS: { bit: number; ch: string; cls: string; name: string }[] = [
   { bit: Btn.Skill, ch: 'S', cls: 'skill', name: 'Skill' },
   { bit: Btn.Roll, ch: 'R', cls: 'roll', name: 'Roll' },
   { bit: Btn.Block, ch: 'G', cls: 'block', name: 'Block' },
+  { bit: Btn.Stance, ch: 'W', cls: 'stance', name: 'Stance' },
   { bit: Btn.Heal, ch: 'H', cls: 'heal', name: 'Heal' },
   { bit: Btn.Special, ch: 'X', cls: 'art', name: 'Rift Art' },
 ];
@@ -134,7 +135,7 @@ export function mountTraining(root: HTMLElement, opts: TrainingOpts): Training {
 
   const pushInput = (buttons: number, moveX: number, moveY: number) => {
     const [dx, dy] = dirOf(moveX, moveY);
-    const b = buttons & 255;
+    const b = buttons & 511;
     const head = hist[0];
     if (head && head.dx === dx && head.dy === dy && head.buttons === b) {
       head.frames++;

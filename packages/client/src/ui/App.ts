@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import QRCode from 'qrcode';
 import {
   ARENAS, BotBrain, BotDifficulty, classOf, DEFAULT_LOADOUT, FIGHTER, GameEvent, hasCrescent, heroClass, heroOf, Loadout, LobbyStateMsg, MatchEndMsg,
-  HeroDef, RIFT, Room, sanitizeLoadout, SKILLS, weaponLookOf,
+  HeroDef, isRanged, RIFT, Room, sanitizeLoadout, SKILLS, slotFor, weaponLookOf, WEAPONS,
 } from '@bladerift/shared';
 import { BootScene } from '../game/BootScene';
 import { GameScene, LocalPlayer } from '../game/GameScene';
@@ -21,7 +21,7 @@ import { applyPrefsToDocument, prefs, Prefs } from './prefs';
 import { Hud } from './Hud';
 import { colorOf, css } from './colors';
 import { checkForUpdate, CURRENT_RELEASE, updateReady } from '../update';
-import { crestIcon, heroArtIcon, heroWeaponIcon, skillIcon } from './icons';
+import { crestIcon, heroArtIcon, heroStanceIcon, heroWeaponIcon, skillIcon } from './icons';
 import { startTitleShowcase } from './titleShowcase';
 import { prefetchHeroSprites } from '../render/spriteFighter';
 import { warmAllAtlases } from '../render/atlasStore';
@@ -484,13 +484,14 @@ export class App {
       <div class="card howto-keys">
         <h3>Controls</h3>
         <table><tr><th></th><th>Keyboard</th><th>Player 1</th><th>Player 2</th></tr>
-          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo; an air combo in the air)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Block · perfect block (parry)', 'block')}${row('Rift Art', 'special')}
+          ${row('Move', 'left')}${row('Jump (again in the air)', 'jump')}${row('Light attack (combo; an air combo in the air)', 'a')}${row('Heavy attack · plunge in the air', 'b')}${row('Skill', 'skill')}${row('Roll / air dash', 'roll')}${row('Heal flask', 'heal')}${row('Block · perfect block (parry)', 'block')}${row('Stance (second weapon)', 'stance')}${row('Rift Art', 'special')}
         </table>
-        <p class="howto-pad">Phone: ${controlPrefs().leftHanded ? 'joystick on the right, buttons on the left' : 'joystick on the left, buttons on the right'}. Gamepads work too (X / Y weapons, A jump, B roll, RB skill, LB heal, LT block, RT Rift Art).</p>
+        <p class="howto-pad">Phone: ${controlPrefs().leftHanded ? 'joystick on the right, buttons on the left' : 'joystick on the left, buttons on the right'}. Gamepads work too (X / Y attacks, A jump, B roll, RB skill, LB heal, LT block, RT Rift Art, right-stick click or View stance).</p>
       </div>
       <div class="card howto-rules" data-keep="howto">
         <h3>How to win</h3>
         <p>Knock your opponent out to win the round. Win the number of rounds set in the lobby (1, 2 or 3) to take the match. If time runs out, more health wins.</p>
+        <p><b>Stance:</b> every hero carries a <b>second weapon</b> with a moveset of its own, for the range the first one handles worst. Press <b>Stance</b> to switch, on the ground or in the air: Gilgamesh draws his golden Kingsblade from a portal for close work, Cú Chulainn throws barbed darts from afar, Dumas fences with a musketeer's rapier, Humbaba breathes fire, the Pale Rider's shadow strikes for her. Light and Heavy then use that weapon until you switch back; the tile shows the weapon you would switch to. Each hero's move list has its second stance.</p>
         <p><b>Block and perfect block:</b> hold <b>Block</b> (or <b>down</b> on the ground) to guard against hits from the side you face: you take a little chip damage, and guard breakers, unblockable moves and Rift Arts get through. Press <b>Block just before</b> a hit lands for a <b>perfect block</b>: it parries <b>any</b> attack, from any side and even in the air, Rift Arts included. You take nothing, a melee attacker is staggered so you can punish, and an ordinary shot flies straight back at whoever fired it (unblockable shots and Rift Art volleys are turned aside). The timing is tight (about 1/8 s): pressing again within 3/4 s only guards, and a perfect block that catches nothing costs a little Rift gauge, so guessing has a price. Throws still beat a block. Swinging a melee weapon into a shot cuts it out of the air, so you can fight your way in against archers and casters.</p>
         <p><b>Classes and Rift Arts:</b> every hero fights with its own weapon, special, dodge and Rift Art. The Rift gauge under your health fills slowly on its own and fast when you hit or get hit; when it glows, unleash the Art. The Assassin's <b>Flash Step</b> even works while you are being comboed.</p>
         <ul>
@@ -924,11 +925,13 @@ export class App {
             const f = g.fighters(now).find((x) => x.self);
             if (f) {
               this.touch.show({
-                aIcon: heroWeaponIcon(f.hero), bIcon: heroWeaponIcon(f.hero), skillIcon: skillIcon(f.skill), artIcon: heroArtIcon(f.hero),
+                aIcon: heroStanceIcon(f.hero, f.stance), bIcon: heroStanceIcon(f.hero, f.stance), stanceIcon: heroStanceIcon(f.hero, f.stance ? 0 : 1),
+                skillIcon: skillIcon(f.skill), artIcon: heroArtIcon(f.hero),
                 skillCd: f.skillCd / ((SKILLS[f.skill]?.cooldown ?? 1) * heroClass({ cls: f.cls, hero: f.hero }).skillCd), rollCd: f.rollCd / 40, flask: f.flask, rift: f.rift / RIFT.max,
                 // (the Sun Crescent's cooldown sweeps the heavy button only: B still cleaves meanwhile)
-                reload: f.reload && !hasCrescent(f) ? (f.heat - FIGHTER.heatReady) / (FIGHTER.heatMax - FIGHTER.heatReady) : 0,
-                crescent: f.reload && hasCrescent(f) ? (f.heat - FIGHTER.heatReady) / (FIGHTER.crescentHeat - FIGHTER.heatReady) : 0,
+                // (an overheated shooter sweeps both attack tiles only while that weapon is in hand)
+                reload: f.reload && !hasCrescent(f) && isRanged(WEAPONS[f.weapons[slotFor(0, f.stance)]] ?? WEAPONS[0]) ? (f.heat - FIGHTER.heatReady) / (FIGHTER.heatMax - FIGHTER.heatReady) : 0,
+                crescent: f.reload && hasCrescent(f) && !f.stance ? (f.heat - FIGHTER.heatReady) / (FIGHTER.crescentHeat - FIGHTER.heatReady) : 0,
               });
             }
           }

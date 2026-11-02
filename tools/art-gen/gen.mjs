@@ -117,6 +117,24 @@ Row 2: (5) a raised gauntlet palm-out with a glowing white-blue hexagonal ward r
        with a white circular shockwave; (7) a kite shield silhouette with a bright parry star at its rim; (8) a guarded fist and forearm with
        cyan motion lines showing a deflected strike.`,
   },
+  'icons-stances': {
+    ref: 'icons-abilities.png',
+    prompt: `${ICON_RULES}
+Match the attached sheet's frame and style exactly. Each of the first 14 cells is the SECOND-STANCE WEAPON of one hero, in hero order
+(hero 0 first, left to right, top row first); cell 15 is the STANCE CHANGE button; cell 16 is spare:
+Row 1: (1) a huge two-handed Danish war-axe with a broad crescent steel head engraved with a gold lion; (2) a massive knotted olive-wood club
+       bound with bronze bands; (3) an ornate golden longsword with a ruby-set crossguard emerging hilt-first from a glowing gold portal ring;
+       (4) three short barbed throwing darts with bone-white shafts and crimson heads, fanned, cyan glints.
+Row 2: (5) a forearm of living golden clay reshaping into a blade, glowing seams; (6) a shadowy demon claw with pink-violet talons reaching out
+       of a magenta magic circle; (7) a musketeer's swept-hilt rapier with a gold basket guard, a thin amber gleam along the blade; (8) a deeply
+       curved Persian shamshir sabre, dark steel with a teal sheen.
+Row 3: (9) a rope dart: a slim steel dart blade on a dark cord whirled in a loop, cyan trail; (10) a monstrous beast's jaws breathing a roaring
+       gout of orange fire; (11) a black lacquered gentleman's walking cane with a silver knob, a thin silver blade half drawn from it; (12) a very
+       long Macedonian pike (sarissa) with a leaf-shaped blade, drawn diagonally corner to corner, an orange ember glow.
+Row 4: (13) a towering violet-black shadow beast's claw and burning violet eye; (14) a long silver winged spear with glowing pale-blue runes;
+       (15) STANCE CHANGE: two weapons (a sword and a spear, generic steel) crossing and rotating around each other in a bright gold circular
+       swap arrow; (16) a plain empty dark card with a gold rim (spare).`,
+  },
   'icons-abilities': {
     ref: 'skills.png',
     prompt: `${ICON_RULES}

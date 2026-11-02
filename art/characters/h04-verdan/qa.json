@@ -50,6 +50,150 @@
    "spill": 0,
    "anchorX": 188
   },
+  "alt-a:0": {
+   "h": 378,
+   "feetDrift": 0,
+   "spill": 280,
+   "anchorX": 200
+  },
+  "alt-a:1": {
+   "h": 366,
+   "feetDrift": 0,
+   "spill": 2270,
+   "anchorX": 200
+  },
+  "alt-a:2": {
+   "h": 367,
+   "feetDrift": 1,
+   "spill": 3087,
+   "anchorX": 209
+  },
+  "alt-a:3": {
+   "h": 365,
+   "feetDrift": 1,
+   "spill": 0,
+   "anchorX": 210
+  },
+  "alt-a:4": {
+   "h": 450,
+   "feetDrift": 2,
+   "spill": 0,
+   "anchorX": 173
+  },
+  "alt-a:5": {
+   "h": 396,
+   "feetDrift": -1,
+   "spill": 4746,
+   "anchorX": 225
+  },
+  "alt-a:6": {
+   "h": 360,
+   "feetDrift": -2,
+   "spill": 5715,
+   "anchorX": 201
+  },
+  "alt-a:7": {
+   "h": 382,
+   "feetDrift": 3,
+   "spill": 0,
+   "anchorX": 208
+  },
+  "alt-b:0": {
+   "h": 339,
+   "feetDrift": 1,
+   "spill": 0,
+   "anchorX": 205
+  },
+  "alt-b:1": {
+   "h": 471,
+   "feetDrift": -2,
+   "spill": 2944,
+   "anchorX": 211
+  },
+  "alt-b:2": {
+   "h": 483,
+   "feetDrift": -1,
+   "spill": 6338,
+   "anchorX": 231
+  },
+  "alt-b:3": {
+   "h": 357,
+   "feetDrift": 3,
+   "spill": 0,
+   "anchorX": 197
+  },
+  "alt-b:4": {
+   "h": 342,
+   "feetDrift": null,
+   "spill": 304,
+   "anchorX": 182
+  },
+  "alt-b:5": {
+   "h": 411,
+   "feetDrift": null,
+   "spill": 16835,
+   "anchorX": 199
+  },
+  "alt-b:6": {
+   "h": 360,
+   "feetDrift": null,
+   "spill": 20452,
+   "anchorX": 232
+  },
+  "alt-b:7": {
+   "h": 338,
+   "feetDrift": null,
+   "spill": 122,
+   "anchorX": 223
+  },
+  "alt-c:0": {
+   "h": 457,
+   "feetDrift": 2,
+   "spill": 0,
+   "anchorX": 216
+  },
+  "alt-c:1": {
+   "h": 373,
+   "feetDrift": -4,
+   "spill": 3885,
+   "anchorX": 186
+  },
+  "alt-c:2": {
+   "h": 292,
+   "feetDrift": 0,
+   "spill": 7470,
+   "anchorX": 157
+  },
+  "alt-c:3": {
+   "h": 340,
+   "feetDrift": 0,
+   "spill": 0,
+   "anchorX": 184
+  },
+  "alt-c:4": {
+   "h": 403,
+   "feetDrift": 0,
+   "spill": 1437,
+   "anchorX": 210
+  },
+  "alt-c:5": {
+   "h": 413,
+   "feetDrift": 2,
+   "spill": 0,
+   "anchorX": 197
+  },
+  "alt-c:6": {
+   "h": 402,
+   "feetDrift": -2,
+   "spill": 0,
+   "anchorX": 189
+  },
+  "alt-c:7": {
+   "h": 409,
+   "feetDrift": 1,
+   "spill": 0,
+   "anchorX": 190
+  },
   "art:0": {
    "h": 370,
    "feetDrift": 0,

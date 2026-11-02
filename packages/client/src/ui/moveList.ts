@@ -1,4 +1,4 @@
-import { heroOf } from '@bladerift/shared';
+import { airString, heavyOf, heroOf, launcherOf, stanceLookOf, stanceWeapon, STANCE, WEAPONS, type Move } from '@bladerift/shared';
 import './moveList.css';
 
 /** One row of a hero's move list (`movelists/hNN.json`, schema in `movelists/README.md`). */
@@ -51,6 +51,7 @@ export const GENERAL_CONTROLS: GeneralControl[] = [
   { name: 'Block', input: 'BLOCK (hold)', notes: 'Guards hits from the front for a little chip damage (holding ↓ on the ground crouch-guards too). Guard breakers, unblockables and Rift Arts get through.' },
   { name: 'Perfect block', input: 'BLOCK (just before the hit)', notes: 'Press BLOCK within 8 ticks (about 1/8 s) before ANY attack lands to parry it: from any side, in the air, guard breakers, shots and Rift Arts too. No damage, a melee attacker is staggered and you can punish at once. Pressing again within 3/4 s only guards, a perfect block that catches nothing costs a little Rift gauge, and throws still beat it.' },
   { name: 'Dodge', input: 'DODGE', notes: 'Roll out of the way. Invulnerable for the first part of the roll.' },
+  { name: 'Stance', input: 'STANCE', notes: 'Every hero has a second weapon with its own moves (listed above). Switch on the ground or in the air; the new weapon is in hand after about 1/10 s, and any action can follow it at once.' },
 ];
 
 /** Panel sections in display order. Each move's kind picks its section. */
@@ -73,6 +74,7 @@ const BUTTONS: Record<string, { cls: string; label: string; pill?: boolean }> = 
   ART: { cls: 'ml-b-art', label: 'ART', pill: true },
   JUMP: { cls: 'ml-b-jump', label: 'JUMP', pill: true },
   DODGE: { cls: 'ml-b-dodge', label: 'DODGE', pill: true },
+  STANCE: { cls: 'ml-b-dodge', label: 'STANCE', pill: true },
 };
 
 /** Tokens of the input notation: a (tag), a word, an arrow, `+`, `,`, another word, or any other character. */
@@ -152,7 +154,44 @@ function sectionHtml(title: string, rows: string[]): string {
   return `<section class="ml-sec"><h3>${esc(title)}</h3><ul class="ml-list">${rows.join('')}</ul></section>`;
 }
 
-function bodyHtml(list: MoveList | undefined): string {
+/** What a move does beyond its damage, in a few words (the second stance's rows are written from the weapon data). */
+function traits(m: Move): string {
+  const t: string[] = [];
+  if (m.arrow) t.push('a thrown shot');
+  if (m.breaksGuard) t.push('breaks guards');
+  if (m.pull) t.push('pulls the target in');
+  if (m.tipCrit) t.push('the tip crits');
+  if (m.backCrit) t.push('crits from behind');
+  if (m.burn) t.push('sets the target burning');
+  if (m.slow) t.push('slows the target');
+  if (m.dash) t.push('a dashing lunge');
+  if (m.kbY >= 400) t.push('pops the target up');
+  return t.join(', ');
+}
+
+/** The hero's second stance (STANCE button), from its weapon's moveset, so the numbers always match the game. */
+function stanceRows(hero: number): string[] {
+  const look = stanceLookOf(hero);
+  const w = WEAPONS[stanceWeapon(hero)];
+  if (!w) return [];
+  const row = (name: string, input: string, notes: string, dmg: number | number[] | string, kind = '') =>
+    rowHtml(name, input, notes, kind ? `<span class="ml-kind">${esc(kind)}</span>` : '', `<span class="ml-dmg" title="Damage per hit">${esc(damageText(dmg))} <small>dmg</small></span>`);
+  const rows: string[] = [];
+  rows.push(rowHtml(`Draw the ${look.name}`, 'STANCE', `${look.blurb} Press STANCE again to go back to the first weapon. The change takes ${Math.round((STANCE.ticks / 60) * 100) / 100} s, and any action cancels its end.`));
+  const finisher = traits(w.combo[w.combo.length - 1]);
+  rows.push(row(`${w.short} string`, w.combo.map(() => 'LIGHT').join(', '), finisher ? `The last blow: ${finisher}.` : '', w.combo.map((c) => c.dmg)));
+  const h = heavyOf(w.id);
+  if (h) {
+    const charged = !!w.charged;
+    const dmg = charged && w.charged ? `${w.charged.dmg} to ${w.charged.dmgMax}` : h.dmg;
+    rows.push(row(charged ? `${w.short} charge` : `${w.short} heavy`, charged ? 'HEAVY (hold)' : 'HEAVY', [charged ? 'Hold to charge, let go to release' : 'A slower, stronger blow', traits(h)].filter(Boolean).join(': ') + '.', dmg, 'heavy'));
+  }
+  if (!w.combo[0].arrow) rows.push(row(`${w.short} launcher`, '↓+LIGHT', 'Pops a grounded opponent into the air for the air string.', launcherOf(w.id).dmg, 'launcher'));
+  rows.push(row(`${w.short} air string`, 'LIGHT, LIGHT, LIGHT (air)', w.plunge ? '↓+HEAVY in the air plunges.' : 'HEAVY in the air starts the same string.', airString(w.id).map((m) => m.dmg), 'air'));
+  return rows;
+}
+
+function bodyHtml(list: MoveList | undefined, hero: number): string {
   const parts: string[] = [];
   if (list) {
     for (const sec of SECTIONS) {
@@ -170,6 +209,8 @@ function bodyHtml(list: MoveList | undefined): string {
   } else {
     parts.push('<p class="ml-empty">No move list for this hero yet.</p>');
   }
+  const st = stanceRows(hero);
+  if (st.length) parts.push(sectionHtml(`Second stance: ${stanceLookOf(hero).name}`, st));
   parts.push(sectionHtml('General controls', GENERAL_CONTROLS.map((g) => rowHtml(g.name, g.input, g.notes))));
   return parts.join('');
 }
@@ -201,7 +242,7 @@ export function showMoveList(root: HTMLElement, heroId: number, onClose: () => v
     <button type="button" class="ml-close" data-ml-close>Close</button>
   </header>
   ${style ? `<p class="ml-style">${esc(style)}</p>` : ''}
-  <div class="ml-body">${bodyHtml(list)}</div>
+  <div class="ml-body">${bodyHtml(list, heroId)}</div>
 </div>`;
   root.appendChild(overlay);
 

@@ -5,7 +5,7 @@
  * extension and the recovery. Time-driven animations (idle, run, KO, victory) play at their own frame rates.
  */
 import { lookMove } from './fxmap';
-import { Act, ARTS, artIdOf, DODGES, FIGHTER, isAirMove, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, moveOf, SKILLS, WEAPONS } from '@bladerift/shared';
+import { Act, ARTS, artIdOf, DODGES, FIGHTER, isAirMove, MOVE_AIR, MOVE_ART, MOVE_CHARGED, MOVE_CRESCENT, MOVE_PLUNGE, moveOf, SKILLS, STANCE, WEAPONS } from '@bladerift/shared';
 import type { ViewFighter } from '../net/NetGame';
 
 export interface SpriteFrame {
@@ -82,6 +82,11 @@ interface AttackPhase {
 
 /** The drawing set a combo step plays: the finisher is always combo2; a longer string alternates combo0 and combo1
  * before it, so a four- or five-cut flurry swings back and forth instead of repeating one drawing. */
+/** The second stance's animation for each first-stance attack animation (art/animations.json alt*). */
+const ALT_ANIM: Record<string, string> = {
+  combo0: 'altCombo0', combo1: 'altCombo1', combo2: 'altCombo2', airAttack: 'altAir', plunge: 'altAir', heavy: 'altHeavy',
+};
+
 function comboAnim(weapon: number, move: number) {
   const n = WEAPONS[weapon]?.combo.length ?? 3;
   if (n > 1 && move >= n - 1) return 'combo2';
@@ -220,6 +225,12 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
   };
   const t = v.actTf;
   const w = v.weapons[v.slot];
+  const idleAnim = v.stance && A.altIdle ? 'altIdle' : 'idle';
+  // the second stance (slots 2 and 3: the hero's stance weapon) draws its own attack animations where the atlas has them
+  const an = (n: string) => {
+    const alt = v.slot >= 2 ? ALT_ANIM[n] : undefined;
+    return alt && A[alt] ? alt : n;
+  };
   switch (v.act) {
     case Act.Attack: {
       if (v.move === MOVE_ART) {
@@ -242,14 +253,14 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
           pose.sy = 1 - 0.06 * k;
           pose.dx = -3 * k;
           pose.rot = -3 * k;
-          return pick('heavy', 0, 'combo2');
+          return pick(an('heavy'), 0, 'combo2');
         }
         pose.dx = ph.lunge * LUNGE_HEAVY;
-        if (ph.stance && v.ground) return pick('idle', 0);
-        return pick('heavy', ph.idx, 'combo2');
+        if (ph.stance && v.ground) return pick(idleAnim, 0);
+        return pick(an('heavy'), ph.idx, 'combo2');
       }
       const m = moveOf(w, v.move);
-      const name = v.move === MOVE_AIR ? 'airAttack' : isAirMove(v.move) ? comboAnim(w, lookMove(w, v.move) === MOVE_AIR ? 0 : lookMove(w, v.move)) : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : comboAnim(w, lookMove(w, v.move));
+      const name = an(v.move === MOVE_AIR ? 'airAttack' : isAirMove(v.move) ? comboAnim(w, lookMove(w, v.move) === MOVE_AIR ? 0 : lookMove(w, v.move)) : v.move === MOVE_PLUNGE ? 'plunge' : v.move === MOVE_CHARGED || v.move === MOVE_CRESCENT ? 'heavy' : comboAnim(w, lookMove(w, v.move)));
       if (!m) return pick(name, 0, 'combo0');
       const n = A[name]?.frames.length ?? 4;
       if (v.move === MOVE_PLUNGE) {
@@ -276,13 +287,16 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         pose.rot = (heavy ? 4 : 2) * k;
       }
       // the early return to the stance (on the ground; in the air the recovery drawing holds)
-      if (ph.stance && !isAirMove(v.move) && v.ground) return pick('idle', 0);
+      if (ph.stance && !isAirMove(v.move) && v.ground) return pick(idleAnim, 0);
       // a charged release: the charge itself showed the first frame, so the release starts at the wind-up
       if (v.move === MOVE_CHARGED) return pick(name, Math.max(1, ph.idx), 'combo2');
       return pick(name, ph.idx, 'combo0');
     }
     case Act.Charge:
-      return pick('heavy', 0, 'combo2');
+      return pick(an('heavy'), 0, 'combo2');
+    case Act.Swap:
+      // the stance change: the draw, then the new weapon ready (STANCE.flip is when it is in hand)
+      return pick('swap', t < STANCE.flip ? 0 : 1, 'taunt', 'idle');
     case Act.Block:
     case Act.Guard:
       return pick('guard', 0, 'idle');
@@ -409,7 +423,7 @@ function pickFrame(v: ViewFighter, ctx: SpriteCtx, meta: SpriteAtlasMeta, pose: 
         const ph = ((ctx.runPhase / (Math.PI * 2)) % 1 + 1) % 1;
         return pick('run', ph * n, 'idle');
       }
-      return timed('idle', ctx.time, true);
+      return timed(idleAnim, ctx.time, true, 'idle');
     }
   }
 }

@@ -1,5 +1,6 @@
 import { POS_SCALE, PROTOCOL_VERSION } from './constants';
 import { FighterState, STATE_KEYS } from './fighter';
+import { stanceWeapon } from './heroes';
 import type { BotDifficulty } from './bot';
 import { InputCmd } from './input';
 import type { PlayerLook } from './look';
@@ -103,10 +104,10 @@ export const msgType = (data: Uint8Array) => (data.length ? data[0] : -1);
 // ---------------------------------------------------------------- input
 
 export function encodeInputs(cmds: InputCmd[]): Uint8Array {
-  const w = new Writer(2 + cmds.length * 11);
+  const w = new Writer(2 + cmds.length * 12);
   w.u8(Msg.Input).u8(cmds.length);
   for (const c of cmds) {
-    w.u32(c.seq).i8(Math.round(Math.max(-1, Math.min(1, c.moveX)) * 127)).i8(Math.round(Math.max(-1, Math.min(1, c.moveY)) * 127)).u8(c.buttons & 0xff).u32(c.viewTick);
+    w.u32(c.seq).i8(Math.round(Math.max(-1, Math.min(1, c.moveX)) * 127)).i8(Math.round(Math.max(-1, Math.min(1, c.moveY)) * 127)).u16(c.buttons & 0x1ff).u32(c.viewTick);
   }
   return w.finish();
 }
@@ -117,7 +118,7 @@ export function decodeInputs(data: Uint8Array): InputCmd[] {
   const n = r.u8();
   if (n > 8) throw new RangeError('too many inputs');
   const out: InputCmd[] = [];
-  for (let i = 0; i < n; i++) out.push({ seq: r.u32(), moveX: r.i8() / 127, moveY: r.i8() / 127, buttons: r.u8() & 0xff, viewTick: r.u32() });
+  for (let i = 0; i < n; i++) out.push({ seq: r.u32(), moveX: r.i8() / 127, moveY: r.i8() / 127, buttons: r.u16() & 0x1ff, viewTick: r.u32() });
   return out;
 }
 
@@ -145,6 +146,8 @@ export interface NetFighter {
   act: number;
   actT: number;
   slot: number;
+  /** The stance (0 the first weapon, 1 the hero's second: fighter.ts stance). */
+  stance: number;
   move: number;
   hp: number;
   charge: number;
@@ -159,7 +162,8 @@ export interface NetFighter {
   /** Ranged heat and whether the weapon is overheated (fighter.ts heat / reload). */
   heat: number;
   reload: boolean;
-  weapons: [number, number];
+  /** The weapon in each attack slot (fighter.ts slot): the loadout's two, then the hero's stance weapon twice. */
+  weapons: number[];
   skill: number;
   crouch: boolean;
   slide: boolean;
@@ -227,7 +231,7 @@ export function encodeSnapshotBody(world: World, events: GameEvent[]): Uint8Arra
     w.u16(Math.max(0, Math.ceil(s.hp))).u8(Math.min(255, s.charge)).u8(s.flask).u16(Math.min(65535, s.skillCd)).u8(Math.min(255, s.rollCd)).u8(Math.min(255, s.blockT));
     w.u8((f.load.weapons[0] << 4) | f.load.weapons[1]).u8(f.load.skill);
     w.u8((s.crouch ? 1 : 0) | (s.slide ? 2 : 0) | (s.rollAir ? 4 : 0) | (s.fast ? 8 : 0) | (s.frenzy > 0 ? 16 : 0) | (s.buff > 0 ? 32 : 0) | (s.veil > 0 ? 64 : 0) | (s.fall ? 128 : 0));
-    w.u16(Math.max(0, Math.min(65535, Math.floor(s.rift)))).u8(f.load.cls).u8(f.load.hero ?? 0).u8(Math.min(255, s.hitstop)).u8(Math.min(255, s.pause)).u8(Math.min(255, s.heat));
+    w.u16(Math.max(0, Math.min(65535, Math.floor(s.rift)))).u8(f.load.cls).u8(f.load.hero ?? 0).u8(Math.min(255, s.hitstop)).u8(Math.min(255, s.pause)).u8(Math.min(255, s.heat)).u8((s.slot & 3) | (s.stance ? 4 : 0));
   }
   const shown = world.projectiles.filter((p) => !p.wait).slice(0, 255);
   w.u8(shown.length);
@@ -300,10 +304,10 @@ export function decodeSnapshot(data: Uint8Array): Snapshot {
   const fighters: NetFighter[] = [];
   for (let i = 0; i < nf; i++) {
     const id = r.u8(), seat = r.u8(), x = decX(r.u16()), y = decY(r.u16()), vx = r.i16(), vy = r.i16(), fl = r.u8(), act = r.u8(), actT = r.u8(), move = r.u8();
-    const hp = r.u16(), charge = r.u8(), flask = r.u8(), skillCd = r.u16(), rollCd = r.u8(), blockT = r.u8(), wp = r.u8(), skill = r.u8(), mv = r.u8(), rift = r.u16(), cls = r.u8(), hero = r.u8(), hitstop = r.u8(), pause = r.u8(), heat = r.u8();
+    const hp = r.u16(), charge = r.u8(), flask = r.u8(), skillCd = r.u16(), rollCd = r.u8(), blockT = r.u8(), wp = r.u8(), skill = r.u8(), mv = r.u8(), rift = r.u16(), cls = r.u8(), hero = r.u8(), hitstop = r.u8(), pause = r.u8(), heat = r.u8(), st = r.u8();
     fighters.push({
       id, seat, x, y, vx, vy, face: fl & 1 ? 1 : -1, ground: !!(fl & 2), invuln: !!(fl & 4), burning: !!(fl & 8), slowed: !!(fl & 16), rooted: !!(fl & 32),
-      slot: fl & 64 ? 1 : 0, act, actT, move, hp, charge, flask, skillCd, rollCd, blockT, weapons: [wp >> 4, wp & 15], skill,
+      slot: st & 3, stance: st & 4 ? 1 : 0, act, actT, move, hp, charge, flask, skillCd, rollCd, blockT, weapons: [wp >> 4, wp & 15, stanceWeapon(hero), stanceWeapon(hero)], skill,
       crouch: !!(mv & 1), slide: !!(mv & 2), rollAir: !!(mv & 4), fast: !!(mv & 8), frenzy: !!(mv & 16), buff: !!(mv & 32), veil: !!(mv & 64), fall: !!(mv & 128), rift, cls, hero, hitstop, pause, heat, reload: !!(fl & 128),
     });
   }

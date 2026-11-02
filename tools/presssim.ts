@@ -1,5 +1,5 @@
 // Attack press audit: does every tap of an attack button do something? Run from the repo root:
-//   npx tsx tools/presssim.ts [--hero=N] [--tap=1] [--verbose]
+//   npx tsx tools/presssim.ts [--hero=N] [--tap=1] [--stance] [--verbose]
 // For each hero and situation it replays a timeline, adds ONE tap of Light (or Heavy) at every tick offset, and checks
 // that the tap starts a move (a new swing, a charge or a guard) before the hero has been idle for a while. A tap that
 // changes nothing is a "lost" press: the player pressed attack and nothing happened.
@@ -24,6 +24,8 @@ for (const a of process.argv.slice(2)) {
 const TAP = Number(flags.get('tap') ?? 3); // touch taps last a few ticks
 const VERBOSE = flags.has('verbose');
 const ONLY = flags.has('hero') ? Number(flags.get('hero')) : -1;
+/** --stance: the same audit with the hero's second-stance weapon in hand (STANCE). */
+const STANCE_ON = flags.has('stance');
 /** A tap must start something within this many ticks of the hero being free to act again. */
 const GRACE = 6;
 
@@ -71,6 +73,7 @@ function setup(h: number, dist: number) {
   a.s.face = 1;
   b.s.face = -1;
   b.s.hp = 1e6;
+  if (STANCE_ON) a.s.stance = 1;
   return { world, a, b, seq: seq + 10 };
 }
 

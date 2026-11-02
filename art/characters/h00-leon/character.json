@@ -1,123 +1,180 @@
 {
-  "id": "h00-leon",
-  "hero": 0,
-  "name": "Richard Lionheart",
-  "epithet": "the Crusader King",
-  "refs": [
-    "references/approved-sheet.png"
-  ],
-  "bible": "A young knight-king and master swordsman with a disciplined, noble fighting style. Golden-blond hair, swept back and wild, falling to the jaw at the back; determined blue eyes; a handsome, focused face. Regal polished SILVER plate armour with GOLD trim and engraved gold filigree: layered rounded pauldrons, a breastplate, articulated gauntlets, greaves and pointed sabatons. NAVY-BLUE undersuit and trousers showing at the joints and thighs. A long IVORY tabard with gold embroidery hangs front and back from a dark belt with a gold buckle. A long CRIMSON cape with a gold border and a slightly tattered hem flows from the shoulders. WEAPON: an ornate longsword with a golden LION-HEAD crossguard, a navy-and-gold wrapped grip and pommel with a blue gem, and a steel blade with a glowing sapphire-blue fuller. He grips it in his RIGHT hand; the left hand joins on the grip for heavy two-handed strikes. His sword energy and weapon trails are GOLDEN sunlight arcs with white-hot cores and gold sparks (the sun crescent he flings is the same gold).",
-  "sheetNotes": {
-    "art": "Radiant Cleave: he gathers blue-white and gold light into the sword (anticipation), then hurls a huge crescent wave of blue-white light forward with a mighty horizontal sweep (execution), the wave leaving the blade toward the right edge of the cell; recovery with the sword lowered, light motes fading.",
-    "misc": "Taunt: he points the sword forward at the opponent, then raises his chin with a confident half-smile. Victory: he plants the sword point-down in front of him with both hands on the lion crossguard, cape flowing, a regal calm look; a soft blue-gold glow.",
-    "ko": "Intro: he walks in with the sword lowered at his side, raises it in a knightly salute before his face, swings it down in a flourish, and takes his stance.",
-    "skill": "Lion's Roar, his own special (a royal war cry that throws close enemies back). 1: he plants his feet and lifts the longsword high overhead, blade vertical, chin up, mouth opening for a shout. 2: the sword drawn back beside his head, the sapphire fuller and gold sparks gathering, the cape snapping out. 3: he drives the blade down in front of his chest and roars, a golden LION-SHAPED shockwave bursting outward from him in gold and blue-white rings. 4: the roar at full force, the lion-head wave filling the cell out to its margin, his body braced, the cape flaring back. 5: the wave fading into drifting gold sparks, the sword lowering. 6: back in stance with the blade held across the body."
+ "id": "h00-leon",
+ "hero": 0,
+ "name": "Richard Lionheart",
+ "epithet": "the Crusader King",
+ "refs": [
+  "references/approved-sheet.png"
+ ],
+ "bible": "A young knight-king and master swordsman with a disciplined, noble fighting style. Golden-blond hair, swept back and wild, falling to the jaw at the back; determined blue eyes; a handsome, focused face. Regal polished SILVER plate armour with GOLD trim and engraved gold filigree: layered rounded pauldrons, a breastplate, articulated gauntlets, greaves and pointed sabatons. NAVY-BLUE undersuit and trousers showing at the joints and thighs. A long IVORY tabard with gold embroidery hangs front and back from a dark belt with a gold buckle. A long CRIMSON cape with a gold border and a slightly tattered hem flows from the shoulders. WEAPON: an ornate longsword with a golden LION-HEAD crossguard, a navy-and-gold wrapped grip and pommel with a blue gem, and a steel blade with a glowing sapphire-blue fuller. He grips it in his RIGHT hand; the left hand joins on the grip for heavy two-handed strikes. His sword energy and weapon trails are GOLDEN sunlight arcs with white-hot cores and gold sparks (the sun crescent he flings is the same gold).",
+ "sheetNotes": {
+  "art": "Radiant Cleave: he gathers blue-white and gold light into the sword (anticipation), then hurls a huge crescent wave of blue-white light forward with a mighty horizontal sweep (execution), the wave leaving the blade toward the right edge of the cell; recovery with the sword lowered, light motes fading.",
+  "misc": "Taunt: he points the sword forward at the opponent, then raises his chin with a confident half-smile. Victory: he plants the sword point-down in front of him with both hands on the lion crossguard, cape flowing, a regal calm look; a soft blue-gold glow.",
+  "ko": "Intro: he walks in with the sword lowered at his side, raises it in a knightly salute before his face, swings it down in a flourish, and takes his stance.",
+  "skill": "Lion's Roar, his own special (a royal war cry that throws close enemies back). 1: he plants his feet and lifts the longsword high overhead, blade vertical, chin up, mouth opening for a shout. 2: the sword drawn back beside his head, the sapphire fuller and gold sparks gathering, the cape snapping out. 3: he drives the blade down in front of his chest and roars, a golden LION-SHAPED shockwave bursting outward from him in gold and blue-white rings. 4: the roar at full force, the lion-head wave filling the cell out to its margin, his body braced, the cape flaring back. 5: the wave fading into drifting gold sparks, the sword lowering. 6: back in stance with the blade held across the body.",
+  "alt-a": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a huge two-handed DANISH WAR-AXE: a long ash haft wrapped in red leather and a broad crescent steel head engraved with a gold lion - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: both hands on the long haft; his longsword is sheathed at the hip and NOT drawn.",
+  "alt-b": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a huge two-handed DANISH WAR-AXE: a long ash haft wrapped in red leather and a broad crescent steel head engraved with a gold lion - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: both hands on the long haft; his longsword is sheathed at the hip and NOT drawn.",
+  "alt-c": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a huge two-handed DANISH WAR-AXE: a long ash haft wrapped in red leather and a broad crescent steel head engraved with a gold lion - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: both hands on the long haft; his longsword is sheathed at the hip and NOT drawn."
+ },
+ "nativeHeight": 176,
+ "sheets": {
+  "atk-a": {
+   "title": "Lionheart's royal cuts 1 and 2 (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, wind-up: a quick step in on the front foot, the sword drawn back low across the body in the right hand, the left hand open for balance, the crimson cape trailing",
+    "combo strike 1, strike: a fast rising diagonal cut from low left to high right, the blade a blur, a crisp golden sunlight arc with a white-hot core and a motion smear of the swing, kept inside this cell",
+    "combo strike 1, follow-through: the sword carried high above the right shoulder at the end of the cut, the body turned with it, the golden trail thinning out behind (kept inside this cell)",
+    "combo strike 1, recovery: the sword coming back down to a guard in front of the chest, the cape settling",
+    "combo strike 2, wind-up: the sword raised high over the left shoulder, weight shifting onto the back foot, eyes locked forward",
+    "combo strike 2, strike: a hard downward diagonal cut across the body from high left to low right, a broad golden arc with a white-hot core and a motion smear of the swing, kept inside this cell",
+    "combo strike 2, follow-through: the sword low by the right knee at the end of the cut, the body leaning into it, the golden trail fading (kept inside this cell)",
+    "combo strike 2, recovery: rising back to the fighting stance, the sword level and ready"
+   ]
   },
-  "nativeHeight": 176,
-  "sheets": {
-    "atk-a": {
-      "title": "Lionheart's royal cuts 1 and 2 (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo strike 1, wind-up: a quick step in on the front foot, the sword drawn back low across the body in the right hand, the left hand open for balance, the crimson cape trailing",
-        "combo strike 1, strike: a fast rising diagonal cut from low left to high right, the blade a blur, a crisp golden sunlight arc with a white-hot core and a motion smear of the swing, kept inside this cell",
-        "combo strike 1, follow-through: the sword carried high above the right shoulder at the end of the cut, the body turned with it, the golden trail thinning out behind (kept inside this cell)",
-        "combo strike 1, recovery: the sword coming back down to a guard in front of the chest, the cape settling",
-        "combo strike 2, wind-up: the sword raised high over the left shoulder, weight shifting onto the back foot, eyes locked forward",
-        "combo strike 2, strike: a hard downward diagonal cut across the body from high left to low right, a broad golden arc with a white-hot core and a motion smear of the swing, kept inside this cell",
-        "combo strike 2, follow-through: the sword low by the right knee at the end of the cut, the body leaning into it, the golden trail fading (kept inside this cell)",
-        "combo strike 2, recovery: rising back to the fighting stance, the sword level and ready"
-      ]
-    },
-    "atk-b": {
-      "title": "Royal finisher and aerial cut (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, wind-up: both hands on the grip, the sword pulled far back behind the right hip, a long lunge step forward, the cape flaring",
-        "combo finisher, strike: a lunging two-handed horizontal sweep at full extension, a huge golden arc with a white-hot core and a motion smear, gold sparks, the strongest pose, kept inside this cell",
-        "combo finisher, follow-through: the sword swept all the way round past the left side, the body twisted with the swing, the golden arc dissolving into sparks (kept inside this cell)",
-        "combo finisher, recovery: pulling back into a proud stance, the sword lowered, the cape drifting down",
-        "aerial attack, wind-up: in mid-air, knees tucked, the sword raised high behind the head with both hands",
-        "aerial attack, strike: a sweeping mid-air cut in front and downward, a golden crescent arc with a motion smear, kept inside this cell",
-        "aerial attack, follow-through: still airborne, the sword at the bottom of the swing in front of the hips, the trail fading (kept inside this cell)",
-        "aerial attack, recovery: airborne, the sword drawn back to a ready guard, the cape billowing upward"
-      ]
-    },
-    "atk-c": {
-      "title": "Plunge and the Sun Crescent heavy (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air diving straight down, both hands driving the sword point down beneath the body, gold speed lines",
-        "plunge, impact: landed in a low crouch, the sword driven into the ground in front, a burst of golden light and dust, kept inside this cell",
-        "plunge, settle: still low, the sword planted, golden embers and dust spreading out from the impact (kept inside this cell)",
-        "plunge, recovery: pulling the sword free and rising back toward stance",
-        "Sun Crescent, wind-up: both hands on the grip, the sword raised high above the head, the blade gathering bright golden sunlight, the body coiled on the back foot",
-        "Sun Crescent, strike: a huge two-handed overhead cleave down and forward, the swing releasing a tall CRESCENT of golden light that leaves the blade and flies forward, a motion smear of the swing, kept inside this cell",
-        "Sun Crescent, follow-through: the sword low in front after the cleave, the body leaning far forward, the golden crescent just separating from the blade and flying off toward the right edge of the cell (kept inside this cell)",
-        "Sun Crescent, recovery: straightening up from the cleave, the sword brought back to guard, golden sparks drifting"
-      ]
-    }
+  "atk-b": {
+   "title": "Royal finisher and aerial cut (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, wind-up: both hands on the grip, the sword pulled far back behind the right hip, a long lunge step forward, the cape flaring",
+    "combo finisher, strike: a lunging two-handed horizontal sweep at full extension, a huge golden arc with a white-hot core and a motion smear, gold sparks, the strongest pose, kept inside this cell",
+    "combo finisher, follow-through: the sword swept all the way round past the left side, the body twisted with the swing, the golden arc dissolving into sparks (kept inside this cell)",
+    "combo finisher, recovery: pulling back into a proud stance, the sword lowered, the cape drifting down",
+    "aerial attack, wind-up: in mid-air, knees tucked, the sword raised high behind the head with both hands",
+    "aerial attack, strike: a sweeping mid-air cut in front and downward, a golden crescent arc with a motion smear, kept inside this cell",
+    "aerial attack, follow-through: still airborne, the sword at the bottom of the swing in front of the hips, the trail fading (kept inside this cell)",
+    "aerial attack, recovery: airborne, the sword drawn back to a ready guard, the cape billowing upward"
+   ]
   },
-  "sheetsThreeFrame": {
-    "atk-a": {
-      "title": "Basic combo strikes 1 and 2 (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo strike 1, anticipation: drawing the weapon back for a quick slash",
-        "combo strike 1, strike: a fast horizontal slash forward with a bright weapon trail kept inside this cell",
-        "combo strike 1, recovery: the follow-through settling back toward stance",
-        "combo strike 2, anticipation: weight shifts, weapon raised high for a diagonal cut",
-        "combo strike 2, strike: a powerful diagonal cut with a bright arc trail kept inside this cell",
-        "combo strike 2, recovery: follow-through low, pulling back toward stance"
-      ]
-    },
-    "atk-b": {
-      "title": "Combo finisher and aerial attack (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: a big wind-up, weapon far back, front foot stepping in",
-        "combo finisher, strike: an overwhelming lunging strike, large bright arc trail kept inside this cell, the strongest pose",
-        "combo finisher, recovery: full extension relaxing, cape flaring, settling toward stance",
-        "aerial attack, anticipation: in mid-air, weapon raised",
-        "aerial attack, strike: a sweeping mid-air slash in front, bright arc trail kept inside this cell",
-        "aerial attack, recovery: airborne, body tucked, returning to a ready pose"
-      ]
-    },
-    "atk-c": {
-      "title": "Plunge attack and heavy attack (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air diving straight down, weapon pointed down beneath the body, speed lines",
-        "plunge, impact: landing in a low crouch, weapon driven into the ground in front, a burst of light and dust",
-        "plunge, recovery: rising from the impact back toward stance",
-        "heavy attack, charge: body coiled, weapon held far back, a bright glow building on it",
-        "heavy attack, strike: a devastating full-power strike with a huge bright arc trail kept inside this cell",
-        "heavy attack, follow-through: deep follow-through, trail dissipating"
-      ]
-    }
+  "atk-c": {
+   "title": "Plunge and the Sun Crescent heavy (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, both hands driving the sword point down beneath the body, gold speed lines",
+    "plunge, impact: landed in a low crouch, the sword driven into the ground in front, a burst of golden light and dust, kept inside this cell",
+    "plunge, settle: still low, the sword planted, golden embers and dust spreading out from the impact (kept inside this cell)",
+    "plunge, recovery: pulling the sword free and rising back toward stance",
+    "Sun Crescent, wind-up: both hands on the grip, the sword raised high above the head, the blade gathering bright golden sunlight, the body coiled on the back foot",
+    "Sun Crescent, strike: a huge two-handed overhead cleave down and forward, the swing releasing a tall CRESCENT of golden light that leaves the blade and flies forward, a motion smear of the swing, kept inside this cell",
+    "Sun Crescent, follow-through: the sword low in front after the cleave, the body leaning far forward, the golden crescent just separating from the blade and flying off toward the right edge of the cell (kept inside this cell)",
+    "Sun Crescent, recovery: straightening up from the cleave, the sword brought back to guard, golden sparks drifting"
+   ]
+  },
+  "alt-a": {
+   "title": "Second stance: combo strikes 1 and 2 with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance strike 1, anticipation: winding up for a heavy diagonal chop from the right shoulder down across the body",
+    "stance strike 1, strike: a heavy diagonal chop from the right shoulder down across the body, with a motion smear of the swing, kept inside this cell",
+    "stance strike 1, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 1, recovery: settling back into the stance-weapon ready pose",
+    "stance strike 2, anticipation: winding up for a rising backhand cleave from low left to high right",
+    "stance strike 2, strike: a rising backhand cleave from low left to high right, with a motion smear of the swing, kept inside this cell",
+    "stance strike 2, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 2, recovery: settling back into the stance-weapon ready pose"
+   ]
+  },
+  "alt-b": {
+   "title": "Second stance: combo finisher and an aerial attack with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance finisher, anticipation: winding up for a towering overhead chop slammed down in front of him, sparks and gold light bursting where the axe bites the ground",
+    "stance finisher, strike: a towering overhead chop slammed down in front of him, sparks and gold light bursting where the axe bites the ground, with a motion smear of the swing, kept inside this cell",
+    "stance finisher, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance finisher, recovery: settling back into the stance-weapon ready pose",
+    "stance aerial attack (airborne pose), anticipation: winding up for in mid-air, a spinning downward axe swing",
+    "stance aerial attack (airborne pose), strike: in mid-air, a spinning downward axe swing, with a motion smear of the swing, kept inside this cell",
+    "stance aerial attack (airborne pose), follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance aerial attack (airborne pose), recovery: still airborne, legs tucked"
+   ]
+  },
+  "alt-c": {
+   "title": "Second stance: heavy attack (4 frames), the stance change (2 frames), and the stance idle (2 frames)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance heavy attack, charge: the axe raised high behind the head, golden light gathering on the blade",
+    "stance heavy attack, strike: a colossal guard-breaking downward cleave, kept inside this cell",
+    "stance heavy attack, follow-through: the blow carried through, the trail and energy dissipating (kept inside this cell)",
+    "stance heavy attack, recovery: returning to the stance-weapon ready pose",
+    "stance change 1: sheathing the longsword and pulling the war-axe off his back in one motion, a flash of gold light along its edge (the start of the motion)",
+    "stance change 2: sheathing the longsword and pulling the war-axe off his back in one motion, a flash of gold light along its edge (the end of the motion, the stance weapon ready, a burst of its energy)",
+    "stance idle 1: a low, wide stance with the war-axe held diagonally across the body in both hands, head of the axe up by the right shoulder",
+    "stance idle 2: the same stance idle breathing in, a slight rise of the shoulders, hair and cloth drifting"
+   ]
   }
+ },
+ "sheetsThreeFrame": {
+  "atk-a": {
+   "title": "Basic combo strikes 1 and 2 (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, anticipation: drawing the weapon back for a quick slash",
+    "combo strike 1, strike: a fast horizontal slash forward with a bright weapon trail kept inside this cell",
+    "combo strike 1, recovery: the follow-through settling back toward stance",
+    "combo strike 2, anticipation: weight shifts, weapon raised high for a diagonal cut",
+    "combo strike 2, strike: a powerful diagonal cut with a bright arc trail kept inside this cell",
+    "combo strike 2, recovery: follow-through low, pulling back toward stance"
+   ]
+  },
+  "atk-b": {
+   "title": "Combo finisher and aerial attack (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: a big wind-up, weapon far back, front foot stepping in",
+    "combo finisher, strike: an overwhelming lunging strike, large bright arc trail kept inside this cell, the strongest pose",
+    "combo finisher, recovery: full extension relaxing, cape flaring, settling toward stance",
+    "aerial attack, anticipation: in mid-air, weapon raised",
+    "aerial attack, strike: a sweeping mid-air slash in front, bright arc trail kept inside this cell",
+    "aerial attack, recovery: airborne, body tucked, returning to a ready pose"
+   ]
+  },
+  "atk-c": {
+   "title": "Plunge attack and heavy attack (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, weapon pointed down beneath the body, speed lines",
+    "plunge, impact: landing in a low crouch, weapon driven into the ground in front, a burst of light and dust",
+    "plunge, recovery: rising from the impact back toward stance",
+    "heavy attack, charge: body coiled, weapon held far back, a bright glow building on it",
+    "heavy attack, strike: a devastating full-power strike with a huge bright arc trail kept inside this cell",
+    "heavy attack, follow-through: deep follow-through, trail dissipating"
+   ]
+  }
+ }
 }

@@ -265,6 +265,66 @@
     "ko:7"
    ],
    "fps": 4
+  },
+  "altCombo0": {
+   "frames": [
+    "alt-a:0",
+    "alt-a:1",
+    "alt-a:2",
+    "alt-a:3"
+   ],
+   "attack": true
+  },
+  "altCombo1": {
+   "frames": [
+    "alt-a:4",
+    "alt-a:5",
+    "alt-a:6",
+    "alt-a:7"
+   ],
+   "attack": true
+  },
+  "altCombo2": {
+   "frames": [
+    "alt-b:0",
+    "alt-b:1",
+    "alt-b:2",
+    "alt-b:3"
+   ],
+   "attack": true
+  },
+  "altAir": {
+   "frames": [
+    "alt-b:4",
+    "alt-b:5",
+    "alt-b:6",
+    "alt-b:7"
+   ],
+   "attack": true,
+   "air": true
+  },
+  "altHeavy": {
+   "frames": [
+    "alt-c:0",
+    "alt-c:1",
+    "alt-c:2",
+    "alt-c:3"
+   ],
+   "attack": true
+  },
+  "swap": {
+   "frames": [
+    "alt-c:4",
+    "alt-c:5"
+   ]
+  },
+  "altIdle": {
+   "frames": [
+    "alt-c:6",
+    "alt-c:7"
+   ],
+   "fps": 3,
+   "loop": true
   }
  }
 }

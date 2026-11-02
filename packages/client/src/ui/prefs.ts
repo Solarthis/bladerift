@@ -9,8 +9,8 @@
  */
 
 /** Fighter actions that can be remapped on the keyboard (the solo scheme in input/Controls.ts). */
-export type KeyAction = 'left' | 'right' | 'down' | 'jump' | 'a' | 'b' | 'skill' | 'roll' | 'heal' | 'special' | 'block';
-export const KEY_ACTIONS: readonly KeyAction[] = ['left', 'right', 'down', 'jump', 'a', 'b', 'skill', 'roll', 'heal', 'special', 'block'];
+export type KeyAction = 'left' | 'right' | 'down' | 'jump' | 'a' | 'b' | 'skill' | 'roll' | 'heal' | 'special' | 'block' | 'stance';
+export const KEY_ACTIONS: readonly KeyAction[] = ['left', 'right', 'down', 'jump', 'a', 'b', 'skill', 'roll', 'heal', 'special', 'block', 'stance'];
 
 /** Graphics quality. 'low' trades the extra background and particle work for frame rate. */
 export type Quality = 'high' | 'low';

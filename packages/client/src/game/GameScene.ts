@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  Act, ARENAS, type ArenaDef, ArtId, PARRY, PARRY_KIND, surfaceBelow, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_PLUNGE, MOVE_THROW, moveOf, NetProjectile, NetStrike, NetTrap, type RosterEntry, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
+  Act, ARENAS, type ArenaDef, ArtId, PARRY, PARRY_KIND, surfaceBelow, CRESCENT, DODGES, lookWeapon, DodgeDef, FIGHTER, GameEvent, gatePortal, heroOf, MOVE_CHARGED, MOVE_PLUNGE, MOVE_THROW, moveOf, NetProjectile, NetStrike, NetTrap, type RosterEntry, SHOOT_CRESCENT, SKILL_EVENT, SKILLS, SkillId, TICK_RATE, WEAPONS, WeaponId,
 } from '@bladerift/shared';
 import type { NetGame, ViewFighter } from '../net/NetGame';
 import type { Session } from '../net/Session';
@@ -390,6 +390,8 @@ interface FighterView {
   flashUntil: number;
   /** When the last perfect-block window opened (performance.now(); its ring is drawn once). */
   guardAt?: number;
+  /** When the last stance change was shown (its burst plays once per change). */
+  swapAt?: number;
   lastSeq: number;
   runPhase: number;
   lastX: number;
@@ -993,6 +995,21 @@ export class GameScene extends Phaser.Scene {
         g.strokeCircle(gx, gy, 30 - 12 * easeOut3(p));
       });
     }
+    // a stance change: the hero's energy bursts where the new weapon comes to hand (Gilgamesh's comes out of a gold portal)
+    if (v.act === Act.Swap && v.actT <= 2 && now - (fv.swapAt ?? 0) > 200) {
+      fv.swapAt = now;
+      const en = heroEnergy(v.hero);
+      const hx = v.x + v.face * 16;
+      const hy = v.y - FIGHTER.h * 0.5;
+      this.ring(hx, hy, 6, 34, 0.32, en.arc, 3);
+      this.ring(hx, hy, 2, 18, 0.4, en.spark, 2, true);
+      if (v.hero === 2 && this.roomFor()) {
+        const por = this.addFx(FX.portal, hx, hy, v.face < 0, 0.8, { palette: PAL.gold }, 14, 16, 0.3);
+        this.after(300, () => por.stop());
+      }
+      for (let i = 0; i < 6; i++) this.spark(hx, hy, (Math.random() - 0.5) * 160, -40 - Math.random() * 120, 0.4, en.spark, 2, 200);
+      sfx.play('swing', { x: v.x, y: v.y, pitch: 1.5, volume: 0.45 });
+    }
     const glint = perfectOpen ? 0.32 * (1 - v.actT / PARRY.window) : 0;
     const flash = now < fv.flashUntil ? 0.8 : v.invuln && v.act !== Act.Roll && Math.floor(this.clock * 12) % 2 ? 0.35 : glint;
     // (two frames of white, then the blow's colour)
@@ -1276,6 +1293,16 @@ export class GameScene extends Phaser.Scene {
         if (sh) this.spawnArc(v, sh);
       } else if (sw) {
         this.swingFxs.add(this.addFx(sw.mod, v.x, v.y, v.face < 0, sw.rate, sw.opts));
+      }
+      // Humbaba's fire breath (painted in the sprite's frames; the rig has none): a gout of flame from the jaws
+      if (weapon === WeaponId.FireBreath && !fv.sprite && this.roomFor()) {
+        const big = move === 2 || move === MOVE_CHARGED;
+        this.addFx(FX.flamethrower, v.x + v.face * (big ? 30 : 18), v.y - (move === 1 ? 34 : 50), v.face < 0, big ? 1.5 : 1.1, { palette: PAL.fire }, 12, 14, big ? 0.55 : 0.32);
+      }
+      // the club's third blow slams the ground like the hammer's
+      if (weapon === WeaponId.Club && move === 2) {
+        this.addFx(FX.groundSlam, v.x + v.face * 44, v.y, v.face < 0, 1.6);
+        this.shake(0.8);
       }
       // the hammer's third blow and any hammer plunge crack the ground
       if (weapon === WeaponId.Hammer && move === 2) {
@@ -2288,7 +2315,12 @@ export class GameScene extends Phaser.Scene {
     } else if (p.kind === 'arrow') {
       // Serpent Rain's falling shafts are venom green; the bow's are as before
       const rain = Math.abs(p.vy) > 300;
-      pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, p.heavy ? { palette: ['#3a1a70', '#7f5ad8', '#e8e2ff', '#ffffff'] } : rain ? { palette: PAL.serpent } : p.ex ? { palette: PAL.gold } : {}, 14, 14, 10);
+      // a stance weapon's throw: Cu Chulainn's darts (cyan), Brynhildr's Valkyrie spear (a big pale-blue streak)
+      const thrower = this.lastList.find((f) => f.id === pv.spawnNear);
+      const thrown = thrower && thrower.stance ? thrower.hero : -1;
+      const pal = thrown === 3 ? { palette: ['#0a3a48', '#2ab8d8', '#bff6ff', '#ffffff'] } : thrown === 13 ? { palette: ['#1a3a6a', '#6ab0f0', '#e0f2ff', '#ffffff'] } : null;
+      pv.fx = new FxSprite(this, FX.arrow, p.x, p.y, p.vx < 0, pal ?? (p.heavy ? { palette: ['#3a1a70', '#7f5ad8', '#e8e2ff', '#ffffff'] } : rain ? { palette: PAL.serpent } : p.ex ? { palette: PAL.gold } : {}), 14, 14, 10);
+      if (thrown === 13 || (thrown === 3 && p.heavy)) scaleFx(pv.fx, 1.7);
     } else if (p.kind === 'frost') {
       pv.fx = new FxSprite(this, FX.iceLance, p.x, p.y, p.vx < 0, p.ex ? { palette: PAL.gold } : {}, 14, 14, 10);
     } else if (p.kind === 'arcane') {

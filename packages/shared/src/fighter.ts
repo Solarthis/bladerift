@@ -5,11 +5,11 @@
  * hits, projectiles, burning and rounds are the World's job (server-authoritative).
  */
 import { ArenaDef, surfaceBelow } from './arena';
-import { DT, FIGHTER, HITSTOP, PARRY, PHYS, THROW } from './constants';
+import { DT, FIGHTER, HITSTOP, PARRY, PHYS, STANCE, THROW } from './constants';
 import { Btn, InputCmd } from './input';
 import { dodgeOf, Loadout, Move, SKILLS, WEAPONS } from './weapons';
 import { ArtId, ARTS, classOf, ClassDef, ClassId, EX_SPECIAL, RIFT } from './classes';
-import { artIdOf, heroClass } from './heroes';
+import { artIdOf, heroClass, slotFor, weaponAt } from './heroes';
 
 export const enum Act {
   Free = 0,
@@ -39,6 +39,9 @@ export const enum Act {
    * `charge`: 0 a press that opened the window, 1 the riposte after a parried hit (the window open again), 2 a plain guard
    * (the window closed, a press too soon after the last, or BLOCK held as an action ended). Any action cancels it. */
   Guard = 17,
+  /** Changing stance (the STANCE button, constants.ts STANCE): the other weapon is in hand from `flip` on (state `stance`),
+   * and from then any action cancels the rest of the change. */
+  Swap = 18,
 }
 
 /** Move index codes beyond the combo steps. */
@@ -91,6 +94,7 @@ const enum Buf {
   Jump = 6,
   Special = 7,
   Block = 8,
+  Stance = 9,
 }
 
 export interface FighterState {
@@ -105,8 +109,11 @@ export interface FighterState {
   drop: number;
   act: number;
   actT: number;
-  /** Weapon slot (0/1) of the current attack / charge / block. */
+  /** Weapon slot of the current attack / charge / block: 0 LIGHT, 1 HEAVY of the first weapon, 2 and 3 of the stance weapon
+   * (heroes.ts weaponAt). */
   slot: number;
+  /** The stance: 0 the hero's first weapon, 1 its second (STANCE_WEAPON). LIGHT and HEAVY use that weapon's slots. */
+  stance: number;
   /** Current move: combo step, MOVE_AIR, MOVE_PLUNGE or MOVE_CHARGED. */
   move: number;
   /** Next combo step and the ticks left to chain it. */
@@ -191,7 +198,7 @@ export const STATE_KEYS: (keyof FighterState)[] = [
   'charge', 'rollCd', 'skillCd', 'invuln', 'stun', 'slowT', 'rootT', 'burnT', 'flask', 'hp', 'prevBtn', 'moveSeq', 'blockT',
   'lock', 'jumpHeld', 'spawn', 'wall', 'slide', 'wallT', 'wallSide', 'wlock', 'dash', 'rollAir', 'fast', 'crouch', 'coyote',
   'ledgeX', 'ledgeY', 'ledgeCd', 'confirm', 'rift', 'frenzy', 'buff', 'veil', 'hitstop', 'pause', 'fall', 'heat', 'reload',
-  'air', 'float', 'ex', 'parryCd',
+  'air', 'float', 'ex', 'parryCd', 'stance',
 ];
 
 export function newFighterState(x: number, y: number, face: number, load: { cls: number; hero?: number } = { cls: 0 }): FighterState {
@@ -202,7 +209,7 @@ export function newFighterState(x: number, y: number, face: number, load: { cls:
     flask: FIGHTER.flasks, hp: C.hp, prevBtn: 0, moveSeq: 0, blockT: 0, lock: 0, jumpHeld: 0, spawn: 0,
     wall: 0, slide: 0, wallT: 0, wallSide: 0, wlock: 0, dash: 0, rollAir: 0, fast: 0, crouch: 0, coyote: 0, ledgeX: 0, ledgeY: 0,
     ledgeCd: 0, confirm: 0, rift: 0, frenzy: 0, buff: 0, veil: 0, hitstop: 0, pause: 0, fall: 0, heat: 0, reload: 0, air: 0, float: 0,
-    ex: 0, parryCd: 0,
+    ex: 0, parryCd: 0, stance: 0,
   };
 }
 
@@ -274,6 +281,7 @@ function bufferPresses(s: FighterState, press: number) {
   if (press & Btn.B) { s.buf = Buf.B; s.bufT = t; }
   if (press & Btn.A) { s.buf = Buf.A; s.bufT = t; }
   if (press & Btn.Special) { s.buf = Buf.Special; s.bufT = t; }
+  if (press & Btn.Stance) { s.buf = Buf.Stance; s.bufT = t; }
   // (a perfect block is all timing: a press is never held over a long recovery to go off late)
   if (press & Btn.Block) { s.buf = Buf.Block; s.bufT = FIGHTER.buffer; }
 }
@@ -286,7 +294,7 @@ export const bodyH = (s: { crouch: number }) => (s.crouch ? FIGHTER.crouchH : FI
 /** The move a fighter is performing (null when not attacking). */
 export function currentMove(s: FighterState, load: Loadout): Move | null {
   if (s.act !== Act.Attack) return null;
-  return moveOf(load.weapons[s.slot], s.move);
+  return moveOf(weaponAt(load, s.slot), s.move);
 }
 
 const heavies = new Map<number, Move>();
@@ -379,7 +387,7 @@ export function isActive(s: FighterState, m: Move) {
 
 /** Damage of the current move (a charged move scales with the charge held). */
 export function moveDamage(s: FighterState, load: Loadout, m: Move) {
-  const c = WEAPONS[load.weapons[s.slot]]?.charged;
+  const c = WEAPONS[weaponAt(load, s.slot)]?.charged;
   if (s.move === MOVE_CHARGED && c) {
     const k = Math.max(0, Math.min(1, (s.charge - c.min) / Math.max(1, c.max - c.min)));
     return Math.round(c.dmg + (c.dmgMax - c.dmg) * k);
@@ -423,8 +431,8 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     return true;
   }
   if (b === Buf.A || b === Buf.B) {
-    const slot = b === Buf.A ? 0 : 1;
-    const w = WEAPONS[load.weapons[slot]];
+    const slot = slotFor(b === Buf.A ? 0 : 1, s.stance);
+    const w = WEAPONS[weaponAt(load, slot)];
     if (!w) return false;
     // an overheated ranged weapon fires nothing until it cools
     if (s.reload && isRanged(w)) return false;
@@ -432,7 +440,7 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     if (Math.abs(cmd.moveX) > 0.5 && s.rootT <= 0) s.face = cmd.moveX > 0 ? 1 : -1;
     // the heavy button: B with the same weapon in both hands (every hero's kit) is the heavy attack on the ground (a charged
     // weapon charges it: hold for the power move, a tap is the light move) and the plunge in the air
-    const heavy = slot === 1 && load.weapons[1] === load.weapons[0];
+    const heavy = (slot & 1) === 1 && weaponAt(load, slot) === weaponAt(load, slot - 1);
     if (!heavy && s.ground && cmd.moveY > 0.5 && !isRanged(w)) {
       startAttack(s, slot, MOVE_LAUNCH);
       s.combo = 0;
@@ -442,7 +450,7 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     } else if (heavy && s.ground && throwOpen(s, cmd)) {
       // the throw: B with the stick toward a throwable opponent in reach (a guard does not stop it)
       startAttack(s, slot, MOVE_THROW);
-    } else if (heavy && hasCrescent(load) && !s.reload) {
+    } else if (heavy && slot === 1 && hasCrescent(load) && !s.reload) {
       // the Sun Crescent while it is ready (cooling down, B is the plain heavy cleave below)
       startAttack(s, slot, MOVE_CRESCENT);
     } else if (heavy && !w.charged) {
@@ -533,6 +541,14 @@ function tryBuffered(s: FighterState, cmd: InputCmd, arena: ArenaDef, load: Load
     s.crouch = 0;
   } else if (b === Buf.Jump) {
     if (!jump(s, cmd, arena, C)) return false;
+  } else if (b === Buf.Stance) {
+    // the other weapon (STANCE): on the ground or in the air, from anything that can act
+    s.act = Act.Swap;
+    s.actT = 0;
+    s.crouch = 0;
+    s.fast = 0;
+    s.comboWin = 0;
+    s.combo = 0;
   } else if (b === Buf.Block) {
     // (pressed again while the window is still open, or in the riposte: the press waits for the window to close, then
     // raises the guard afresh; that is a new window only after a parry, see the rearm below)
@@ -958,9 +974,9 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       break;
     }
     case Act.Charge: {
-      const w = WEAPONS[load.weapons[s.slot]];
+      const w = WEAPONS[weaponAt(load, s.slot)];
       const c = w.charged!;
-      const held = btn & (s.slot === 0 ? Btn.A : Btn.B);
+      const held = btn & ((s.slot & 1) === 0 ? Btn.A : Btn.B);
       s.vx = approach(s.vx, ax * PHYS.runSpeed * 0.3 * speedK, PHYS.groundAccel * DT);
       if (Math.abs(ax) > 0.3) s.face = ax > 0 ? 1 : -1;
       if (held) s.charge = Math.min(c.max, s.charge + 1);
@@ -974,7 +990,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       break;
     }
     case Act.Block: {
-      const held = btn & (s.slot === 0 ? Btn.A : Btn.B);
+      const held = btn & ((s.slot & 1) === 0 ? Btn.A : Btn.B);
       s.blockT++;
       s.vx = approach(s.vx, ax * FIGHTER.blockSpeed, PHYS.groundDecel * DT);
       if (!held) {
@@ -984,6 +1000,18 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
           s.actT = 0;
         }
         s.blockT = 0;
+      }
+      break;
+    }
+    case Act.Swap: {
+      // the other weapon comes to hand at STANCE.flip; from then on any action cancels the rest of the change
+      if (s.actT === STANCE.flip) s.stance = s.stance ? 0 : 1;
+      if (s.actT > STANCE.flip && tryBuffered(s, cmd, arena, load)) break;
+      if (s.ground) s.vx = approach(s.vx, 0, PHYS.groundDecel * DT);
+      else s.vx = approach(s.vx, ax * PHYS.runSpeed * 0.5 * speedK, PHYS.airAccel * 0.5 * DT);
+      if (s.actT >= STANCE.ticks) {
+        s.act = Act.Free;
+        s.actT = 0;
       }
       break;
     }
@@ -1009,7 +1037,7 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
       break;
     }
     case Act.Attack: {
-      const m = moveOf(load.weapons[s.slot], s.move)!;
+      const m = moveOf(weaponAt(load, s.slot), s.move)!;
       const end = m.startup + m.active;
       // an air swing that landed in its hit window ends with it (see the landing check after collide)
       if (s.ground && isAirMove(s.move) && s.actT >= end) {
@@ -1208,8 +1236,8 @@ export function stepFighter(s: FighterState, cmdIn: InputCmd, arena: ArenaDef, l
   if (airSwing && s.ground) {
     // landing out of an air swing: one still winding up becomes the ground swing (the press is not lost to the floor);
     // one in its hit window finishes it (the Attack case ends it there); one past it ends (no floating recovery on the floor)
-    const m = moveOf(load.weapons[s.slot], s.move);
-    const w = WEAPONS[load.weapons[s.slot]];
+    const m = moveOf(weaponAt(load, s.slot), s.move);
+    const w = WEAPONS[weaponAt(load, s.slot)];
     if (m && w && s.actT < m.startup && !isRanged(w)) {
       startAttack(s, s.slot, 0);
       s.combo = 1 % w.combo.length;
@@ -1362,6 +1390,6 @@ export const isParrying = (s: { act: number; actT: number; charge: number }) => 
 export const isThrowable = (s: FighterState) =>
   !!s.ground && s.invuln <= 0 && s.frenzy <= 0 && !(s.act === Act.Attack && s.move === MOVE_ART) &&
   (s.act === Act.Free || s.act === Act.Attack || s.act === Act.Block || s.act === Act.Charge || s.act === Act.Heal || s.act === Act.Skill ||
-    s.act === Act.Guard);
+    s.act === Act.Guard || s.act === Act.Swap);
 
 

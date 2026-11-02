@@ -1,4 +1,4 @@
-import { heroOf, lookWeapon, weaponLookOf, WeaponId } from '@bladerift/shared';
+import { heroOf, lookWeapon, stanceLookOf, STANCE_WEAPON, weaponLookOf, WeaponId } from '@bladerift/shared';
 
 // Square framed icons (tools/art-gen: icons-gear / icons-abilities sheets, sliced by slice.py).
 const W: Record<number, string> = {
@@ -11,6 +11,8 @@ const W: Record<number, string> = {
   [WeaponId.Shield]: 'g-shield',
   [WeaponId.Staff]: 'g-staff',
   [WeaponId.Gate]: 'g-gate',
+  // the stance weapons (s-00.jpg .. s-13.jpg, by hero id; icons-stances sheet)
+  ...Object.fromEntries(STANCE_WEAPON.map((w, hero) => [w, `s-${String(hero).padStart(2, '0')}`])),
 };
 /** Each hero's special has its own painted icon (k-00.jpg .. k-13.jpg, by skill id = hero id); i-art until it exists. */
 const S: Record<number, string> = Object.fromEntries(Array.from({ length: 14 }, (_, i) => [i, `k-${String(i).padStart(2, '0')}`]));
@@ -22,6 +24,10 @@ const art = (n: string) => `assets/art/${n}.jpg`;
 export const weaponIcon = (w: number) => art(W[w] ?? W[lookWeapon(w)] ?? 'g-sword');
 /** A hero's own weapon icon (Jack's surgical knives, Alexander's kopis, Enkidu's chains...). */
 export const heroWeaponIcon = (hero: number) => art(weaponLookOf(hero).icon);
+/** A hero's second-stance weapon icon (heroes.ts STANCE_LOOKS). */
+export const stanceWeaponIcon = (hero: number) => art(stanceLookOf(hero).icon);
+/** The icon of the weapon a hero has in hand in a stance (0 its first weapon, 1 its second). */
+export const heroStanceIcon = (hero: number, stance: number) => (stance ? stanceWeaponIcon(hero) : heroWeaponIcon(hero));
 export const skillIcon = (s: number) => art(S[s] ?? 'i-art');
 /** Each hero's own dodge (d-00.jpg .. d-13.jpg, by hero id; icons-dodges sheet); the generic roll until it exists. */
 export const dodgeIcon = (hero: number) => art(hero >= 0 && hero < 14 ? `d-${String(hero).padStart(2, '0')}` : 'i-roll');

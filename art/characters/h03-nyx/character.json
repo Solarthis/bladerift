@@ -1,135 +1,192 @@
 {
-  "id": "h03-nyx",
-  "hero": 3,
-  "name": "Cú Chulainn",
-  "epithet": "Hound of Ulster",
-  "refs": [
-    "references/design.png"
-  ],
-  "designRefs": [
-    "../h00-leon/references/approved-sheet.png"
-  ],
-  "bible": "He is a slender, pale youth of about twenty, tall and fine-boned, with sharp cheekbones and a calm, distant look. His eyes are PALE ICE-BLUE with a cyan glow under heavy black brows. His thick wavy black hair is swept back and falls to the shoulders with a blue sheen. A deep SEA-BLUE woollen Celtic CLOAK is fastened at the right shoulder with a large SILVER ring-brooch and streams behind him. A twisted GOLD TORC sits at his throat. He wears a sleeveless, knee-length off-white linen tunic with a TEAL interlace-embroidered hem, a dark leather belt with a BRONZE buckle, dark leather trousers and laced leather boots. Bare, lean, muscular arms wear dark leather BRACERS. WEAPON: the GÁE BULG, a spear about one and a half times his height. The haft is dark ASH WOOD bound with silver wire. The leaf-shaped head is carved from pale SEA-BEAST BONE, with rows of small BACKWARD-POINTING BARBS along both edges and a faint teal glow in its grooves. He holds it in his RIGHT hand near the butt and his LEFT hand ahead of the centre of balance. Energy and trails: CYAN-TEAL sea light with pale white-blue motes.",
-  "design": "- top row, left: full-body stance facing right, the Gáe Bulg held in the right hand near the butt and the left hand ahead of the centre of balance, the sea-blue cloak streaming behind\n- top row, right: a head close-up with the gold torc at the throat and the silver ring-brooch at the shoulder, pale ice-blue eyes, thick wavy black hair swept back; a close view of the barbed sea-bone spearhead with its teal glow\n- second row, left: a fast straight thrust; a rising sweep of the spear\n- second row, right: a walking pose with the cloak swinging; a high leap with the spear held back\n- third row, left: a lunging thrust with a long teal trail; a plunge spear-first\n- third row, right: a spinning spear sweep; a guard with the spear across the body\n- bottom row, left: a hit reaction; a knocked-down pose\n- bottom row, right: a victory pose with the spear planted butt-first and a fist raised; the Gáe Bulg Rift Art lunge with a teal hound-shaped wave",
-  "sheets": {
-    "atk-a": {
-      "title": "Basic combo strikes 1 and 2: two spear thrusts (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo strike 1, anticipation: the spear drawn back to the right hip, the barbed head pulled back low, weight on the back foot",
-        "combo strike 1, strike: a fast straight thrust forward at chest height, the barbed sea-bone head driving out with a short cyan-teal trail, with a motion smear of the swing, kept inside this cell",
-        "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo strike 1, recovery: the spear pulled back to a guard, the cloak settling, returning toward stance",
-        "combo strike 2, anticipation: a second thrust drawn back low, the barbs flaring open, the teal glow in the grooves growing",
-        "combo strike 2, strike: a quicker thrust straight ahead, the spear fully extended, a bright cyan-teal trail, with a motion smear of the swing, kept inside this cell with the barbed head visible",
-        "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo strike 2, recovery: the spear recovering to a ready pose, the body turning back toward stance"
-      ]
-    },
-    "atk-b": {
-      "title": "Combo finisher lunge and aerial thrust (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: a big wind-up, the spear drawn far back under the arm, the front foot stepping in to lunge, the cloak whipping out",
-        "combo finisher, strike: a lunging thrust with the whole body driving forward, the spear fully extended, the barbed head leading, a long cyan-teal trail, with a motion smear of the swing, kept inside this cell, the strongest pose",
-        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo finisher, recovery: full extension relaxing, the cloak flaring, settling back toward stance",
-        "aerial attack, anticipation: in mid-air, the spear drawn back level with the hip, body angled forward",
-        "aerial attack, strike: an aerial thrust forward and slightly down, the blade leading, a short cyan-teal trail, with a motion smear of the swing, kept inside this cell",
-        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "aerial attack, recovery: airborne, body tucked around the spear, returning to a ready pose"
-      ]
-    },
-    "atk-c": {
-      "title": "Plunge attack and charged lunge (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air diving straight down, the spear pointed point-first beneath the body, teal speed lines, the cloak flying upward",
-        "plunge, impact: landing in a low crouch, the spear driven point-first into the ground in front, a burst of cyan-teal light and dust, with a motion smear of the swing, kept inside this cell",
-        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "plunge, recovery: rising from the impact back toward stance, the spear pulled free",
-        "heavy attack, charge: body coiled low, the spear couched under the arm and pointing forward, a teal glow building along the barbed grooves",
-        "heavy attack, strike: a full-power lunge, the whole body and the spear driving forward in one long straight thrust, a huge cyan-teal trail, with a motion smear of the swing, kept inside this cell",
-        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "heavy attack, follow-through: deep follow-through with the spear held out at the end of the lunge, the trail dissipating into motes"
-      ]
-    }
+ "id": "h03-nyx",
+ "hero": 3,
+ "name": "Cú Chulainn",
+ "epithet": "Hound of Ulster",
+ "refs": [
+  "references/design.png"
+ ],
+ "designRefs": [
+  "../h00-leon/references/approved-sheet.png"
+ ],
+ "bible": "He is a slender, pale youth of about twenty, tall and fine-boned, with sharp cheekbones and a calm, distant look. His eyes are PALE ICE-BLUE with a cyan glow under heavy black brows. His thick wavy black hair is swept back and falls to the shoulders with a blue sheen. A deep SEA-BLUE woollen Celtic CLOAK is fastened at the right shoulder with a large SILVER ring-brooch and streams behind him. A twisted GOLD TORC sits at his throat. He wears a sleeveless, knee-length off-white linen tunic with a TEAL interlace-embroidered hem, a dark leather belt with a BRONZE buckle, dark leather trousers and laced leather boots. Bare, lean, muscular arms wear dark leather BRACERS. WEAPON: the GÁE BULG, a spear about one and a half times his height. The haft is dark ASH WOOD bound with silver wire. The leaf-shaped head is carved from pale SEA-BEAST BONE, with rows of small BACKWARD-POINTING BARBS along both edges and a faint teal glow in its grooves. He holds it in his RIGHT hand near the butt and his LEFT hand ahead of the centre of balance. Energy and trails: CYAN-TEAL sea light with pale white-blue motes.",
+ "design": "- top row, left: full-body stance facing right, the Gáe Bulg held in the right hand near the butt and the left hand ahead of the centre of balance, the sea-blue cloak streaming behind\n- top row, right: a head close-up with the gold torc at the throat and the silver ring-brooch at the shoulder, pale ice-blue eyes, thick wavy black hair swept back; a close view of the barbed sea-bone spearhead with its teal glow\n- second row, left: a fast straight thrust; a rising sweep of the spear\n- second row, right: a walking pose with the cloak swinging; a high leap with the spear held back\n- third row, left: a lunging thrust with a long teal trail; a plunge spear-first\n- third row, right: a spinning spear sweep; a guard with the spear across the body\n- bottom row, left: a hit reaction; a knocked-down pose\n- bottom row, right: a victory pose with the spear planted butt-first and a fist raised; the Gáe Bulg Rift Art lunge with a teal hound-shaped wave",
+ "sheets": {
+  "atk-a": {
+   "title": "Basic combo strikes 1 and 2: two spear thrusts (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, anticipation: the spear drawn back to the right hip, the barbed head pulled back low, weight on the back foot",
+    "combo strike 1, strike: a fast straight thrust forward at chest height, the barbed sea-bone head driving out with a short cyan-teal trail, with a motion smear of the swing, kept inside this cell",
+    "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo strike 1, recovery: the spear pulled back to a guard, the cloak settling, returning toward stance",
+    "combo strike 2, anticipation: a second thrust drawn back low, the barbs flaring open, the teal glow in the grooves growing",
+    "combo strike 2, strike: a quicker thrust straight ahead, the spear fully extended, a bright cyan-teal trail, with a motion smear of the swing, kept inside this cell with the barbed head visible",
+    "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo strike 2, recovery: the spear recovering to a ready pose, the body turning back toward stance"
+   ]
   },
-  "sheetNotes": {
-    "idle": "The Gáe Bulg stays in the RIGHT hand near the butt, the LEFT hand ahead of the centre of balance, the haft angled across the body and the barbed sea-bone head held up. The sea-blue cloak sways and the thick black hair drifts with each breath. Standing guard: the spear across the body. Crouch: the spear held low and ready. Skid: the cloak swings forward. Landing: one hand low for balance, the cloak settling.",
-    "run": "He runs with a long light stride, the Gáe Bulg carried at the side in the right hand near the butt, the left hand ahead of the balance, the blade angled forward. The sea-blue cloak streams back and the black hair flows behind him.",
-    "air": "Airborne, the spear stays in the right hand near the butt with the left hand ahead of the balance. Take-off: a crouched spring. Rising: the spear held back, the cloak trailing down. Apex: the body compact, the cloak billowing. Falling: the cloak and hair streaming up, the spear angled down along the body. Wall slide: back and LEFT shoulder against the wall, the spear held in the right hand, the left hand bracing. Ledge hang and climb: the spear is slung diagonally across the back while both hands grip the ledge.",
-    "dash": "The dodge roll tucks the spear close along the body in the right hand, the cloak wrapping around him. The ground dash is a low burst with the spear held out at the side, the barbed head forward and cyan motes streaming behind. The air dash stretches the body forward with the spear pointed ahead, the cloak snapping behind. Heal: he pulls a small glass flask of glowing red potion from his belt with the spear held upright under the right arm, then drinks with his head tipped back and a soft red glow.",
-    "hurt": "The spear stays in the right hand through the hit. Light hit: the shaft braced against the body. Heavy hit: the spear flung out to the side with the arm. Launched: the spear still held in one hand as he flies backward. Knockdown fall: the spear in the right hand as he falls. Knocked down: lying on his back, the spear still in the right hand along his side. Getting up: pushing up onto one knee with the spear planted to help him rise. Back on guard: the spear raised back into the ready pose.",
-    "atk-a": "Two fast spear thrusts with the Gáe Bulg, a lance attack. Strike 1 is a straight thrust at chest height; strike 2 is a quicker thrust straight ahead. The spear is held in the right hand near the butt and the left hand is ahead of the balance throughout. Trails are cyan-teal and stay inside each cell, the barbed bone head clearly visible.",
-    "atk-b": "The finisher is a lunging thrust with the whole body driving forward, the spear extended straight ahead, the strongest pose of the set. The aerial attack is a thrust from mid-air, the blade leading and angled slightly down. Both keep the spear in the right hand near the butt and the left hand ahead of the balance, with cyan-teal trails kept inside each cell.",
-    "atk-c": "The plunge is a spear-first dive: the spear pointed point-first beneath the body, driven into the ground on impact in a burst of cyan-teal light. The charged lunge: the spear couched under the arm with a teal glow building in the barbed grooves, then a full-power straight lunge with a huge cyan-teal trail kept inside its cell.",
-    "art": "Gáe Bulg, his Rift Art. Anticipation 1: he draws the spear back low, the barbs flaring open, and a teal spectral hound's head begins to form around the spearhead. Anticipation 2: coiled to spring, the hound's jaws open around the point, the power at its peak. Execution 3: an unstoppable straight lunge across the cell, the spear fully extended, a long wave of teal sea light shaped like a running hound streaming behind it, kept inside the cell. Execution 4: the lunge at full force toward the right of the cell, the barbs blazing, the hound's wave at its brightest, kept inside the cell. Recovery 5: the spear pulled back, the light fading into pale motes. Recovery 6: back to stance, the spear held in the right hand near the butt, the left hand ahead of the centre of balance.",
-    "skill": "Salmon Leap, his own SKILL and not the Rift Art. He holds the Gáe Bulg in the RIGHT hand near the butt, the left hand ahead of the balance. Anticipation 1: he crouches low, the spear held back. Anticipation 2: coiled, the spear tilted up overhead. Execution 3: he springs upward and forward in a high arc like a leaping salmon, a teal salmon-shaped light trail streaming behind him, the spear leading. Execution 4: at the top of the leap he dives over the spot ahead with the spear pointed down. Recovery 5: landing in a low crouch, the spear driven into the ground ahead, teal motes falling. Recovery 6: rising back to the stance.",
-    "misc": "Skill throw: he holds the spear in the left hand, reaches to his belt for a small round sling-stone and hurls it forward from the right hand, arm extended, then follows through. Taunt: he spins the Gáe Bulg once round his body in a fast circle, then stops and beckons with the free hand. Victory: he plants the spear butt-first beside him, raises a fist high, the sea-blue cloak billowing behind him, then holds steady as the cloak and hair settle.",
-    "ko": "Defeat 1: he staggers from the final blow, the spear wavering in the right hand. Defeat 2: he sinks against the spear, its butt planted in the ground and the haft still upright, knees bending. Defeat 3: he collapses forward, the spear still standing upright beside him. Defeat 4: he lies motionless on the ground, the spear still upright. Intro 1: he walks in calmly with the spear held low, its butt resting on his shoulder. Intro 2: he raises the spear. Intro 3: a flourish, the spear spun once. Intro 4: he settles into the fighting stance, the spear ready."
+  "atk-b": {
+   "title": "Combo finisher lunge and aerial thrust (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: a big wind-up, the spear drawn far back under the arm, the front foot stepping in to lunge, the cloak whipping out",
+    "combo finisher, strike: a lunging thrust with the whole body driving forward, the spear fully extended, the barbed head leading, a long cyan-teal trail, with a motion smear of the swing, kept inside this cell, the strongest pose",
+    "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo finisher, recovery: full extension relaxing, the cloak flaring, settling back toward stance",
+    "aerial attack, anticipation: in mid-air, the spear drawn back level with the hip, body angled forward",
+    "aerial attack, strike: an aerial thrust forward and slightly down, the blade leading, a short cyan-teal trail, with a motion smear of the swing, kept inside this cell",
+    "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "aerial attack, recovery: airborne, body tucked around the spear, returning to a ready pose"
+   ]
   },
-  "nativeHeight": 172,
-  "sheetsThreeFrame": {
-    "atk-a": {
-      "title": "Basic combo strikes 1 and 2: two spear thrusts (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo strike 1, anticipation: the spear drawn back to the right hip, the barbed head pulled back low, weight on the back foot",
-        "combo strike 1, strike: a fast straight thrust forward at chest height, the barbed sea-bone head driving out with a short cyan-teal trail kept inside this cell",
-        "combo strike 1, recovery: the spear pulled back to a guard, the cloak settling, returning toward stance",
-        "combo strike 2, anticipation: a second thrust drawn back low, the barbs flaring open, the teal glow in the grooves growing",
-        "combo strike 2, strike: a quicker thrust straight ahead, the spear fully extended, a bright cyan-teal trail kept inside this cell with the barbed head visible",
-        "combo strike 2, recovery: the spear recovering to a ready pose, the body turning back toward stance"
-      ]
-    },
-    "atk-b": {
-      "title": "Combo finisher lunge and aerial thrust (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: a big wind-up, the spear drawn far back under the arm, the front foot stepping in to lunge, the cloak whipping out",
-        "combo finisher, strike: a lunging thrust with the whole body driving forward, the spear fully extended, the barbed head leading, a long cyan-teal trail kept inside this cell, the strongest pose",
-        "combo finisher, recovery: full extension relaxing, the cloak flaring, settling back toward stance",
-        "aerial attack, anticipation: in mid-air, the spear drawn back level with the hip, body angled forward",
-        "aerial attack, strike: an aerial thrust forward and slightly down, the blade leading, a short cyan-teal trail kept inside this cell",
-        "aerial attack, recovery: airborne, body tucked around the spear, returning to a ready pose"
-      ]
-    },
-    "atk-c": {
-      "title": "Plunge attack and charged lunge (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air diving straight down, the spear pointed point-first beneath the body, teal speed lines, the cloak flying upward",
-        "plunge, impact: landing in a low crouch, the spear driven point-first into the ground in front, a burst of cyan-teal light and dust kept inside this cell",
-        "plunge, recovery: rising from the impact back toward stance, the spear pulled free",
-        "heavy attack, charge: body coiled low, the spear couched under the arm and pointing forward, a teal glow building along the barbed grooves",
-        "heavy attack, strike: a full-power lunge, the whole body and the spear driving forward in one long straight thrust, a huge cyan-teal trail kept inside this cell",
-        "heavy attack, follow-through: deep follow-through with the spear held out at the end of the lunge, the trail dissipating into motes"
-      ]
-    }
+  "atk-c": {
+   "title": "Plunge attack and charged lunge (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, the spear pointed point-first beneath the body, teal speed lines, the cloak flying upward",
+    "plunge, impact: landing in a low crouch, the spear driven point-first into the ground in front, a burst of cyan-teal light and dust, with a motion smear of the swing, kept inside this cell",
+    "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "plunge, recovery: rising from the impact back toward stance, the spear pulled free",
+    "heavy attack, charge: body coiled low, the spear couched under the arm and pointing forward, a teal glow building along the barbed grooves",
+    "heavy attack, strike: a full-power lunge, the whole body and the spear driving forward in one long straight thrust, a huge cyan-teal trail, with a motion smear of the swing, kept inside this cell",
+    "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "heavy attack, follow-through: deep follow-through with the spear held out at the end of the lunge, the trail dissipating into motes"
+   ]
+  },
+  "alt-a": {
+   "title": "Second stance: combo strikes 1 and 2 with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance strike 1, anticipation: winding up for a fast overhand dart throw, the dart leaving his hand with a cyan trail",
+    "stance strike 1, strike: a fast overhand dart throw, the dart leaving his hand with a cyan trail, with a motion smear of the swing, kept inside this cell",
+    "stance strike 1, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 1, recovery: settling back into the stance-weapon ready pose",
+    "stance strike 2, anticipation: winding up for a sidearm dart throw from the hip, cyan trail",
+    "stance strike 2, strike: a sidearm dart throw from the hip, cyan trail, with a motion smear of the swing, kept inside this cell",
+    "stance strike 2, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 2, recovery: settling back into the stance-weapon ready pose"
+   ]
+  },
+  "alt-b": {
+   "title": "Second stance: combo finisher and an aerial attack with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance finisher, anticipation: winding up for a spinning throw releasing two darts at once in a cyan fan",
+    "stance finisher, strike: a spinning throw releasing two darts at once in a cyan fan, with a motion smear of the swing, kept inside this cell",
+    "stance finisher, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance finisher, recovery: settling back into the stance-weapon ready pose",
+    "stance aerial attack (airborne pose), anticipation: winding up for in mid-air, a downward dart throw, cyan trail",
+    "stance aerial attack (airborne pose), strike: in mid-air, a downward dart throw, cyan trail, with a motion smear of the swing, kept inside this cell",
+    "stance aerial attack (airborne pose), follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance aerial attack (airborne pose), recovery: still airborne, legs tucked"
+   ]
+  },
+  "alt-c": {
+   "title": "Second stance: heavy attack (4 frames), the stance change (2 frames), and the stance idle (2 frames)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance heavy attack, charge: leaning far back with a long javelin held high behind his head, cyan rune light gathering on its barbed head",
+    "stance heavy attack, strike: a full-body javelin hurl, a long cyan streak, kept inside this cell",
+    "stance heavy attack, follow-through: the blow carried through, the trail and energy dissipating (kept inside this cell)",
+    "stance heavy attack, recovery: returning to the stance-weapon ready pose",
+    "stance change 1: swinging the long spear onto his back and drawing a fistful of barbed darts from the quiver at his hip (the start of the motion)",
+    "stance change 2: swinging the long spear onto his back and drawing a fistful of barbed darts from the quiver at his hip (the end of the motion, the stance weapon ready, a burst of its energy)",
+    "stance idle 1: a light springy stance on the balls of his feet, a dart held between the fingers of the raised right hand, more darts in the left",
+    "stance idle 2: the same stance idle breathing in, a slight rise of the shoulders, hair and cloth drifting"
+   ]
   }
+ },
+ "sheetNotes": {
+  "idle": "The Gáe Bulg stays in the RIGHT hand near the butt, the LEFT hand ahead of the centre of balance, the haft angled across the body and the barbed sea-bone head held up. The sea-blue cloak sways and the thick black hair drifts with each breath. Standing guard: the spear across the body. Crouch: the spear held low and ready. Skid: the cloak swings forward. Landing: one hand low for balance, the cloak settling.",
+  "run": "He runs with a long light stride, the Gáe Bulg carried at the side in the right hand near the butt, the left hand ahead of the balance, the blade angled forward. The sea-blue cloak streams back and the black hair flows behind him.",
+  "air": "Airborne, the spear stays in the right hand near the butt with the left hand ahead of the balance. Take-off: a crouched spring. Rising: the spear held back, the cloak trailing down. Apex: the body compact, the cloak billowing. Falling: the cloak and hair streaming up, the spear angled down along the body. Wall slide: back and LEFT shoulder against the wall, the spear held in the right hand, the left hand bracing. Ledge hang and climb: the spear is slung diagonally across the back while both hands grip the ledge.",
+  "dash": "The dodge roll tucks the spear close along the body in the right hand, the cloak wrapping around him. The ground dash is a low burst with the spear held out at the side, the barbed head forward and cyan motes streaming behind. The air dash stretches the body forward with the spear pointed ahead, the cloak snapping behind. Heal: he pulls a small glass flask of glowing red potion from his belt with the spear held upright under the right arm, then drinks with his head tipped back and a soft red glow.",
+  "hurt": "The spear stays in the right hand through the hit. Light hit: the shaft braced against the body. Heavy hit: the spear flung out to the side with the arm. Launched: the spear still held in one hand as he flies backward. Knockdown fall: the spear in the right hand as he falls. Knocked down: lying on his back, the spear still in the right hand along his side. Getting up: pushing up onto one knee with the spear planted to help him rise. Back on guard: the spear raised back into the ready pose.",
+  "atk-a": "Two fast spear thrusts with the Gáe Bulg, a lance attack. Strike 1 is a straight thrust at chest height; strike 2 is a quicker thrust straight ahead. The spear is held in the right hand near the butt and the left hand is ahead of the balance throughout. Trails are cyan-teal and stay inside each cell, the barbed bone head clearly visible.",
+  "atk-b": "The finisher is a lunging thrust with the whole body driving forward, the spear extended straight ahead, the strongest pose of the set. The aerial attack is a thrust from mid-air, the blade leading and angled slightly down. Both keep the spear in the right hand near the butt and the left hand ahead of the balance, with cyan-teal trails kept inside each cell.",
+  "atk-c": "The plunge is a spear-first dive: the spear pointed point-first beneath the body, driven into the ground on impact in a burst of cyan-teal light. The charged lunge: the spear couched under the arm with a teal glow building in the barbed grooves, then a full-power straight lunge with a huge cyan-teal trail kept inside its cell.",
+  "art": "Gáe Bulg, his Rift Art. Anticipation 1: he draws the spear back low, the barbs flaring open, and a teal spectral hound's head begins to form around the spearhead. Anticipation 2: coiled to spring, the hound's jaws open around the point, the power at its peak. Execution 3: an unstoppable straight lunge across the cell, the spear fully extended, a long wave of teal sea light shaped like a running hound streaming behind it, kept inside the cell. Execution 4: the lunge at full force toward the right of the cell, the barbs blazing, the hound's wave at its brightest, kept inside the cell. Recovery 5: the spear pulled back, the light fading into pale motes. Recovery 6: back to stance, the spear held in the right hand near the butt, the left hand ahead of the centre of balance.",
+  "skill": "Salmon Leap, his own SKILL and not the Rift Art. He holds the Gáe Bulg in the RIGHT hand near the butt, the left hand ahead of the balance. Anticipation 1: he crouches low, the spear held back. Anticipation 2: coiled, the spear tilted up overhead. Execution 3: he springs upward and forward in a high arc like a leaping salmon, a teal salmon-shaped light trail streaming behind him, the spear leading. Execution 4: at the top of the leap he dives over the spot ahead with the spear pointed down. Recovery 5: landing in a low crouch, the spear driven into the ground ahead, teal motes falling. Recovery 6: rising back to the stance.",
+  "misc": "Skill throw: he holds the spear in the left hand, reaches to his belt for a small round sling-stone and hurls it forward from the right hand, arm extended, then follows through. Taunt: he spins the Gáe Bulg once round his body in a fast circle, then stops and beckons with the free hand. Victory: he plants the spear butt-first beside him, raises a fist high, the sea-blue cloak billowing behind him, then holds steady as the cloak and hair settle.",
+  "ko": "Defeat 1: he staggers from the final blow, the spear wavering in the right hand. Defeat 2: he sinks against the spear, its butt planted in the ground and the haft still upright, knees bending. Defeat 3: he collapses forward, the spear still standing upright beside him. Defeat 4: he lies motionless on the ground, the spear still upright. Intro 1: he walks in calmly with the spear held low, its butt resting on his shoulder. Intro 2: he raises the spear. Intro 3: a flourish, the spear spun once. Intro 4: he settles into the fighting stance, the spear ready.",
+  "alt-a": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a quiver-bundle of short BARBED THROWING DARTS (small javelins with bone-white shafts and crimson barbed heads), one held ready in the right hand - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: a dart in the RIGHT hand, two more in the left hand; his long spear is slung across his back.",
+  "alt-b": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a quiver-bundle of short BARBED THROWING DARTS (small javelins with bone-white shafts and crimson barbed heads), one held ready in the right hand - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: a dart in the RIGHT hand, two more in the left hand; his long spear is slung across his back.",
+  "alt-c": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a quiver-bundle of short BARBED THROWING DARTS (small javelins with bone-white shafts and crimson barbed heads), one held ready in the right hand - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: a dart in the RIGHT hand, two more in the left hand; his long spear is slung across his back."
+ },
+ "nativeHeight": 172,
+ "sheetsThreeFrame": {
+  "atk-a": {
+   "title": "Basic combo strikes 1 and 2: two spear thrusts (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, anticipation: the spear drawn back to the right hip, the barbed head pulled back low, weight on the back foot",
+    "combo strike 1, strike: a fast straight thrust forward at chest height, the barbed sea-bone head driving out with a short cyan-teal trail kept inside this cell",
+    "combo strike 1, recovery: the spear pulled back to a guard, the cloak settling, returning toward stance",
+    "combo strike 2, anticipation: a second thrust drawn back low, the barbs flaring open, the teal glow in the grooves growing",
+    "combo strike 2, strike: a quicker thrust straight ahead, the spear fully extended, a bright cyan-teal trail kept inside this cell with the barbed head visible",
+    "combo strike 2, recovery: the spear recovering to a ready pose, the body turning back toward stance"
+   ]
+  },
+  "atk-b": {
+   "title": "Combo finisher lunge and aerial thrust (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: a big wind-up, the spear drawn far back under the arm, the front foot stepping in to lunge, the cloak whipping out",
+    "combo finisher, strike: a lunging thrust with the whole body driving forward, the spear fully extended, the barbed head leading, a long cyan-teal trail kept inside this cell, the strongest pose",
+    "combo finisher, recovery: full extension relaxing, the cloak flaring, settling back toward stance",
+    "aerial attack, anticipation: in mid-air, the spear drawn back level with the hip, body angled forward",
+    "aerial attack, strike: an aerial thrust forward and slightly down, the blade leading, a short cyan-teal trail kept inside this cell",
+    "aerial attack, recovery: airborne, body tucked around the spear, returning to a ready pose"
+   ]
+  },
+  "atk-c": {
+   "title": "Plunge attack and charged lunge (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, the spear pointed point-first beneath the body, teal speed lines, the cloak flying upward",
+    "plunge, impact: landing in a low crouch, the spear driven point-first into the ground in front, a burst of cyan-teal light and dust kept inside this cell",
+    "plunge, recovery: rising from the impact back toward stance, the spear pulled free",
+    "heavy attack, charge: body coiled low, the spear couched under the arm and pointing forward, a teal glow building along the barbed grooves",
+    "heavy attack, strike: a full-power lunge, the whole body and the spear driving forward in one long straight thrust, a huge cyan-teal trail kept inside this cell",
+    "heavy attack, follow-through: deep follow-through with the spear held out at the end of the lunge, the trail dissipating into motes"
+   ]
+  }
+ }
 }

@@ -1,6 +1,6 @@
 /**
  * Fighter input: keyboard (one player, or two sharing a keyboard), gamepads and touch (floating joystick + a thumb
- * cluster of eight tiles: two weapons, skill, jump, roll, block, heal and the Rift Art). Each local fighter reads one
+ * cluster of nine tiles: two attacks, skill, jump, roll, block, stance, heal and the Rift Art). Each local fighter reads one
  * InputSource per tick.
  *
  * The player prefs that shape input (read defensively, see controlPrefs()): `keys` (a solo keyboard remap), `touchScale`,
@@ -30,6 +30,7 @@ export interface KeyMap {
   heal: string[];
   special: string[];
   block: string[];
+  stance: string[];
 }
 
 /** A keyboard remap: per solo action, the KeyboardEvent.code values that replace its default keys (up to four). */
@@ -39,24 +40,24 @@ export const KEYMAPS: Record<KeyScheme, KeyMap> = {
   solo: {
     left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], down: ['KeyS', 'ArrowDown'], jump: ['KeyW', 'ArrowUp', 'Space'],
     a: ['KeyJ', 'KeyZ'], b: ['KeyK', 'KeyX'], skill: ['KeyL', 'KeyC'], roll: ['ShiftLeft', 'ShiftRight', 'KeyI'], heal: ['KeyH', 'KeyQ'],
-    special: ['KeyU', 'KeyV', 'KeyE'], block: ['KeyO', 'KeyF'],
+    special: ['KeyU', 'KeyV', 'KeyE'], block: ['KeyO', 'KeyF'], stance: ['KeyR', 'KeyB'],
   },
   p1: {
     left: ['KeyA'], right: ['KeyD'], down: ['KeyS'], jump: ['KeyW'], a: ['KeyF'], b: ['KeyG'], skill: ['KeyH'], roll: ['ShiftLeft'], heal: ['KeyR'],
-    special: ['KeyT'], block: ['KeyY'],
+    special: ['KeyT'], block: ['KeyY'], stance: ['KeyE'],
   },
   p2: {
     left: ['ArrowLeft'], right: ['ArrowRight'], down: ['ArrowDown'], jump: ['ArrowUp'], a: ['Comma', 'Numpad1'], b: ['Period', 'Numpad2'],
     skill: ['Slash', 'Numpad3'], roll: ['ShiftRight', 'Numpad0'], heal: ['Quote', 'NumpadAdd'],
-    special: ['Backslash', 'Numpad4', 'Enter'], block: ['Semicolon', 'Numpad5'],
+    special: ['Backslash', 'Numpad4', 'Enter'], block: ['Semicolon', 'Numpad5'], stance: ['KeyL', 'Numpad6'],
   },
 };
 
 /** Human-readable key names for the how-to screen. */
 export const KEY_LABEL: Record<KeyScheme, Record<keyof KeyMap, string>> = {
-  solo: { left: 'A / ←', right: 'D / →', down: 'S / ↓', jump: 'W / ↑ / Space', a: 'J', b: 'K', skill: 'L', roll: 'Shift', heal: 'H', special: 'U / E', block: 'O / F' },
-  p1: { left: 'A', right: 'D', down: 'S', jump: 'W', a: 'F', b: 'G', skill: 'H', roll: 'Left Shift', heal: 'R', special: 'T', block: 'Y' },
-  p2: { left: '←', right: '→', down: '↓', jump: '↑', a: ', or Num 1', b: '. or Num 2', skill: '/ or Num 3', roll: 'Right Shift / Num 0', heal: "' or Num +", special: '\\ / Num 4 / Enter', block: '; / Num 5' },
+  solo: { left: 'A / ←', right: 'D / →', down: 'S / ↓', jump: 'W / ↑ / Space', a: 'J', b: 'K', skill: 'L', roll: 'Shift', heal: 'H', special: 'U / E', block: 'O / F', stance: 'R / B' },
+  p1: { left: 'A', right: 'D', down: 'S', jump: 'W', a: 'F', b: 'G', skill: 'H', roll: 'Left Shift', heal: 'R', special: 'T', block: 'Y', stance: 'E' },
+  p2: { left: '←', right: '→', down: '↓', jump: '↑', a: ', or Num 1', b: '. or Num 2', skill: '/ or Num 3', roll: 'Right Shift / Num 0', heal: "' or Num +", special: '\\ / Num 4 / Enter', block: '; / Num 5', stance: 'L / Num 6' },
 };
 
 /** Every key a fighter uses: none of them may scroll the page or press a focused button during a duel. */
@@ -227,6 +228,7 @@ export class KeyboardSource implements InputSource {
     if (any(m.heal)) b |= Btn.Heal;
     if (any(m.special)) b |= Btn.Special;
     if (any(m.block)) b |= Btn.Block;
+    if (any(m.stance)) b |= Btn.Stance;
     return { moveX: (any(m.right) ? 1 : 0) - (any(m.left) ? 1 : 0), moveY: any(m.down) ? 1 : 0, buttons: b };
   }
   destroy() {}
@@ -251,6 +253,8 @@ export class GamepadSource implements InputSource {
     if (btn(3)) b |= Btn.B;
     if (btn(7)) b |= Btn.Special;
     if (btn(6)) b |= Btn.Block;
+    // the stance: the right stick click or the View / Back button
+    if (btn(11) || btn(8)) b |= Btn.Stance;
     if (btn(5)) b |= Btn.Skill;
     if (btn(1)) b |= Btn.Roll;
     if (btn(4)) b |= Btn.Heal;
@@ -284,6 +288,8 @@ export class MergedSource implements InputSource {
 export interface TouchButtonState {
   aIcon: string;
   bIcon: string;
+  /** The weapon the STANCE tile switches to (its icon). */
+  stanceIcon: string;
   skillIcon: string;
   artIcon: string;
   /** Cooldowns 0..1 (1 = just used). */
@@ -307,12 +313,13 @@ const BUTTONS: { id: string; bit: number; label: string; cls: string }[] = [
   { id: 'jump', bit: Btn.Jump, label: '', cls: 'tb-jump' },
   { id: 'roll', bit: Btn.Roll, label: '', cls: 'tb-roll' },
   { id: 'block', bit: Btn.Block, label: '', cls: 'tb-block' },
+  { id: 'stance', bit: Btn.Stance, label: '', cls: 'tb-stance' },
   { id: 'heal', bit: Btn.Heal, label: '', cls: 'tb-heal' },
   { id: 'art', bit: Btn.Special, label: '', cls: 'tb-art' },
 ];
 
 /** A tile's column on the 3x3 grid, counted from the right as hud.css places it (mirrored when left-handed). */
-const COLUMN: Record<string, number> = { a: 0, b: 0, heal: 0, skill: 1, jump: 1, art: 1, roll: 2, block: 2 };
+const COLUMN: Record<string, number> = { a: 0, b: 0, heal: 0, skill: 1, jump: 1, art: 1, roll: 2, block: 2, stance: 2 };
 
 /** The first time a device's Art glows, one hint says how to use it. Kept in localStorage, guarded. */
 const HINT_KEY = 'bladerift.hint.artHold.v1';
@@ -350,6 +357,9 @@ const CHORD_ON = 0.2;
 const CHORD_DOWN = 0.3;
 /** With a button in the chord, a push past the dead zone reads at least this firm (the sim turns and throws past 0.5). */
 const CHORD_FWD = 0.6;
+
+/** A finger that began on `el` (or inside it) is still on the screen. */
+const onScreen = (e: TouchEvent, el: HTMLElement) => Array.prototype.some.call(e.touches, (t: Touch) => el.contains(t.target as Node));
 
 /** Every touch layout on screen, so refreshControls() can re-lay them out. */
 const liveTouch = new Set<TouchSource>();
@@ -400,9 +410,17 @@ export class TouchSource implements InputSource {
     this.arrow = this.root.querySelector('.stick-arrow')!;
     this.hint = this.root.querySelector('.touch-hint')!;
     for (const el of this.root.querySelectorAll<HTMLElement>('.tb')) this.btnEls.set(el.dataset.b!, el);
+    // the stance tile shows the weapon it switches to; a small swap badge in its corner says what the tile does
+    const badge = document.createElement('b');
+    badge.className = 'tb-badge';
+    badge.style.backgroundImage = 'url(assets/art/i-stance.jpg)';
+    this.btnEls.get('stance')!.appendChild(badge);
     const zone = this.zone;
     zone.addEventListener('pointerdown', (e) => {
-      if (this.stick.id >= 0) return;
+      // a new thumb on the stick takes it over: a finger whose release never arrived (iOS drops it now and then, e.g. under
+      // a system gesture) would otherwise hold the stick at its last push, the hero walking on and facing that way, and
+      // shut every later thumb out of the stick
+      if (this.stick.id >= 0 && this.stick.id !== e.pointerId) this.endStick(this.stick.id);
       zone.setPointerCapture(e.pointerId);
       this.stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: 0, y: 0 };
       this.base.style.left = e.clientX + 'px';
@@ -436,6 +454,13 @@ export class TouchSource implements InputSource {
     zone.addEventListener('pointerup', end);
     zone.addEventListener('pointercancel', end);
     zone.addEventListener('lostpointercapture', end);
+    // the touch events are the second witness: a touch that began on the stick zone and has left the screen is in no
+    // touches list any more, whatever became of its pointer events. No finger left that began on the zone: the stick lets go
+    const touchEnd = (e: TouchEvent) => {
+      if (!onScreen(e, zone)) this.endStick(this.stick.id);
+    };
+    zone.addEventListener('touchend', touchEnd);
+    zone.addEventListener('touchcancel', touchEnd);
     for (const b of BUTTONS) {
       const el = this.btnEls.get(b.id)!;
       el.addEventListener('pointerdown', (e) => {
@@ -456,11 +481,22 @@ export class TouchSource implements InputSource {
       // the capture can end without a pointerup reaching the tile: the K.O. fade sets pointer-events: none on it, and
       // the browser may take the touch for a gesture. That finger's release is never seen, so it is let go now
       el.addEventListener('lostpointercapture', up);
+      // (and the touch events' witness, as for the stick: no finger left on this tile, nothing holds it)
+      const tileEnd = (e: TouchEvent) => {
+        if (onScreen(e, el)) return;
+        for (const [id, held] of [...this.pressed]) if (held === b) this.release(id);
+      };
+      el.addEventListener('touchend', tileEnd);
+      el.addEventListener('touchcancel', tileEnd);
     }
     // a safety net: a finger lifted anywhere lets go of whatever it held, even if its pointerup went to another element
     const anyUp = (e: PointerEvent) => {
       this.release(e.pointerId);
       this.endStick(e.pointerId);
+    };
+    // the last finger off the screen: nothing can still be held
+    const allUp = (e: TouchEvent) => {
+      if (e.touches.length === 0) this.releaseAll();
     };
     // the app hidden (a call, the home gesture, a notification) or the window blurred: no pointerup will come
     const drop = () => this.releaseAll();
@@ -469,12 +505,16 @@ export class TouchSource implements InputSource {
     };
     addEventListener('pointerup', anyUp, true);
     addEventListener('pointercancel', anyUp, true);
+    addEventListener('touchend', allUp, true);
+    addEventListener('touchcancel', allUp, true);
     addEventListener('blur', drop);
     addEventListener('pagehide', drop);
     document.addEventListener('visibilitychange', onVis);
     this.offWindow = () => {
       removeEventListener('pointerup', anyUp, true);
       removeEventListener('pointercancel', anyUp, true);
+      removeEventListener('touchend', allUp, true);
+      removeEventListener('touchcancel', allUp, true);
       removeEventListener('blur', drop);
       removeEventListener('pagehide', drop);
       document.removeEventListener('visibilitychange', onVis);
@@ -639,6 +679,7 @@ export class TouchSource implements InputSource {
     set('roll', 'assets/art/i-roll.jpg');
     set('heal', 'assets/art/i-heal.jpg');
     set('block', 'assets/art/i-block.jpg');
+    set('stance', s.stanceIcon || 'assets/art/i-stance.jpg');
     const cd = (id: string, v: number) => this.btnEls.get(id)!.style.setProperty('--cd', String(Math.max(0, Math.min(1, v))));
     cd('skill', s.skillCd);
     cd('roll', s.rollCd);

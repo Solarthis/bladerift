@@ -1,185 +1,242 @@
 {
-  "id": "h11-ignis",
-  "hero": 11,
-  "name": "Alexander",
-  "epithet": "the Conqueror",
-  "refs": [
-    "references/design.png"
-  ],
-  "designRefs": [
-    "../h00-leon/references/approved-sheet.png"
-  ],
-  "bible": "A lean, athletic young king of about twenty, leaning forward with fierce, eager energy. SHARP GOLDEN-AMBER eyes under a hard brow, a determined face with a faint confident grin. Thick tousled AUBURN-RED hair like a lion's mane, swept UP and back from the forehead and falling to the nape, bound by a thin WHITE-AND-GOLD royal ribbon diadem. A white LINEN corselet (linothorax) with BRONZE-GOLD scale panels at the sides and a small round gold gorgon-face medallion on the chest; linen shoulder guards tied down at the front; a skirt of WHITE linen strips edged in CRIMSON to mid-thigh; bronze greaves; laced brown leather boots; brown leather bracers. A long deep CRIMSON-PURPLE cloak pinned at the right shoulder with a gold brooch, streaming behind him. WEAPON: a KOPIS, a forward-curving single-edged sword, its bright STEEL blade about as long as his arm and widening toward the curved tip, with a bronze-gold hilt and a horse-head pommel. Held in the RIGHT hand; the LEFT hand stays free and open. Energy and trails are ORANGE-GOLD flame arcs with a white-hot core and ember sparks, drawn as opaque stepped bands. Bucephalus, the black horse, appears only in his skill and Rift Art sheets.",
-  "design": "- top row: full-body stance facing right with the kopis forward in the right hand and the left hand open; a three-quarter head close-up with the mane-like auburn hair swept up and the diadem ribbon; a close side view of the kopis\n- second row: a fast chopping cut with an orange-gold arc; a rising diagonal cut; a walking pose with the crimson-purple cloak streaming; a jump\n- third row: a leaping overhead chop; a mid-air slash; a plunge with the blade point-down; a spinning cleave in a ring of flame\n- bottom row: a guard with the kopis across the body; a hit reaction; a victory pose with the kopis raised to the sky; the Stampede: Alexander riding the flaming black Bucephalus at a charge\n- inset at the top right: the kopis alone, large, showing the bronze-gold hilt and horse-head pommel and the curved steel blade\n- all figures share one costume, one kopis design and one scale\n- Bucephalus appears only in the Stampede panel",
-  "sheets": {
-    "idle": {
-      "title": "Stance and footwork, the kopis held in the right hand",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.78,
-      "frames": [
-        "combat idle loop 1: fighting stance, the kopis forward and low in the right hand, left hand open toward the foe, knees bent",
-        "combat idle loop 2: the same stance breathing in, shoulders slightly raised, cloak and hair drifting",
-        "combat idle loop 3: the same stance at the top of the breath",
-        "combat idle loop 4: the same stance breathing out, settling back toward frame 1",
-        "standing guard: the kopis held across the body in the right hand, left forearm braced behind it, chin down",
-        "crouch: low crouch on bent knees, the kopis held low and ready in the right hand",
-        "skid: braking hard from a run, front foot planted forward, body leaning back, cloak swinging forward",
-        "landing: absorbing a landing from a jump, deep knee bend, left hand low for balance, cloak still settling"
-      ]
-    },
-    "atk-a": {
-      "title": "Kopis combo strikes 1 and 2 (4 frames each): a chop and a rising diagonal cut",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo strike 1, anticipation: the kopis drawn back high behind the right shoulder, left hand forward, weight on the back foot",
-        "combo strike 1, strike: a fast forward chopping cut with the kopis, an orange-gold flame arc, with a motion smear of the swing, kept inside this cell",
-        "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo strike 1, recovery: follow-through low, the blade settling, cloak whipping round",
-        "combo strike 2, anticipation: the blade dropped low behind him, weight shifting forward",
-        "combo strike 2, strike: a powerful rising diagonal cut, a bright orange arc, with a motion smear of the swing, kept inside this cell",
-        "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo strike 2, recovery: the blade high, pulling back toward stance"
-      ]
-    },
-    "atk-b": {
-      "title": "Kopis combo finisher, and aerial slash (4 frames each): an overhead chop and a mid-air slash",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: wind-up, crouching to spring, the kopis held back with both hands, front foot stepping in",
-        "combo finisher, strike: a leaping overhead chop driving down in front, a large orange-gold arc, with a motion smear of the swing, kept inside this cell, the strongest pose",
-        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo finisher, recovery: landing follow-through, cloak flaring",
-        "aerial attack, anticipation: in mid-air, the kopis raised high in the right hand",
-        "aerial attack, strike: a sweeping mid-air slash in front, the arc, with a motion smear of the swing, kept inside this cell",
-        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "aerial attack, recovery: airborne recovery, body tucked, the kopis pulled in to his chest"
-      ]
-    },
-    "atk-c": {
-      "title": "Kopis plunge, and heavy spinning cleave (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air diving straight down, the kopis point-down beneath him in the right hand, flame streaming up, speed lines",
-        "plunge, impact: landing in a low crouch, the blade driven into the ground in front, embers and dust, with a motion smear of the swing, kept inside this cell",
-        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "plunge, recovery: pulling the kopis free and rising back toward stance",
-        "heavy attack, charge: body coiled, the kopis drawn back low in both hands, flame building along the blade",
-        "heavy attack, strike: a full spinning cleave, a ring of fire around him, with a motion smear of the swing, kept inside this cell, cloak flaring out",
-        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "heavy attack, follow-through: the blade high overhead, embers falling"
-      ]
-    },
-    "skill": {
-      "title": "Bucephalus Charge, his own special: the unlit black warhorse, no fire (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "special anticipation 1: he whistles, two fingers at his lips, the great black warhorse forming beside him, the dark horse fully inside the cell",
-        "special anticipation 2: he vaults onto the black horse, the kopis raised high",
-        "special execution 1: charging forward on the black horse, low over its neck, the kopis forward",
-        "special execution 2: the great black horse at full gallop, speed lines and dust, the crimson-purple cloak streaming behind, kept inside this cell",
-        "special recovery 1: the horse slowing and fading into dust",
-        "special recovery 2: back on his feet in the fighting stance"
-      ]
-    },
-    "art": {
-      "title": "Stampede, Rift Art: Alexander riding the flaming black Bucephalus (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "special anticipation 1: he raises the kopis and the flaming outline of Bucephalus forms behind him, embers swirling at his feet",
-        "special anticipation 2: Bucephalus rears, wreathed in orange-gold fire, Alexander leaping up onto it, kopis still raised",
-        "special execution 1: mounted, galloping right with a fire trail behind across the cell",
-        "special execution 2: full charge, the kopis sweeping forward in a flaming arc, a burst of sparks at the right of the cell where the trample lands, everything kept inside this cell",
-        "special recovery 1: the horse breaking into embers as he dismounts, kopis hauled back up",
-        "special recovery 2: back in stance, kopis resting on his shoulder, a few embers falling"
-      ]
-    }
+ "id": "h11-ignis",
+ "hero": 11,
+ "name": "Alexander",
+ "epithet": "the Conqueror",
+ "refs": [
+  "references/design.png"
+ ],
+ "designRefs": [
+  "../h00-leon/references/approved-sheet.png"
+ ],
+ "bible": "A lean, athletic young king of about twenty, leaning forward with fierce, eager energy. SHARP GOLDEN-AMBER eyes under a hard brow, a determined face with a faint confident grin. Thick tousled AUBURN-RED hair like a lion's mane, swept UP and back from the forehead and falling to the nape, bound by a thin WHITE-AND-GOLD royal ribbon diadem. A white LINEN corselet (linothorax) with BRONZE-GOLD scale panels at the sides and a small round gold gorgon-face medallion on the chest; linen shoulder guards tied down at the front; a skirt of WHITE linen strips edged in CRIMSON to mid-thigh; bronze greaves; laced brown leather boots; brown leather bracers. A long deep CRIMSON-PURPLE cloak pinned at the right shoulder with a gold brooch, streaming behind him. WEAPON: a KOPIS, a forward-curving single-edged sword, its bright STEEL blade about as long as his arm and widening toward the curved tip, with a bronze-gold hilt and a horse-head pommel. Held in the RIGHT hand; the LEFT hand stays free and open. Energy and trails are ORANGE-GOLD flame arcs with a white-hot core and ember sparks, drawn as opaque stepped bands. Bucephalus, the black horse, appears only in his skill and Rift Art sheets.",
+ "design": "- top row: full-body stance facing right with the kopis forward in the right hand and the left hand open; a three-quarter head close-up with the mane-like auburn hair swept up and the diadem ribbon; a close side view of the kopis\n- second row: a fast chopping cut with an orange-gold arc; a rising diagonal cut; a walking pose with the crimson-purple cloak streaming; a jump\n- third row: a leaping overhead chop; a mid-air slash; a plunge with the blade point-down; a spinning cleave in a ring of flame\n- bottom row: a guard with the kopis across the body; a hit reaction; a victory pose with the kopis raised to the sky; the Stampede: Alexander riding the flaming black Bucephalus at a charge\n- inset at the top right: the kopis alone, large, showing the bronze-gold hilt and horse-head pommel and the curved steel blade\n- all figures share one costume, one kopis design and one scale\n- Bucephalus appears only in the Stampede panel",
+ "sheets": {
+  "idle": {
+   "title": "Stance and footwork, the kopis held in the right hand",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.78,
+   "frames": [
+    "combat idle loop 1: fighting stance, the kopis forward and low in the right hand, left hand open toward the foe, knees bent",
+    "combat idle loop 2: the same stance breathing in, shoulders slightly raised, cloak and hair drifting",
+    "combat idle loop 3: the same stance at the top of the breath",
+    "combat idle loop 4: the same stance breathing out, settling back toward frame 1",
+    "standing guard: the kopis held across the body in the right hand, left forearm braced behind it, chin down",
+    "crouch: low crouch on bent knees, the kopis held low and ready in the right hand",
+    "skid: braking hard from a run, front foot planted forward, body leaning back, cloak swinging forward",
+    "landing: absorbing a landing from a jump, deep knee bend, left hand low for balance, cloak still settling"
+   ]
   },
-  "sheetNotes": {
-    "idle": "The kopis is held forward and low in the RIGHT hand, its bright steel blade angled toward the foe. The LEFT hand is open and extended toward the foe. The crimson-purple cloak and the auburn mane drift with each breath. Guard frame 5: the kopis is held across the body in the right hand with the left forearm braced behind it. No horse, no fire.",
-    "run": "He carries the kopis low at his right side, blade trailing back and down. The left hand swings loosely for balance. The crimson-purple cloak streams back with each stride and the diadem ribbon flutters.",
-    "air": "Airborne, the kopis is held back by the right shoulder in the rising frames and the cloak flares upward. The left hand stays open. In the falling frames the cloak and the mane stream upward and the kopis is pulled in toward the chest.",
-    "dash": "Ground dash: the kopis is held low and forward at the hip with a streak of orange-gold flame trailing behind it, body almost horizontal. Dodge roll: he keeps the kopis in the right hand through the roll, tucked against the chest, and comes out into a crouch with the blade forward. Air dash: body stretched forward, kopis forward, a flame streak behind, the cloak snapping back.",
-    "hurt": "The kopis stays in his right hand through every hit, the blade swinging with the body. Launched and knocked down: the kopis is still in hand, lying on the ground beside him when he is down. Getting up: the kopis comes back up into guard.",
-    "atk-a": "Combo strike 1 (frames 1-3) is a fast forward chopping cut: the kopis drawn back high behind the right shoulder, the strike with an orange-gold flame arc inside the cell, then a low follow-through. Combo strike 2 (frames 4-6) is a rising diagonal cut: the blade dropped low behind him, the strike with a bright orange arc inside the cell, then the blade high and pulling back to stance. The kopis is in the right hand throughout and the left hand stays open.",
-    "atk-b": "Combo finisher (frames 1-3): frame 1 is the wind-up, crouched to spring with the kopis held back in both hands; frame 2 is the leaping overhead chop, the largest orange-gold arc, the strongest pose; frame 3 is the landing follow-through with the cloak flaring. Aerial attack (frames 4-6): frame 4 is the kopis raised high in mid-air; frame 5 is the sweeping mid-air slash with its arc inside the cell; frame 6 is the airborne recovery with the body tucked.",
-    "atk-c": "Plunge (frames 1-3): frame 1 is the dive with the kopis point-down beneath him and flame streaming up; frame 2 is the landing in a low crouch, the blade driven into the ground with embers and dust inside the cell; frame 3 pulls the blade free and rises to stance. Heavy attack (frames 4-6): frame 4 is the coiled charge with the kopis drawn back low in both hands and flame building along the blade; frame 5 is the full spinning cleave inside a ring of fire; frame 6 holds the blade high overhead as embers fall.",
-    "art": "Stampede (Rift Art). Frame 1 (anticipation): he raises the kopis and the flaming outline of Bucephalus forms behind him, embers swirling at his feet. Frame 2 (anticipation): Bucephalus rears, wreathed in orange-gold fire, Alexander leaping up onto it with the kopis still raised. Frame 3 (execution): mounted, he gallops to the right with a fire trail across the cell. Frame 4 (execution): full charge, the kopis sweeping forward in a flaming arc, a burst of sparks at the right side of the cell where the trample lands. Frame 5 (recovery): the horse breaks into embers as he dismounts and hauls the kopis back up. Frame 6 (recovery): back in stance with the kopis resting on his shoulder and a few embers falling. The black horse is seen only in these frames. Flame is opaque stepped bands. Everything, horse included, stays inside each cell.",
-    "skill": "Bucephalus Charge, his own special. The mount is a huge BLACK warhorse with a broad, ox-like head and a small white star on its brow. It is dark and unlit, with NO fire anywhere. Frame 1 (anticipation): he whistles with two fingers at his lips and the black horse forms beside him. Frame 2 (anticipation): he vaults onto it with the kopis raised high. Frame 3 (execution): charging forward low over its neck with the kopis forward. Frame 4 (execution): the black horse at full gallop with speed lines and dust, the crimson-purple cloak streaming behind, kept inside the cell. Frame 5 (recovery): the horse slows and fades into dust. Frame 6 (recovery): back on his feet in the fighting stance. Everything stays inside each cell.",
-    "misc": "Skill throw (frames 1-3): he reaches back with his free left hand, flings a handful of burning embers forward, and follows through with the arm. Taunt (frames 4-5): he points the kopis at the opponent and beckons with the left hand, grinning. Victory (frames 6-8): frame 6 starts the pose, frame 7 raises the kopis to the sky with a war cry at the height of the pose with the cloak billowing, frame 8 holds it with the cloak settling.",
-    "ko": "Defeat (frames 1-4): he staggers from the final blow, drops to his knees with the kopis slipping from his hand, collapses forward, then lies still with the kopis on the ground beside him. Intro (frames 5-8): he walks in with the kopis resting on his shoulder, raises it high, cuts a flourish of flame, and settles into the fighting stance with the blade forward."
+  "atk-a": {
+   "title": "Kopis combo strikes 1 and 2 (4 frames each): a chop and a rising diagonal cut",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, anticipation: the kopis drawn back high behind the right shoulder, left hand forward, weight on the back foot",
+    "combo strike 1, strike: a fast forward chopping cut with the kopis, an orange-gold flame arc, with a motion smear of the swing, kept inside this cell",
+    "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo strike 1, recovery: follow-through low, the blade settling, cloak whipping round",
+    "combo strike 2, anticipation: the blade dropped low behind him, weight shifting forward",
+    "combo strike 2, strike: a powerful rising diagonal cut, a bright orange arc, with a motion smear of the swing, kept inside this cell",
+    "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo strike 2, recovery: the blade high, pulling back toward stance"
+   ]
   },
-  "nativeHeight": 176,
-  "sheetsThreeFrame": {
-    "atk-a": {
-      "title": "Kopis combo strikes 1 and 2 (3 frames each): a chop and a rising diagonal cut",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo strike 1, anticipation: the kopis drawn back high behind the right shoulder, left hand forward, weight on the back foot",
-        "combo strike 1, strike: a fast forward chopping cut with the kopis, an orange-gold flame arc kept inside this cell",
-        "combo strike 1, recovery: follow-through low, the blade settling, cloak whipping round",
-        "combo strike 2, anticipation: the blade dropped low behind him, weight shifting forward",
-        "combo strike 2, strike: a powerful rising diagonal cut, a bright orange arc kept inside this cell",
-        "combo strike 2, recovery: the blade high, pulling back toward stance"
-      ]
-    },
-    "atk-b": {
-      "title": "Kopis combo finisher, and aerial slash (3 frames each): an overhead chop and a mid-air slash",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: wind-up, crouching to spring, the kopis held back with both hands, front foot stepping in",
-        "combo finisher, strike: a leaping overhead chop driving down in front, a large orange-gold arc kept inside this cell, the strongest pose",
-        "combo finisher, recovery: landing follow-through, cloak flaring",
-        "aerial attack, anticipation: in mid-air, the kopis raised high in the right hand",
-        "aerial attack, strike: a sweeping mid-air slash in front, the arc kept inside this cell",
-        "aerial attack, recovery: airborne recovery, body tucked, the kopis pulled in to his chest"
-      ]
-    },
-    "atk-c": {
-      "title": "Kopis plunge, and heavy spinning cleave (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air diving straight down, the kopis point-down beneath him in the right hand, flame streaming up, speed lines",
-        "plunge, impact: landing in a low crouch, the blade driven into the ground in front, embers and dust kept inside this cell",
-        "plunge, recovery: pulling the kopis free and rising back toward stance",
-        "heavy attack, charge: body coiled, the kopis drawn back low in both hands, flame building along the blade",
-        "heavy attack, strike: a full spinning cleave, a ring of fire around him kept inside this cell, cloak flaring out",
-        "heavy attack, follow-through: the blade high overhead, embers falling"
-      ]
-    }
+  "atk-b": {
+   "title": "Kopis combo finisher, and aerial slash (4 frames each): an overhead chop and a mid-air slash",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: wind-up, crouching to spring, the kopis held back with both hands, front foot stepping in",
+    "combo finisher, strike: a leaping overhead chop driving down in front, a large orange-gold arc, with a motion smear of the swing, kept inside this cell, the strongest pose",
+    "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo finisher, recovery: landing follow-through, cloak flaring",
+    "aerial attack, anticipation: in mid-air, the kopis raised high in the right hand",
+    "aerial attack, strike: a sweeping mid-air slash in front, the arc, with a motion smear of the swing, kept inside this cell",
+    "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "aerial attack, recovery: airborne recovery, body tucked, the kopis pulled in to his chest"
+   ]
+  },
+  "atk-c": {
+   "title": "Kopis plunge, and heavy spinning cleave (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, the kopis point-down beneath him in the right hand, flame streaming up, speed lines",
+    "plunge, impact: landing in a low crouch, the blade driven into the ground in front, embers and dust, with a motion smear of the swing, kept inside this cell",
+    "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "plunge, recovery: pulling the kopis free and rising back toward stance",
+    "heavy attack, charge: body coiled, the kopis drawn back low in both hands, flame building along the blade",
+    "heavy attack, strike: a full spinning cleave, a ring of fire around him, with a motion smear of the swing, kept inside this cell, cloak flaring out",
+    "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "heavy attack, follow-through: the blade high overhead, embers falling"
+   ]
+  },
+  "skill": {
+   "title": "Bucephalus Charge, his own special: the unlit black warhorse, no fire (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "special anticipation 1: he whistles, two fingers at his lips, the great black warhorse forming beside him, the dark horse fully inside the cell",
+    "special anticipation 2: he vaults onto the black horse, the kopis raised high",
+    "special execution 1: charging forward on the black horse, low over its neck, the kopis forward",
+    "special execution 2: the great black horse at full gallop, speed lines and dust, the crimson-purple cloak streaming behind, kept inside this cell",
+    "special recovery 1: the horse slowing and fading into dust",
+    "special recovery 2: back on his feet in the fighting stance"
+   ]
+  },
+  "art": {
+   "title": "Stampede, Rift Art: Alexander riding the flaming black Bucephalus (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "special anticipation 1: he raises the kopis and the flaming outline of Bucephalus forms behind him, embers swirling at his feet",
+    "special anticipation 2: Bucephalus rears, wreathed in orange-gold fire, Alexander leaping up onto it, kopis still raised",
+    "special execution 1: mounted, galloping right with a fire trail behind across the cell",
+    "special execution 2: full charge, the kopis sweeping forward in a flaming arc, a burst of sparks at the right of the cell where the trample lands, everything kept inside this cell",
+    "special recovery 1: the horse breaking into embers as he dismounts, kopis hauled back up",
+    "special recovery 2: back in stance, kopis resting on his shoulder, a few embers falling"
+   ]
+  },
+  "alt-a": {
+   "title": "Second stance: combo strikes 1 and 2 with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance strike 1, anticipation: winding up for a straight two-handed pike thrust forward",
+    "stance strike 1, strike: a straight two-handed pike thrust forward, with a motion smear of the swing, kept inside this cell",
+    "stance strike 1, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 1, recovery: settling back into the stance-weapon ready pose",
+    "stance strike 2, anticipation: winding up for a second, higher thrust with a step",
+    "stance strike 2, strike: a second, higher thrust with a step, with a motion smear of the swing, kept inside this cell",
+    "stance strike 2, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 2, recovery: settling back into the stance-weapon ready pose"
+   ]
+  },
+  "alt-b": {
+   "title": "Second stance: combo finisher and an aerial attack with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance finisher, anticipation: winding up for a sweeping diagonal pike strike, fiery orange trail",
+    "stance finisher, strike: a sweeping diagonal pike strike, fiery orange trail, with a motion smear of the swing, kept inside this cell",
+    "stance finisher, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance finisher, recovery: settling back into the stance-weapon ready pose",
+    "stance aerial attack (airborne pose), anticipation: winding up for in mid-air, a downward pike thrust",
+    "stance aerial attack (airborne pose), strike: in mid-air, a downward pike thrust, with a motion smear of the swing, kept inside this cell",
+    "stance aerial attack (airborne pose), follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance aerial attack (airborne pose), recovery: still airborne, legs tucked"
+   ]
+  },
+  "alt-c": {
+   "title": "Second stance: heavy attack (4 frames), the stance change (2 frames), and the stance idle (2 frames)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance heavy attack, charge: crouched behind the levelled pike like a phalanx, fire gathering on the blade",
+    "stance heavy attack, strike: a charging lunge with the pike, a long orange streak, kept inside this cell",
+    "stance heavy attack, follow-through: the blow carried through, the trail and energy dissipating (kept inside this cell)",
+    "stance heavy attack, recovery: returning to the stance-weapon ready pose",
+    "stance change 1: sheathing the kopis and taking up the long sarissa, its butt planted, then levelled (the start of the motion)",
+    "stance change 2: sheathing the kopis and taking up the long sarissa, its butt planted, then levelled (the end of the motion, the stance weapon ready, a burst of its energy)",
+    "stance idle 1: a phalanx stance: the long pike levelled forward in both hands, low and planted",
+    "stance idle 2: the same stance idle breathing in, a slight rise of the shoulders, hair and cloth drifting"
+   ]
   }
+ },
+ "sheetNotes": {
+  "idle": "The kopis is held forward and low in the RIGHT hand, its bright steel blade angled toward the foe. The LEFT hand is open and extended toward the foe. The crimson-purple cloak and the auburn mane drift with each breath. Guard frame 5: the kopis is held across the body in the right hand with the left forearm braced behind it. No horse, no fire.",
+  "run": "He carries the kopis low at his right side, blade trailing back and down. The left hand swings loosely for balance. The crimson-purple cloak streams back with each stride and the diadem ribbon flutters.",
+  "air": "Airborne, the kopis is held back by the right shoulder in the rising frames and the cloak flares upward. The left hand stays open. In the falling frames the cloak and the mane stream upward and the kopis is pulled in toward the chest.",
+  "dash": "Ground dash: the kopis is held low and forward at the hip with a streak of orange-gold flame trailing behind it, body almost horizontal. Dodge roll: he keeps the kopis in the right hand through the roll, tucked against the chest, and comes out into a crouch with the blade forward. Air dash: body stretched forward, kopis forward, a flame streak behind, the cloak snapping back.",
+  "hurt": "The kopis stays in his right hand through every hit, the blade swinging with the body. Launched and knocked down: the kopis is still in hand, lying on the ground beside him when he is down. Getting up: the kopis comes back up into guard.",
+  "atk-a": "Combo strike 1 (frames 1-3) is a fast forward chopping cut: the kopis drawn back high behind the right shoulder, the strike with an orange-gold flame arc inside the cell, then a low follow-through. Combo strike 2 (frames 4-6) is a rising diagonal cut: the blade dropped low behind him, the strike with a bright orange arc inside the cell, then the blade high and pulling back to stance. The kopis is in the right hand throughout and the left hand stays open.",
+  "atk-b": "Combo finisher (frames 1-3): frame 1 is the wind-up, crouched to spring with the kopis held back in both hands; frame 2 is the leaping overhead chop, the largest orange-gold arc, the strongest pose; frame 3 is the landing follow-through with the cloak flaring. Aerial attack (frames 4-6): frame 4 is the kopis raised high in mid-air; frame 5 is the sweeping mid-air slash with its arc inside the cell; frame 6 is the airborne recovery with the body tucked.",
+  "atk-c": "Plunge (frames 1-3): frame 1 is the dive with the kopis point-down beneath him and flame streaming up; frame 2 is the landing in a low crouch, the blade driven into the ground with embers and dust inside the cell; frame 3 pulls the blade free and rises to stance. Heavy attack (frames 4-6): frame 4 is the coiled charge with the kopis drawn back low in both hands and flame building along the blade; frame 5 is the full spinning cleave inside a ring of fire; frame 6 holds the blade high overhead as embers fall.",
+  "art": "Stampede (Rift Art). Frame 1 (anticipation): he raises the kopis and the flaming outline of Bucephalus forms behind him, embers swirling at his feet. Frame 2 (anticipation): Bucephalus rears, wreathed in orange-gold fire, Alexander leaping up onto it with the kopis still raised. Frame 3 (execution): mounted, he gallops to the right with a fire trail across the cell. Frame 4 (execution): full charge, the kopis sweeping forward in a flaming arc, a burst of sparks at the right side of the cell where the trample lands. Frame 5 (recovery): the horse breaks into embers as he dismounts and hauls the kopis back up. Frame 6 (recovery): back in stance with the kopis resting on his shoulder and a few embers falling. The black horse is seen only in these frames. Flame is opaque stepped bands. Everything, horse included, stays inside each cell.",
+  "skill": "Bucephalus Charge, his own special. The mount is a huge BLACK warhorse with a broad, ox-like head and a small white star on its brow. It is dark and unlit, with NO fire anywhere. Frame 1 (anticipation): he whistles with two fingers at his lips and the black horse forms beside him. Frame 2 (anticipation): he vaults onto it with the kopis raised high. Frame 3 (execution): charging forward low over its neck with the kopis forward. Frame 4 (execution): the black horse at full gallop with speed lines and dust, the crimson-purple cloak streaming behind, kept inside the cell. Frame 5 (recovery): the horse slows and fades into dust. Frame 6 (recovery): back on his feet in the fighting stance. Everything stays inside each cell.",
+  "misc": "Skill throw (frames 1-3): he reaches back with his free left hand, flings a handful of burning embers forward, and follows through with the arm. Taunt (frames 4-5): he points the kopis at the opponent and beckons with the left hand, grinning. Victory (frames 6-8): frame 6 starts the pose, frame 7 raises the kopis to the sky with a war cry at the height of the pose with the cloak billowing, frame 8 holds it with the cloak settling.",
+  "ko": "Defeat (frames 1-4): he staggers from the final blow, drops to his knees with the kopis slipping from his hand, collapses forward, then lies still with the kopis on the ground beside him. Intro (frames 5-8): he walks in with the kopis resting on his shoulder, raises it high, cuts a flourish of flame, and settles into the fighting stance with the blade forward.",
+  "alt-a": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a SARISSA: a very long Macedonian pike with a leaf-shaped steel blade and a bronze butt-spike (draw it angled or foreshortened so it fits the cell) - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the sarissa held low and level in BOTH hands; the kopis sheathed at the hip.",
+  "alt-b": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a SARISSA: a very long Macedonian pike with a leaf-shaped steel blade and a bronze butt-spike (draw it angled or foreshortened so it fits the cell) - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the sarissa held low and level in BOTH hands; the kopis sheathed at the hip.",
+  "alt-c": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a SARISSA: a very long Macedonian pike with a leaf-shaped steel blade and a bronze butt-spike (draw it angled or foreshortened so it fits the cell) - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the sarissa held low and level in BOTH hands; the kopis sheathed at the hip."
+ },
+ "nativeHeight": 176,
+ "sheetsThreeFrame": {
+  "atk-a": {
+   "title": "Kopis combo strikes 1 and 2 (3 frames each): a chop and a rising diagonal cut",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, anticipation: the kopis drawn back high behind the right shoulder, left hand forward, weight on the back foot",
+    "combo strike 1, strike: a fast forward chopping cut with the kopis, an orange-gold flame arc kept inside this cell",
+    "combo strike 1, recovery: follow-through low, the blade settling, cloak whipping round",
+    "combo strike 2, anticipation: the blade dropped low behind him, weight shifting forward",
+    "combo strike 2, strike: a powerful rising diagonal cut, a bright orange arc kept inside this cell",
+    "combo strike 2, recovery: the blade high, pulling back toward stance"
+   ]
+  },
+  "atk-b": {
+   "title": "Kopis combo finisher, and aerial slash (3 frames each): an overhead chop and a mid-air slash",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: wind-up, crouching to spring, the kopis held back with both hands, front foot stepping in",
+    "combo finisher, strike: a leaping overhead chop driving down in front, a large orange-gold arc kept inside this cell, the strongest pose",
+    "combo finisher, recovery: landing follow-through, cloak flaring",
+    "aerial attack, anticipation: in mid-air, the kopis raised high in the right hand",
+    "aerial attack, strike: a sweeping mid-air slash in front, the arc kept inside this cell",
+    "aerial attack, recovery: airborne recovery, body tucked, the kopis pulled in to his chest"
+   ]
+  },
+  "atk-c": {
+   "title": "Kopis plunge, and heavy spinning cleave (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, the kopis point-down beneath him in the right hand, flame streaming up, speed lines",
+    "plunge, impact: landing in a low crouch, the blade driven into the ground in front, embers and dust kept inside this cell",
+    "plunge, recovery: pulling the kopis free and rising back toward stance",
+    "heavy attack, charge: body coiled, the kopis drawn back low in both hands, flame building along the blade",
+    "heavy attack, strike: a full spinning cleave, a ring of fire around him kept inside this cell, cloak flaring out",
+    "heavy attack, follow-through: the blade high overhead, embers falling"
+   ]
+  }
+ }
 }

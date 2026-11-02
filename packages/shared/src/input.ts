@@ -9,6 +9,8 @@ export const Btn = {
   Special: 64,
   /** Block (every hero, PARRY): hold to guard; pressed just before a hit lands, a perfect block parries it. */
   Block: 128,
+  /** Stance (every hero, heroes.ts STANCE_WEAPON): switch to the other weapon and its moveset. */
+  Stance: 256,
 } as const;
 
 /** One tick of fighter intent. Analog axes are quantized to int8 on the wire. */

@@ -1,171 +1,228 @@
 {
-  "id": "h13-aegis",
-  "hero": 13,
-  "name": "Brynhildr",
-  "epithet": "the Shield-Maiden",
-  "refs": [
-    "references/design.png"
-  ],
-  "designRefs": [
-    "../h00-leon/references/approved-sheet.png"
-  ],
-  "bible": "A stoic shield-maiden, lean, with a calm, unreadable face: fair skin, straight silver-grey brows, a firm jaw, steel-grey eyes that glow soft teal. Silver-white hair in a single thick BRAID, under a silver WINGED CIRCLET-HELM: an open-faced steel band with swan wings at the temples. Teal-and-steel plate armour: a deep teal breastplate with steel ridges and knotwork along its edges, STEEL RING-MAIL at hips and upper arms, teal pauldrons with steel rims, teal-and-steel vambraces and greaves, dark steel joints, thin brass-gold trim. A short deep-teal cloak with a collar of WHITE SWAN FEATHERS. WEAPON: a towering TOWER SHIELD, about three-quarters of her standing height, with a flat teal face, a bright gold rim, a dark steel boss and a pair of spread GOLD SWAN WINGS as emblem; its lower edge tapers to a point. Held upright in her LEFT hand: forearm in a steel arm-guard, fist on a steel grip behind the boss, the face always toward the opponent. Her RIGHT hand is an empty steel gauntlet joining the upper rim for heavy charges. Energy and trails are TEAL-WHITE light with GOLD sparks; the Bulwark is a RING OF FIRE of pale-gold and white flame with a teal core.",
-  "design": "- top row: full-body neutral stance facing right behind the planted tower shield, the winged helm and the long braid visible; a walk; a run with the shield carried low on the left arm; a jump\n- top row end: a close-up of the shield face with its gold swan-wing emblem and rim\n- middle row 1: standing guard with the shield raised across the whole body; crouch guard; a short shield punch\n- middle row 2: a diagonal shield chop; a low swing; the shield charge with its gold swan wings glowing\n- bottom row: the plunge with the shield point-down; a hit reaction with the shield braced; knocked down with the shield still strapped on\n- bottom row end: the victory pose with the shield planted; the Bulwark ring of fire up in front of her\nInclude at least one pose showing the back of the shield with its steel straps and grip.",
-  "sheets": {
-    "idle": {
-      "title": "Stance, guard and footwork",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.78,
-      "frames": [
-        "combat idle loop 1: fighting stance behind the planted tower shield, shield upright on the left arm with its point near the ground, knees bent, body square behind the shield's edge, chin down, winged helm level, the gold swan wings facing the opponent",
-        "combat idle loop 2: the same stance breathing in, shoulders raised a little, the shield lifted a finger's width on its forearm, the braid and the cloak drifting",
-        "combat idle loop 3: the same stance at the top of the breath, the gold swan wings catching a bright highlight, the collar feathers lifting",
-        "combat idle loop 4: the same stance breathing out, the shield settling back onto its point, returning toward frame 1",
-        "standing guard: the tower shield raised in front of the whole body, its top edge just above her eyes and its face square to the opponent, the body hidden behind the teal face and gold swan wings, her eyes peeking over the rim, both knees bent, the right gauntlet braced on the shield's back edge",
-        "crouch guard: low crouch on bent knees, the tower shield planted on its point in front of the body with its top edge at chest height, the body tucked behind it, the braid falling forward over one shoulder",
-        "skid: braking hard from a run, the shield dragged low on its point throwing up sparks, front foot planted, body leaning back, cloak swinging forward",
-        "landing: absorbing a landing from a jump, deep knee bend, the shield's point planted beside the front foot, the right gauntlet low for balance, cloak still settling"
-      ]
-    },
-    "run": {
-      "title": "Run cycle (8 frames, loops from frame 8 back to frame 1)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.78,
-      "frames": [
-        "run cycle 1: right foot contact, stride long, body leaning forward behind the tower shield carried in front of the left shoulder, its rim low and angled forward",
-        "run cycle 2: right foot down, body at its lowest, the shield bobbing with the stride, its point just off the ground, the braid bouncing on her back",
-        "run cycle 3: passing pose, left knee driving forward, body rising, the shield held steady in front",
-        "run cycle 4: left leg reaching forward, body at its highest, both feet briefly off the ground, the shield tilted forward, the braid streaming up behind",
-        "run cycle 5: left foot contact, stride long (the mirror of frame 1), the shield still in front of the left shoulder",
-        "run cycle 6: left foot down, body at its lowest, the shield bobbing with the stride, the braid bouncing on her back",
-        "run cycle 7: passing pose, right knee driving forward, body rising, the shield held steady in front",
-        "run cycle 8: right leg reaching forward, body at its highest, both feet off the ground, the shield tilted forward, the braid streaming up behind"
-      ]
-    },
-    "atk-a": {
-      "title": "Shield bashes 1 and 2 (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "bash 1, anticipation: beginning from the standing guard, the tower shield drawn back in against the chest, its rim cocked up, weight sinking onto the back foot",
-        "bash 1, strike: a short, hard shield punch forward with the whole body behind it, the teal face and gold swan wings flat toward the opponent, a bright gold flash at the wings and sparks off the rim,, with a motion smear of the swing, kept inside this cell",
-        "bash 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "bash 1, recovery: the shield held out in front and braced, the body settling back toward the guard",
-        "bash 2, anticipation: weight shifts onto the front foot, the tower shield swung up and over the right shoulder on a diagonal, the rim high, the swan wings turned away",
-        "bash 2, strike: a powerful diagonal chop down-forward, the rim and lower edge driving into the opponent, a bright gold arc of light sweeping through the upper part of this cell with sparks, the shield's full weight behind it",
-        "bash 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "bash 2, recovery: follow-through low, the shield's point dragging, pulling back toward the guard"
-      ]
-    },
-    "atk-b": {
-      "title": "Shield charge finisher and aerial shield bash (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "shield charge finisher, anticipation: a big wind-up, the tower shield pulled back and tilted behind the left shoulder, the body coiled low, the front foot stepping in",
-        "shield charge finisher, strike: an overwhelming full-body charge, the shield leading low and square with the whole weight behind it, a huge bright arc of teal-white light with gold sparks, with a motion smear of the swing, kept inside this cell, the strongest pose",
-        "shield charge finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "shield charge finisher, recovery: the shield held out front and braced after the charge, the cloak flaring, settling toward the guard",
-        "aerial shield bash, anticipation: in mid-air, the tower shield raised across the body, the body tucked slightly, the right gauntlet on the rim",
-        "aerial shield bash, strike: a sweeping mid-air shield slam forward and down, the teal face leading, a bright arc trail, with a motion smear of the swing, kept inside this cell",
-        "aerial shield bash, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "aerial shield bash, recovery: airborne, the shield drawn back in against the chest, the body tucked, returning to a ready pose"
-      ]
-    },
-    "atk-c": {
-      "title": "Shield plunge and shield charge heavy (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air, the tower shield held point-down before the body, the body diving straight down behind it, speed lines",
-        "plunge, impact: landing in a low crouch behind the shield, the shield's point driven into the ground in front, a burst of light and dust",
-        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "plunge, recovery: rising from the impact with the shield pulled back to the guard",
-        "heavy attack (shield charge), charge: body coiled low, the tower shield braced at chest height with its face forward, the right gauntlet gripping its upper rim, the gold swan wings glowing brightly",
-        "heavy attack (shield charge), strike: a devastating full-power charge, the shield thrust forward with the whole body behind it, a huge bright teal-white shockwave arc with gold sparks, with a motion smear of the swing, kept inside this cell",
-        "heavy attack (shield charge), follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "heavy attack (shield charge), follow-through: deep follow-through with the shield planted in front, the glow dissipating, dust settling"
-      ]
-    }
+ "id": "h13-aegis",
+ "hero": 13,
+ "name": "Brynhildr",
+ "epithet": "the Shield-Maiden",
+ "refs": [
+  "references/design.png"
+ ],
+ "designRefs": [
+  "../h00-leon/references/approved-sheet.png"
+ ],
+ "bible": "A stoic shield-maiden, lean, with a calm, unreadable face: fair skin, straight silver-grey brows, a firm jaw, steel-grey eyes that glow soft teal. Silver-white hair in a single thick BRAID, under a silver WINGED CIRCLET-HELM: an open-faced steel band with swan wings at the temples. Teal-and-steel plate armour: a deep teal breastplate with steel ridges and knotwork along its edges, STEEL RING-MAIL at hips and upper arms, teal pauldrons with steel rims, teal-and-steel vambraces and greaves, dark steel joints, thin brass-gold trim. A short deep-teal cloak with a collar of WHITE SWAN FEATHERS. WEAPON: a towering TOWER SHIELD, about three-quarters of her standing height, with a flat teal face, a bright gold rim, a dark steel boss and a pair of spread GOLD SWAN WINGS as emblem; its lower edge tapers to a point. Held upright in her LEFT hand: forearm in a steel arm-guard, fist on a steel grip behind the boss, the face always toward the opponent. Her RIGHT hand is an empty steel gauntlet joining the upper rim for heavy charges. Energy and trails are TEAL-WHITE light with GOLD sparks; the Bulwark is a RING OF FIRE of pale-gold and white flame with a teal core.",
+ "design": "- top row: full-body neutral stance facing right behind the planted tower shield, the winged helm and the long braid visible; a walk; a run with the shield carried low on the left arm; a jump\n- top row end: a close-up of the shield face with its gold swan-wing emblem and rim\n- middle row 1: standing guard with the shield raised across the whole body; crouch guard; a short shield punch\n- middle row 2: a diagonal shield chop; a low swing; the shield charge with its gold swan wings glowing\n- bottom row: the plunge with the shield point-down; a hit reaction with the shield braced; knocked down with the shield still strapped on\n- bottom row end: the victory pose with the shield planted; the Bulwark ring of fire up in front of her\nInclude at least one pose showing the back of the shield with its steel straps and grip.",
+ "sheets": {
+  "idle": {
+   "title": "Stance, guard and footwork",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.78,
+   "frames": [
+    "combat idle loop 1: fighting stance behind the planted tower shield, shield upright on the left arm with its point near the ground, knees bent, body square behind the shield's edge, chin down, winged helm level, the gold swan wings facing the opponent",
+    "combat idle loop 2: the same stance breathing in, shoulders raised a little, the shield lifted a finger's width on its forearm, the braid and the cloak drifting",
+    "combat idle loop 3: the same stance at the top of the breath, the gold swan wings catching a bright highlight, the collar feathers lifting",
+    "combat idle loop 4: the same stance breathing out, the shield settling back onto its point, returning toward frame 1",
+    "standing guard: the tower shield raised in front of the whole body, its top edge just above her eyes and its face square to the opponent, the body hidden behind the teal face and gold swan wings, her eyes peeking over the rim, both knees bent, the right gauntlet braced on the shield's back edge",
+    "crouch guard: low crouch on bent knees, the tower shield planted on its point in front of the body with its top edge at chest height, the body tucked behind it, the braid falling forward over one shoulder",
+    "skid: braking hard from a run, the shield dragged low on its point throwing up sparks, front foot planted, body leaning back, cloak swinging forward",
+    "landing: absorbing a landing from a jump, deep knee bend, the shield's point planted beside the front foot, the right gauntlet low for balance, cloak still settling"
+   ]
   },
-  "sheetNotes": {
-    "idle": "The tower shield stays on her left arm with its point near the ground and its gold swan wings facing the opponent in every stance pose. The winged helm stays level, the long silver braid lies down her back, and the swan-feather collar and the short deep-teal cloak move only with her breath.",
-    "run": "The tower shield is carried in front of the left shoulder with its rim low, the gold swan wings facing forward. The long silver braid swings out behind her on every stride, and the short deep-teal cloak streams back with the swan-feather collar lifting.",
-    "atk-a": "Bash 1 and bash 2 are shield-only strikes: the teal face and gold swan wings lead, with a bright gold flash at the wings on the strike and sparks off the rim. Combo 1 anticipation begins from the standing guard. The braid and cloak trail the motion but never cover the shield face.",
-    "atk-b": "The shield charge finisher and the aerial bash lead with the teal face and gold swan wings; the strike is a teal-white arc with gold sparks. The braid swings and the cloak flares on the recovery, and the winged helm stays forward on the charge.",
-    "atk-c": "The plunge drives the shield point-first, its gold swan wings and rim catching the light on impact. The heavy shield charge braces the shield at chest height with the right gauntlet gripping its upper rim; the strike is a teal-white shockwave with gold sparks. The winged helm and the braid stay steady on impact.",
-    "art": "Bulwark, the Rift Art: a ring of fire, six frames, big but kept inside each cell. Anticipation 1 (frames 1-2): she drives the shield's point into the ground, pale-gold fire runs along the rim and the gold swan wings light up. Anticipation 2: the shield raised before her face, the flames gathering at its face. Execution 1 (frame 3): a ring of pale-gold and white flame with a teal core erupts from the shield's face and wraps the front of her body, drawn as opaque stepped bands with a hard bright rim. Execution 2 (frame 4): the ring of fire at full strength, a sharp gold-white spark where a blow would land, the shield braced, the body square. Recovery 1 (frame 5): the flames steady but thinning at their edges, the shield held high. Recovery 2 (frame 6): the ring breaking into sparks, the shield lowered back toward the guard. Opaque, hard-edged light shapes only, no soft glow, no lettering or symbols.",
-    "misc": "Taunt: she raises the shield and strikes its rim once with the right gauntlet, the swan-feather collar stirring, then lifts her chin with a stoic, unsmiling gaze at the opponent. Victory: she plants the shield point-down in front of her, its gold swan wings shining, and raises her right fist, the braid swinging; a calm, steady look. Skill throw: the free right gauntlet throws the item, the shield stays on the left arm.",
-    "ko": "Intro: she walks in from behind with the shield's point dragging on the ground, stops, plants the shield upright with a clang, lifts her gaze with the braid swinging in, and settles into the guard stance. Defeat: she staggers, the shield tips and slips from her forearm, she drops to one knee with the shield sliding down and the winged helm tipping, then falls forward with the shield landing beside her.",
-    "air": "The tower shield stays on her left arm in every air pose: held in front when rising and falling, tilted point-down in the dive, its rim braced against the wall in the wall slide, hooked on her forearm in the ledge hang. The long braid and the short cloak trail behind her, the swan-feather collar lifting.",
-    "dash": "The tower shield stays strapped to her left arm in every dash pose. In the roll she hunches it over her back like a shell with the cloak and the braid wrapping around it. In the ground dash it is held low and forward with its rim scraping the ground and sparks flying. For the heal she drinks the potion with the right gauntlet while the shield stays braced against her side.",
-    "hurt": "The shield stays strapped to her left forearm through every hit: light hits brace it up across her face, heavy hits push her back on her heels with the shield flared out and the braid whipping, launched and knockdown keep the shield on the left arm, and she lies on her back with the shield still on the forearm and the winged helm knocked askew.",
-    "skill": "Shield Rebound, her own special (the tower shield is hurled and comes spinning back). The shield is held upright in the LEFT hand, and the RIGHT gauntlet rests on its rim. 1: she sets her feet, the tower shield upright in the left hand, the right gauntlet on its upper rim. 2: she draws the shield back beside her body, the teal face glowing, gold sparks at its rim and the swan wings catching the light. 3: she hurls the tower shield forward from the left hand, spinning edge-first, the arm extended. 4: the shield spinning forward at full force with teal-white bash trails, its gold rim flashing. 5: the shield curving back toward her, the trails thinning. 6: she catches the shield back in her left hand, back in stance with the shield upright."
+  "run": {
+   "title": "Run cycle (8 frames, loops from frame 8 back to frame 1)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.78,
+   "frames": [
+    "run cycle 1: right foot contact, stride long, body leaning forward behind the tower shield carried in front of the left shoulder, its rim low and angled forward",
+    "run cycle 2: right foot down, body at its lowest, the shield bobbing with the stride, its point just off the ground, the braid bouncing on her back",
+    "run cycle 3: passing pose, left knee driving forward, body rising, the shield held steady in front",
+    "run cycle 4: left leg reaching forward, body at its highest, both feet briefly off the ground, the shield tilted forward, the braid streaming up behind",
+    "run cycle 5: left foot contact, stride long (the mirror of frame 1), the shield still in front of the left shoulder",
+    "run cycle 6: left foot down, body at its lowest, the shield bobbing with the stride, the braid bouncing on her back",
+    "run cycle 7: passing pose, right knee driving forward, body rising, the shield held steady in front",
+    "run cycle 8: right leg reaching forward, body at its highest, both feet off the ground, the shield tilted forward, the braid streaming up behind"
+   ]
   },
-  "nativeHeight": 172,
-  "sheetsThreeFrame": {
-    "atk-a": {
-      "title": "Shield bashes 1 and 2 (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "bash 1, anticipation: beginning from the standing guard, the tower shield drawn back in against the chest, its rim cocked up, weight sinking onto the back foot",
-        "bash 1, strike: a short, hard shield punch forward with the whole body behind it, the teal face and gold swan wings flat toward the opponent, a bright gold flash at the wings and sparks off the rim, kept inside this cell",
-        "bash 1, recovery: the shield held out in front and braced, the body settling back toward the guard",
-        "bash 2, anticipation: weight shifts onto the front foot, the tower shield swung up and over the right shoulder on a diagonal, the rim high, the swan wings turned away",
-        "bash 2, strike: a powerful diagonal chop down-forward, the rim and lower edge driving into the opponent, a bright gold arc of light sweeping through the upper part of this cell with sparks, the shield's full weight behind it",
-        "bash 2, recovery: follow-through low, the shield's point dragging, pulling back toward the guard"
-      ]
-    },
-    "atk-b": {
-      "title": "Shield charge finisher and aerial shield bash (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "shield charge finisher, anticipation: a big wind-up, the tower shield pulled back and tilted behind the left shoulder, the body coiled low, the front foot stepping in",
-        "shield charge finisher, strike: an overwhelming full-body charge, the shield leading low and square with the whole weight behind it, a huge bright arc of teal-white light with gold sparks kept inside this cell, the strongest pose",
-        "shield charge finisher, recovery: the shield held out front and braced after the charge, the cloak flaring, settling toward the guard",
-        "aerial shield bash, anticipation: in mid-air, the tower shield raised across the body, the body tucked slightly, the right gauntlet on the rim",
-        "aerial shield bash, strike: a sweeping mid-air shield slam forward and down, the teal face leading, a bright arc trail kept inside this cell",
-        "aerial shield bash, recovery: airborne, the shield drawn back in against the chest, the body tucked, returning to a ready pose"
-      ]
-    },
-    "atk-c": {
-      "title": "Shield plunge and shield charge heavy (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air, the tower shield held point-down before the body, the body diving straight down behind it, speed lines",
-        "plunge, impact: landing in a low crouch behind the shield, the shield's point driven into the ground in front, a burst of light and dust",
-        "plunge, recovery: rising from the impact with the shield pulled back to the guard",
-        "heavy attack (shield charge), charge: body coiled low, the tower shield braced at chest height with its face forward, the right gauntlet gripping its upper rim, the gold swan wings glowing brightly",
-        "heavy attack (shield charge), strike: a devastating full-power charge, the shield thrust forward with the whole body behind it, a huge bright teal-white shockwave arc with gold sparks kept inside this cell",
-        "heavy attack (shield charge), follow-through: deep follow-through with the shield planted in front, the glow dissipating, dust settling"
-      ]
-    }
+  "atk-a": {
+   "title": "Shield bashes 1 and 2 (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "bash 1, anticipation: beginning from the standing guard, the tower shield drawn back in against the chest, its rim cocked up, weight sinking onto the back foot",
+    "bash 1, strike: a short, hard shield punch forward with the whole body behind it, the teal face and gold swan wings flat toward the opponent, a bright gold flash at the wings and sparks off the rim,, with a motion smear of the swing, kept inside this cell",
+    "bash 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "bash 1, recovery: the shield held out in front and braced, the body settling back toward the guard",
+    "bash 2, anticipation: weight shifts onto the front foot, the tower shield swung up and over the right shoulder on a diagonal, the rim high, the swan wings turned away",
+    "bash 2, strike: a powerful diagonal chop down-forward, the rim and lower edge driving into the opponent, a bright gold arc of light sweeping through the upper part of this cell with sparks, the shield's full weight behind it",
+    "bash 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "bash 2, recovery: follow-through low, the shield's point dragging, pulling back toward the guard"
+   ]
+  },
+  "atk-b": {
+   "title": "Shield charge finisher and aerial shield bash (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "shield charge finisher, anticipation: a big wind-up, the tower shield pulled back and tilted behind the left shoulder, the body coiled low, the front foot stepping in",
+    "shield charge finisher, strike: an overwhelming full-body charge, the shield leading low and square with the whole weight behind it, a huge bright arc of teal-white light with gold sparks, with a motion smear of the swing, kept inside this cell, the strongest pose",
+    "shield charge finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "shield charge finisher, recovery: the shield held out front and braced after the charge, the cloak flaring, settling toward the guard",
+    "aerial shield bash, anticipation: in mid-air, the tower shield raised across the body, the body tucked slightly, the right gauntlet on the rim",
+    "aerial shield bash, strike: a sweeping mid-air shield slam forward and down, the teal face leading, a bright arc trail, with a motion smear of the swing, kept inside this cell",
+    "aerial shield bash, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "aerial shield bash, recovery: airborne, the shield drawn back in against the chest, the body tucked, returning to a ready pose"
+   ]
+  },
+  "atk-c": {
+   "title": "Shield plunge and shield charge heavy (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air, the tower shield held point-down before the body, the body diving straight down behind it, speed lines",
+    "plunge, impact: landing in a low crouch behind the shield, the shield's point driven into the ground in front, a burst of light and dust",
+    "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "plunge, recovery: rising from the impact with the shield pulled back to the guard",
+    "heavy attack (shield charge), charge: body coiled low, the tower shield braced at chest height with its face forward, the right gauntlet gripping its upper rim, the gold swan wings glowing brightly",
+    "heavy attack (shield charge), strike: a devastating full-power charge, the shield thrust forward with the whole body behind it, a huge bright teal-white shockwave arc with gold sparks, with a motion smear of the swing, kept inside this cell",
+    "heavy attack (shield charge), follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "heavy attack (shield charge), follow-through: deep follow-through with the shield planted in front, the glow dissipating, dust settling"
+   ]
+  },
+  "alt-a": {
+   "title": "Second stance: combo strikes 1 and 2 with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance strike 1, anticipation: winding up for a straight spear thrust past the edge of the shield",
+    "stance strike 1, strike: a straight spear thrust past the edge of the shield, with a motion smear of the swing, kept inside this cell",
+    "stance strike 1, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 1, recovery: settling back into the stance-weapon ready pose",
+    "stance strike 2, anticipation: winding up for a high overhand spear thrust over the top of the shield",
+    "stance strike 2, strike: a high overhand spear thrust over the top of the shield, with a motion smear of the swing, kept inside this cell",
+    "stance strike 2, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 2, recovery: settling back into the stance-weapon ready pose"
+   ]
+  },
+  "alt-b": {
+   "title": "Second stance: combo finisher and an aerial attack with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance finisher, anticipation: winding up for a sweeping spear arc that ends in a rising thrust, pale-blue rune trail",
+    "stance finisher, strike: a sweeping spear arc that ends in a rising thrust, pale-blue rune trail, with a motion smear of the swing, kept inside this cell",
+    "stance finisher, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance finisher, recovery: settling back into the stance-weapon ready pose",
+    "stance aerial attack (airborne pose), anticipation: winding up for in mid-air, a downward spear thrust",
+    "stance aerial attack (airborne pose), strike: in mid-air, a downward spear thrust, with a motion smear of the swing, kept inside this cell",
+    "stance aerial attack (airborne pose), follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance aerial attack (airborne pose), recovery: still airborne, legs tucked"
+   ]
+  },
+  "alt-c": {
+   "title": "Second stance: heavy attack (4 frames), the stance change (2 frames), and the stance idle (2 frames)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance heavy attack, charge: the spear drawn back over the shoulder for a throw, runes blazing pale blue",
+    "stance heavy attack, strike: the spear hurled forward with a long blue streak (it returns to her hand), kept inside this cell",
+    "stance heavy attack, follow-through: the blow carried through, the trail and energy dissipating (kept inside this cell)",
+    "stance heavy attack, recovery: returning to the stance-weapon ready pose",
+    "stance change 1: drawing the long silver spear from her back, runes lighting along the shaft, the shield still raised (the start of the motion)",
+    "stance change 2: drawing the long silver spear from her back, runes lighting along the shaft, the shield still raised (the end of the motion, the stance weapon ready, a burst of its energy)",
+    "stance idle 1: a guarded stance behind the tower shield, the spear levelled over its rim",
+    "stance idle 2: the same stance idle breathing in, a slight rise of the shoulders, hair and cloth drifting"
+   ]
   }
+ },
+ "sheetNotes": {
+  "idle": "The tower shield stays on her left arm with its point near the ground and its gold swan wings facing the opponent in every stance pose. The winged helm stays level, the long silver braid lies down her back, and the swan-feather collar and the short deep-teal cloak move only with her breath.",
+  "run": "The tower shield is carried in front of the left shoulder with its rim low, the gold swan wings facing forward. The long silver braid swings out behind her on every stride, and the short deep-teal cloak streams back with the swan-feather collar lifting.",
+  "atk-a": "Bash 1 and bash 2 are shield-only strikes: the teal face and gold swan wings lead, with a bright gold flash at the wings on the strike and sparks off the rim. Combo 1 anticipation begins from the standing guard. The braid and cloak trail the motion but never cover the shield face.",
+  "atk-b": "The shield charge finisher and the aerial bash lead with the teal face and gold swan wings; the strike is a teal-white arc with gold sparks. The braid swings and the cloak flares on the recovery, and the winged helm stays forward on the charge.",
+  "atk-c": "The plunge drives the shield point-first, its gold swan wings and rim catching the light on impact. The heavy shield charge braces the shield at chest height with the right gauntlet gripping its upper rim; the strike is a teal-white shockwave with gold sparks. The winged helm and the braid stay steady on impact.",
+  "art": "Bulwark, the Rift Art: a ring of fire, six frames, big but kept inside each cell. Anticipation 1 (frames 1-2): she drives the shield's point into the ground, pale-gold fire runs along the rim and the gold swan wings light up. Anticipation 2: the shield raised before her face, the flames gathering at its face. Execution 1 (frame 3): a ring of pale-gold and white flame with a teal core erupts from the shield's face and wraps the front of her body, drawn as opaque stepped bands with a hard bright rim. Execution 2 (frame 4): the ring of fire at full strength, a sharp gold-white spark where a blow would land, the shield braced, the body square. Recovery 1 (frame 5): the flames steady but thinning at their edges, the shield held high. Recovery 2 (frame 6): the ring breaking into sparks, the shield lowered back toward the guard. Opaque, hard-edged light shapes only, no soft glow, no lettering or symbols.",
+  "misc": "Taunt: she raises the shield and strikes its rim once with the right gauntlet, the swan-feather collar stirring, then lifts her chin with a stoic, unsmiling gaze at the opponent. Victory: she plants the shield point-down in front of her, its gold swan wings shining, and raises her right fist, the braid swinging; a calm, steady look. Skill throw: the free right gauntlet throws the item, the shield stays on the left arm.",
+  "ko": "Intro: she walks in from behind with the shield's point dragging on the ground, stops, plants the shield upright with a clang, lifts her gaze with the braid swinging in, and settles into the guard stance. Defeat: she staggers, the shield tips and slips from her forearm, she drops to one knee with the shield sliding down and the winged helm tipping, then falls forward with the shield landing beside her.",
+  "air": "The tower shield stays on her left arm in every air pose: held in front when rising and falling, tilted point-down in the dive, its rim braced against the wall in the wall slide, hooked on her forearm in the ledge hang. The long braid and the short cloak trail behind her, the swan-feather collar lifting.",
+  "dash": "The tower shield stays strapped to her left arm in every dash pose. In the roll she hunches it over her back like a shell with the cloak and the braid wrapping around it. In the ground dash it is held low and forward with its rim scraping the ground and sparks flying. For the heal she drinks the potion with the right gauntlet while the shield stays braced against her side.",
+  "hurt": "The shield stays strapped to her left forearm through every hit: light hits brace it up across her face, heavy hits push her back on her heels with the shield flared out and the braid whipping, launched and knockdown keep the shield on the left arm, and she lies on her back with the shield still on the forearm and the winged helm knocked askew.",
+  "skill": "Shield Rebound, her own special (the tower shield is hurled and comes spinning back). The shield is held upright in the LEFT hand, and the RIGHT gauntlet rests on its rim. 1: she sets her feet, the tower shield upright in the left hand, the right gauntlet on its upper rim. 2: she draws the shield back beside her body, the teal face glowing, gold sparks at its rim and the swan wings catching the light. 3: she hurls the tower shield forward from the left hand, spinning edge-first, the arm extended. 4: the shield spinning forward at full force with teal-white bash trails, its gold rim flashing. 5: the shield curving back toward her, the trails thinning. 6: she catches the shield back in her left hand, back in stance with the shield upright.",
+  "alt-a": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a long silver VALKYRIE SPEAR with a winged leaf blade and glowing pale-blue runes along the shaft - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the spear in the RIGHT hand, the tower shield still on the LEFT arm.",
+  "alt-b": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a long silver VALKYRIE SPEAR with a winged leaf blade and glowing pale-blue runes along the shaft - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the spear in the RIGHT hand, the tower shield still on the LEFT arm.",
+  "alt-c": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a long silver VALKYRIE SPEAR with a winged leaf blade and glowing pale-blue runes along the shaft - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the spear in the RIGHT hand, the tower shield still on the LEFT arm."
+ },
+ "nativeHeight": 172,
+ "sheetsThreeFrame": {
+  "atk-a": {
+   "title": "Shield bashes 1 and 2 (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "bash 1, anticipation: beginning from the standing guard, the tower shield drawn back in against the chest, its rim cocked up, weight sinking onto the back foot",
+    "bash 1, strike: a short, hard shield punch forward with the whole body behind it, the teal face and gold swan wings flat toward the opponent, a bright gold flash at the wings and sparks off the rim, kept inside this cell",
+    "bash 1, recovery: the shield held out in front and braced, the body settling back toward the guard",
+    "bash 2, anticipation: weight shifts onto the front foot, the tower shield swung up and over the right shoulder on a diagonal, the rim high, the swan wings turned away",
+    "bash 2, strike: a powerful diagonal chop down-forward, the rim and lower edge driving into the opponent, a bright gold arc of light sweeping through the upper part of this cell with sparks, the shield's full weight behind it",
+    "bash 2, recovery: follow-through low, the shield's point dragging, pulling back toward the guard"
+   ]
+  },
+  "atk-b": {
+   "title": "Shield charge finisher and aerial shield bash (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "shield charge finisher, anticipation: a big wind-up, the tower shield pulled back and tilted behind the left shoulder, the body coiled low, the front foot stepping in",
+    "shield charge finisher, strike: an overwhelming full-body charge, the shield leading low and square with the whole weight behind it, a huge bright arc of teal-white light with gold sparks kept inside this cell, the strongest pose",
+    "shield charge finisher, recovery: the shield held out front and braced after the charge, the cloak flaring, settling toward the guard",
+    "aerial shield bash, anticipation: in mid-air, the tower shield raised across the body, the body tucked slightly, the right gauntlet on the rim",
+    "aerial shield bash, strike: a sweeping mid-air shield slam forward and down, the teal face leading, a bright arc trail kept inside this cell",
+    "aerial shield bash, recovery: airborne, the shield drawn back in against the chest, the body tucked, returning to a ready pose"
+   ]
+  },
+  "atk-c": {
+   "title": "Shield plunge and shield charge heavy (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air, the tower shield held point-down before the body, the body diving straight down behind it, speed lines",
+    "plunge, impact: landing in a low crouch behind the shield, the shield's point driven into the ground in front, a burst of light and dust",
+    "plunge, recovery: rising from the impact with the shield pulled back to the guard",
+    "heavy attack (shield charge), charge: body coiled low, the tower shield braced at chest height with its face forward, the right gauntlet gripping its upper rim, the gold swan wings glowing brightly",
+    "heavy attack (shield charge), strike: a devastating full-power charge, the shield thrust forward with the whole body behind it, a huge bright teal-white shockwave arc with gold sparks kept inside this cell",
+    "heavy attack (shield charge), follow-through: deep follow-through with the shield planted in front, the glow dissipating, dust settling"
+   ]
+  }
+ }
 }

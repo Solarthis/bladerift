@@ -24,7 +24,37 @@ export const enum WeaponId {
   Chains = 12,
   /** Dumas' quill: quick golden-ink bolts, the third slows the target while the story catches up. */
   Quill = 13,
+  // ---- the second-stance weapons (the STANCE button switches to them: heroes.ts STANCE_WEAPON); never in a loadout
+  /** Richard's Danish war-axe: heavy chops and an overhead that bites the ground. */
+  WarAxe = 14,
+  /** Alcides' olive-wood club: wide brutal swings and a guard-crushing ground slam. */
+  Club = 15,
+  /** Gilgamesh's Kingsblade, drawn from a portal: one-handed swordplay, held to charge a golden lunge. */
+  Kingsblade = 16,
+  /** Cu Chulainn's barbed darts: thrown at range, held to hurl a great javelin. */
+  Darts = 17,
+  /** Enkidu's clay arms: quick jabs and blades, an uppercut hammer that pops the target up. */
+  ClayArms = 18,
+  /** Prelati's demon hand: a summoned claw that strikes far in front of her and drags the target in. */
+  DemonHand = 19,
+  /** Dumas' rapier: long fencing thrusts that crit at the point, held to charge a running lunge. */
+  Rapier = 20,
+  /** Hassan's shamshir: wide curved cuts, the third a full spin that hits both sides. */
+  Shamshir = 21,
+  /** Hashashin's rope dart: whip-fast lashes at mid range, the third hooks the target back to her. */
+  RopeDart = 22,
+  /** Humbaba's fire breath: short gouts of flame that set the target burning. */
+  FireBreath = 23,
+  /** Jack's sword-cane: cane jabs, a hook that pulls, and the hidden blade's draw cut. */
+  SwordCane = 24,
+  /** Alexander's sarissa: the longest pokes in the game, held to charge a phalanx lunge. */
+  Sarissa = 25,
+  /** The Pale Rider's shadow: a colossal shadow strikes far in front of her; its bite slows. */
+  Shadow = 26,
+  /** Brynhildr's Valkyrie spear: thrusts past the shield, held to hurl the spear. */
+  ValkyrieSpear = 27,
 }
+/** The loadout weapons (WeaponId below this); the stance weapons after them are heroes' second stances, never a loadout's. */
 export const WEAPON_COUNT = 14;
 
 /** Every hero's own signature special (the Skill button): skill N belongs to hero N (heroes.ts). */
@@ -96,6 +126,8 @@ export interface Move {
   slow?: number;
   /** A throw (THROW): no box; it grabs a grounded opponent in front and in reach (World.checkThrow). */
   grab?: boolean;
+  /** A swing that sets what it hits burning for this many ticks (Humbaba's fire breath). (`slow` slows it, swing or shot.) */
+  burn?: number;
 }
 
 export interface WeaponDef {
@@ -318,6 +350,211 @@ export const WEAPONS: WeaponDef[] = [
     air: { startup: 6, active: 1, recovery: 16, dmg: 40, box: b(0, 0, 0, 0), kbX: 110, kbY: 60, stun: 8, arrow: true, arcane: true },
     charged: { startup: 3, active: 1, recovery: 20, dmg: 85, dmgMax: 160, box: b(0, 0, 0, 0), kbX: 280, kbY: 220, stun: 32, arrow: true, arcane: true, min: 14, max: 60 },
     arrowSpeed: 800,
+  },  // ------------------------------------------------------------ second-stance weapons (the STANCE button)
+  {
+    id: WeaponId.WarAxe,
+    name: 'Jaffa War-Axe',
+    short: 'Axe',
+    blurb: 'Heavy two-handed chops; the third bites into the ground. Slower than the sword, every blow hits harder.',
+    base: WeaponId.Hammer,
+    combo: [
+      { startup: 7, active: 5, recovery: 14, dmg: 112, box: b(2, -62, 64, 58), kbX: 210, kbY: 80, stun: 26, step: 70, shake: 0.3 },
+      { startup: 7, active: 5, recovery: 14, dmg: 116, box: b(2, -62, 64, 58), kbX: 210, kbY: 90, stun: 26, step: 70, shake: 0.3 },
+      { startup: 13, active: 6, recovery: 24, dmg: 158, box: b(-4, -76, 72, 76), kbX: 250, kbY: 320, stun: 36, step: 90, shake: 0.6 },
+    ],
+    air: { startup: 8, active: 8, recovery: 14, dmg: 98, box: b(-8, -62, 62, 62), kbX: 200, kbY: 160, stun: 26, shake: 0.3 },
+    plunge: { startup: 10, active: 40, recovery: 18, dmg: 148, box: b(-30, -26, 72, 40), kbX: 240, kbY: 340, stun: 34, plunge: true, shake: 0.7 },
+  },
+  {
+    id: WeaponId.Club,
+    name: 'Olive-Wood Club',
+    short: 'Club',
+    blurb: 'Wide, brutal swings; the third slams the ground and breaks guards.',
+    base: WeaponId.Hammer,
+    combo: [
+      { startup: 8, active: 6, recovery: 14, dmg: 110, box: b(-4, -68, 70, 64), kbX: 260, kbY: 90, stun: 26, step: 60, shake: 0.35 },
+      { startup: 8, active: 6, recovery: 14, dmg: 114, box: b(-4, -68, 70, 64), kbX: 260, kbY: 90, stun: 26, step: 60, shake: 0.35 },
+      { startup: 17, active: 7, recovery: 28, dmg: 170, box: b(-34, -40, 136, 40), kbX: 220, kbY: 420, stun: 42, breaksGuard: true, shake: 0.85 },
+    ],
+    air: { startup: 10, active: 8, recovery: 16, dmg: 102, box: b(-12, -66, 66, 72), kbX: 230, kbY: 140, stun: 28, shake: 0.35 },
+    plunge: { startup: 12, active: 40, recovery: 22, dmg: 156, box: b(-40, -28, 100, 40), kbX: 250, kbY: 360, stun: 38, plunge: true, shake: 0.85 },
+  },
+  {
+    id: WeaponId.Kingsblade,
+    name: 'Kingsblade',
+    short: 'Kingsblade',
+    blurb: 'Drawn from a portal and swung one-handed: quick, clean cuts; the tip of the third crits. Hold to charge a golden lunge.',
+    base: WeaponId.Sword,
+    combo: [
+      { startup: 5, active: 4, recovery: 10, dmg: 84, box: b(4, -56, 62, 48), kbX: 160, kbY: 50, stun: 21, step: 100 },
+      { startup: 5, active: 4, recovery: 11, dmg: 88, box: b(4, -60, 64, 52), kbX: 170, kbY: 60, stun: 21, step: 100 },
+      { startup: 10, active: 6, recovery: 20, dmg: 138, box: b(0, -62, 76, 58), kbX: 320, kbY: 200, stun: 32, step: 150, tipCrit: true, shake: 0.45 },
+    ],
+    air: { startup: 5, active: 8, recovery: 11, dmg: 74, box: b(-6, -58, 60, 56), kbX: 170, kbY: 140, stun: 22 },
+    plunge: { startup: 9, active: 40, recovery: 16, dmg: 116, box: b(-18, -24, 46, 38), kbX: 230, kbY: 320, stun: 30, plunge: true, shake: 0.5 },
+    charged: {
+      startup: 4, active: 16, recovery: 22, dmg: 100, dmgMax: 185, box: b(4, -52, 70, 30), kbX: 400, kbY: 170, stun: 36,
+      dash: 700, min: 12, max: 48, shake: 0.6,
+    },
+  },
+  {
+    id: WeaponId.Darts,
+    name: 'Barbed Darts',
+    short: 'Darts',
+    blurb: 'Barbed darts thrown from range. Hold to hurl a great javelin.',
+    base: WeaponId.Bow,
+    combo: [
+      { startup: 6, active: 1, recovery: 14, dmg: 50, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 9, arrow: true },
+      { startup: 6, active: 1, recovery: 14, dmg: 52, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 9, arrow: true },
+      { startup: 9, active: 1, recovery: 22, dmg: 68, box: b(0, 0, 0, 0), kbX: 220, kbY: 100, stun: 16, arrow: true },
+    ],
+    air: { startup: 6, active: 1, recovery: 14, dmg: 46, box: b(0, 0, 0, 0), kbX: 130, kbY: 40, stun: 9, arrow: true },
+    charged: { startup: 2, active: 1, recovery: 18, dmg: 78, dmgMax: 155, box: b(0, 0, 0, 0), kbX: 280, kbY: 90, stun: 30, arrow: true, min: 12, max: 50 },
+    arrowSpeed: 980,
+  },
+  {
+    id: WeaponId.ClayArms,
+    name: 'Clay Arms',
+    short: 'Clay',
+    blurb: 'Its arms become the weapons: a quick jab, a blade, and a hammer uppercut that pops the target up.',
+    base: WeaponId.Daggers,
+    combo: [
+      { startup: 4, active: 3, recovery: 9, dmg: 50, box: b(4, -54, 42, 32), kbX: 100, kbY: 30, stun: 16, step: 90 },
+      { startup: 5, active: 4, recovery: 10, dmg: 62, box: b(2, -62, 58, 50), kbX: 140, kbY: 50, stun: 19, step: 90 },
+      { startup: 9, active: 5, recovery: 18, dmg: 104, box: b(0, -74, 62, 74), kbX: 110, kbY: 470, stun: 30, step: 80, shake: 0.5 },
+    ],
+    air: { startup: 4, active: 7, recovery: 9, dmg: 58, box: b(-8, -56, 54, 54), kbX: 140, kbY: 120, stun: 19 },
+    plunge: { startup: 7, active: 40, recovery: 14, dmg: 108, box: b(-24, -26, 56, 40), kbX: 220, kbY: 320, stun: 30, plunge: true, shake: 0.6 },
+  },
+  {
+    id: WeaponId.DemonHand,
+    name: "Demon's Hand",
+    short: 'Demon',
+    blurb: 'A demon arm reaches out of a magic circle and strikes far in front of her; the third claw drags the target in.',
+    base: WeaponId.Scythe,
+    combo: [
+      // (the claw strikes ahead of her: the box starts well in front, so it is weak up close)
+      { startup: 8, active: 5, recovery: 14, dmg: 70, box: b(28, -82, 72, 72), kbX: 140, kbY: 60, stun: 22, step: 20 },
+      { startup: 8, active: 5, recovery: 14, dmg: 74, box: b(28, -62, 78, 58), kbX: 150, kbY: 60, stun: 22, step: 20 },
+      { startup: 13, active: 7, recovery: 22, dmg: 108, box: b(20, -72, 96, 72), kbX: 260, kbY: 140, stun: 32, pull: true, shake: 0.45 },
+    ],
+    air: { startup: 7, active: 8, recovery: 13, dmg: 66, box: b(10, -70, 74, 74), kbX: 150, kbY: 140, stun: 22 },
+  },
+  {
+    id: WeaponId.Rapier,
+    name: "Musketeer's Rapier",
+    short: 'Rapier',
+    blurb: 'Long fencing thrusts that crit at the point. Hold to charge a running lunge.',
+    base: WeaponId.Lance,
+    combo: [
+      { startup: 5, active: 3, recovery: 10, dmg: 54, box: b(10, -52, 72, 18), kbX: 120, kbY: 30, stun: 19, step: 120, tipCrit: true },
+      { startup: 5, active: 3, recovery: 10, dmg: 56, box: b(10, -58, 72, 22), kbX: 120, kbY: 40, stun: 19, step: 120, tipCrit: true },
+      { startup: 9, active: 5, recovery: 18, dmg: 88, box: b(8, -54, 84, 22), kbX: 280, kbY: 120, stun: 28, step: 200, tipCrit: true, shake: 0.35 },
+    ],
+    air: { startup: 5, active: 6, recovery: 10, dmg: 56, box: b(4, -48, 70, 24), kbX: 140, kbY: 100, stun: 19, tipCrit: true },
+    charged: {
+      startup: 3, active: 14, recovery: 20, dmg: 82, dmgMax: 155, box: b(4, -52, 74, 22), kbX: 380, kbY: 140, stun: 34,
+      dash: 760, min: 12, max: 44, tipCrit: true, shake: 0.55,
+    },
+  },
+  {
+    id: WeaponId.Shamshir,
+    name: 'Shamshir',
+    short: 'Shamshir',
+    blurb: 'Wide curved cuts; the third is a full spin that cuts both sides. Hits from behind crit.',
+    base: WeaponId.Sword,
+    combo: [
+      { startup: 5, active: 4, recovery: 11, dmg: 55, box: b(2, -58, 62, 52), kbX: 140, kbY: 50, stun: 20, step: 90, backCrit: true },
+      { startup: 5, active: 4, recovery: 11, dmg: 57, box: b(2, -50, 62, 46), kbX: 140, kbY: 50, stun: 20, step: 90, backCrit: true },
+      { startup: 9, active: 7, recovery: 18, dmg: 84, box: b(-44, -60, 112, 56), kbX: 240, kbY: 150, stun: 28, step: 60, backCrit: true, shake: 0.4 },
+    ],
+    air: { startup: 5, active: 8, recovery: 10, dmg: 55, box: b(-14, -58, 64, 58), kbX: 140, kbY: 110, stun: 20, backCrit: true },
+    plunge: { startup: 7, active: 40, recovery: 13, dmg: 98, box: b(-20, -24, 48, 36), kbX: 180, kbY: 260, stun: 26, plunge: true, backCrit: true },
+  },
+  {
+    id: WeaponId.RopeDart,
+    name: 'Rope Dart',
+    short: 'Rope Dart',
+    blurb: 'A dart on a cord lashed out at mid range; the third hooks the target back to her. Hits from behind crit.',
+    base: WeaponId.Daggers,
+    combo: [
+      { startup: 7, active: 3, recovery: 14, dmg: 36, box: b(20, -52, 90, 18), kbX: 90, kbY: 20, stun: 17, step: 30, backCrit: true },
+      { startup: 7, active: 3, recovery: 14, dmg: 38, box: b(16, -72, 94, 40), kbX: 90, kbY: 40, stun: 17, step: 30, backCrit: true },
+      { startup: 10, active: 5, recovery: 19, dmg: 56, box: b(20, -54, 104, 26), kbX: 200, kbY: 60, stun: 28, pull: true, backCrit: true },
+    ],
+    air: { startup: 7, active: 7, recovery: 12, dmg: 40, box: b(-30, -72, 120, 72), kbX: 110, kbY: 100, stun: 17, backCrit: true },
+  },
+  {
+    id: WeaponId.FireBreath,
+    name: 'Cedar Fire',
+    short: 'Fire',
+    blurb: 'Gouts of fire breath that set the target burning; the third is a roaring cone of flame.',
+    base: WeaponId.Hammer,
+    combo: [
+      { startup: 9, active: 6, recovery: 18, dmg: 52, box: b(14, -68, 76, 36), kbX: 120, kbY: 40, stun: 20, burn: 30 },
+      { startup: 9, active: 6, recovery: 18, dmg: 54, box: b(14, -50, 76, 40), kbX: 120, kbY: 40, stun: 20, burn: 30 },
+      { startup: 16, active: 10, recovery: 26, dmg: 86, box: b(10, -76, 110, 54), kbX: 220, kbY: 140, stun: 30, burn: 90, shake: 0.5 },
+    ],
+    air: { startup: 9, active: 8, recovery: 15, dmg: 50, box: b(10, -52, 76, 56), kbX: 140, kbY: 120, stun: 22, burn: 30 },
+  },
+  {
+    id: WeaponId.SwordCane,
+    name: 'Sword-Cane',
+    short: 'Cane',
+    blurb: 'A jab of the cane, a hook that pulls, then the hidden blade: a draw cut that crits at the tip and from behind.',
+    base: WeaponId.Knives,
+    combo: [
+      { startup: 5, active: 3, recovery: 10, dmg: 56, box: b(8, -48, 64, 20), kbX: 120, kbY: 30, stun: 18, step: 90 },
+      { startup: 6, active: 4, recovery: 11, dmg: 60, box: b(6, -42, 66, 40), kbX: 150, kbY: 40, stun: 20, step: 70, pull: true },
+      { startup: 8, active: 4, recovery: 18, dmg: 98, box: b(4, -60, 76, 50), kbX: 280, kbY: 130, stun: 28, step: 160, tipCrit: true, backCrit: true, shake: 0.4 },
+    ],
+    air: { startup: 5, active: 6, recovery: 10, dmg: 54, box: b(-6, -54, 64, 48), kbX: 130, kbY: 100, stun: 19, backCrit: true },
+    plunge: { startup: 6, active: 40, recovery: 12, dmg: 84, box: b(-12, -24, 30, 34), kbX: 160, kbY: 240, stun: 24, plunge: true, backCrit: true },
+  },
+  {
+    id: WeaponId.Sarissa,
+    name: 'Sarissa',
+    short: 'Sarissa',
+    blurb: 'The long Macedonian pike: the longest pokes in the game, the tip crits. Hold to charge a phalanx lunge.',
+    base: WeaponId.Lance,
+    combo: [
+      { startup: 9, active: 5, recovery: 17, dmg: 64, box: b(20, -48, 96, 18), kbX: 230, kbY: 40, stun: 22, step: 40, tipCrit: true },
+      { startup: 9, active: 5, recovery: 17, dmg: 68, box: b(20, -54, 96, 20), kbX: 230, kbY: 40, stun: 22, step: 40, tipCrit: true },
+      { startup: 14, active: 6, recovery: 26, dmg: 96, box: b(16, -62, 112, 34), kbX: 340, kbY: 170, stun: 30, step: 140, tipCrit: true, shake: 0.4 },
+    ],
+    air: { startup: 8, active: 8, recovery: 14, dmg: 74, box: b(8, -42, 96, 22), kbX: 220, kbY: 90, stun: 22 },
+    charged: {
+      startup: 4, active: 18, recovery: 22, dmg: 96, dmgMax: 170, box: b(8, -50, 90, 24), kbX: 430, kbY: 170, stun: 38,
+      dash: 660, min: 14, max: 50, shake: 0.6,
+    },
+  },
+  {
+    id: WeaponId.Shadow,
+    name: 'Shadow of Death',
+    short: 'Shadow',
+    blurb: 'Her colossal shadow strikes far in front of her; the third, its bite, slows the target.',
+    base: WeaponId.Scythe,
+    combo: [
+      { startup: 9, active: 6, recovery: 15, dmg: 80, box: b(34, -92, 80, 92), kbX: 170, kbY: 80, stun: 23 },
+      { startup: 9, active: 6, recovery: 15, dmg: 84, box: b(34, -92, 80, 92), kbX: 170, kbY: 80, stun: 23 },
+      { startup: 15, active: 8, recovery: 26, dmg: 118, box: b(30, -72, 108, 72), kbX: 260, kbY: 240, stun: 34, slow: 90, shake: 0.55 },
+    ],
+    air: { startup: 9, active: 9, recovery: 14, dmg: 72, box: b(10, -32, 90, 72), kbX: 180, kbY: 140, stun: 23 },
+  },
+  {
+    id: WeaponId.ValkyrieSpear,
+    name: 'Valkyrie Spear',
+    short: 'Spear',
+    blurb: 'Thrusts past the rim of the shield. Hold to hurl the spear (it returns to her hand).',
+    base: WeaponId.Lance,
+    combo: [
+      { startup: 7, active: 4, recovery: 13, dmg: 64, box: b(14, -50, 88, 20), kbX: 200, kbY: 40, stun: 21, step: 60 },
+      { startup: 7, active: 4, recovery: 13, dmg: 68, box: b(14, -56, 88, 22), kbX: 200, kbY: 40, stun: 21, step: 60 },
+      { startup: 12, active: 6, recovery: 22, dmg: 102, box: b(10, -64, 92, 40), kbX: 300, kbY: 200, stun: 30, step: 120, shake: 0.4 },
+    ],
+    air: { startup: 7, active: 8, recovery: 13, dmg: 62, box: b(4, -42, 84, 24), kbX: 200, kbY: 90, stun: 21 },
+    charged: { startup: 3, active: 1, recovery: 20, dmg: 88, dmgMax: 175, box: b(0, 0, 0, 0), kbX: 300, kbY: 120, stun: 32, arrow: true, min: 14, max: 54 },
+    arrowSpeed: 1100,
   },
 ];
 

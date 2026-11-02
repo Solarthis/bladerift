@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   Act, BotBrain, Btn, decodeSnapshot, emptyInput, encodeSnapshot, encodeSnapshotBody, FIGHTER, FoeView, InputCmd, newFighterState, ROUND, SkillId,
-  stepFighter, getArena, World, WeaponId, WEAPONS, copyState, Loadout, CLASSES, sanitizeLoadout,
+  stepFighter, getArena, World, WeaponId, WEAPONS, copyState, Loadout, CLASSES, sanitizeLoadout, stanceWeapon,
 } from '../src/index';
 
 const MAXHP = CLASSES[0].hp;
@@ -219,7 +219,7 @@ describe('protocol', () => {
     expect(snap.self).not.toBeNull();
     for (const k of Object.keys(fa.s) as (keyof typeof fa.s)[]) expect(snap.self![k], k).toBeCloseTo(fa.s[k], 3);
     expect(snap.fighters).toHaveLength(2);
-    expect(snap.fighters[0].weapons).toEqual(sanitizeLoadout({ hero: 4 }).weapons);
+    expect(snap.fighters[0].weapons).toEqual([...sanitizeLoadout({ hero: 4 }).weapons, stanceWeapon(4), stanceWeapon(4)]);
     expect(snap.fighters[0].skill).toBe(SkillId.ChainLash);
     expect(snap.phase).toBe('fight');
     expect(snap.projectiles.length).toBeGreaterThan(0);

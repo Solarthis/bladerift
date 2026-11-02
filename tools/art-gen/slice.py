@@ -124,6 +124,8 @@ square_icons('icons-arts2', ['a-vault', 'a-chains', 'a-fate', 'a-hand', 'a-fog',
 # per-hero specials (k-NN, skill id = hero id) and dodges (d-NN, hero id); the sheets' last cells are spare
 square_icons('icons-specials', ['k-%02d' % i for i in range(14)])
 square_icons('icons-dodges', ['d-%02d' % i for i in range(14)])
+# the second-stance weapons (s-NN, hero id) and the STANCE button
+square_icons('icons-stances', ['s-%02d' % i for i in range(14)] + ['i-stance'])
 
 
 def portraits(name, first, count, w=240, h=320):

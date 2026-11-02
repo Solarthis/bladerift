@@ -1,130 +1,187 @@
 {
-  "id": "h06-quill",
-  "hero": 6,
-  "name": "Alexandre Dumas",
-  "epithet": "the Storyteller",
-  "refs": [
-    "references/design.png"
-  ],
-  "designRefs": [
-    "../h00-leon/references/approved-sheet.png",
-    "references/portrait.jpg"
-  ],
-  "bible": "A big, warm, jovial storyteller in his thirties with a broad roguish grin, laughing hazel eyes and a neat short ginger beard. Hair: a wild mane of tight GINGER-ORANGE curls, voluminous and pushed back off the forehead, falling to the shoulders. Broad shoulders and a relaxed, sturdy build. Costume: a loose WHITE linen shirt with full sleeves rolled to the elbow and an open collar; a dark BROWN leather waistcoat with brass buttons and a gold watch chain across the chest; charcoal slacks tucked into tall brown leather boots with brass buckles. WEAPON: a giant QUILL PEN used as a staff, about as tall as his head and shoulders: a pale ivory shaft with gold bands and a dark ink-black nib at its base, topped by a huge cream feather vane with a dark spine. It is held in the RIGHT hand at mid-shaft, feather upright at rest. In the LEFT hand he carries a thick open book with an oxblood-leather cover, brass corners and glowing gold pages. His magic and trails are GOLDEN INK and drifting illuminated pages: amber-gold swirls with white-hot highlights; the charged orb is a sphere of golden ink-light with pages spiralling inside.",
-  "design": "- top row: full-body neutral stance facing right with the quill staff held upright in the right hand and the open book in the left; a combat stance with the staff raised; a walking pose with the waistcoat swinging; a running pose; a jump with the curls flying; a close-up of the quill feather crown\n- middle rows: six casting poses: golden ink bolts launched from the nib, a two-handed overhead swing releasing a golden crescent of ink, a charged golden orb of ink-light held at the staff head, a downward plunge with the nib driven toward the ground, an aerial sweep scattering golden pages\n- bottom row: guard with the staff across the body and the book raised, a hit reaction, knocked down, a victory pose with the open book held high, the Rewritten Fate pose with golden pages swirling around him",
-  "sheets": {
-    "atk-a": {
-      "title": "Basic combo strikes 1 and 2 (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo cast 1, anticipation: the quill staff drawn back by the right hip, the feather crown beginning to glow gold",
-        "combo cast 1, strike: a sharp forward thrust of the quill, its nib releasing a bolt of amber ink-light with a golden trail, with a motion smear of the swing, kept inside this cell",
-        "combo cast 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo cast 1, recovery: the staff returned upright, loose golden ink droplets falling away",
-        "combo cast 2, anticipation: the staff raised high overhead in both hands, the feather vane flaring, golden pages swirling about the staff",
-        "combo cast 2, strike: a downward sweep of the quill flinging a crescent of golden ink forward and down, a bright trail, with a motion smear of the swing, kept inside this cell",
-        "combo cast 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo cast 2, recovery: the staff planted low after the swing, the open book bumping at the left hip, ink sparks settling"
-      ]
-    },
-    "atk-b": {
-      "title": "Combo finisher and aerial attack (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: a big theatrical wind-up, the quill swept far back, the open book held out in the left hand with golden pages lifting",
-        "combo finisher, strike: a lunging strike forward with the nib releasing a huge burst of golden ink-light, a large bright arc trail, with a motion smear of the swing, kept inside this cell, the strongest pose",
-        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo finisher, recovery: full extension relaxing, the curly mane and loose shirt flaring, the staff drawn back toward stance",
-        "aerial attack, anticipation: in mid-air, the quill raised high, the book open at the side with golden pages fluttering",
-        "aerial attack, strike: a sweeping mid-air swing of the quill in front that scatters a golden arc of ink and feathers,, with a motion smear of the swing, kept inside this cell",
-        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "aerial attack, recovery: airborne, body tucked, the book clasped against the hip, the staff returning upright"
-      ]
-    },
-    "atk-c": {
-      "title": "Plunge attack and heavy attack (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air diving straight down, the quill pointed down beneath the body, the book flung open with golden pages streaming upward",
-        "plunge, impact: landing in a low crouch, the quill's nib driven into the ground in front, a burst of golden ink and light",
-        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "plunge, recovery: rising from the impact back toward stance, the staff drawn back up, pages gathering back toward the book",
-        "heavy attack, charge: body coiled, the quill held far back, golden ink and pages spiralling into the feather crown to form a glowing orb",
-        "heavy attack, strike: a devastating forward strike releasing a huge golden orb of ink-light, a large bright arc trail of golden pages, with a motion smear of the swing, kept inside this cell",
-        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "heavy attack, follow-through: deep follow-through, the staff ending low, the golden ink sparkling and fading"
-      ]
-    }
+ "id": "h06-quill",
+ "hero": 6,
+ "name": "Alexandre Dumas",
+ "epithet": "the Storyteller",
+ "refs": [
+  "references/design.png"
+ ],
+ "designRefs": [
+  "../h00-leon/references/approved-sheet.png",
+  "references/portrait.jpg"
+ ],
+ "bible": "A big, warm, jovial storyteller in his thirties with a broad roguish grin, laughing hazel eyes and a neat short ginger beard. Hair: a wild mane of tight GINGER-ORANGE curls, voluminous and pushed back off the forehead, falling to the shoulders. Broad shoulders and a relaxed, sturdy build. Costume: a loose WHITE linen shirt with full sleeves rolled to the elbow and an open collar; a dark BROWN leather waistcoat with brass buttons and a gold watch chain across the chest; charcoal slacks tucked into tall brown leather boots with brass buckles. WEAPON: a giant QUILL PEN used as a staff, about as tall as his head and shoulders: a pale ivory shaft with gold bands and a dark ink-black nib at its base, topped by a huge cream feather vane with a dark spine. It is held in the RIGHT hand at mid-shaft, feather upright at rest. In the LEFT hand he carries a thick open book with an oxblood-leather cover, brass corners and glowing gold pages. His magic and trails are GOLDEN INK and drifting illuminated pages: amber-gold swirls with white-hot highlights; the charged orb is a sphere of golden ink-light with pages spiralling inside.",
+ "design": "- top row: full-body neutral stance facing right with the quill staff held upright in the right hand and the open book in the left; a combat stance with the staff raised; a walking pose with the waistcoat swinging; a running pose; a jump with the curls flying; a close-up of the quill feather crown\n- middle rows: six casting poses: golden ink bolts launched from the nib, a two-handed overhead swing releasing a golden crescent of ink, a charged golden orb of ink-light held at the staff head, a downward plunge with the nib driven toward the ground, an aerial sweep scattering golden pages\n- bottom row: guard with the staff across the body and the book raised, a hit reaction, knocked down, a victory pose with the open book held high, the Rewritten Fate pose with golden pages swirling around him",
+ "sheets": {
+  "atk-a": {
+   "title": "Basic combo strikes 1 and 2 (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo cast 1, anticipation: the quill staff drawn back by the right hip, the feather crown beginning to glow gold",
+    "combo cast 1, strike: a sharp forward thrust of the quill, its nib releasing a bolt of amber ink-light with a golden trail, with a motion smear of the swing, kept inside this cell",
+    "combo cast 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo cast 1, recovery: the staff returned upright, loose golden ink droplets falling away",
+    "combo cast 2, anticipation: the staff raised high overhead in both hands, the feather vane flaring, golden pages swirling about the staff",
+    "combo cast 2, strike: a downward sweep of the quill flinging a crescent of golden ink forward and down, a bright trail, with a motion smear of the swing, kept inside this cell",
+    "combo cast 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo cast 2, recovery: the staff planted low after the swing, the open book bumping at the left hip, ink sparks settling"
+   ]
   },
-  "sheetNotes": {
-    "art": "Rewritten Fate (Quill's Rift Art), six frames: 1-2 he opens the book in the left hand, golden pages lifting, and draws a quick stroke in the air with the quill; 3-4 golden ink and light spiral up around him and a warm golden aura glows on his body as the wounds close, the pages and ink swirls kept inside the cell; 5-6 the book closes with a soft glow, the quill lowered, pages settling. No legible letters or words anywhere.",
-    "idle": "the open book stays in the LEFT hand at the hip and the quill stays in the RIGHT hand with its feather crown upright; the curly mane bounces slightly with each breath.",
-    "run": "the book bounces at the left hip and the curly mane bobs with each stride; the quill is carried upright in the right hand, never dragging on the ground.",
-    "misc": "Taunt: he twirls the quill like a conductor's baton and gives a broad, mischievous grin with a wink. Victory: he raises the open book overhead with the quill held upright in his right hand, golden pages fanning out around him, a big grin.",
-    "ko": "Intro: he strolls in with the quill tapped lightly on the ground, lifts it and sweeps the feather crown in a grand theatrical flourish that scatters a few gold ink droplets, then settles into stance with the book at the hip.",
-    "skill": "Ink Blot, his own special (a splash of golden ink that slows the target). He holds the quill-staff in the RIGHT hand, its ink-black nib at the base, and the open book in the LEFT hand. 1: he raises the quill-staff with the nib pointing forward, the book held open. 2: he draws the nib back, a drop of golden ink gathering on the nib. 3: he thrusts the quill forward and a splash of golden ink bursts from the nib. 4: the ink blot spreading into a golden splash in front of him at full force, glowing gold drips. 5: the splash drying into flecks of gold ink, the quill returning. 6: back to the stance, the book held open, the feather upright."
+  "atk-b": {
+   "title": "Combo finisher and aerial attack (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: a big theatrical wind-up, the quill swept far back, the open book held out in the left hand with golden pages lifting",
+    "combo finisher, strike: a lunging strike forward with the nib releasing a huge burst of golden ink-light, a large bright arc trail, with a motion smear of the swing, kept inside this cell, the strongest pose",
+    "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo finisher, recovery: full extension relaxing, the curly mane and loose shirt flaring, the staff drawn back toward stance",
+    "aerial attack, anticipation: in mid-air, the quill raised high, the book open at the side with golden pages fluttering",
+    "aerial attack, strike: a sweeping mid-air swing of the quill in front that scatters a golden arc of ink and feathers,, with a motion smear of the swing, kept inside this cell",
+    "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "aerial attack, recovery: airborne, body tucked, the book clasped against the hip, the staff returning upright"
+   ]
   },
-  "nativeHeight": 178,
-  "sheetsThreeFrame": {
-    "atk-a": {
-      "title": "Basic combo strikes 1 and 2 (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo cast 1, anticipation: the quill staff drawn back by the right hip, the feather crown beginning to glow gold",
-        "combo cast 1, strike: a sharp forward thrust of the quill, its nib releasing a bolt of amber ink-light with a golden trail kept inside this cell",
-        "combo cast 1, recovery: the staff returned upright, loose golden ink droplets falling away",
-        "combo cast 2, anticipation: the staff raised high overhead in both hands, the feather vane flaring, golden pages swirling about the staff",
-        "combo cast 2, strike: a downward sweep of the quill flinging a crescent of golden ink forward and down, a bright trail kept inside this cell",
-        "combo cast 2, recovery: the staff planted low after the swing, the open book bumping at the left hip, ink sparks settling"
-      ]
-    },
-    "atk-b": {
-      "title": "Combo finisher and aerial attack (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: a big theatrical wind-up, the quill swept far back, the open book held out in the left hand with golden pages lifting",
-        "combo finisher, strike: a lunging strike forward with the nib releasing a huge burst of golden ink-light, a large bright arc trail kept inside this cell, the strongest pose",
-        "combo finisher, recovery: full extension relaxing, the curly mane and loose shirt flaring, the staff drawn back toward stance",
-        "aerial attack, anticipation: in mid-air, the quill raised high, the book open at the side with golden pages fluttering",
-        "aerial attack, strike: a sweeping mid-air swing of the quill in front that scatters a golden arc of ink and feathers, kept inside this cell",
-        "aerial attack, recovery: airborne, body tucked, the book clasped against the hip, the staff returning upright"
-      ]
-    },
-    "atk-c": {
-      "title": "Plunge attack and heavy attack (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: in mid-air diving straight down, the quill pointed down beneath the body, the book flung open with golden pages streaming upward",
-        "plunge, impact: landing in a low crouch, the quill's nib driven into the ground in front, a burst of golden ink and light",
-        "plunge, recovery: rising from the impact back toward stance, the staff drawn back up, pages gathering back toward the book",
-        "heavy attack, charge: body coiled, the quill held far back, golden ink and pages spiralling into the feather crown to form a glowing orb",
-        "heavy attack, strike: a devastating forward strike releasing a huge golden orb of ink-light, a large bright arc trail of golden pages kept inside this cell",
-        "heavy attack, follow-through: deep follow-through, the staff ending low, the golden ink sparkling and fading"
-      ]
-    }
+  "atk-c": {
+   "title": "Plunge attack and heavy attack (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, the quill pointed down beneath the body, the book flung open with golden pages streaming upward",
+    "plunge, impact: landing in a low crouch, the quill's nib driven into the ground in front, a burst of golden ink and light",
+    "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "plunge, recovery: rising from the impact back toward stance, the staff drawn back up, pages gathering back toward the book",
+    "heavy attack, charge: body coiled, the quill held far back, golden ink and pages spiralling into the feather crown to form a glowing orb",
+    "heavy attack, strike: a devastating forward strike releasing a huge golden orb of ink-light, a large bright arc trail of golden pages, with a motion smear of the swing, kept inside this cell",
+    "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "heavy attack, follow-through: deep follow-through, the staff ending low, the golden ink sparkling and fading"
+   ]
+  },
+  "alt-a": {
+   "title": "Second stance: combo strikes 1 and 2 with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance strike 1, anticipation: winding up for a quick straight fencing thrust, the blade fully extended, a thin amber trail",
+    "stance strike 1, strike: a quick straight fencing thrust, the blade fully extended, a thin amber trail, with a motion smear of the swing, kept inside this cell",
+    "stance strike 1, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 1, recovery: settling back into the stance-weapon ready pose",
+    "stance strike 2, anticipation: winding up for a second, higher thrust with a flick of the wrist",
+    "stance strike 2, strike: a second, higher thrust with a flick of the wrist, with a motion smear of the swing, kept inside this cell",
+    "stance strike 2, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 2, recovery: settling back into the stance-weapon ready pose"
+   ]
+  },
+  "alt-b": {
+   "title": "Second stance: combo finisher and an aerial attack with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance finisher, anticipation: winding up for a deep fencing lunge, front knee bent and back leg straight, the rapier driving far forward with a long amber streak",
+    "stance finisher, strike: a deep fencing lunge, front knee bent and back leg straight, the rapier driving far forward with a long amber streak, with a motion smear of the swing, kept inside this cell",
+    "stance finisher, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance finisher, recovery: settling back into the stance-weapon ready pose",
+    "stance aerial attack (airborne pose), anticipation: winding up for in mid-air, a downward thrust with the rapier",
+    "stance aerial attack (airborne pose), strike: in mid-air, a downward thrust with the rapier, with a motion smear of the swing, kept inside this cell",
+    "stance aerial attack (airborne pose), follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance aerial attack (airborne pose), recovery: still airborne, legs tucked"
+   ]
+  },
+  "alt-c": {
+   "title": "Second stance: heavy attack (4 frames), the stance change (2 frames), and the stance idle (2 frames)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance heavy attack, charge: coiled back in a fencing crouch, the rapier pointed forward, amber light gathering on the point",
+    "stance heavy attack, strike: an explosive running fleche lunge with a long amber streak, kept inside this cell",
+    "stance heavy attack, follow-through: the blow carried through, the trail and energy dissipating (kept inside this cell)",
+    "stance heavy attack, recovery: returning to the stance-weapon ready pose",
+    "stance change 1: tucking the quill behind his ear and drawing the rapier from its scabbard with a flourish, a musketeer's salute (the start of the motion)",
+    "stance change 2: tucking the quill behind his ear and drawing the rapier from its scabbard with a flourish, a musketeer's salute (the end of the motion, the stance weapon ready, a burst of its energy)",
+    "stance idle 1: a classic fencing en-garde stance: side on, the rapier pointed forward, the book raised in the left hand",
+    "stance idle 2: the same stance idle breathing in, a slight rise of the shoulders, hair and cloth drifting"
+   ]
   }
+ },
+ "sheetNotes": {
+  "art": "Rewritten Fate (Quill's Rift Art), six frames: 1-2 he opens the book in the left hand, golden pages lifting, and draws a quick stroke in the air with the quill; 3-4 golden ink and light spiral up around him and a warm golden aura glows on his body as the wounds close, the pages and ink swirls kept inside the cell; 5-6 the book closes with a soft glow, the quill lowered, pages settling. No legible letters or words anywhere.",
+  "idle": "the open book stays in the LEFT hand at the hip and the quill stays in the RIGHT hand with its feather crown upright; the curly mane bounces slightly with each breath.",
+  "run": "the book bounces at the left hip and the curly mane bobs with each stride; the quill is carried upright in the right hand, never dragging on the ground.",
+  "misc": "Taunt: he twirls the quill like a conductor's baton and gives a broad, mischievous grin with a wink. Victory: he raises the open book overhead with the quill held upright in his right hand, golden pages fanning out around him, a big grin.",
+  "ko": "Intro: he strolls in with the quill tapped lightly on the ground, lifts it and sweeps the feather crown in a grand theatrical flourish that scatters a few gold ink droplets, then settles into stance with the book at the hip.",
+  "skill": "Ink Blot, his own special (a splash of golden ink that slows the target). He holds the quill-staff in the RIGHT hand, its ink-black nib at the base, and the open book in the LEFT hand. 1: he raises the quill-staff with the nib pointing forward, the book held open. 2: he draws the nib back, a drop of golden ink gathering on the nib. 3: he thrusts the quill forward and a splash of golden ink bursts from the nib. 4: the ink blot spreading into a golden splash in front of him at full force, glowing gold drips. 5: the splash drying into flecks of gold ink, the quill returning. 6: back to the stance, the book held open, the feather upright.",
+  "alt-a": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a musketeer's swept-hilt RAPIER with a long slender steel blade and an ornate gold basket guard - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the rapier in his RIGHT hand in a classic fencing stance; the open book held up in the LEFT hand like a buckler; the quill tucked behind his ear.",
+  "alt-b": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a musketeer's swept-hilt RAPIER with a long slender steel blade and an ornate gold basket guard - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the rapier in his RIGHT hand in a classic fencing stance; the open book held up in the LEFT hand like a buckler; the quill tucked behind his ear.",
+  "alt-c": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a musketeer's swept-hilt RAPIER with a long slender steel blade and an ornate gold basket guard - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the rapier in his RIGHT hand in a classic fencing stance; the open book held up in the LEFT hand like a buckler; the quill tucked behind his ear."
+ },
+ "nativeHeight": 178,
+ "sheetsThreeFrame": {
+  "atk-a": {
+   "title": "Basic combo strikes 1 and 2 (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo cast 1, anticipation: the quill staff drawn back by the right hip, the feather crown beginning to glow gold",
+    "combo cast 1, strike: a sharp forward thrust of the quill, its nib releasing a bolt of amber ink-light with a golden trail kept inside this cell",
+    "combo cast 1, recovery: the staff returned upright, loose golden ink droplets falling away",
+    "combo cast 2, anticipation: the staff raised high overhead in both hands, the feather vane flaring, golden pages swirling about the staff",
+    "combo cast 2, strike: a downward sweep of the quill flinging a crescent of golden ink forward and down, a bright trail kept inside this cell",
+    "combo cast 2, recovery: the staff planted low after the swing, the open book bumping at the left hip, ink sparks settling"
+   ]
+  },
+  "atk-b": {
+   "title": "Combo finisher and aerial attack (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: a big theatrical wind-up, the quill swept far back, the open book held out in the left hand with golden pages lifting",
+    "combo finisher, strike: a lunging strike forward with the nib releasing a huge burst of golden ink-light, a large bright arc trail kept inside this cell, the strongest pose",
+    "combo finisher, recovery: full extension relaxing, the curly mane and loose shirt flaring, the staff drawn back toward stance",
+    "aerial attack, anticipation: in mid-air, the quill raised high, the book open at the side with golden pages fluttering",
+    "aerial attack, strike: a sweeping mid-air swing of the quill in front that scatters a golden arc of ink and feathers, kept inside this cell",
+    "aerial attack, recovery: airborne, body tucked, the book clasped against the hip, the staff returning upright"
+   ]
+  },
+  "atk-c": {
+   "title": "Plunge attack and heavy attack (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: in mid-air diving straight down, the quill pointed down beneath the body, the book flung open with golden pages streaming upward",
+    "plunge, impact: landing in a low crouch, the quill's nib driven into the ground in front, a burst of golden ink and light",
+    "plunge, recovery: rising from the impact back toward stance, the staff drawn back up, pages gathering back toward the book",
+    "heavy attack, charge: body coiled, the quill held far back, golden ink and pages spiralling into the feather crown to form a glowing orb",
+    "heavy attack, strike: a devastating forward strike releasing a huge golden orb of ink-light, a large bright arc trail of golden pages kept inside this cell",
+    "heavy attack, follow-through: deep follow-through, the staff ending low, the golden ink sparkling and fading"
+   ]
+  }
+ }
 }

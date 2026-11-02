@@ -4,6 +4,9 @@
 // 2. A thumb held on Light through a K.O. (the touch controls fade under it) is let go: after the next round's intro the
 //    sim no longer reads Light as held, and one fresh tap starts an attack.
 // 3. A held Heavy lets go when the app is hidden; a tap on the Block tile raises the guard with a perfect-block window.
+// 4. A tap on the Stance tile switches to the hero's second weapon, and the tile then shows the first one.
+// 5. The stick: a thumb pushing it moves the hero; when the thumb lifts and the browser loses the pointer release (iOS does
+//    now and then), the stick still lets go; a second thumb on the stick takes it over and turns the hero round.
 import { chromium } from 'playwright';
 
 const arg = (k, d) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1] ?? d;
@@ -17,6 +20,9 @@ const ctx = await b.newContext({ viewport: vp, deviceScaleFactor: 2, hasTouch: t
 await ctx.addInitScript(() => {
   localStorage.setItem('bladerift.profile', JSON.stringify({ name: 'Me', color: 0, load: { weapons: [0, 0], skill: 0, cls: 0, hero: 0 } }));
   localStorage.setItem('bladerift.hint.artHold.v1', '1');
+  // check 5 swallows every pointer release before the page sees it (registered first, in the capture phase)
+  window.__dropRelease = false;
+  for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) addEventListener(t, (e) => window.__dropRelease && e.stopImmediatePropagation(), true);
 });
 const p = await ctx.newPage();
 const errs = [];
@@ -150,6 +156,71 @@ for (let i = 0; i < 10 && !guarded; i++) {
 }
 await touch('touchEnd', pg, 3);
 check(!!guarded && guarded.charge !== 2, `a tap on the Block tile raises the guard with a perfect-block window (${JSON.stringify(guarded)})`);
+
+// 4. the Stance tile
+const self = () =>
+  p.evaluate(() => {
+    const f = [...window.__room.world.fighters.values()].find((x) => x.seat === 0);
+    return { stance: f.s.stance, vx: f.s.vx, face: f.s.face, act: f.s.act, on: document.querySelector('.touch .stick-base').classList.contains('on') };
+  });
+await wait(500);
+const ps = await centre('.touch .tb-stance');
+const iconOf = () => p.evaluate(() => document.querySelector('.touch .tb-stance i').dataset.icon);
+const icon0 = await iconOf();
+await touch('touchStart', ps, 4);
+await wait(50);
+await touch('touchEnd', ps, 4);
+let stanced = false;
+for (let i = 0; i < 20 && !stanced; i++) {
+  await wait(30);
+  stanced = (await self()).stance === 1;
+}
+check(stanced, 'a tap on the Stance tile switches to the second weapon');
+await wait(200);
+const icon1 = await iconOf();
+check(icon1 !== icon0 && /s-00|g-sword|lion/.test(icon0 + icon1), `the Stance tile shows the weapon it switches to (${icon0} -> ${icon1})`);
+
+// 5. the stick, with every pointer release lost
+const zoneAt = await p.evaluate(() => {
+  const r = document.querySelector('.touch .stick-zone').getBoundingClientRect();
+  return { x: r.left + r.width * 0.35, y: r.top + r.height * 0.6 };
+});
+const pt = (x, id) => ({ x, y: zoneAt.y, id, radiusX: 6, radiusY: 6, force: 1 });
+const send = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
+await p.evaluate(() => {
+  window.__dropRelease = true;
+});
+await send('touchStart', [pt(zoneAt.x, 6)]);
+for (let k = 1; k <= 6; k++) {
+  await send('touchMove', [pt(zoneAt.x + k * 12, 6)]);
+  await wait(16);
+}
+await wait(250);
+const pushed = await self();
+check(pushed.on && pushed.face === 1, `the stick pushes the hero right (${JSON.stringify(pushed)})`);
+await send('touchEnd', []);
+await wait(300);
+const let1 = await self();
+check(!let1.on && Math.abs(let1.vx) < 30, `the stick lets go when the thumb lifts, though the pointer release was lost (${JSON.stringify(let1)})`);
+// a thumb held on the stick, then a second one lands on it and pushes left: the second takes the stick over
+await send('touchStart', [pt(zoneAt.x, 6)]);
+await send('touchMove', [pt(zoneAt.x + 60, 6)]);
+await wait(150);
+await send('touchStart', [pt(zoneAt.x + 60, 6), pt(zoneAt.x + 20, 7)]);
+for (let k = 1; k <= 6; k++) {
+  await send('touchMove', [pt(zoneAt.x + 60, 6), pt(zoneAt.x + 20 - k * 12, 7)]);
+  await wait(16);
+}
+await wait(300);
+const turned = await self();
+check(turned.face === -1 && turned.vx < -30, `a second thumb on the stick takes it over and turns the hero round (${JSON.stringify(turned)})`);
+await send('touchEnd', []);
+await wait(300);
+const let2 = await self();
+check(!let2.on && Math.abs(let2.vx) < 30, `both thumbs lifted: the stick is free (${JSON.stringify(let2)})`);
+await p.evaluate(() => {
+  window.__dropRelease = false;
+});
 
 check(errs.length === 0, `no page errors${errs.length ? ': ' + errs.join(' | ') : ''}`);
 await b.close();

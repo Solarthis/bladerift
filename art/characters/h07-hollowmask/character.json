@@ -1,150 +1,207 @@
 {
-  "id": "h07-hollowmask",
-  "hero": 7,
-  "name": "Hassan",
-  "epithet": "Old Man of the Mountain",
-  "refs": [
-    "references/design.png"
-  ],
-  "designRefs": [
-    "../h00-leon/references/approved-sheet.png",
-    "references/portrait.jpg"
-  ],
-  "bible": "A lean, stooped assassin, tall and narrow with a hunched, gliding carriage and shoulders rolled forward. FACE: a smooth bone-white skull mask with carved flat planes at the brow and cheekbones, a long narrow jaw, two deep black eye sockets with a faint teal glow inside, and one hairline crack running from the left socket down to the jaw. HAIR: none visible; a black cowl covers the crown and falls to the shoulders with ragged, torn edges. COSTUME: a close-fitting charcoal-black bodysuit with dark slate-grey leather straps and bracers, and a black belt. A long ragged near-black cloak with grey-tan tattered hems hangs to the knees and streams behind him. WEAPON: a pair of short, slim, slightly curved bone-white knives, each blade no longer than the hand from wrist to fingertip, on short black wrapped grips with no guard. One knife in each hand, usually reverse-grip with the blade running along the forearm. The RIGHT hand is human and holds the right knife. The LEFT hand is a pale, translucent spectral claw of long fingers that closes around the left knife's grip. His spectral energy, claw glow and trails are MINT-TEAL light with white cores.",
-  "design": "- top row: full-body neutral stance facing right, hunched and slim; a combat stance with both knives reverse-grip; a walking pose; a running pose; a jump; a close-up of the skull mask under the cowl\n- middle rows: six attack and special poses: quick stabs, reverse-grip slashes, a low lunge, a downward plunge, the overhead claw sweep, the spectral claw skimming the ground with mint light\n- bottom row: guard, hit reaction, knocked down, a victory pose, the Phantom Hand special with its mint claw reaching forward",
-  "sheets": {
-    "run": {
-      "title": "Run cycle (8 frames, loops from frame 8 back to frame 1)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.78,
-      "frames": [
-        "run cycle 1: right foot contact, stride long and low, torso pitched far forward and hunched, the right knife held reverse-grip at the hip, cloak streaming behind",
-        "run cycle 2: right foot down, body at its lowest, skull tipped forward, cloak lifting off the ground",
-        "run cycle 3: passing pose, left knee driving forward, the spectral left claw held low at the side with its knife tucked in",
-        "run cycle 4: left leg reaching forward, body at its highest, both feet briefly off the ground, knives drawn in close",
-        "run cycle 5: left foot contact, stride long and low (the mirror of frame 1), torso far forward",
-        "run cycle 6: left foot down, body at its lowest, cloak trailing",
-        "run cycle 7: passing pose, right knee driving forward, the right knife tucked at the hip, body rising",
-        "run cycle 8: right leg reaching forward, body at its highest, both feet off the ground, claw and knife held in close"
-      ]
-    },
-    "atk-a": {
-      "title": "Basic combo strikes 1 and 2: quick reverse-grip knife work (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo strike 1, anticipation: the right knife pulled back low at the hip in reverse grip, blade along the forearm, body crouched and coiled, the spectral left claw held close to the chest",
-        "combo strike 1, strike: a fast straight stab forward with the right knife, arm fully extended, the knife point leading, a short mint trail, with a motion smear of the swing, kept inside this cell",
-        "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo strike 1, recovery: the stab withdrawn, the knife snapping back to the hip, weight already shifting forward",
-        "combo strike 2, anticipation: the spectral left claw swinging its knife back across the chest, body twisting, reverse grip",
-        "combo strike 2, strike: a short reverse-grip slash across the body from the left knife, a sharp mint arc trail, with a motion smear of the swing, kept inside this cell, cloak whipping round",
-        "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo strike 2, recovery: both knives drawn back into a low guard, skull tipped forward, settling into a hunched stance"
-      ]
-    },
-    "atk-b": {
-      "title": "Combo finisher and aerial attack: lunge and mid-air slash (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: a deep low crouch, both knives dropped to the sides in forward grip, the spectral claw pulled back behind the hip, weight sinking",
-        "combo finisher, strike: a lunging double stab, both knives thrust forward together as he drives off the ground, body stretched flat, a bright mint trail, with a motion smear of the swing, kept inside this cell, the strongest pose",
-        "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "combo finisher, recovery: body fully extended, the cloak flaring out behind, the knives pulled back in, settling low",
-        "aerial attack, anticipation: in mid-air, body tucked and hunched, both knives drawn back in reverse grip above the shoulders",
-        "aerial attack, strike: a sweeping downward double slash with both knives in reverse grip, a mint arc trail, with a motion smear of the swing, kept inside this cell",
-        "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "aerial attack, recovery: airborne, knees tucked, the knives folded in close, the cloak billowing upward, returning to a ready pose"
-      ]
-    },
-    "atk-c": {
-      "title": "Plunge attack and heavy attack: knife dive and claw sweep (4 frames each)",
-      "grid": [
-        4,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: diving head-first straight down, both knives pointed at the ground in reverse grip, the spectral claw trailing under the body, mint speed lines",
-        "plunge, impact: landing in a low crouch, both knives driven into the ground in front, a burst of mint light and dust, with a motion smear of the swing, kept inside this cell",
-        "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "plunge, recovery: rising from the impact, the knives pulled free and drawn back to the sides",
-        "heavy attack, charge: body coiled, the spectral claw pulled far back with a glowing mint light building in its palm, the right knife held reverse-grip behind him",
-        "heavy attack, strike: a wide overhead sweep of the spectral claw and knife, body rising into the swing, a huge mint arc trail, with a motion smear of the swing, kept inside this cell",
-        "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
-        "heavy attack, follow-through: deep follow-through, the claw dragging low, mint motes dissipating"
-      ]
-    }
+ "id": "h07-hollowmask",
+ "hero": 7,
+ "name": "Hassan",
+ "epithet": "Old Man of the Mountain",
+ "refs": [
+  "references/design.png"
+ ],
+ "designRefs": [
+  "../h00-leon/references/approved-sheet.png",
+  "references/portrait.jpg"
+ ],
+ "bible": "A lean, stooped assassin, tall and narrow with a hunched, gliding carriage and shoulders rolled forward. FACE: a smooth bone-white skull mask with carved flat planes at the brow and cheekbones, a long narrow jaw, two deep black eye sockets with a faint teal glow inside, and one hairline crack running from the left socket down to the jaw. HAIR: none visible; a black cowl covers the crown and falls to the shoulders with ragged, torn edges. COSTUME: a close-fitting charcoal-black bodysuit with dark slate-grey leather straps and bracers, and a black belt. A long ragged near-black cloak with grey-tan tattered hems hangs to the knees and streams behind him. WEAPON: a pair of short, slim, slightly curved bone-white knives, each blade no longer than the hand from wrist to fingertip, on short black wrapped grips with no guard. One knife in each hand, usually reverse-grip with the blade running along the forearm. The RIGHT hand is human and holds the right knife. The LEFT hand is a pale, translucent spectral claw of long fingers that closes around the left knife's grip. His spectral energy, claw glow and trails are MINT-TEAL light with white cores.",
+ "design": "- top row: full-body neutral stance facing right, hunched and slim; a combat stance with both knives reverse-grip; a walking pose; a running pose; a jump; a close-up of the skull mask under the cowl\n- middle rows: six attack and special poses: quick stabs, reverse-grip slashes, a low lunge, a downward plunge, the overhead claw sweep, the spectral claw skimming the ground with mint light\n- bottom row: guard, hit reaction, knocked down, a victory pose, the Phantom Hand special with its mint claw reaching forward",
+ "sheets": {
+  "run": {
+   "title": "Run cycle (8 frames, loops from frame 8 back to frame 1)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.78,
+   "frames": [
+    "run cycle 1: right foot contact, stride long and low, torso pitched far forward and hunched, the right knife held reverse-grip at the hip, cloak streaming behind",
+    "run cycle 2: right foot down, body at its lowest, skull tipped forward, cloak lifting off the ground",
+    "run cycle 3: passing pose, left knee driving forward, the spectral left claw held low at the side with its knife tucked in",
+    "run cycle 4: left leg reaching forward, body at its highest, both feet briefly off the ground, knives drawn in close",
+    "run cycle 5: left foot contact, stride long and low (the mirror of frame 1), torso far forward",
+    "run cycle 6: left foot down, body at its lowest, cloak trailing",
+    "run cycle 7: passing pose, right knee driving forward, the right knife tucked at the hip, body rising",
+    "run cycle 8: right leg reaching forward, body at its highest, both feet off the ground, claw and knife held in close"
+   ]
   },
-  "sheetNotes": {
-    "idle": "Both knives held reverse-grip in front of the body, the spectral left claw loose and slowly curling its fingers; the hunched head tilts slightly between breaths; the cloak sways.",
-    "air": "In the air both knives are drawn in reverse-grip; the spectral claw trails below him and the cloak billows upward.",
-    "dash": "Ground dash: he flattens into a low glide, the cloak streaming back as a long ragged shape, the spectral claw stretched forward.",
-    "hurt": "The skull cannot show an expression: pain shows through the whole head snapping back, the cowl whipping, the mint claw flickering, and the body folding over. Both knives stay in hand.",
-    "art": "Phantom Hand: anticipation 1-2, the spectral left claw grows long and pale and reaches low toward the ground, fingers spreading, mint light pooling in its palm. Execution 3-4, the huge translucent claw races along the ground toward the right edge of the cell, fingers closing into a crushing grip, mint light and motes trailing from it, kept inside the cell. Recovery 5-6, the claw dissolves into drifting mint motes as he rises back to a hunched stance.",
-    "misc": "Skill throw: the thrown item is a single bone-white knife flicked overhand with the right hand. Taunt: he tilts the skull slowly to one side, the cloak flaring, and beckons with the spectral claw by curling its fingers toward the opponent. Victory: he stands upright with the skull lifted toward the viewer, the right knife turned reverse-grip and held low, the spectral claw slowly opening as if releasing a soul, mint motes drifting around him.",
-    "ko": "Intro: he walks in slowly and hunched, the skull tipped to one side, the spectral claw hanging loose; he lifts the claw to the level of the mask, flicks both knives into reverse grip in a fast flourish with mint trails, and settles into the hunched stance. Defeat: the skull's crack widens as he drops to one knee and then falls forward.",
-    "skill": "Shadow Dirk, his own special (a blade thrown from the shadows: fast, and no guard stops it). He throws with the RIGHT hand, a hard OVERHAND knife throw; the spectral LEFT claw keeps the second knife. 1: he draws back the right arm with the bone-white knife in an overhand grip, the mask tilted. 2: the arm cocked high behind the head at full stretch, shadow wisps gathering around the arm. 3: the hard overhand throw, the arm whipping forward and the knife released. 4: the arm extended forward at full force, the knife streaking out of a dark shadow smear. 5: the shadow wisps dissolving, the arm lowering. 6: back in stance with both knives in hand."
+  "atk-a": {
+   "title": "Basic combo strikes 1 and 2: quick reverse-grip knife work (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, anticipation: the right knife pulled back low at the hip in reverse grip, blade along the forearm, body crouched and coiled, the spectral left claw held close to the chest",
+    "combo strike 1, strike: a fast straight stab forward with the right knife, arm fully extended, the knife point leading, a short mint trail, with a motion smear of the swing, kept inside this cell",
+    "combo strike 1, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo strike 1, recovery: the stab withdrawn, the knife snapping back to the hip, weight already shifting forward",
+    "combo strike 2, anticipation: the spectral left claw swinging its knife back across the chest, body twisting, reverse grip",
+    "combo strike 2, strike: a short reverse-grip slash across the body from the left knife, a sharp mint arc trail, with a motion smear of the swing, kept inside this cell, cloak whipping round",
+    "combo strike 2, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo strike 2, recovery: both knives drawn back into a low guard, skull tipped forward, settling into a hunched stance"
+   ]
   },
-  "nativeHeight": 170,
-  "sheetsThreeFrame": {
-    "atk-a": {
-      "title": "Basic combo strikes 1 and 2: quick reverse-grip knife work (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo strike 1, anticipation: the right knife pulled back low at the hip in reverse grip, blade along the forearm, body crouched and coiled, the spectral left claw held close to the chest",
-        "combo strike 1, strike: a fast straight stab forward with the right knife, arm fully extended, the knife point leading, a short mint trail kept inside this cell",
-        "combo strike 1, recovery: the stab withdrawn, the knife snapping back to the hip, weight already shifting forward",
-        "combo strike 2, anticipation: the spectral left claw swinging its knife back across the chest, body twisting, reverse grip",
-        "combo strike 2, strike: a short reverse-grip slash across the body from the left knife, a sharp mint arc trail kept inside this cell, cloak whipping round",
-        "combo strike 2, recovery: both knives drawn back into a low guard, skull tipped forward, settling into a hunched stance"
-      ]
-    },
-    "atk-b": {
-      "title": "Combo finisher and aerial attack: lunge and mid-air slash (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "combo finisher, anticipation: a deep low crouch, both knives dropped to the sides in forward grip, the spectral claw pulled back behind the hip, weight sinking",
-        "combo finisher, strike: a lunging double stab, both knives thrust forward together as he drives off the ground, body stretched flat, a bright mint trail kept inside this cell, the strongest pose",
-        "combo finisher, recovery: body fully extended, the cloak flaring out behind, the knives pulled back in, settling low",
-        "aerial attack, anticipation: in mid-air, body tucked and hunched, both knives drawn back in reverse grip above the shoulders",
-        "aerial attack, strike: a sweeping downward double slash with both knives in reverse grip, a mint arc trail kept inside this cell",
-        "aerial attack, recovery: airborne, knees tucked, the knives folded in close, the cloak billowing upward, returning to a ready pose"
-      ]
-    },
-    "atk-c": {
-      "title": "Plunge attack and heavy attack: knife dive and claw sweep (3 frames each)",
-      "grid": [
-        3,
-        2
-      ],
-      "standFrac": 0.66,
-      "frames": [
-        "plunge, dive: diving head-first straight down, both knives pointed at the ground in reverse grip, the spectral claw trailing under the body, mint speed lines",
-        "plunge, impact: landing in a low crouch, both knives driven into the ground in front, a burst of mint light and dust kept inside this cell",
-        "plunge, recovery: rising from the impact, the knives pulled free and drawn back to the sides",
-        "heavy attack, charge: body coiled, the spectral claw pulled far back with a glowing mint light building in its palm, the right knife held reverse-grip behind him",
-        "heavy attack, strike: a wide overhead sweep of the spectral claw and knife, body rising into the swing, a huge mint arc trail kept inside this cell",
-        "heavy attack, follow-through: deep follow-through, the claw dragging low, mint motes dissipating"
-      ]
-    }
+  "atk-b": {
+   "title": "Combo finisher and aerial attack: lunge and mid-air slash (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: a deep low crouch, both knives dropped to the sides in forward grip, the spectral claw pulled back behind the hip, weight sinking",
+    "combo finisher, strike: a lunging double stab, both knives thrust forward together as he drives off the ground, body stretched flat, a bright mint trail, with a motion smear of the swing, kept inside this cell, the strongest pose",
+    "combo finisher, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "combo finisher, recovery: body fully extended, the cloak flaring out behind, the knives pulled back in, settling low",
+    "aerial attack, anticipation: in mid-air, body tucked and hunched, both knives drawn back in reverse grip above the shoulders",
+    "aerial attack, strike: a sweeping downward double slash with both knives in reverse grip, a mint arc trail, with a motion smear of the swing, kept inside this cell",
+    "aerial attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "aerial attack, recovery: airborne, knees tucked, the knives folded in close, the cloak billowing upward, returning to a ready pose"
+   ]
+  },
+  "atk-c": {
+   "title": "Plunge attack and heavy attack: knife dive and claw sweep (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: diving head-first straight down, both knives pointed at the ground in reverse grip, the spectral claw trailing under the body, mint speed lines",
+    "plunge, impact: landing in a low crouch, both knives driven into the ground in front, a burst of mint light and dust, with a motion smear of the swing, kept inside this cell",
+    "plunge, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "plunge, recovery: rising from the impact, the knives pulled free and drawn back to the sides",
+    "heavy attack, charge: body coiled, the spectral claw pulled far back with a glowing mint light building in its palm, the right knife held reverse-grip behind him",
+    "heavy attack, strike: a wide overhead sweep of the spectral claw and knife, body rising into the swing, a huge mint arc trail, with a motion smear of the swing, kept inside this cell",
+    "heavy attack, follow-through: the same blow carried on past full extension, the weapon at the very end of its path and the body still committed to it, the trail thinning out behind it (kept inside this cell)",
+    "heavy attack, follow-through: deep follow-through, the claw dragging low, mint motes dissipating"
+   ]
+  },
+  "alt-a": {
+   "title": "Second stance: combo strikes 1 and 2 with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance strike 1, anticipation: winding up for a wide horizontal sweeping cut with the curved sabre, a teal arc",
+    "stance strike 1, strike: a wide horizontal sweeping cut with the curved sabre, a teal arc, with a motion smear of the swing, kept inside this cell",
+    "stance strike 1, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 1, recovery: settling back into the stance-weapon ready pose",
+    "stance strike 2, anticipation: winding up for a reverse sweeping cut back the other way, low",
+    "stance strike 2, strike: a reverse sweeping cut back the other way, low, with a motion smear of the swing, kept inside this cell",
+    "stance strike 2, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance strike 2, recovery: settling back into the stance-weapon ready pose"
+   ]
+  },
+  "alt-b": {
+   "title": "Second stance: combo finisher and an aerial attack with the stance weapon (4 frames each)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance finisher, anticipation: winding up for a full spinning cut, the body turning a complete circle with the sabre, a ring of teal light around him",
+    "stance finisher, strike: a full spinning cut, the body turning a complete circle with the sabre, a ring of teal light around him, with a motion smear of the swing, kept inside this cell",
+    "stance finisher, follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance finisher, recovery: settling back into the stance-weapon ready pose",
+    "stance aerial attack (airborne pose), anticipation: winding up for in mid-air, a downward spinning slash",
+    "stance aerial attack (airborne pose), strike: in mid-air, a downward spinning slash, with a motion smear of the swing, kept inside this cell",
+    "stance aerial attack (airborne pose), follow-through: the same blow carried on past full extension, the trail thinning out behind it (kept inside this cell)",
+    "stance aerial attack (airborne pose), recovery: still airborne, legs tucked"
+   ]
+  },
+  "alt-c": {
+   "title": "Second stance: heavy attack (4 frames), the stance change (2 frames), and the stance idle (2 frames)",
+   "grid": [
+    4,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "stance heavy attack, charge: the sabre drawn low behind him, teal mist gathering",
+    "stance heavy attack, strike: a vicious rising diagonal cut, kept inside this cell",
+    "stance heavy attack, follow-through: the blow carried through, the trail and energy dissipating (kept inside this cell)",
+    "stance heavy attack, recovery: returning to the stance-weapon ready pose",
+    "stance change 1: sheathing the bone knives and drawing the curved shamshir from his sash with a hiss of steel, teal mist (the start of the motion)",
+    "stance change 2: sheathing the bone knives and drawing the curved shamshir from his sash with a hiss of steel, teal mist (the end of the motion, the stance weapon ready, a burst of its energy)",
+    "stance idle 1: a low creeping stance, the shamshir held low behind him, the left hand forward and clawed",
+    "stance idle 2: the same stance idle breathing in, a slight rise of the shoulders, hair and cloth drifting"
+   ]
   }
+ },
+ "sheetNotes": {
+  "idle": "Both knives held reverse-grip in front of the body, the spectral left claw loose and slowly curling its fingers; the hunched head tilts slightly between breaths; the cloak sways.",
+  "air": "In the air both knives are drawn in reverse-grip; the spectral claw trails below him and the cloak billows upward.",
+  "dash": "Ground dash: he flattens into a low glide, the cloak streaming back as a long ragged shape, the spectral claw stretched forward.",
+  "hurt": "The skull cannot show an expression: pain shows through the whole head snapping back, the cowl whipping, the mint claw flickering, and the body folding over. Both knives stay in hand.",
+  "art": "Phantom Hand: anticipation 1-2, the spectral left claw grows long and pale and reaches low toward the ground, fingers spreading, mint light pooling in its palm. Execution 3-4, the huge translucent claw races along the ground toward the right edge of the cell, fingers closing into a crushing grip, mint light and motes trailing from it, kept inside the cell. Recovery 5-6, the claw dissolves into drifting mint motes as he rises back to a hunched stance.",
+  "misc": "Skill throw: the thrown item is a single bone-white knife flicked overhand with the right hand. Taunt: he tilts the skull slowly to one side, the cloak flaring, and beckons with the spectral claw by curling its fingers toward the opponent. Victory: he stands upright with the skull lifted toward the viewer, the right knife turned reverse-grip and held low, the spectral claw slowly opening as if releasing a soul, mint motes drifting around him.",
+  "ko": "Intro: he walks in slowly and hunched, the skull tipped to one side, the spectral claw hanging loose; he lifts the claw to the level of the mask, flicks both knives into reverse grip in a fast flourish with mint trails, and settles into the hunched stance. Defeat: the skull's crack widens as he drops to one knee and then falls forward.",
+  "skill": "Shadow Dirk, his own special (a blade thrown from the shadows: fast, and no guard stops it). He throws with the RIGHT hand, a hard OVERHAND knife throw; the spectral LEFT claw keeps the second knife. 1: he draws back the right arm with the bone-white knife in an overhand grip, the mask tilted. 2: the arm cocked high behind the head at full stretch, shadow wisps gathering around the arm. 3: the hard overhand throw, the arm whipping forward and the knife released. 4: the arm extended forward at full force, the knife streaking out of a dark shadow smear. 5: the shadow wisps dissolving, the arm lowering. 6: back in stance with both knives in hand.",
+  "alt-a": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a deeply curved Persian SHAMSHIR sabre, dark steel with a teal sheen and a bone-white grip - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the shamshir in the RIGHT hand; the left hand free and clawed.",
+  "alt-b": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a deeply curved Persian SHAMSHIR sabre, dark steel with a teal sheen and a bone-white grip - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the shamshir in the RIGHT hand; the left hand free and clawed.",
+  "alt-c": "THIS SHEET SHOWS HIS/HER SECOND FIGHTING STANCE. In EVERY frame the weapon is a deeply curved Persian SHAMSHIR sabre, dark steel with a teal sheen and a bone-white grip - NOT the usual weapon from the reference images (the costume, face, hair and colours stay exactly as the reference). How it is held: the shamshir in the RIGHT hand; the left hand free and clawed."
+ },
+ "nativeHeight": 170,
+ "sheetsThreeFrame": {
+  "atk-a": {
+   "title": "Basic combo strikes 1 and 2: quick reverse-grip knife work (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo strike 1, anticipation: the right knife pulled back low at the hip in reverse grip, blade along the forearm, body crouched and coiled, the spectral left claw held close to the chest",
+    "combo strike 1, strike: a fast straight stab forward with the right knife, arm fully extended, the knife point leading, a short mint trail kept inside this cell",
+    "combo strike 1, recovery: the stab withdrawn, the knife snapping back to the hip, weight already shifting forward",
+    "combo strike 2, anticipation: the spectral left claw swinging its knife back across the chest, body twisting, reverse grip",
+    "combo strike 2, strike: a short reverse-grip slash across the body from the left knife, a sharp mint arc trail kept inside this cell, cloak whipping round",
+    "combo strike 2, recovery: both knives drawn back into a low guard, skull tipped forward, settling into a hunched stance"
+   ]
+  },
+  "atk-b": {
+   "title": "Combo finisher and aerial attack: lunge and mid-air slash (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "combo finisher, anticipation: a deep low crouch, both knives dropped to the sides in forward grip, the spectral claw pulled back behind the hip, weight sinking",
+    "combo finisher, strike: a lunging double stab, both knives thrust forward together as he drives off the ground, body stretched flat, a bright mint trail kept inside this cell, the strongest pose",
+    "combo finisher, recovery: body fully extended, the cloak flaring out behind, the knives pulled back in, settling low",
+    "aerial attack, anticipation: in mid-air, body tucked and hunched, both knives drawn back in reverse grip above the shoulders",
+    "aerial attack, strike: a sweeping downward double slash with both knives in reverse grip, a mint arc trail kept inside this cell",
+    "aerial attack, recovery: airborne, knees tucked, the knives folded in close, the cloak billowing upward, returning to a ready pose"
+   ]
+  },
+  "atk-c": {
+   "title": "Plunge attack and heavy attack: knife dive and claw sweep (3 frames each)",
+   "grid": [
+    3,
+    2
+   ],
+   "standFrac": 0.66,
+   "frames": [
+    "plunge, dive: diving head-first straight down, both knives pointed at the ground in reverse grip, the spectral claw trailing under the body, mint speed lines",
+    "plunge, impact: landing in a low crouch, both knives driven into the ground in front, a burst of mint light and dust kept inside this cell",
+    "plunge, recovery: rising from the impact, the knives pulled free and drawn back to the sides",
+    "heavy attack, charge: body coiled, the spectral claw pulled far back with a glowing mint light building in its palm, the right knife held reverse-grip behind him",
+    "heavy attack, strike: a wide overhead sweep of the spectral claw and knife, body rising into the swing, a huge mint arc trail kept inside this cell",
+    "heavy attack, follow-through: deep follow-through, the claw dragging low, mint motes dissipating"
+   ]
+  }
+ }
 }

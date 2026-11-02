@@ -12,10 +12,10 @@
  *
  * The module keeps its own state: the opts give the starting values and the callbacks report each change.
  */
-import { ARTS, CLASSES, classOf, dodgeOf, heroClass, heroOf, HEROES, heroWeapon, SKILLS, WEAPONS, WeaponId, weaponLookOf } from '@bladerift/shared';
+import { ARTS, CLASSES, classOf, dodgeOf, heroClass, heroOf, HEROES, heroWeapon, SKILLS, stanceLookOf, WEAPONS, WeaponId, weaponLookOf } from '@bladerift/shared';
 import type { ClassDef, HeroDef } from '@bladerift/shared';
 import { COLORS, colorOf, css } from './colors';
-import { crestIcon, dodgeIcon, heroArtIcon, heroWeaponIcon, skillIcon } from './icons';
+import { crestIcon, dodgeIcon, heroArtIcon, heroWeaponIcon, skillIcon, stanceWeaponIcon } from './icons';
 import { animatePreview } from './spritePreview';
 import './heroSelect.css';
 
@@ -124,6 +124,7 @@ function statsOf(h: HeroDef) {
     dg: dodgeOf({ hero: h.id }),
     art: ARTS[h.art] ?? ARTS[0],
     wa: weaponLookOf(h.id),
+    st: stanceLookOf(h.id),
   };
 }
 
@@ -143,8 +144,9 @@ function infoHtml(h: HeroDef): string {
         <div class="hsel-it hsel-k-dodge"><img src="${dodgeIcon(h.id)}" alt=""><div><small>Dodge</small><b>${esc(s.dg.name)}</b><p>${esc(s.dg.blurb)}</p></div></div>
         <div class="hsel-it hsel-k-art"><img src="${heroArtIcon(h.id)}" alt=""><div><small>Rift Art</small><b>${esc(s.art.name)}</b><p>${esc(s.art.blurb)}</p></div></div>
         <div class="hsel-it hsel-k-sig"><img src="${heroWeaponIcon(h.id)}" alt=""><div><small>Signature weapon <em>locked to the hero</em></small><b>${esc(s.wa.name)}</b><p>${esc(s.wa.blurb)}</p></div></div>
+        <div class="hsel-it hsel-k-sig"><img src="${stanceWeaponIcon(h.id)}" alt=""><div><small>Second stance <em>Stance button</em></small><b>${esc(s.st.name)}</b><p>${esc(s.st.blurb)}</p></div></div>
       </div>
-      <p class="hsel-note">${esc(h.name)} fights with the ${esc(s.wa.name)} alone: light ${shot ? 'shots' : 'combo'} on one button, ${heavy} on the other${shot ? '' : ' (a plunge in the air)'}.</p>`;
+      <p class="hsel-note">${esc(h.name)} fights with the ${esc(s.wa.name)}: light ${shot ? 'shots' : 'combo'} on one button, ${heavy} on the other${shot ? '' : ' (a plunge in the air)'}. Stance switches to the ${esc(s.st.name)} and its own moves.</p>`;
 }
 
 const tileHtml = (h: HeroDef) =>

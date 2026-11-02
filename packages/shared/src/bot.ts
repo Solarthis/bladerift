@@ -5,14 +5,14 @@
  * ledges to follow. Difficulty changes reaction time, how often it commits and how exact its timing is (see TUNE).
  * Everything comes from its seeded Rng, so a seed always plays the same match.
  */
-import { DT, FIGHTER, THROW } from './constants';
+import { DT, FIGHTER, STANCE, THROW } from './constants';
 import { ArtId, classOf, EX_SPECIAL, RIFT } from './classes';
 import { solidAt, surfaceBelow } from './arena';
 import { Act, currentMove, FLASH, hasCrescent, isBlocking, isParrying, isThrowable, MOVE_LAUNCH } from './fighter';
 import { Btn, InputCmd } from './input';
 import { Rng } from './math';
 import { Box, dodgeOf, Loadout, Move, SKILL_FX, SKILLS, SkillDef, WEAPONS, WeaponId } from './weapons';
-import { heroClass, HEROES, HERO_COUNT, sanitizeLoadout } from './heroes';
+import { heroClass, HEROES, HERO_COUNT, sanitizeLoadout, slotFor, weaponAt } from './heroes';
 import { bodyBox, Fighter, moveBox, Projectile, ProjKind, World } from './world';
 
 /** The practice and training levels: `cpu` is the regular duel AI (the normal tuning); the `dummy-*` levels are training
@@ -140,18 +140,21 @@ function skillInRange(sk: SkillDef, g: Geo): boolean {
 const HALF = FIGHTER.w / 2;
 const CHEST = FIGHTER.h / 2;
 
-const isBow = (w: WeaponId) => WEAPONS[w].arrowSpeed !== undefined;
+/** A weapon whose swings are shots (bow, staff, Gate, darts). */
+const isBow = (w: WeaponId) => !!WEAPONS[w].combo[0]?.arrow && WEAPONS[w].arrowSpeed !== undefined;
 const isShield = (w: WeaponId) => WEAPONS[w].block === true;
-/** A zoner's kit: its weapon fights from range (bow, staff, gate). */
-const isRanged = (load: Loadout) => isBow(load.weapons[0]);
+/** The weapon on a button (0 LIGHT, 1 HEAVY) in the fighter's current stance (heroes.ts weaponAt). */
+const wpn = (f: { s: { stance: number }; load: Loadout }, button: number) => weaponAt(f.load, slotFor(button ? 1 : 0, f.s.stance));
+/** A zoner right now: the weapon in hand fights from range (bow, staff, gate, darts). */
+const isRanged = (f: { s: { stance: number }; load: Loadout }) => isBow(wpn(f, 0));
 /** Forward reach of a weapon's opening hit, from the feet to the far edge of its box. */
 const reachOf = (w: WeaponId) => {
   const m = WEAPONS[w].combo[0];
   return m.box.x + m.box.w;
 };
 const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-/** Slot (0 or 1) holding a weapon matching pred, -1 if neither does. */
-const slotOf = (load: Loadout, pred: (w: WeaponId) => boolean) => (pred(load.weapons[0]) ? 0 : pred(load.weapons[1]) ? 1 : -1);
+/** Button (0 or 1) whose weapon in the current stance matches pred, -1 if neither does. */
+const slotOf = (f: { s: { stance: number }; load: Loadout }, pred: (w: WeaponId) => boolean) => (pred(wpn(f, 0)) ? 0 : pred(wpn(f, 1)) ? 1 : -1);
 
 export function botLoadout(seed: number): Loadout {
   const rng = new Rng(seed * 2654435761);
@@ -276,6 +279,8 @@ export class BotBrain {
   private unstuckT = 0;
   /** Ticks in a row the Rift gauge has been full without its Art being used. */
   private fullT = 0;
+  /** Ticks until the next look at the stance (STANCE: which weapon suits the range). */
+  private stanceT = 60;
 
   constructor(readonly id: number, seed: number, readonly level: BotDifficulty = 'normal') {
     this.rng = new Rng(seed);
@@ -297,7 +302,7 @@ export class BotBrain {
     if (me && foe && w.phase === 'fight' && me.s.lock === 0) {
       this.act(w, me, foe, cmd);
       // taps are taps: a jump, skill, roll or flask press is never sent two ticks running (a held button would be ignored)
-      cmd.buttons &= ~(this.prev & (Btn.Jump | Btn.Skill | Btn.Roll | Btn.Heal | Btn.Block));
+      cmd.buttons &= ~(this.prev & (Btn.Jump | Btn.Skill | Btn.Roll | Btn.Heal | Btn.Block | Btn.Stance));
       if (me.s.rift >= RIFT.max && !(this.prev & Btn.Special) && this.wantArt(w, me, foe)) cmd.buttons |= Btn.Special;
     } else this.reset();
     this.idleT = cmd.moveX === 0 && cmd.buttons === 0 ? this.idleT + 1 : 0;
@@ -370,7 +375,7 @@ export class BotBrain {
     const foe = me ? w.opponent(me) : undefined;
     if (!me || !foe || w.phase !== 'fight' || me.s.lock > 0 || me.s.act !== Act.Free) return;
     const dx = foe.s.x - me.s.x;
-    const reach = reachOf(me.load.weapons[0]) + HALF;
+    const reach = reachOf(wpn(me, 0)) + HALF;
     if (Math.abs(dx) > reach) cmd.moveX = Math.sign(dx) * 0.6;
     else if (me.s.face !== Math.sign(dx)) cmd.moveX = Math.sign(dx) * 0.3;
     else if (cmd.seq % DUMMY_SWING_EVERY === 0) cmd.buttons = Btn.A;
@@ -433,6 +438,7 @@ export class BotBrain {
     if (this.heal(w, me, foe, g, cmd, T)) return;
     if (this.skill(w, me, foe, g, cmd, T)) return;
     if (this.exSkill(w, me, foe, g, cmd)) return;
+    if (this.stance(me, foe, g, cmd, T)) return;
     // while a swing of theirs can reach us, our own swing would only trade: answer it instead
     if (!swingAt(me, foe) && this.attack(me, foe, g, cmd, T)) return;
     this.platforms(w, me, g, cmd, T);
@@ -446,8 +452,8 @@ export class BotBrain {
       return;
     }
     this.modeT = 80 + this.rng.int(120);
-    const bow = slotOf(me.load, isBow);
-    const melee = [0, 1].filter((i) => !isBow(me.load.weapons[i]) && !isShield(me.load.weapons[i]));
+    const bow = slotOf(me, isBow);
+    const melee = [0, 1].filter((i) => !isBow(wpn(me, i)) && !isShield(wpn(me, i)));
     if (bow >= 0 && (melee.length === 0 || (!this.bored && this.rng.next() < 0.35))) {
       this.mode = 'range';
       this.slot = bow;
@@ -455,6 +461,29 @@ export class BotBrain {
       this.mode = 'melee';
       this.slot = melee.length ? melee[this.rng.int(melee.length)] : 0;
     }
+  }
+
+  /**
+   * Every so often, the stance whose weapon suits the range (STANCE): a shooter switches to its other weapon when they are on
+   * top of it and back when they are far; two melee weapons, the longer one at a distance and the quicker one up close. Now
+   * and then a switch for its own sake, so both movesets come out.
+   */
+  private stance(me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
+    if (this.level === 'easy' || this.prev & Btn.Stance || this.vulnerable(foe) || --this.stanceT > 0) return false;
+    this.stanceT = 70 + this.rng.int(110);
+    const now = wpn(me, 0);
+    const other = weaponAt(me.load, slotFor(0, me.s.stance ? 0 : 1));
+    const reachNow = reachOf(now) + HALF;
+    const reachOther = reachOf(other) + HALF;
+    let want = false;
+    if (isBow(now) !== isBow(other)) want = isBow(now) ? g.dist < 130 : g.dist > 300;
+    else if (!isBow(now)) want = g.dist > reachNow + 50 ? reachOther > reachNow + 10 : g.dist < reachNow * 0.6 && WEAPONS[other].combo[0].startup < WEAPONS[now].combo[0].startup;
+    if (!want && this.rng.next() < 0.12) want = true;
+    if (!want || this.rng.next() >= T.attack + 0.25) return false;
+    // (not into a swing of theirs: the change takes STANCE.flip ticks before anything can cancel it)
+    if (swingAt(me, foe) || g.dist < 50 + STANCE.flip * 4) return false;
+    cmd.buttons |= Btn.Stance;
+    return true;
   }
 
   /** The opponent is open: recovering from a swing, stunned, or drinking. */
@@ -493,7 +522,7 @@ export class BotBrain {
         this.clearHold();
         return false;
       }
-      const c = WEAPONS[me.load.weapons[s.slot]].charged;
+      const c = WEAPONS[weaponAt(me.load, s.slot)].charged;
       const max = c ? c.max : 0;
       if (s.charge >= this.holdTarget || s.charge >= max - 2 || g.dist < 90 || ++this.holdTicks > 58) this.clearHold();
       else cmd.buttons |= this.hold;
@@ -507,21 +536,21 @@ export class BotBrain {
     const s = me.s;
     const m = currentMove(s, me.load);
     if (!m || m.arrow || m.plunge || m.dash || this.chainSeq === s.moveSeq) return;
-    if (isShield(me.load.weapons[s.slot])) return;
+    if (isShield(weaponAt(me.load, s.slot))) return;
     const chainAt = m.startup + m.active + Math.ceil(m.recovery * 0.35);
     const total = m.startup + m.active + m.recovery;
     // the press is buffered for 10 ticks, so pressing a few ticks before the chain window opens is enough
     if (s.actT < chainAt - 4 || s.actT >= total) return;
     this.chainSeq = s.moveSeq;
-    const btn = s.slot === 0 ? Btn.A : Btn.B;
-    if (g.dist > reachOf(me.load.weapons[s.slot]) + HALF + 14 || this.rng.next() >= T.chain) return;
+    const btn = (s.slot & 1) === 0 ? Btn.A : Btn.B;
+    if (g.dist > reachOf(weaponAt(me.load, s.slot)) + HALF + 14 || this.rng.next() >= T.chain) return;
     if (!(this.prev & btn)) cmd.buttons |= btn;
   }
 
   /** Answer the opponent's swings and shots: roll, or raise the shield to parry, on the right frame. */
   private react(w: World, me: Fighter, foe: Fighter, g: Geo, cmd: InputCmd, T: Tune): boolean {
     const s = me.s;
-    const shieldSlot = slotOf(me.load, isShield);
+    const shieldSlot = slotOf(me, isShield);
     const sw = swingAt(me, foe);
     if (sw && sw.seq !== this.answered) {
       this.answered = sw.seq;
@@ -584,7 +613,7 @@ export class BotBrain {
     let m = this.shots.get(shot.id);
     if (!m) {
       // (against a zoner, a melee fighter dodges its shots forward: backing off only gives it the range it wants)
-      const rush = isRanged(foe.load) && !isRanged(me.load);
+      const rush = isRanged(foe) && !isRanged(me);
       m = {
         t: w.tick, answer: this.rng.next() < T.dodge, block: this.rng.next() < T.parry, through: this.rng.next() < T.through || rush,
         perfect: this.rng.next() < T.perfect && s.parryCd <= T.react ? this.perfectLead(T) : -1,
@@ -637,7 +666,7 @@ export class BotBrain {
         return true;
       }
     }
-    const reach = reachOf(me.load.weapons[this.slot]) + HALF;
+    const reach = reachOf(wpn(me, this.slot)) + HALF;
     if (
       this.canRoll(me) && g.facing && s.vy > 0 && Math.abs(g.dy) < 80 && foe.s.ground > 0 &&
       g.dist > reach + 60 && g.dist < reach + 240 && this.rng.next() < T.dash
@@ -665,7 +694,7 @@ export class BotBrain {
   }
 
   private startBlock(me: Fighter, cmd: InputCmd, bash: boolean) {
-    this.hold = slotOf(me.load, isShield) === 0 ? Btn.A : Btn.B;
+    this.hold = slotOf(me, isShield) === 0 ? Btn.A : Btn.B;
     this.holdKind = 'block';
     this.holdTicks = 1;
     this.bash = bash;
@@ -745,7 +774,7 @@ export class BotBrain {
     // the heavy only with the same weapon in both hands
     if (
       s.ground && g.facing && g.dist <= THROW.range && Math.abs(g.dy) < FIGHTER.h && isBlocking(o) && isThrowable(o) &&
-      me.load.weapons[0] === me.load.weapons[1] && !(this.prev & Btn.B) && this.rng.next() < (vuln ? T.punish : T.attack)
+      wpn(me, 0) === wpn(me, 1) && !(this.prev & Btn.B) && this.rng.next() < (vuln ? T.punish : T.attack)
     ) {
       cmd.moveX = g.dir;
       cmd.buttons |= Btn.B;
@@ -757,7 +786,7 @@ export class BotBrain {
     let inReach = false;
     if (!guardFresh && Math.abs(g.dy) < 50) {
       for (const i of order) {
-        const wp = me.load.weapons[i];
+        const wp = wpn(me, i);
         const btn = i === 0 ? Btn.A : Btn.B;
         // a bow fighter (no melee weapon in the kit) snaps off quick shots at close and middle range too
         if (isBow(wp)) {
@@ -775,7 +804,7 @@ export class BotBrain {
         }
         if (this.prev & btn) continue;
         // (the kit's B with a shield is the heavy bash: swing it like any weapon)
-        const heavyBash = i === 1 && me.load.weapons[0] === me.load.weapons[1];
+        const heavyBash = i === 1 && wpn(me, 0) === wpn(me, 1);
         if (isShield(wp) && !heavyBash) {
           if (s.ground && (vuln || this.rng.next() < T.attack * 0.5)) {
             this.startBlock(me, cmd, true);
@@ -809,10 +838,10 @@ export class BotBrain {
     }
     // lance lunge (hold to charge) or bow draw (hold to draw), out of melee reach
     for (const i of order) {
-      const wp = me.load.weapons[i];
+      const wp = wpn(me, i);
       const c = WEAPONS[wp].charged;
       const btn = i === 0 ? Btn.A : Btn.B;
-      const bow = isBow(wp);
+      const bow = isBow(wp) || !!c?.arrow;
       if (!c || (!s.ground && !bow) || this.prev & btn) continue;
       const lo = bow ? 260 : 100;
       const hi = bow ? 520 : 230;
@@ -825,7 +854,7 @@ export class BotBrain {
     }
     if (!inReach) this.windT = -1;
     // hop in from just outside reach and swing from the air
-    const reach = reachOf(me.load.weapons[this.slot]) + HALF;
+    const reach = reachOf(wpn(me, this.slot)) + HALF;
     if (
       this.mode === 'melee' && s.ground && !vuln && g.facing && Math.abs(g.dy) < 40 &&
       g.dist > reach + 2 && g.dist < reach + 90 && this.rng.next() < T.hop
@@ -858,13 +887,13 @@ export class BotBrain {
   private gap(me: Fighter, foe: Fighter, T: Tune): number {
     if (this.mode === 'range') return 340;
     // a ready skill is worth a step back to where it lands (not against a zoner: out there is where it wants us)
-    if (this.level !== 'easy' && me.s.skillCd === 0 && !isRanged(foe.load)) {
+    if (this.level !== 'easy' && me.s.skillCd === 0 && !isRanged(foe)) {
       const sk = SKILLS[me.load.skill];
       if (sk?.kind === 'shot') return 260;
       if (sk?.kind === 'dash') return 170;
     }
-    if (me.s.veil > 0 && this.mode === 'melee') return reachOf(me.load.weapons[this.slot]) * 0.7 + HALF;
-    return reachOf(me.load.weapons[this.slot]) * T.spaceMul + HALF + T.spaceAdd;
+    if (me.s.veil > 0 && this.mode === 'melee') return reachOf(wpn(me, this.slot)) * 0.7 + HALF;
+    return reachOf(wpn(me, this.slot)) * T.spaceMul + HALF + T.spaceAdd;
   }
 
   /** Walk to the wanted gap, hold it, or back off; the choice is kept for a while so the bot does not jitter. */

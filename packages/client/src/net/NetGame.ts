@@ -34,6 +34,8 @@ export interface ViewFighter {
   act: number;
   actT: number;
   slot: number;
+  /** The stance (0 the first weapon, 1 the hero's second). */
+  stance: number;
   move: number;
   hp: number;
   charge: number;
@@ -48,7 +50,8 @@ export interface ViewFighter {
   /** Ranged heat and overheat (see FighterState heat / reload). */
   heat: number;
   reload: boolean;
-  weapons: [number, number];
+  /** The weapon in each attack slot (NetFighter.weapons): index it with `slot`. */
+  weapons: number[];
   skill: number;
   crouch: boolean;
   slide: boolean;
@@ -417,6 +420,7 @@ export class NetGame {
     o.act = s.act;
     o.actT = s.actT;
     o.slot = s.slot;
+    o.stance = s.stance;
     o.move = s.move;
     o.hp = s.hp;
     o.charge = s.charge;

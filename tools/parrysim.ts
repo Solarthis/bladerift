@@ -5,7 +5,8 @@
 //   k = 0 .. PARRY.window-1   must parry every blow (no damage at all, no root, no burn)
 //   k = PARRY.window + 3      (too early) must NOT parry the first blow
 // Attacks: the light string (three presses), the heavy (held), the launcher, the air string, the plunge, the special,
-// the Rift Art, and the throw (a throw beats a perfect block by design: it must get through).
+// the Rift Art, and the throw (a throw beats a perfect block by design: it must get through); then the normals again
+// in the second stance (the hero's stance weapon).
 import { Btn, type InputCmd } from '../packages/shared/src/input';
 import { FIGHTER, PARRY, ROUND } from '../packages/shared/src/constants';
 import { RIFT } from '../packages/shared/src/classes';
@@ -53,6 +54,19 @@ const ATTACKS: Attack[] = [
   { name: 'rift art close', dist: 50, plan: (t) => ({ b: tap(t, 0, Btn.Special) }), prep: (a) => { a.s.rift = RIFT.max; } },
   { name: 'throw', dist: 24, plan: (t) => ({ b: tap(t, 0, Btn.B), x: t < 3 ? 1 : 0 }), beatsParry: true },
 ];
+// the second stance (STANCE): the same attacks with the hero's stance weapon in hand
+for (const atk of ATTACKS.slice()) {
+  if (/special|rift|throw/.test(atk.name)) continue;
+  ATTACKS.push({
+    ...atk,
+    name: `stance ${atk.name}`,
+    dist: atk.name === 'heavy' ? 90 : atk.dist,
+    prep: (a, d, w) => {
+      a.s.stance = 1;
+      atk.prep?.(a, d, w);
+    },
+  });
+}
 
 const cmd = (seq: number, buttons = 0, moveX = 0, moveY = 0): InputCmd => ({ seq, moveX, moveY, buttons, viewTick: 0 });
 

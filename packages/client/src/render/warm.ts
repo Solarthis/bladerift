@@ -22,7 +22,7 @@ const done = new Set<string>();
 let running = false;
 
 /** Every pose a fighter with this hero and loadout can show (deduplicated by the rig's cache anyway). */
-function posesFor(hero: number, weapons: [number, number], skill: number) {
+function posesFor(hero: number, weapons: readonly number[], skill: number) {
   const out: Record<string, unknown>[] = [];
   const h = heroOf(hero);
   const view = (o: Partial<ViewFighter>) =>
@@ -80,7 +80,7 @@ function posesFor(hero: number, weapons: [number, number], skill: number) {
 }
 
 /** Queue a fighter's frames for background rendering (no-op when already warmed). */
-export function warmFighter(hero: number, weapons: [number, number], skill: number) {
+export function warmFighter(hero: number, weapons: readonly number[], skill: number) {
   const key = `${hero}|${weapons}|${skill}`;
   if (done.has(key)) return;
   done.add(key);

@@ -285,6 +285,13 @@ export function arcFor(weapon: number, move: number): ArcShape | null {
     kind: 'thrust', a0: 0, a1: 0, r0: 6, r, w, cx: 0, cy: 36, sy: 1, dur: 0.05, life: 0.2, ...o,
   });
   switch (weapon) {
+    // second-stance strikes that are not a blade's swing: the fire, the demon's claw and the shadow are painted into the
+    // frames themselves, and a thrown dart is its own projectile
+    case WeaponId.FireBreath:
+    case WeaponId.DemonHand:
+    case WeaponId.Shadow:
+    case WeaponId.Darts:
+      return null;
     // the heroes' own weapons
     case WeaponId.Kopis:
       // fast forward chops alternating down and up, a rising cut, then the flaming finisher

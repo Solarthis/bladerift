@@ -43,6 +43,7 @@ const ACTION_NAMES: Record<KeyAction, string> = {
   heal: 'Heal',
   special: 'Rift Art',
   block: 'Block / perfect block',
+  stance: 'Stance (second weapon)',
 };
 
 const NUM_PREFS = ['volume', 'musicVol', 'sfxVol', 'voiceVol', 'shake', 'touchScale', 'touchOpacity'] as const;

@@ -69,6 +69,25 @@ const SIGNATURE: WeaponId[] = [WeaponId.Sword, WeaponId.Bow, WeaponId.Lance, Wea
 /** The weapon a hero fights with: its own (Gilgamesh's Gate) or its class's signature weapon. */
 export const heroWeapon = (hero: number) => HERO_WEAPON[hero] ?? SIGNATURE[HEROES[hero]?.cls ?? 0];
 
+/**
+ * Every hero's SECOND STANCE (the STANCE button, fighter.ts Act.Swap): a second weapon of its own with its own moveset, so each
+ * hero has an answer at the range its first weapon is weakest. Gilgamesh draws the Kingsblade out of a portal for close work,
+ * Cu Chulainn throws barbed darts from afar, Dumas fences with a musketeer's rapier, and so on (hero order).
+ */
+export const STANCE_WEAPON: readonly WeaponId[] = [
+  WeaponId.WarAxe, WeaponId.Club, WeaponId.Kingsblade, WeaponId.Darts, WeaponId.ClayArms, WeaponId.DemonHand, WeaponId.Rapier,
+  WeaponId.Shamshir, WeaponId.RopeDart, WeaponId.FireBreath, WeaponId.SwordCane, WeaponId.Sarissa, WeaponId.Shadow, WeaponId.ValkyrieSpear,
+];
+export const stanceWeapon = (hero: number): WeaponId => STANCE_WEAPON[hero] ?? STANCE_WEAPON[0];
+/**
+ * The weapon in a fighter's attack slot: slots 0 and 1 are the loadout's (LIGHT and HEAVY of the first stance), slots 2 and 3
+ * the hero's stance weapon (LIGHT and HEAVY of the second stance).
+ */
+export const weaponAt = (load: { weapons: readonly WeaponId[]; hero?: number }, slot: number): WeaponId =>
+  slot < 2 ? load.weapons[slot] : stanceWeapon(load.hero ?? 0);
+/** The attack slot a button uses in a stance (0 LIGHT / 1 HEAVY; stance 1 is the second weapon's slots). */
+export const slotFor = (button: 0 | 1, stance: number) => button + (stance ? 2 : 0);
+
 /** Per-hero balance on top of the class: multipliers on the class's own numbers, for a hero who fights unlike its
  * class-mates. Jack the Ripper is a Berserker with knives, not a hammer: quicker on his feet, out of a swing and out of
  * a dodge than Humbaba, and each cut a little deeper. */
@@ -149,6 +168,24 @@ export const WEAPON_LOOKS: WeaponLook[] = [
   { name: 'Valkyrie Shield', blurb: 'A tower shield: bash, block and shove. Hold for a guard-breaking charge.', icon: 'g-shield' },
 ];
 export const weaponLookOf = (hero: number): WeaponLook => WEAPON_LOOKS[hero] ?? WEAPON_LOOKS[0];
+/** The second stance's weapon as the menus show it (hero order; icons from tools/art-gen icons-stances). */
+export const STANCE_LOOKS: WeaponLook[] = [
+  { name: 'Jaffa War-Axe', blurb: 'Heavy two-handed chops; the third bites into the ground.', icon: 's-00' },
+  { name: 'Olive-Wood Club', blurb: 'Wide, brutal swings; the third slams the ground and breaks guards.', icon: 's-01' },
+  { name: 'Kingsblade', blurb: 'A golden sword drawn from a portal, swung one-handed. Hold to charge a golden lunge.', icon: 's-02' },
+  { name: 'Barbed Darts', blurb: 'Darts thrown from range. Hold to hurl a great javelin.', icon: 's-03' },
+  { name: 'Clay Arms', blurb: 'Arms reshaped into blades and hammers: quick close blows, an uppercut that pops them up.', icon: 's-04' },
+  { name: "Demon's Hand", blurb: 'A demon claw strikes far in front of her; the third drags the target in.', icon: 's-05' },
+  { name: "Musketeer's Rapier", blurb: 'Long fencing thrusts that crit at the point. Hold to charge a running lunge.', icon: 's-06' },
+  { name: 'Shamshir', blurb: 'Wide curved cuts; the third spins and cuts both sides.', icon: 's-07' },
+  { name: 'Rope Dart', blurb: 'A dart on a cord at mid range; the third hooks the target back.', icon: 's-08' },
+  { name: 'Cedar Fire', blurb: 'Fire breath that sets the target burning.', icon: 's-09' },
+  { name: 'Sword-Cane', blurb: 'Cane jabs, a hook that pulls, then the hidden blade.', icon: 's-10' },
+  { name: 'Sarissa', blurb: 'The long pike: the longest pokes in the game. Hold to charge a phalanx lunge.', icon: 's-11' },
+  { name: 'Shadow of Death', blurb: 'Her colossal shadow strikes far ahead; its bite slows.', icon: 's-12' },
+  { name: 'Valkyrie Spear', blurb: 'Thrusts past the shield. Hold to hurl the spear.', icon: 's-13' },
+];
+export const stanceLookOf = (hero: number): WeaponLook => STANCE_LOOKS[hero] ?? STANCE_LOOKS[0];
 
 export const DEFAULT_LOADOUT: Loadout = { weapons: [WeaponId.Sword, WeaponId.Sword], skill: 0, cls: ClassId.Saber, hero: 0 };
 

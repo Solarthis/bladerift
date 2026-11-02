@@ -422,7 +422,7 @@ describe('protocol round-trip', () => {
     expect(b.buff).toBe(true);
     expect(b.veil).toBe(false);
     expect(b.rift).toBe(1000);
-    expect(b.weapons).toEqual([WeaponId.Quill, WeaponId.Quill]);
+    expect(b.weapons).toEqual([WeaponId.Quill, WeaponId.Quill, WeaponId.Rapier, WeaponId.Rapier]);
 
     // the recipient's own fighter is sent whole
     expect(snap.self).not.toBeNull();

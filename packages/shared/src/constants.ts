@@ -1,5 +1,5 @@
 /** Wire protocol version. Bump on any incompatible change to protocol.ts. */
-export const PROTOCOL_VERSION = 16;
+export const PROTOCOL_VERSION = 17;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -146,6 +146,12 @@ export const FIGHTER = {
  *   window that parries nothing costs `whiffRift` of the Rift gauge, so guessing has a price. The press is buffered only
  *   FIGHTER.buffer ticks (counted through freezes too), never longer.
  */
+/**
+ * The STANCE button (heroes.ts STANCE_WEAPON, fighter.ts Act.Swap): the hero switches to its other weapon. The change takes
+ * `ticks`; the weapon in hand changes at `flip`, and from then on any action cancels the rest. On the ground or in the air.
+ */
+export const STANCE = { ticks: 16, flip: 6 } as const;
+
 export const PARRY = {
   window: 8,
   rearm: 45,

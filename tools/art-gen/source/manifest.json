@@ -320,6 +320,14 @@
       "ref": "icons-abilities.png",
       "seconds": 83,
       "at": "2026-11-02T13:08:45.448Z"
+    },
+    {
+      "name": "icons-stances",
+      "ok": true,
+      "prompt": "Rules for the whole sheet:\n- A uniform set of SQUARE game ability icons for a dark-fantasy duelling game, laid out as an exact 4 x 4 grid of equal square cells\n  (image size 1024x1024, so every icon is 256x256 and fills its cell edge to edge).\n- EVERY icon shares the same frame: a thin bevelled dark-iron square border with small gold corner studs, and a deep, richly\n  shaded background inside it (each icon may tint its background to its theme). The subject is painted large, centred and\n  readable at 48 px: bold silhouette, strong rim light, painterly hand-painted style matching the attached reference.\n- NO text, NO letters, NO numbers, NO labels anywhere. Icons never bleed into each other; keep the grid perfectly aligned.\nMatch the attached sheet's frame and style exactly. Each of the first 14 cells is the SECOND-STANCE WEAPON of one hero, in hero order\n(hero 0 first, left to right, top row first); cell 15 is the STANCE CHANGE button; cell 16 is spare:\nRow 1: (1) a huge two-handed Danish war-axe with a broad crescent steel head engraved with a gold lion; (2) a massive knotted olive-wood club\n       bound with bronze bands; (3) an ornate golden longsword with a ruby-set crossguard emerging hilt-first from a glowing gold portal ring;\n       (4) three short barbed throwing darts with bone-white shafts and crimson heads, fanned, cyan glints.\nRow 2: (5) a forearm of living golden clay reshaping into a blade, glowing seams; (6) a shadowy demon claw with pink-violet talons reaching out\n       of a magenta magic circle; (7) a musketeer's swept-hilt rapier with a gold basket guard, a thin amber gleam along the blade; (8) a deeply\n       curved Persian shamshir sabre, dark steel with a teal sheen.\nRow 3: (9) a rope dart: a slim steel dart blade on a dark cord whirled in a loop, cyan trail; (10) a monstrous beast's jaws breathing a roaring\n       gout of orange fire; (11) a black lacquered gentleman's walking cane with a silver knob, a thin silver blade half drawn from it; (12) a very\n       long Macedonian pike (sarissa) with a leaf-shaped blade, drawn diagonally corner to corner, an orange ember glow.\nRow 4: (13) a towering violet-black shadow beast's claw and burning violet eye; (14) a long silver winged spear with glowing pale-blue runes;\n       (15) STANCE CHANGE: two weapons (a sword and a spear, generic steel) crossing and rotating around each other in a bright gold circular\n       swap arrow; (16) a plain empty dark card with a gold rim (spare).",
+      "ref": "icons-abilities.png",
+      "seconds": 95,
+      "at": "2026-11-02T18:49:36.661Z"
     }
   ]
 }

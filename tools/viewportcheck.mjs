@@ -124,7 +124,7 @@ for (const [w, h] of PHONE_SIZES) {
     await p.goto(url);
     await startPractice(p);
     const tiles = await rects(p, '.tb');
-    check(tiles.length === 8, `${w}x${h}: eight touch tiles (found ${tiles.length})`);
+    check(tiles.length === 9, `${w}x${h}: nine touch tiles (found ${tiles.length})`);
     const sizes = new Set(tiles.map((t) => `${Math.round(t.w)}x${Math.round(t.h)}`));
     check(sizes.size === 1, `${w}x${h}: the touch tiles are one square size (${[...sizes].join(', ')})`);
     for (let i = 0; i < tiles.length; i++) {
